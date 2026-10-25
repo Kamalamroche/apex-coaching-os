@@ -1,0 +1,25 @@
+{
+  "name": "apex-coaching-os",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @apex/web",
+    "build": "npm run build -w @apex/web",
+    "preview": "npm run preview -w @apex/web",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test && npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}
