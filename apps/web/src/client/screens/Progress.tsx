@@ -1,5 +1,6 @@
 import { Bar, Icons, Label, Spark } from "@apex/ui";
 import { useState } from "react";
+import { SampleNote } from "../../app/AppContext";
 
 const RECOVERY = [["Sleep", "7 h 24 m", 82, "var(--data)"], ["Resting HR", "58 bpm", 70, "var(--good)"], ["Steps", "8,412", 84, "var(--act)"]] as const;
 
@@ -8,6 +9,7 @@ export function Progress() {
   return (
     <>
       <div><div className="eyebrow">Progress</div><h1 className="h1">8 weeks in</h1></div>
+      <SampleNote />
       <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
         <div className="kpi"><b>62.3</b><small>Weight, kg</small><i style={{ color: "var(--good)" }}>−1.2 since start</i></div>
         <div className="kpi"><b>70</b><small>Trap bar, kg × 5</small><i style={{ color: "var(--good)" }}>+15 since start</i></div>

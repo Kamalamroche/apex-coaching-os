@@ -16,11 +16,13 @@ interface ShellProps<T extends string> {
   tab: T;
   setTab: (t: T) => void;
   wide?: boolean;
+  /** Extra buttons in the top bar, e.g. Sign out. */
+  actions?: ReactNode;
   children: ReactNode;
 }
 
 /** App frame: top bar with logo and theme, content, bottom tab bar. */
-export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, wide, children }: ShellProps<T>) {
+export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, wide, actions, children }: ShellProps<T>) {
   return (
     <div className={`shell ${wide ? "wide" : ""}`}>
       <div className="top">
@@ -29,7 +31,7 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
           <Icons.logo width={22} height={22} />
           <b style={{ fontSize: 19 }}>APEX</b>
         </div>
-        <div style={{ display: "flex", gap: 6 }}><ThemeButton /></div>
+        <div style={{ display: "flex", gap: 6 }}>{actions}<ThemeButton /></div>
       </div>
       <main className="main">{children}</main>
       <nav className="tabs" aria-label={`${side} navigation`}>

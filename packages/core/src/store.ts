@@ -1,10 +1,12 @@
 import { INITIAL_MESSAGES, INITIAL_WORKOUT } from "./data/workout";
 import type { Message, SessionLog, Workout } from "./types";
+import type { SessionSets } from "./session";
 
-/* The data both apps share. In demo mode it lives in localStorage, so a coach edit in one
-   tab shows up in the client tab straight away (the browser fires a `storage` event).
-   The Supabase implementation will keep the same get/update/subscribe shape, backed by
-   the database and Realtime instead. */
+/* The data both apps share, behind one interface with two implementations:
+   - the demo store (here): localStorage, so a coach edit in one tab shows up in the client
+     tab straight away (the browser fires a `storage` event);
+   - the Supabase store (apps/web/src/data): the database, kept live with Realtime.
+   Screens only talk to this interface, so they work the same in both modes. */
 
 export interface ApexState {
   workout: Workout;
@@ -14,8 +16,13 @@ export interface ApexState {
 
 export interface ApexStore {
   get(): ApexState;
-  update(updater: (s: ApexState) => ApexState): void;
   subscribe(listener: () => void): () => void;
+  /** Coach edit to the program. Saved as you type. */
+  saveWorkout(workout: Workout): void;
+  /** Client finished a session. `sets` is every set as logged. */
+  finishSession(log: SessionLog, sets: SessionSets): void;
+  sendMessage(from: Message["from"], text: string): void;
+  /** Demo only: back to the sample data. */
   reset(): void;
 }
 
@@ -43,8 +50,9 @@ function read(storage: StorageLike | null): ApexState {
 export function createDemoStore(
   storage: StorageLike | null = safeLocalStorage(),
   events: StorageEventTarget | null = typeof window === "undefined" ? null : window,
+  initial: () => ApexState = initialState,
 ): ApexStore {
-  let state = read(storage);
+  let state = storage ? read(storage) : initial();
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
 
@@ -54,17 +62,21 @@ export function createDemoStore(
     emit();
   };
 
+  const update = (updater: (s: ApexState) => ApexState) => {
+    state = updater(state);
+    try {
+      storage?.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      /* storage full or blocked: the change still applies in this tab */
+    }
+    emit();
+  };
+
   return {
     get: () => state,
-    update(updater) {
-      state = updater(state);
-      try {
-        storage?.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        /* storage full or blocked: the change still applies in this tab */
-      }
-      emit();
-    },
+    saveWorkout: (workout) => update((s) => ({ ...s, workout })),
+    finishSession: (log) => update((s) => ({ ...s, log })),
+    sendMessage: (from, text) => update((s) => ({ ...s, messages: [...s.messages, { from, text, time: "Now" }] })),
     subscribe(listener) {
       if (listeners.size === 0) events?.addEventListener("storage", onStorage);
       listeners.add(listener);

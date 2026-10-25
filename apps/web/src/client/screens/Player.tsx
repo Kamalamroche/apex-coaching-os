@@ -4,12 +4,14 @@ import {
 } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useEffect, useRef, useState } from "react";
-import { store } from "../../store";
+import { useAppInfo } from "../../app/AppContext";
+import { useStore } from "../../data/StoreContext";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
 /** Guided workout: one exercise per screen, pre-filled sets, auto rest timer, superset auto-advance. */
 export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
+  const store = useStore();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
   const [w] = useState(() => store.get().workout);
   const [idx, setIdx] = useState(0);
@@ -124,20 +126,22 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
 }
 
 function Finish({ workout: w, sets, minutes, onDone }: { workout: Workout; sets: SessionSets; minutes: () => number; onDone: () => void }) {
+  const store = useStore();
+  const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const volume = sessionVolume(sets);
   const prs = countPersonalBests(w, sets, PREVIOUS_BEST_KG);
   const count = completedSets(sets);
   const save = () => {
     if (sessionRpe === null) return;
-    store.update((s) => ({ ...s, log: { workoutName: w.name, sets: count, volumeKg: volume, minutes: minutes(), rpe: sessionRpe, prs } }));
+    store.finishSession({ workoutName: w.name, sets: count, volumeKg: volume, minutes: minutes(), rpe: sessionRpe, prs }, sets);
     onDone();
   };
   return (
     <div className="shell">
       <main className="main" style={{ paddingBottom: 40 }}>
         <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete</div>
-        <h1 className="h1">Nice work, Priya.</h1>
+        <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">
           <div className="kpi"><b>{count}</b><small>Sets</small></div>
           <div className="kpi"><b>{volume.toLocaleString()}</b><small>kg lifted</small></div>
@@ -146,7 +150,7 @@ function Finish({ workout: w, sets, minutes, onDone }: { workout: Workout; sets:
         {prs > 0 && (
           <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)" }}>
             <div className="h3">🎉 {prs} new personal best{prs > 1 ? "s" : ""}</div>
-            <div className="small">Kamal will see it on the Brief.</div>
+            <div className="small">{coachName} will see it on the Brief.</div>
           </div>
         )}
         <div className="card">
@@ -154,7 +158,7 @@ function Finish({ workout: w, sets, minutes, onDone }: { workout: Workout; sets:
           <div className="rpe">{RPE_SCALE.map((n) => <button key={n} className={sessionRpe === n ? "on" : ""} onClick={() => setSessionRpe(n)}>{n}</button>)}</div>
           <div className="tiny" style={{ marginTop: 6 }}>6 = easy, 10 = maximal</div>
         </div>
-        <input id="sessionnote" className="field" placeholder="Note for Kamal (optional)" />
+        <input id="sessionnote" className="field" placeholder={`Note for ${coachName} (optional)`} />
         <button className="btn act block" style={{ minHeight: 52 }} disabled={sessionRpe === null} onClick={save}>Save and finish</button>
       </main>
     </div>

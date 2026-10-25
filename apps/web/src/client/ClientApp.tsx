@@ -1,7 +1,8 @@
 import { useApexState } from "@apex/core/react";
 import { Shell, useToast, type TabDef } from "@apex/ui";
 import { useState } from "react";
-import { store } from "../store";
+import { useAppInfo } from "../app/AppContext";
+import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
 import { More } from "./screens/More";
 import { Player } from "./screens/Player";
@@ -12,6 +13,8 @@ import { Train } from "./screens/Train";
 type Tab = "today" | "train" | "progress" | "chat" | "more";
 
 export function ClientApp() {
+  const store = useStore();
+  const { coachName, signOut } = useAppInfo();
   const { messages } = useApexState(store);
   const [tab, setTab] = useState<Tab>("today");
   const [playing, setPlaying] = useState(false);
@@ -27,11 +30,11 @@ export function ClientApp() {
   const start = () => setPlaying(true);
 
   if (playing) {
-    return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say("Session saved · Coach Kamal can see it"); }} />;
+    return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/" tabs={tabs} tab={tab} setTab={setTab}>
-      {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say("Thanks, Kamal will see this"); }} />}
+    <Shell side="Client" switchHref="/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+      {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} />}
       {tab === "train" && <Train start={start} />}
       {tab === "progress" && <Progress />}
       {tab === "chat" && <Chat />}

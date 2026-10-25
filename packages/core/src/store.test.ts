@@ -14,7 +14,7 @@ describe("demo store", () => {
   it("persists updates so a second app instance reads them", () => {
     const storage = memoryStorage();
     const coach = createDemoStore(storage, null);
-    coach.update((s) => ({ ...s, workout: { ...s.workout, name: "Edited" } }));
+    coach.saveWorkout({ ...coach.get().workout, name: "Edited" });
     const client = createDemoStore(storage, null);
     expect(client.get().workout.name).toBe("Edited");
   });
@@ -23,9 +23,9 @@ describe("demo store", () => {
     const store = createDemoStore(memoryStorage(), null);
     const fn = vi.fn();
     const off = store.subscribe(fn);
-    store.update((s) => s);
+    store.sendMessage("client", "hi");
     off();
-    store.update((s) => s);
+    store.sendMessage("client", "again");
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
@@ -36,10 +36,17 @@ describe("demo store", () => {
     expect(createDemoStore(null, null).get()).toEqual(initialState());
   });
 
+  it("appends messages in order", () => {
+    const store = createDemoStore(memoryStorage(), null);
+    const before = store.get().messages.length;
+    store.sendMessage("client", "Hip felt fine");
+    expect(store.get().messages.slice(before)).toEqual([{ from: "client", text: "Hip felt fine", time: "Now" }]);
+  });
+
   it("reset clears saved data", () => {
     const storage = memoryStorage();
     const store = createDemoStore(storage, null);
-    store.update((s) => ({ ...s, log: { workoutName: "x", sets: 1, volumeKg: 1, minutes: 1, rpe: 7, prs: 0 } }));
+    store.finishSession({ workoutName: "x", sets: 1, volumeKg: 1, minutes: 1, rpe: 7, prs: 0 }, {});
     store.reset();
     expect(store.get().log).toBeNull();
     expect(storage.getItem(DEMO_STORAGE_KEY)).toBeNull();

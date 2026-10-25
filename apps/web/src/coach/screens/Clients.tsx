@@ -2,7 +2,7 @@ import { CLIENTS, exerciseFor, firstName, formatRest, type TrainingMode } from "
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, Bar, Label, Spark, riskColor } from "@apex/ui";
 import { useState } from "react";
-import { store } from "../../store";
+import { useStore } from "../../data/StoreContext";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
@@ -58,6 +58,7 @@ export function Clients({ id, setId, say, goBuild }: Props) {
 }
 
 function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; onBack: () => void; say: (m: string) => void; goBuild: () => void }) {
+  const store = useStore();
   const { workout } = useApexState(store);
   const [tab, setTab] = useState<ProfileTab>("Overview");
   const c = CLIENTS.find((x) => x.id === clientId);

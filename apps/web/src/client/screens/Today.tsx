@@ -2,7 +2,8 @@ import { exerciseFor } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons } from "@apex/ui";
 import { useState } from "react";
-import { store } from "../../store";
+import { useAppInfo, useStoreStatus } from "../../app/AppContext";
+import { useStore } from "../../data/StoreContext";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -10,12 +11,19 @@ const WEEK: [string, 0 | 1 | 2][] = [["M", 1], ["T", 1], ["W", 0], ["T", 1], ["F
 const TODAY_INDEX = 5;
 
 export function Today({ start, checkedIn, onCheckIn }: { start: () => void; checkedIn: boolean; onCheckIn: () => void }) {
+  const store = useStore();
+  const { clientName, coachName } = useAppInfo();
+  const { status } = useStoreStatus();
   const { workout: w, log } = useApexState(store);
   const [mood, setMood] = useState<number | null>(null);
   return (
     <>
-      <div><div className="eyebrow">Saturday 25 October</div><h1 className="h1">Hi Priya.</h1></div>
-      {!log ? (
+      <div><div className="eyebrow">Saturday 25 October</div><h1 className="h1">Hi {clientName.split(" ")[0]}.</h1></div>
+      {status === "loading" ? (
+        <div className="card"><div className="small">Loading today's session…</div></div>
+      ) : status === "no-program" ? (
+        <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your program. It will appear here as soon as it's ready.</div></div>
+      ) : !log ? (
         <div className="card" style={{ background: "linear-gradient(150deg,var(--act-soft),transparent 70%),var(--card)", borderColor: "color-mix(in srgb,var(--act) 40%,var(--line))", padding: 18 }}>
           <div className="eyebrow" style={{ color: "var(--act)" }}>Today's session · week {w.week} of {w.ofWeeks}</div>
           <h2 className="h1" style={{ fontSize: 28, marginTop: 6 }}>{w.name}</h2>

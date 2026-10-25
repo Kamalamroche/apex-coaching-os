@@ -1,5 +1,6 @@
 import { CLIENTS } from "@apex/core";
 import { Avatar, Label } from "@apex/ui";
+import { SampleNote } from "../../app/AppContext";
 
 const MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
 const REVENUE = [920, 1010, 1080, 1150, 1170, 1220];
@@ -14,6 +15,7 @@ export function Business() {
         <h1 className="h1">£{total.toLocaleString()} monthly recurring</h1>
         <p className="sub">Sample figures. Real numbers come from Stripe once billing is connected.</p>
       </div>
+      <SampleNote />
       <div className="card">
         <div className="sect"><h3 className="h3">Monthly revenue, 6 months</h3><Label kind="data">Data</Label></div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>

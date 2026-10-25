@@ -57,4 +57,32 @@ do $$ begin
   assert (select count(*) from messages) = 0, 'rival sees no messages';
   assert (select count(*) from check_ins) = 1, 'rival sees only own client';
 end $$;
+-- invites: a coach's link links exactly one client, once
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000c3'),('00000000-0000-0000-0000-0000000000c4');
+insert into profiles values ('00000000-0000-0000-0000-0000000000c3','client','New'),('00000000-0000-0000-0000-0000000000c4','client','Late');
+insert into invites (token, coach_id) values ('40000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from invites) = 0, 'rival cannot see invites';
+  begin
+    perform public.accept_invite('40000000-0000-0000-0000-000000000001');
+    raise exception 'a coach account accepted an invite';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c3');
+select public.accept_invite('40000000-0000-0000-0000-000000000001');
+do $$ begin
+  assert (select count(*) from coach_clients where client_id = auth.uid() and coach_id = '00000000-0000-0000-0000-00000000000c') = 1, 'invite links client to coach';
+  assert (select count(*) from profiles where full_name = 'Kamal') = 1, 'client can now see their coach';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c4');
+do $$ begin
+  begin
+    perform public.accept_invite('40000000-0000-0000-0000-000000000001');
+    raise exception 'an invite was used twice';
+  exception when no_data_found then null; end;
+end $$;
+
 select 'RLS checks passed';

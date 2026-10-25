@@ -2,7 +2,8 @@ import { CLIENTS, firstName, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
-import { store } from "../../store";
+import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { useStore } from "../../data/StoreContext";
 
 interface TriageItem {
   id: string;
@@ -35,7 +36,11 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, say }: { openClient: (id: number) => void; say: (m: string) => void }) {
+export function Brief({ openClient, say, clientCount }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number }) {
+  const store = useStore();
+  const { coachName, clientName, mode } = useAppInfo();
+  const clientFirst = firstName(clientName);
+  const clientInitials = clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const { log } = useApexState(store);
   const [handled, setHandled] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<TriageItem | null>(null);
@@ -48,10 +53,11 @@ export function Brief({ openClient, say }: { openClient: (id: number) => void; s
     <>
       <div className="full">
         <div className="eyebrow">Saturday 25 October</div>
-        <h1 className="h1">Morning, Kamal. {pending.length ? `${pending.length} clients need you.` : "Everyone's on track."}</h1>
+        <h1 className="h1">Morning, {coachName}.{mode === "demo" && (pending.length ? ` ${pending.length} clients need you.` : " Everyone's on track.")}</h1>
       </div>
+      <SampleNote />
       <div className="kpis full">
-        <div className="kpi"><b>{CLIENTS.length}</b><small>Active clients</small><i style={{ color: "var(--good)" }}>+2 this month</i></div>
+        <div className="kpi"><b>{clientCount ?? CLIENTS.length}</b><small>Active clients</small>{mode === "demo" && <i style={{ color: "var(--good)" }}>+2 this month</i>}</div>
         <div className="kpi"><b>74%</b><small>Sessions done, 7 days</small><i style={{ color: "var(--good)" }}>+4 pts</i></div>
         <div className="kpi"><b style={{ color: "var(--act)" }}>{pending.length}</b><small>Need you today</small><i style={{ color: "var(--text3)" }}>{TRIAGE.length - pending.length} handled</i></div>
       </div>
@@ -109,16 +115,19 @@ export function Brief({ openClient, say }: { openClient: (id: number) => void; s
         <div className="card flat list">
           {log && (
             <div className="li">
-              <Avatar initials="PS" size={34} tone="var(--good)" />
+              <Avatar initials={clientInitials} size={34} tone="var(--good)" />
               <div className="grow">
-                <div className="h3">Priya finished {log.workoutName}</div>
+                <div className="h3">{clientFirst} finished {log.workoutName}</div>
                 <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets · {log.volumeKg.toLocaleString()} kg · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
               </div>
               <span className="tiny">Just now</span>
             </div>
           )}
+          {mode === "demo" && <>
           <div className="li"><Avatar initials="OT" size={34} tone="var(--good)" /><div className="grow"><div className="h3">Omar hit a 100 kg squat PR</div><div className="small">Send a congratulations?</div></div><button className="btn ghost sm" onClick={() => say("Message sent to Omar")}>Send</button></div>
           <div className="li"><Avatar initials="PS" size={34} /><div className="grow"><div className="h3">Priya submitted a check-in</div><div className="small">Sleep 7.5 h · energy 4/5 · weight 62.3 kg</div></div><button className="btn ghost sm" onClick={() => openClient(5)}>View</button></div>
+          </>}
+          {mode === "live" && !log && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
         </div>
       </section>
 

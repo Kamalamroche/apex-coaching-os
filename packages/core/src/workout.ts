@@ -1,6 +1,10 @@
 import { exerciseById } from "./library";
 import type { Exercise, Workout, WorkoutItem } from "./types";
 
+/** Item keys are UUIDs so a new item can be saved to the database under the same id. */
+export const newKey = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `n${Date.now()}${Math.random().toString(16).slice(2)}`;
+
 /** Isolation and core work rests 60 s, compound work 90 s. */
 export const defaultRestFor = (exercise: Exercise): number =>
   exercise.pattern === "Isolation" || exercise.pattern === "Core" ? 60 : 90;
@@ -9,7 +13,7 @@ export const defaultRestFor = (exercise: Exercise): number =>
 export const nextGroupLetter = (items: WorkoutItem[]): string =>
   String.fromCharCode(65 + new Set(items.map((i) => i.group[0])).size);
 
-export function addExercise(workout: Workout, exercise: Exercise, key = `n${Date.now()}`): Workout {
+export function addExercise(workout: Workout, exercise: Exercise, key = newKey()): Workout {
   const item: WorkoutItem = {
     key,
     group: nextGroupLetter(workout.items),
