@@ -2,12 +2,13 @@ import { EXERCISES, type BodyArea, type Exercise } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { BackLink, Icons } from "@apex/ui";
 import { useState } from "react";
-import { store } from "../../store";
+import { useStore } from "../../data/StoreContext";
 import { ExerciseCard } from "./ExerciseCard";
 
 const FILTERS: ("All" | BodyArea)[] = ["All", "Legs", "Chest", "Back", "Shoulders", "Core"];
 
 export function Train({ start }: { start: () => void }) {
+  const store = useStore();
   const { workout, log } = useApexState(store);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [selected, setSelected] = useState<Exercise | null>(null);

@@ -5,7 +5,8 @@ import {
 import { useApexState } from "@apex/core/react";
 import { Sheet } from "@apex/ui";
 import { useMemo, useState } from "react";
-import { store } from "../../store";
+import { useAppInfo, useStoreStatus } from "../../app/AppContext";
+import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
 
 const RECENT_IDS = [2, 9, 13];
@@ -17,14 +18,17 @@ const highlight = (name: string, q: string) => {
   return <>{name.slice(0, i)}<mark>{name.slice(i, i + s.length)}</mark>{name.slice(i + s.length)}</>;
 };
 
-export function Builder({ say }: { say: (m: string) => void }) {
+export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite: () => void }) {
+  const store = useStore();
+  const { clientName, mode } = useAppInfo();
+  const { status, error } = useStoreStatus();
   const { workout } = useApexState(store);
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const hits = useMemo(() => searchExercises(q), [q]);
 
-  const edit = (fn: (w: Workout) => Workout) => store.update((s) => ({ ...s, workout: fn(s.workout) }));
+  const edit = (fn: (w: Workout) => Workout) => store.saveWorkout(fn(store.get().workout));
   const upd = (key: string, patch: Partial<WorkoutItem>) => edit((w) => updateItem(w, key, patch));
   const add = (ex: Exercise) => {
     const next = addExercise(workout, ex);
@@ -33,10 +37,20 @@ export function Builder({ say }: { say: (m: string) => void }) {
     say(`${ex.name} added · rest set to ${next.items.at(-1)?.restSeconds} s`);
   };
 
+  const first = clientName.split(" ")[0] ?? clientName;
+  if (mode === "live" && !clientName) {
+    return <Empty title="No clients yet" body="Invite your first client, then build their program here." action="Invite a client" onAction={onInvite} />;
+  }
+  if (status === "loading") return <Empty title="Loading program…" body={`Fetching ${first}'s program.`} />;
+  if (status === "error") return <Empty title="Couldn't load the program" body={error ?? "Unknown error"} />;
+  if (status === "no-program") {
+    return <Empty title={`${first} has no program yet`} body="Start from the Foundations template, then edit it here. Changes save as you type." action="Create program" onAction={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />;
+  }
+
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div><div className="eyebrow">Priya Sharma · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
+        <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
         <button className="btn ghost sm" onClick={() => setAiOpen(true)}>Adjust with AI</button>
       </div>
 
@@ -90,13 +104,13 @@ export function Builder({ say }: { say: (m: string) => void }) {
       </div>
       <div className="row">
         <button className="btn ghost" style={{ flex: 1 }} onClick={() => say("Day duplicated to Thursday")}>Duplicate day</button>
-        <button className="btn act" style={{ flex: 1.4 }} onClick={() => say("Published · Priya's app updated")}>Publish to client</button>
+        <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
       </div>
-      <p className="tiny" style={{ margin: 0 }}>Edits save to Priya's program as you type. Open the client app to see them.</p>
+      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}.</p>
 
       {swapping && (
         <Sheet onClose={() => setSwapping(null)} label="Swap exercise">
-          <div><div className="eyebrow">Swap {exerciseFor(swapping).name}</div><h2 className="h2">Same pattern, Priya's equipment</h2></div>
+          <div><div className="eyebrow">Swap {exerciseFor(swapping).name}</div><h2 className="h2">Same pattern, {first}'s equipment</h2></div>
           <div className="card flat list">
             {alternativesFor(exerciseFor(swapping)).map((a) => (
               <button key={a.id} className="li" onClick={() => { edit((w) => swapExercise(w, swapping.key, a.id)); setSwapping(null); say(`Swapped to ${a.name}`); }}>
@@ -117,5 +131,15 @@ export function Builder({ say }: { say: (m: string) => void }) {
         />
       )}
     </>
+  );
+}
+
+function Empty({ title, body, action, onAction }: { title: string; body: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 22 }}>
+      <h1 className="h1" style={{ fontSize: 22 }}>{title}</h1>
+      <p className="sub" style={{ margin: 0 }}>{body}</p>
+      {action && <button className="btn act" style={{ alignSelf: "flex-start" }} onClick={onAction}>{action}</button>}
+    </div>
   );
 }

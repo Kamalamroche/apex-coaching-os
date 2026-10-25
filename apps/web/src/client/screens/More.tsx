@@ -1,6 +1,7 @@
 import { CLIENTS, FOODS, type Food } from "@apex/core";
 import { Avatar, BackLink, Bar } from "@apex/ui";
 import { useState } from "react";
+import { SampleNote } from "../../app/AppContext";
 
 type View = "food" | "habits" | "community";
 const MENU: [View, string, string][] = [
@@ -24,6 +25,7 @@ export function More() {
   return (
     <>
       <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
+      <SampleNote />
       <div className="card flat list">
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>

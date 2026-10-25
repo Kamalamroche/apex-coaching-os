@@ -1,6 +1,7 @@
 import { CLIENTS } from "@apex/core";
 import { Bar } from "@apex/ui";
 import { useState } from "react";
+import { SampleNote } from "../../app/AppContext";
 
 /* kcal, protein, carbs, fat per client. Sample values. */
 const TARGETS: Record<number, [number, number, number, number]> = { 2: [2800, 200, 320, 80], 5: [1900, 120, 210, 60], 3: [1700, 130, 170, 55] };
@@ -15,6 +16,7 @@ export function CoachNutrition() {
   return (
     <>
       <div><div className="eyebrow">Nutrition</div><h1 className="h1">Targets and supplements</h1></div>
+      <SampleNote />
       <select id="nutclient" className="field" value={clientId} onChange={(e) => setClientId(Number(e.target.value))} aria-label="Client">
         {CLIENTS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>

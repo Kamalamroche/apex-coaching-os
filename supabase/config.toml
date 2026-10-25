@@ -7,7 +7,7 @@ schemas = ["public"]
 
 [db]
 port = 54322
-major_version = 16
+major_version = 17
 
 [db.seed]
 enabled = true
@@ -15,4 +15,4 @@ sql_paths = ["./seed.sql"]
 
 [auth]
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/coach/", "http://localhost:5173/client/"]
+additional_redirect_urls = ["http://localhost:5173/**", "http://127.0.0.1:5173/**"]
