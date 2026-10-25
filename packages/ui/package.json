@@ -1,0 +1,12 @@
+{
+  "name": "@apex/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  }
+}

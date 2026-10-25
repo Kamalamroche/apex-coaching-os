@@ -1,0 +1,895 @@
+<title>APEX Coaching OS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Athletic Tech: navy field, orange = act, blue = coach/structure, cyan = data. Dark-first with a full light theme.
+   Layout: phone-first app shell (max 480) with bottom tabs; desktop widens to a two-pane shell at 900px+. */
+:root{
+  --bg:#0A1220; --bg2:#0D1729; --card:#111C30; --card2:#162540; --line:#1F2E4A; --line2:#2A3D60;
+  --text:#F4F6FA; --text2:#A9B4C8; --text3:#6F7D96;
+  --act:#FF6A1A; --act-ink:#140600; --act-soft:rgba(255,106,26,.14);
+  --blue:#2F6BFF; --blue-soft:rgba(47,107,255,.16);
+  --data:#38BDF8; --data-soft:rgba(56,189,248,.14);
+  --good:#22C55E; --good-soft:rgba(34,197,94,.14);
+  --warn:#F59E0B; --warn-soft:rgba(245,158,11,.14);
+  --crit:#F0524A; --crit-soft:rgba(240,82,74,.14);
+  --ai:#A78BFA; --ai-soft:rgba(167,139,250,.14);
+  --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
+  --r:10px; --r-sm:6px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
+  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
+  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --data:#0284C7; --data-soft:rgba(2,132,199,.10);
+  --good:#15803D; --good-soft:rgba(21,128,61,.10);
+  --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
+  --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
+  --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
+  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
+  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --data:#0284C7; --data-soft:rgba(2,132,199,.10);
+  --good:#15803D; --good-soft:rgba(21,128,61,.10);
+  --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
+  --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
+  --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  color-scheme:light}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--text)}
+body{margin:0;font-family:var(--ui);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:100;background:var(--bg)}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+input,select{font-family:inherit}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums}
+#boot{text-align:center;padding:80px 16px;color:var(--text3);letter-spacing:.2em;font-size:12px}
+
+/* ---------- shell ---------- */
+.shell{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.top .side{font:700 11px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;padding:6px 9px;border-radius:var(--r-sm);border:1px solid var(--line2);color:var(--text2)}
+.iconbtn{background:none;border:1px solid var(--line);border-radius:var(--r-sm);height:34px;min-width:34px;padding:0 10px;font-size:13px;color:var(--text2)}
+.main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:18px}
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:50;background:color-mix(in srgb,var(--bg) 95%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:8px max(6px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+.tab{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--text3);position:relative;min-height:48px}
+.tab svg{width:22px;height:22px}
+.tab span{font-size:11px;font-weight:600;letter-spacing:.02em}
+.tab.on{color:var(--text)}
+.tab.on svg{color:var(--act)}
+.tab .dot{position:absolute;top:4px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--act)}
+
+/* ---------- type ---------- */
+.eyebrow{font:700 11px/1.2 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.h1{font:900 26px/1.1 var(--head);font-stretch:112%;letter-spacing:-.01em;margin:4px 0 0;text-wrap:balance}
+.h2{font:800 18px/1.2 var(--head);font-stretch:108%;margin:0}
+.h3{font:700 15px/1.25 var(--ui);margin:0}
+.sub{color:var(--text2);font-size:14px;margin:4px 0 0}
+.small{font-size:13px;color:var(--text2)}
+.tiny{font-size:12px;color:var(--text3)}
+.sect{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}
+.link{background:none;border:0;color:var(--blue);font-weight:600;font-size:13px;padding:0}
+
+/* ---------- surfaces ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card.flat{padding:0;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px}
+.list>*+*{border-top:1px solid var(--line)}
+.li{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;background:none;border:0;text-align:left;min-height:56px}
+.grow{flex:1;min-width:0}
+.ava{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0;background:var(--blue-soft);color:var(--blue)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi b{display:block;font:700 22px/1.1 var(--num);letter-spacing:-.02em}
+.kpi small{display:block;font-size:12px;color:var(--text2);margin-top:4px}
+.kpi i{font-style:normal;font-size:11.5px;font-weight:600}
+.bar{height:6px;border-radius:6px;background:var(--line)}
+.bar>div{height:100%;border-radius:6px;transition:width .5s}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--text2);background:none;white-space:nowrap}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.label{display:inline-flex;align-items:center;gap:5px;font:700 10.5px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:4px}
+.l-data{background:var(--data-soft);color:var(--data)}
+.l-insight{background:var(--warn-soft);color:var(--warn)}
+.l-ai{background:var(--ai-soft);color:var(--ai)}
+.l-dec{background:var(--good-soft);color:var(--good)}
+.l-crit{background:var(--crit-soft);color:var(--crit)}
+
+/* ---------- buttons ---------- */
+.btn{border:0;border-radius:var(--r-sm);font:800 14px/1 var(--ui);letter-spacing:.02em;padding:0 16px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.act{background:var(--act);color:var(--act-ink)}
+.btn.sec{background:var(--blue);color:#fff}
+.btn.ghost{background:none;border:1px solid var(--line2);color:var(--text)}
+.btn.block{width:100%}
+.btn.sm{min-height:34px;font-size:13px;padding:0 12px}
+.btn:disabled{opacity:.45;cursor:default}
+
+/* ---------- inputs ---------- */
+.field{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font-size:15px;padding:11px 12px}
+.cell{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font:700 15px/1 var(--num);padding:10px 4px;text-align:center}
+
+/* ---------- triage ---------- */
+.tri{display:grid;grid-template-columns:4px 1fr;gap:0 12px;padding:12px 14px 12px 0}
+.tri .stripe{border-radius:0 4px 4px 0}
+.tri .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* ---------- player ---------- */
+.video{aspect-ratio:16/10;max-width:100%;border-radius:var(--r);background:linear-gradient(150deg,var(--card2),var(--bg2));border:1px solid var(--line);display:grid;place-items:center;position:relative;overflow:hidden}
+.video svg{width:96px;height:96px;color:var(--text3)}
+.video .tag{position:absolute;left:10px;top:10px}
+.sets{display:grid;grid-template-columns:34px 1fr 1fr 1fr 44px;gap:8px;align-items:center}
+.tick{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line2);background:none;font-size:18px;display:grid;place-items:center}
+.tick.on{background:var(--good);border-color:var(--good);color:#04130A}
+.rest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:calc(100% - 32px);max-width:448px;z-index:60;background:var(--text);color:var(--bg);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.rest b{font:700 26px/1 var(--num)}
+.rpe{display:flex;gap:6px}
+.rpe button{flex:1;min-height:40px;border-radius:var(--r-sm);border:1px solid var(--line2);background:none;font:700 14px/1 var(--num)}
+.rpe button.on{background:var(--act);color:var(--act-ink);border-color:var(--act)}
+
+/* ---------- sheet & toast ---------- */
+.scrim{position:fixed;inset:0;background:rgba(3,7,15,.55);z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-height:85vh;overflow:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:90;background:var(--good);color:#04130A;font-weight:700;font-size:14px;padding:10px 16px;border-radius:999px;white-space:nowrap}
+
+/* ---------- builder ---------- */
+.ex{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:12px 14px}
+.grp{font:800 12px/1 var(--num);color:var(--blue);background:var(--blue-soft);border-radius:4px;padding:5px 0;text-align:center}
+.mini{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.mini label{font-size:10.5px;color:var(--text3);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:flex;flex-direction:column;gap:4px}
+.mini input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:4px;color:var(--text);font:700 14px/1 var(--num);padding:8px 2px;text-align:center}
+.hit{padding:10px 14px;display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;text-align:left}
+.hit mark{background:var(--act-soft);color:var(--act);border-radius:3px;padding:0 2px}
+
+/* ---------- selector ---------- */
+.sel{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));gap:28px;background:radial-gradient(120% 70% at 85% -10%,var(--act-soft),transparent 60%),radial-gradient(90% 60% at 0% 110%,var(--blue-soft),transparent 60%),var(--bg)}
+.wordmark{display:flex;align-items:center;gap:10px}
+.wordmark b{font:900 30px/1 var(--head);font-stretch:125%;letter-spacing:.02em}
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;width:100%;max-width:720px}
+.pick button{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:transform .2s,border-color .2s}
+.pick button:hover{transform:translateY(-2px);border-color:var(--line2)}
+.pick ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px;color:var(--text2)}
+.pick li{display:flex;gap:8px}
+.pick li::before{content:"";width:6px;height:6px;margin-top:7px;border-radius:1px;background:var(--act);flex-shrink:0;transform:rotate(45deg)}
+.pick .cl li::before{background:var(--data)}
+
+@media (min-width:900px){
+  .shell.wide{max-width:1100px}
+  .shell.wide .main{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .shell.wide .main>.full{grid-column:1/-1}
+  .shell.wide .tabs{max-width:1100px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div id="root"><div id="boot">LOADING APEX…</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ═══════════════════════════════════════════════════════════════
+   APEX COACHING OS · v2 prototype · Athletic Tech direction
+   Sample data only. One shared store so a PT edit shows on the
+   client side and a client log shows on the PT side.
+═══════════════════════════════════════════════════════════════ */
+
+/* ---------- icons (2px geometric) ---------- */
+const I = {
+  brief:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13h4l2-5 4 10 2-5h4"/></svg>,
+  clients:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>,
+  build:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12"/></svg>,
+  food:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 5V3M9 3h6M12 13l3-3"/></svg>,
+  money:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>,
+  today:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>,
+  train:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12"/></svg>,
+  progress:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>,
+  chat:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>,
+  more:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>,
+  play:<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>,
+  logo:<svg width="30" height="30" viewBox="0 0 40 40" fill="none"><path d="M20 4 37 34H3Z" stroke="var(--act)" strokeWidth="3.5" strokeLinejoin="round"/><path d="M20 16l7 12H13Z" fill="var(--blue)"/></svg>,
+  figure:<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="32" cy="12" r="5"/><path d="M32 18v18M32 24l-12 6M32 24l12 6M32 36l-8 18M32 36l8 18"/></svg>,
+};
+
+/* ---------- data ---------- */
+const EXERCISES = [
+  { id:1,  name:"Barbell Back Squat",   alias:["squat","back squat"],          pattern:"Squat", cat:"Legs",      equip:"Barbell",  muscles:["Quads","Glutes"],        cues:["Brace before you descend","Knees track over toes","Drive the floor away"], mistake:"Heels lifting at the bottom" },
+  { id:2,  name:"Romanian Deadlift",    alias:["rdl","stiff leg","romanian"],  pattern:"Hinge", cat:"Legs",      equip:"Barbell",  muscles:["Hamstrings","Glutes"],   cues:["Soft knees, push hips back","Bar stays against thighs","Stop when hips stop"], mistake:"Rounding the lower back" },
+  { id:3,  name:"Incline Bench Press",  alias:["incline press","bench"],       pattern:"Push",  cat:"Chest",     equip:"Barbell",  muscles:["Upper chest","Triceps"], cues:["Shoulder blades pinned","Bar to upper chest","Press up and slightly back"], mistake:"Flaring elbows to 90°" },
+  { id:4,  name:"Pull-Up",              alias:["chin","pullup","chin-up"],     pattern:"Pull",  cat:"Back",      equip:"Bodyweight",muscles:["Lats","Biceps"],        cues:["Start from a dead hang","Pull elbows to ribs","Chin over bar"], mistake:"Kipping without control" },
+  { id:5,  name:"Overhead Press",       alias:["ohp","military press"],        pattern:"Push",  cat:"Shoulders", equip:"Barbell",  muscles:["Delts","Triceps"],       cues:["Glutes tight","Head through at lockout","Bar over mid-foot"], mistake:"Leaning back to press" },
+  { id:6,  name:"Barbell Row",          alias:["bent over row","row"],         pattern:"Pull",  cat:"Back",      equip:"Barbell",  muscles:["Lats","Rhomboids"],      cues:["Hinge to 45°","Row to lower ribs","Pause at the top"], mistake:"Using momentum" },
+  { id:7,  name:"Dumbbell Lateral Raise",alias:["lateral","side raise"],       pattern:"Isolation",cat:"Shoulders",equip:"Dumbbell",muscles:["Side delts"],          cues:["Lead with elbows","Stop at shoulder height","Control the lowering"], mistake:"Shrugging" },
+  { id:8,  name:"Hip Thrust",           alias:["glute bridge","thrust"],       pattern:"Hinge", cat:"Legs",      equip:"Barbell",  muscles:["Glutes","Hamstrings"],   cues:["Chin tucked","Shins vertical at top","Squeeze for one second"], mistake:"Arching the lower back" },
+  { id:9,  name:"Goblet Squat",         alias:["goblet"],                      pattern:"Squat", cat:"Legs",      equip:"Dumbbell", muscles:["Quads","Glutes"],        cues:["Elbows inside knees","Chest tall","Sit between heels"], mistake:"Knees caving in" },
+  { id:10, name:"Leg Press",            alias:["press"],                       pattern:"Squat", cat:"Legs",      equip:"Machine",  muscles:["Quads","Glutes"],        cues:["Feet hip width","Lower to 90°","Don't lock knees"], mistake:"Hips lifting off the pad" },
+  { id:11, name:"Dumbbell Bench Press", alias:["db bench","bench"],            pattern:"Push",  cat:"Chest",     equip:"Dumbbell", muscles:["Chest","Triceps"],       cues:["Wrists stacked","Lower to chest level","Press together"], mistake:"Bouncing at the bottom" },
+  { id:12, name:"Lat Pulldown",         alias:["pulldown","lat"],              pattern:"Pull",  cat:"Back",      equip:"Cable",    muscles:["Lats","Biceps"],         cues:["Chest up","Pull to collarbone","Slow return"], mistake:"Leaning far back" },
+  { id:13, name:"Face Pull",            alias:["facepull","rear delt"],        pattern:"Pull",  cat:"Back",      equip:"Cable",    muscles:["Rear delts","Rotator cuff"],cues:["Thumbs back","Pull to eyes","Elbows high"], mistake:"Arching back" },
+  { id:14, name:"Plank",                alias:["front plank","core"],          pattern:"Core",  cat:"Core",      equip:"Bodyweight",muscles:["Core"],                  cues:["Ribs down","Squeeze glutes","Breathe"], mistake:"Hips sagging" },
+  { id:15, name:"Trap Bar Deadlift",    alias:["hex bar","deadlift"],          pattern:"Hinge", cat:"Legs",      equip:"Trap bar", muscles:["Glutes","Quads","Back"], cues:["Handles in line with ankles","Push the floor","Stand tall"], mistake:"Hips shooting up first" },
+];
+const exById = id => EXERCISES.find(e=>e.id===id);
+const altsFor = ex => EXERCISES.filter(e=>e.id!==ex.id && e.pattern===ex.pattern).slice(0,3);
+
+const CLIENTS = [
+  { id:1, name:"Sarah Mitchell", ini:"SM", plan:"Hypertrophy B2", goal:"Muscle gain",   mode:"Online",    adherence:42, streak:2,  lastSeen:"4 days ago", revenue:150, weight:68.2, bf:24.1, risk:"high" },
+  { id:2, name:"James Kowalski", ini:"JK", plan:"Strength Block", goal:"Strength",      mode:"Hybrid",    adherence:78, streak:11, lastSeen:"Yesterday",  revenue:220, weight:86.4, bf:17.8, risk:"medium" },
+  { id:3, name:"Lena Rossi",     ini:"LR", plan:"Fat Loss 8wk",   goal:"Fat loss",      mode:"Online",    adherence:65, streak:6,  lastSeen:"2 days ago", revenue:150, weight:71.0, bf:26.3, risk:"medium" },
+  { id:4, name:"Omar Tahir",     ini:"OT", plan:"Powerlifting",   goal:"Powerlifting",  mode:"In person", adherence:94, streak:28, lastSeen:"Today",      revenue:320, weight:84.7, bf:15.2, risk:"low" },
+  { id:5, name:"Priya Sharma",   ini:"PS", plan:"Foundations",    goal:"General fitness",mode:"Online",   adherence:88, streak:19, lastSeen:"Today",      revenue:120, weight:62.5, bf:23.0, risk:"low" },
+  { id:6, name:"Marcus Webb",    ini:"MW", plan:"Athletic Perf.", goal:"Performance",   mode:"Hybrid",    adherence:71, streak:8,  lastSeen:"Yesterday",  revenue:260, weight:80.3, bf:13.9, risk:"medium" },
+];
+const riskC = r => ({high:"var(--crit)",medium:"var(--warn)",low:"var(--good)"}[r]);
+
+/* Today's workout for the demo client (Priya). This one object is what both apps read. */
+const INITIAL_WORKOUT = {
+  name:"Lower A · Strength", week:4, of:8, minutes:48,
+  items:[
+    { key:"a", group:"A",  exId:15, sets:4, reps:"5",    kg:70,  rpe:8, rest:150, last:"67.5 kg × 5 @ RPE 7" },
+    { key:"b1",group:"B1", exId:2,  sets:3, reps:"8",    kg:50,  rpe:8, rest:0,   last:"50 kg × 8 @ RPE 8" },
+    { key:"b2",group:"B2", exId:14, sets:3, reps:"40s",  kg:0,   rpe:7, rest:90,  last:"35 s" },
+    { key:"c", group:"C",  exId:9,  sets:3, reps:"10",   kg:20,  rpe:7, rest:75,  last:"18 kg × 10 @ RPE 7" },
+  ],
+};
+
+const FOODS = [
+  { id:1, name:"Chicken breast, 100 g", kcal:165, p:31, c:0,  f:4 },
+  { id:2, name:"Brown rice, 100 g",     kcal:216, p:5,  c:45, f:2 },
+  { id:3, name:"Whole egg, large",      kcal:78,  p:6,  c:0,  f:5 },
+  { id:4, name:"Greek yogurt, 150 g",   kcal:100, p:17, c:6,  f:0 },
+  { id:5, name:"Oats, 50 g",            kcal:188, p:7,  c:32, f:4 },
+  { id:6, name:"Salmon, 100 g",         kcal:208, p:20, c:0,  f:13 },
+  { id:7, name:"Banana, medium",        kcal:105, p:1,  c:27, f:0 },
+  { id:8, name:"Whey protein, 30 g",    kcal:120, p:25, c:3,  f:2 },
+];
+
+/* ---------- small pieces ---------- */
+const Bar = ({pct,color="var(--act)"}) => <div className="bar"><div style={{width:`${Math.max(0,Math.min(pct,100))}%`,background:color}}/></div>;
+const Label = ({kind,children}) => <span className={`label l-${kind}`}>{children}</span>;
+const Ava = ({c,size=40,tone}) => <div className="ava" style={{width:size,height:size,fontSize:size*.36,...(tone?{background:`color-mix(in srgb,${tone} 16%,transparent)`,color:tone}:{})}}>{c}</div>;
+const fmtRest = s => s>=60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}` : `${s}s`;
+
+function useToast(){
+  const [t,setT]=useState(null);
+  useEffect(()=>{ if(!t) return; const id=setTimeout(()=>setT(null),2200); return ()=>clearTimeout(id); },[t]);
+  return [t?<div className="toast" role="status">✓ {t}</div>:null, setT];
+}
+function Sheet({onClose,children}){
+  return <div className="scrim" onClick={onClose}><div className="sheet" onClick={e=>e.stopPropagation()} role="dialog">{children}</div></div>;
+}
+function ThemeBtn(){
+  const [mode,setMode]=useState(()=>{ try{return localStorage.getItem("apex-theme")||"system";}catch(e){return "system";} });
+  useEffect(()=>{ const r=document.documentElement; if(mode==="system") r.removeAttribute("data-theme"); else r.setAttribute("data-theme",mode); try{localStorage.setItem("apex-theme",mode);}catch(e){} },[mode]);
+  const next={system:"dark",dark:"light",light:"system"}[mode];
+  return <button className="iconbtn" onClick={()=>setMode(next)} aria-label={`Theme: ${mode}. Switch to ${next}`}>{mode==="dark"?"Dark":mode==="light"?"Light":"Auto"}</button>;
+}
+
+/* ═════════════ ROOT ═════════════ */
+function Root(){
+  const [app,setApp]=useState(null);
+  const [workout,setWorkout]=useState(INITIAL_WORKOUT);   // the shared program
+  const [log,setLog]=useState(null);                      // the client's last finished session
+  const [messages,setMessages]=useState([
+    {from:"coach", text:"Great work on Tuesday, Priya. Trap bar is up 2.5 kg today.", time:"08:02"},
+    {from:"client",text:"Thanks! Hip felt fine on the RDLs.",time:"08:15"},
+  ]);
+  const store={workout,setWorkout,log,setLog,messages,setMessages};
+  useEffect(()=>{ window.scrollTo(0,0); },[app]);
+  if(app==="coach")  return <CoachApp  store={store} onBack={()=>setApp(null)}/>;
+  if(app==="client") return <ClientApp store={store} onBack={()=>setApp(null)}/>;
+  return <Selector onChoose={setApp}/>;
+}
+
+function Selector({onChoose}){
+  return (
+    <div className="sel">
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,textAlign:"center"}}>
+        <div className="wordmark">{I.logo}<b>APEX</b></div>
+        <h1 className="h1" style={{fontSize:"clamp(26px,5vw,40px)",maxWidth:620}}>Simple for the client. Powerful for the coach.</h1>
+        <p className="sub" style={{maxWidth:460}}>Prototype with sample data. Edit Priya's workout as the coach, then open the client app and you'll see the change.</p>
+      </div>
+      <div className="pick">
+        <button onClick={()=>onChoose("coach")}>
+          <span className="eyebrow" style={{color:"var(--act)"}}>For coaches</span>
+          <span className="h2" style={{fontSize:24}}>Coach OS</span>
+          <ul>
+            <li>Morning Brief: who needs you today, and why</li>
+            <li>Progressions suggested from logged RPE</li>
+            <li>Fast builder with synonym search and one-tap swaps</li>
+            <li>Nutrition, check-ins and revenue in one place</li>
+          </ul>
+          <span className="btn act block" style={{marginTop:6}}>Open Coach OS</span>
+        </button>
+        <button onClick={()=>onChoose("client")} className="cl">
+          <span className="eyebrow" style={{color:"var(--data)"}}>For clients</span>
+          <span className="h2" style={{fontSize:24}}>Client app</span>
+          <ul className="cl">
+            <li>Opens on today's workout</li>
+            <li>Guided player with video, cues and rest timer</li>
+            <li>Last time's numbers on every set</li>
+            <li>Progress, messages and nutrition one tap away</li>
+          </ul>
+          <span className="btn sec block" style={{marginTop:6}}>Open client app</span>
+        </button>
+      </div>
+      <ThemeBtn/>
+    </div>
+  );
+}
+
+function Shell({side,onBack,tabs,tab,setTab,wide,children}){
+  return (
+    <div className={`shell ${wide?"wide":""}`}>
+      <div className="top">
+        <button className="iconbtn" onClick={onBack} aria-label="Switch app">← Switch</button>
+        <div className="wordmark" style={{gap:7}}>{React.cloneElement(I.logo,{width:22,height:22})}<b style={{fontSize:19}}>APEX</b></div>
+        <div style={{display:"flex",gap:6}}><ThemeBtn/></div>
+      </div>
+      <main className="main">{children}</main>
+      <nav className="tabs" aria-label={`${side} navigation`}>
+        {tabs.map(t=>(
+          <button key={t.id} className={`tab ${tab===t.id?"on":""}`} onClick={()=>{setTab(t.id);window.scrollTo(0,0);}} aria-current={tab===t.id?"page":undefined}>
+            {I[t.icon]}<span>{t.label}</span>{t.dot&&<i className="dot"/>}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+/* ═════════════ COACH OS ═════════════ */
+function CoachApp({store,onBack}){
+  const [tab,setTab]=useState("brief");
+  const [client,setClient]=useState(null);
+  const [toast,say]=useToast();
+  const open = id => { setClient(id); setTab("clients"); };
+  const TABS=[{id:"brief",icon:"brief",label:"Brief"},{id:"clients",icon:"clients",label:"Clients"},{id:"build",icon:"build",label:"Builder"},{id:"food",icon:"food",label:"Nutrition"},{id:"money",icon:"money",label:"Business"}];
+  return (
+    <Shell side="Coach" onBack={onBack} tabs={TABS} tab={tab} setTab={t=>{setTab(t); if(t!=="clients") setClient(null);}} wide={tab==="brief"||tab==="money"}>
+      {tab==="brief"   && <Brief store={store} open={open} say={say} goBuild={()=>setTab("build")}/>}
+      {tab==="clients" && <Clients id={client} setId={setClient} say={say} goBuild={()=>setTab("build")}/>}
+      {tab==="build"   && <Builder store={store} say={say}/>}
+      {tab==="food"    && <CoachNutrition/>}
+      {tab==="money"   && <Business/>}
+      {toast}
+    </Shell>
+  );
+}
+
+function Brief({store,open,say,goBuild}){
+  const [done,setDone]=useState({});
+  const [draft,setDraft]=useState(null);
+  const [prog,setProg]=useState({2:true,4:true,5:true});
+  const items=[
+    { id:"t1", cid:1, kind:"crit", label:"Insight", title:"Sarah Mitchell has missed 3 sessions", evidence:"Last session 14 Oct · check-in mood 2/5 · adherence 42% (was 81% in September)", action:"Message", msg:"Hi Sarah, I noticed the last couple of weeks have been tough to fit in. No pressure at all. Would a shorter 30-minute version of your sessions help this week?" },
+    { id:"t2", cid:2, kind:"insight", label:"Insight", title:"James's bench has stalled for 3 weeks", evidence:"e1RM 96 → 96 → 95 kg · every top set at RPE 9–9.5", action:"Review", msg:null },
+    { id:"t3", cid:3, kind:"insight", label:"Data", title:"Lena's check-in is 2 days overdue", evidence:"Weekly check-in due Thu 23 Oct · no reply to reminder", action:"Nudge", msg:"Hey Lena, quick reminder that your weekly check-in is ready. It takes about two minutes and helps me adjust next week's plan." },
+  ];
+  const pending=items.filter(i=>!done[i.id]);
+  const finished=store.log;
+  return (<>
+    <div className="full">
+      <div className="eyebrow">Saturday 25 October</div>
+      <h1 className="h1">Morning, Kamal. {pending.length?`${pending.length} clients need you.`:"Everyone's on track."}</h1>
+    </div>
+    <div className="kpis full">
+      <div className="kpi"><b>{CLIENTS.length}</b><small>Active clients</small><i style={{color:"var(--good)"}}>+2 this month</i></div>
+      <div className="kpi"><b>74%</b><small>Sessions done, 7 days</small><i style={{color:"var(--good)"}}>+4 pts</i></div>
+      <div className="kpi"><b style={{color:"var(--act)"}}>{pending.length}</b><small>Need you today</small><i style={{color:"var(--text3)"}}>{3-pending.length} handled</i></div>
+    </div>
+
+    <section>
+      <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
+      <div className="card flat list">
+        {pending.length===0 && <div className="li"><div className="grow"><div className="h3">All clear</div><div className="small">New flags appear here as clients log, skip or check in.</div></div></div>}
+        {pending.map(it=>{
+          const c=CLIENTS.find(x=>x.id===it.cid); const tone=it.kind==="crit"?"var(--crit)":"var(--warn)";
+          return (
+            <div key={it.id} className="tri">
+              <div className="stripe" style={{background:tone}}/>
+              <div>
+                <div className="row" style={{gap:10}}><Ava c={c.ini} size={32} tone={tone}/><div className="grow"><div className="h3">{it.title}</div></div></div>
+                <div style={{marginTop:8,display:"flex",gap:8,alignItems:"flex-start"}}><Label kind={it.label==="Data"?"data":"insight"}>{it.label}</Label><span className="small">{it.evidence}</span></div>
+                <div className="acts">
+                  {it.msg ? <button className="btn act sm" onClick={()=>setDraft(it)}>{it.action}</button>
+                          : <button className="btn act sm" onClick={()=>open(it.cid)}>{it.action}</button>}
+                  <button className="btn ghost sm" onClick={()=>open(it.cid)}>Open client</button>
+                  <button className="btn ghost sm" onClick={()=>{setDone(d=>({...d,[it.id]:true}));say("Dismissed for today");}}>Dismiss</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+
+    <section>
+      <div className="sect"><h2 className="h2">Progressions ready</h2><Label kind="insight">Rule-based</Label></div>
+      <div className="card flat list">
+        {[{cid:2,ex:"Back squat",from:"100 kg",to:"102.5 kg",why:"All 4×5 sets at RPE 7 for two sessions"},{cid:4,ex:"Bench press",from:"110 kg",to:"112.5 kg",why:"Top set RPE 7.5, target 8"},{cid:5,ex:"Trap bar deadlift",from:"67.5 kg",to:"70 kg",why:"4×5 at RPE 7, target 8"}].map(p=>{
+          const c=CLIENTS.find(x=>x.id===p.cid);
+          return (
+            <label key={p.cid} className="li" style={{cursor:"pointer"}}>
+              <input type="checkbox" checked={!!prog[p.cid]} onChange={e=>setProg(s=>({...s,[p.cid]:e.target.checked}))} style={{width:20,height:20,accentColor:"var(--act)"}}/>
+              <div className="grow">
+                <div className="h3">{c.name.split(" ")[0]} · {p.ex}</div>
+                <div className="small"><span className="num">{p.from} → <b style={{color:"var(--act)"}}>{p.to}</b></span> · {p.why}</div>
+              </div>
+            </label>
+          );
+        })}
+        <div style={{padding:12}}><button className="btn act block" disabled={!Object.values(prog).some(Boolean)} onClick={()=>{say(`${Object.values(prog).filter(Boolean).length} progressions applied to next session`);setProg({});}}>Apply selected</button></div>
+      </div>
+    </section>
+
+    <section>
+      <div className="sect"><h2 className="h2">Latest activity</h2></div>
+      <div className="card flat list">
+        {finished && <div className="li"><Ava c="PS" size={34} tone="var(--good)"/><div className="grow"><div className="h3">Priya finished {finished.name}</div><div className="small"><Label kind="data">Data</Label> <span className="num">{finished.sets} sets · {finished.volume.toLocaleString()} kg · RPE {finished.rpe}</span>{finished.prs>0?` · ${finished.prs} PR`:""}</div></div><span className="tiny">Just now</span></div>}
+        <div className="li"><Ava c="OT" size={34} tone="var(--good)"/><div className="grow"><div className="h3">Omar hit a 100 kg squat PR</div><div className="small">Send a congratulations?</div></div><button className="btn ghost sm" onClick={()=>say("Message sent to Omar")}>Send</button></div>
+        <div className="li"><Ava c="PS" size={34}/><div className="grow"><div className="h3">Priya submitted a check-in</div><div className="small">Sleep 7.5 h · energy 4/5 · weight 62.3 kg</div></div><button className="btn ghost sm" onClick={()=>open(5)}>View</button></div>
+      </div>
+    </section>
+
+    {draft && <Sheet onClose={()=>setDraft(null)}>
+      <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">Drafted in your tone · nothing sent yet</span></div>
+      <h2 className="h2">Message to {CLIENTS.find(c=>c.id===draft.cid).name.split(" ")[0]}</h2>
+      <textarea id="draftmsg" className="field" rows="5" defaultValue={draft.msg} style={{resize:"vertical",lineHeight:1.5}}/>
+      <div className="row"><button className="btn ghost" style={{flex:1}} onClick={()=>setDraft(null)}>Cancel</button><button className="btn act" style={{flex:2}} onClick={()=>{setDone(d=>({...d,[draft.id]:true}));setDraft(null);say("Sent · logged as your decision");}}>Approve and send</button></div>
+    </Sheet>}
+  </>);
+}
+
+function Clients({id,setId,say,goBuild}){
+  const [q,setQ]=useState(""); const [seg,setSeg]=useState("All");
+  const [tab,setTab]=useState("Overview");
+  const c=CLIENTS.find(x=>x.id===id);
+  if(c){
+    return (<>
+      <button className="link" onClick={()=>setId(null)} style={{alignSelf:"flex-start"}}>← All clients</button>
+      <div className="row"><Ava c={c.ini} size={56} tone={riskC(c.risk)}/><div className="grow"><h1 className="h1" style={{fontSize:22}}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div></div>
+      <div className="chips">{["Overview","Program","Check-ins"].map(t=><button key={t} className={`chip ${tab===t?"on":""}`} onClick={()=>setTab(t)}>{t}</button>)}</div>
+      {tab==="Overview" && <>
+        <div className="kpis">
+          <div className="kpi"><b style={{color:riskC(c.risk)}}>{c.adherence}%</b><small>Adherence, 4 wks</small></div>
+          <div className="kpi"><b>{c.weight}</b><small>Weight, kg</small></div>
+          <div className="kpi"><b>{c.streak}</b><small>Day streak</small></div>
+        </div>
+        <div className="card"><div className="sect" style={{marginBottom:6}}><h3 className="h3">Squat e1RM, 8 weeks</h3><Label kind="data">Data</Label></div><Spark data={[88,90,91,94,94,97,99,101]} unit="kg"/></div>
+        <div className="row" style={{flexWrap:"wrap"}}>
+          <button className="btn act" style={{flex:1}} onClick={()=>say(`Message thread opened with ${c.name.split(" ")[0]}`)}>Message</button>
+          <button className="btn ghost" style={{flex:1}} onClick={goBuild}>Edit program</button>
+        </div>
+      </>}
+      {tab==="Program" && <div className="card flat list">
+        {INITIAL_WORKOUT.items.map(it=>{const ex=exById(it.exId);return <div key={it.key} className="ex"><span className="grp">{it.group}</span><div className="grow"><div className="h3">{ex.name}</div><div className="small num">{it.sets}×{it.reps}{it.kg?` · ${it.kg} kg`:""} · RPE {it.rpe}</div></div><span className="tiny num">{it.rest?fmtRest(it.rest):"→"}</span></div>;})}
+      </div>}
+      {tab==="Check-ins" && <div className="card flat list">
+        {[["Sat 18 Oct","62.6 kg","Energy 4/5 · sleep 7 h","Hip a little tight after RDLs"],["Sat 11 Oct","62.9 kg","Energy 3/5 · sleep 6 h","Busy week at work"],["Sat 4 Oct","63.1 kg","Energy 4/5 · sleep 7.5 h","Loving the new program"]].map((r,i)=>
+          <div key={i} className="li"><div className="grow"><div className="h3">{r[0]} · <span className="num">{r[1]}</span></div><div className="small">{r[2]}</div><div className="tiny">“{r[3]}”</div></div></div>)}
+        <div style={{padding:12}}><div className="row" style={{alignItems:"flex-start"}}><Label kind="ai">AI summary</Label><span className="small">Weight down 0.5 kg over 3 weeks, energy steady, one mention of hip tightness. Suggest asking about the hip before progressing RDLs.</span></div></div>
+      </div>}
+    </>);
+  }
+  const segs=["All","Needs attention","Online","Hybrid","In person"];
+  const list=CLIENTS.filter(x=>(seg==="All"||(seg==="Needs attention"?x.risk!=="low":x.mode===seg)) && x.name.toLowerCase().includes(q.toLowerCase()));
+  return (<>
+    <div><div className="eyebrow">Clients</div><h1 className="h1">{CLIENTS.length} active</h1></div>
+    <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={e=>setQ(e.target.value)}/>
+    <div className="chips">{segs.map(s=><button key={s} className={`chip ${seg===s?"on":""}`} onClick={()=>setSeg(s)}>{s}</button>)}</div>
+    <div className="card flat list">
+      {list.length===0 && <div className="li"><div className="small">No clients match. Clear the search or pick another segment.</div></div>}
+      {list.map(x=>(
+        <button key={x.id} className="li" onClick={()=>setId(x.id)}>
+          <Ava c={x.ini} tone={riskC(x.risk)}/>
+          <div className="grow"><div className="h3">{x.name}</div><div className="small">{x.plan} · {x.mode}</div><div style={{marginTop:6}}><Bar pct={x.adherence} color={riskC(x.risk)}/></div></div>
+          <div style={{textAlign:"right"}}><div className="num" style={{fontWeight:700,color:riskC(x.risk)}}>{x.adherence}%</div><div className="tiny">{x.lastSeen}</div></div>
+        </button>
+      ))}
+    </div>
+    <button className="btn ghost block" onClick={()=>say("Invite link copied")}>+ Invite a client</button>
+  </>);
+}
+
+function Spark({data,unit}){
+  const w=300,h=70,mn=Math.min(...data)-2,mx=Math.max(...data)+2;
+  const pts=data.map((v,i)=>[i*(w/(data.length-1)),h-((v-mn)/(mx-mn))*h]);
+  const d=pts.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join("");
+  const last=pts.at(-1);
+  return (<div>
+    <svg viewBox={`-4 -6 ${w+8} ${h+12}`} style={{width:"100%",height:80,display:"block"}} role="img" aria-label={`Trend from ${data[0]} to ${data.at(-1)} ${unit}`}>
+      <path d={`${d}L${w} ${h}L0 ${h}Z`} fill="var(--data-soft)"/><path d={d} fill="none" stroke="var(--data)" strokeWidth="2.5" strokeLinejoin="round"/>
+      <circle cx={last[0]} cy={last[1]} r="4.5" fill="var(--act)"/>
+    </svg>
+    <div className="row" style={{justifyContent:"space-between"}}><span className="tiny num">{data[0]} {unit}</span><span className="num" style={{fontWeight:700,color:"var(--act)"}}>{data.at(-1)} {unit} (+{data.at(-1)-data[0]})</span></div>
+  </div>);
+}
+
+function Builder({store,say}){
+  const {workout,setWorkout}=store;
+  const [q,setQ]=useState(""); const [swap,setSwap]=useState(null); const [ai,setAi]=useState(false);
+  const [recent]=useState([2,9,13]);
+  const hits=useMemo(()=>{
+    const s=q.trim().toLowerCase(); if(!s) return [];
+    return EXERCISES.filter(e=>e.name.toLowerCase().includes(s)||e.alias.some(a=>a.includes(s))||e.pattern.toLowerCase()===s||e.equip.toLowerCase().includes(s)).slice(0,6);
+  },[q]);
+  const upd=(key,f,v)=>setWorkout(w=>({...w,items:w.items.map(it=>it.key===key?{...it,[f]:v}:it)}));
+  const add=ex=>{ setWorkout(w=>({...w,items:[...w.items,{key:"n"+Date.now(),group:String.fromCharCode(65+new Set(w.items.map(i=>i.group[0])).size),exId:ex.id,sets:3,reps:"10",kg:0,rpe:7,rest:ex.pattern==="Isolation"||ex.pattern==="Core"?60:90,last:"New exercise"}]})); setQ(""); say(`${ex.name} added · rest set to ${ex.pattern==="Isolation"||ex.pattern==="Core"?"60 s":"90 s"}`); };
+  const remove=key=>setWorkout(w=>({...w,items:w.items.filter(i=>i.key!==key)}));
+  const hl=(name)=>{ const s=q.trim(); const i=name.toLowerCase().indexOf(s.toLowerCase()); if(!s||i<0) return name; return <>{name.slice(0,i)}<mark>{name.slice(i,i+s.length)}</mark>{name.slice(i+s.length)}</>; };
+  return (<>
+    <div className="row" style={{justifyContent:"space-between",alignItems:"flex-end"}}>
+      <div><div className="eyebrow">Priya Sharma · Week {workout.week} of {workout.of}</div><h1 className="h1" style={{fontSize:22}}>{workout.name}</h1></div>
+      <button className="btn ghost sm" onClick={()=>setAi(true)}>Adjust with AI</button>
+    </div>
+
+    <div style={{position:"relative"}}>
+      <input id="exsearch" className="field" placeholder='Add exercise: try "rdl", "hinge" or "cable"' value={q} onChange={e=>setQ(e.target.value)} autoComplete="off"/>
+      {q && <div className="card flat list" style={{position:"absolute",left:0,right:0,top:"calc(100% + 6px)",zIndex:30,boxShadow:"0 12px 30px rgba(0,0,0,.3)"}}>
+        {hits.length===0 && <div className="hit small">No match for “{q}”. Create it as a custom exercise.</div>}
+        {hits.map(e=><button key={e.id} className="hit" onClick={()=>add(e)}><div className="grow"><div className="h3">{hl(e.name)}</div><div className="tiny">{e.pattern} · {e.equip}{e.alias.some(a=>a.includes(q.toLowerCase()))&&!e.name.toLowerCase().includes(q.toLowerCase())?` · matched “${e.alias.find(a=>a.includes(q.toLowerCase()))}”`:""}</div></div><span className="btn act sm">Add</span></button>)}
+      </div>}
+    </div>
+    {!q && <div className="chips"><span className="tiny" style={{alignSelf:"center"}}>Recent:</span>{recent.map(id=><button key={id} className="chip" onClick={()=>add(exById(id))}>+ {exById(id).name}</button>)}</div>}
+
+    <div className="card flat list">
+      {workout.items.length===0 && <div className="li small">This workout is empty. Search above to add the first exercise.</div>}
+      {workout.items.map(it=>{const ex=exById(it.exId);return(
+        <div key={it.key} style={{padding:"12px 14px"}}>
+          <div className="row" style={{gap:10}}>
+            <span className="grp" style={{width:28}}>{it.group}</span>
+            <div className="grow"><div className="h3">{ex.name}</div><div className="tiny">{ex.pattern} · {ex.equip}{it.group.length>1?" · superset":""}</div></div>
+            <button className="btn ghost sm" onClick={()=>setSwap(it)}>Swap</button>
+            <button className="iconbtn" aria-label={`Remove ${ex.name}`} onClick={()=>remove(it.key)}>×</button>
+          </div>
+          <div className="mini">
+            <label>Sets<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={e=>upd(it.key,"sets",Number(e.target.value.replace(/\D/g,""))||1)}/></label>
+            <label>Reps<input id={`r-${it.key}`} value={it.reps} onChange={e=>upd(it.key,"reps",e.target.value)}/></label>
+            <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} onChange={e=>upd(it.key,"kg",Number(e.target.value)||0)}/></label>
+            <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={e=>upd(it.key,"rpe",Number(e.target.value)||0)}/></label>
+            <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.rest} onChange={e=>upd(it.key,"rest",Number(e.target.value)||0)}/></label>
+          </div>
+          <div className="tiny" style={{marginTop:6}}>Last time: <span className="num">{it.last}</span></div>
+        </div>);})}
+    </div>
+    <div className="row"><button className="btn ghost" style={{flex:1}} onClick={()=>say("Day duplicated to Thursday")}>Duplicate day</button><button className="btn act" style={{flex:1.4}} onClick={()=>say("Published · Priya's app updated")}>Publish to client</button></div>
+    <p className="tiny" style={{margin:0}}>Edits save to Priya's program as you type. Open the client app to see them.</p>
+
+    {swap && <Sheet onClose={()=>setSwap(null)}>
+      <div><div className="eyebrow">Swap {exById(swap.exId).name}</div><h2 className="h2">Same pattern, Priya's equipment</h2></div>
+      <div className="card flat list">{altsFor(exById(swap.exId)).map(a=><button key={a.id} className="li" onClick={()=>{upd(swap.key,"exId",a.id);upd(swap.key,"last","New exercise");setSwap(null);say(`Swapped to ${a.name}`);}}><div className="grow"><div className="h3">{a.name}</div><div className="small">{a.equip} · {a.muscles.join(", ")}</div></div><span className="btn act sm">Use</span></button>)}</div>
+      <button className="btn ghost block" onClick={()=>setSwap(null)}>Cancel</button>
+    </Sheet>}
+
+    {ai && <AiAdjust workout={workout} onClose={()=>setAi(false)} onApply={(w,msg)=>{setWorkout(w);setAi(false);say(msg);}}/>}
+  </>);
+}
+
+function AiAdjust({workout,onClose,onApply}){
+  const [mode,setMode]=useState(null);
+  const proposals={
+    short:{ title:"30-minute version", note:"Drops the finisher, trims rest by 30 s and cuts the main lift to 3 sets.", make:w=>({...w,minutes:30,items:w.items.filter(i=>i.group!=="C").map(i=>({...i,sets:i.group==="A"?3:i.sets,rest:Math.max(0,i.rest-30)}))}) },
+    beginner:{ title:"Beginner version", note:"Swaps the trap bar for a goblet squat, lowers RPE targets by 1 and adds reps.", make:w=>({...w,items:w.items.map(i=>i.group==="A"?{...i,exId:9,kg:16,reps:"8",rpe:i.rpe-1}:{...i,rpe:i.rpe-1})}) },
+  };
+  const p=mode&&proposals[mode]; const next=p&&p.make(workout);
+  return <Sheet onClose={onClose}>
+    <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">You review every change before it applies</span></div>
+    <h2 className="h2">Adjust this workout</h2>
+    <div className="chips">{Object.entries(proposals).map(([k,v])=><button key={k} className={`chip ${mode===k?"on":""}`} onClick={()=>setMode(k)}>{v.title}</button>)}</div>
+    {!p && <p className="small" style={{margin:0}}>Pick an adjustment to see the proposed changes.</p>}
+    {p && <>
+      <p className="small" style={{margin:0}}>{p.note}</p>
+      <div className="card flat list">
+        {workout.items.map(it=>{const n=next.items.find(x=>x.key===it.key);const ex=exById(it.exId);
+          if(!n) return <div key={it.key} className="li"><span className="label l-crit">Removed</span><span className="small" style={{textDecoration:"line-through"}}>{ex.name}</span></div>;
+          const changed=n.exId!==it.exId||n.sets!==it.sets||n.rest!==it.rest||n.rpe!==it.rpe;
+          return <div key={it.key} className="li"><span className={`label ${changed?"l-ai":"l-data"}`}>{changed?"Changed":"Same"}</span><div className="grow small"><b style={{color:"var(--text)"}}>{exById(n.exId).name}</b> <span className="num">{n.sets}×{n.reps} · RPE {n.rpe} · {fmtRest(n.rest)}</span></div></div>;})}
+      </div>
+      <div className="row"><button className="btn ghost" style={{flex:1}} onClick={onClose}>Reject</button><button className="btn act" style={{flex:2}} onClick={()=>onApply(next,`${p.title} applied · logged as your decision`)}>Accept changes</button></div>
+    </>}
+  </Sheet>;
+}
+
+function CoachNutrition(){
+  const [cid,setCid]=useState(2);
+  const t={2:[2800,200,320,80],5:[1900,120,210,60],3:[1700,130,170,55]}[cid]||[2200,150,240,70];
+  const pct={2:78,5:91,3:64}[cid]||70;
+  return (<>
+    <div><div className="eyebrow">Nutrition</div><h1 className="h1">Targets and supplements</h1></div>
+    <select id="nutclient" className="field" value={cid} onChange={e=>setCid(Number(e.target.value))}>{CLIENTS.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+    <div className="card">
+      <div className="kpis" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        {[["kcal",t[0],"var(--act)"],["Protein g",t[1],"var(--crit)"],["Carbs g",t[2],"var(--data)"],["Fat g",t[3],"var(--warn)"]].map(([l,v,c])=><div key={l} style={{textAlign:"center"}}><div className="num" style={{fontWeight:700,fontSize:18,color:c}}>{v.toLocaleString()}</div><div className="tiny">{l}</div></div>)}
+      </div>
+      <div style={{marginTop:12}}><Bar pct={pct}/></div>
+      <div className="small" style={{marginTop:6}}>{pct}% of today's target logged · 7-day average 82%</div>
+    </div>
+    <section><div className="sect"><h2 className="h2">Supplement plan</h2></div>
+      <div className="card flat list">{[["Creatine","5 g","Daily"],["Whey protein","30 g","After training"],["Vitamin D3","2000 IU","Morning"],["Magnesium","400 mg","Before bed"]].map(s=><div key={s[0]} className="li"><div className="grow"><div className="h3">{s[0]}</div><div className="small">{s[2]}</div></div><span className="num" style={{fontWeight:700}}>{s[1]}</span></div>)}</div>
+    </section>
+  </>);
+}
+
+function Business(){
+  const months=["May","Jun","Jul","Aug","Sep","Oct"], data=[920,1010,1080,1150,1170,1220], mx=Math.max(...data);
+  const total=CLIENTS.reduce((a,c)=>a+c.revenue,0);
+  return (<>
+    <div className="full"><div className="eyebrow">Business</div><h1 className="h1">£{total.toLocaleString()} monthly recurring</h1><p className="sub">Sample figures. Real numbers come from Stripe once billing is connected.</p></div>
+    <div className="card">
+      <div className="sect"><h3 className="h3">Monthly revenue, 6 months</h3><Label kind="data">Data</Label></div>
+      <div style={{display:"flex",alignItems:"flex-end",gap:8,height:120}}>
+        {data.map((v,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",height:"100%",gap:6}}>
+          <span className="num tiny" style={{color:i===data.length-1?"var(--act)":"var(--text3)",fontWeight:700}}>£{(v/1000).toFixed(2)}k</span>
+          <div style={{width:"100%",height:`${(v/mx)*84}px`,borderRadius:"4px 4px 0 0",background:i===data.length-1?"var(--act)":"var(--blue-soft)",borderTop:i===data.length-1?"none":"2px solid var(--blue)"}}/>
+        </div>)}
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:6}}>{months.map(m=><span key={m} className="tiny" style={{flex:1,textAlign:"center"}}>{m}</span>)}</div>
+    </div>
+    <div className="card flat list">
+      {CLIENTS.map(c=><div key={c.id} className="li"><Ava c={c.ini} size={34}/><div className="grow"><div className="h3">{c.name}</div><div className="small">{c.plan} · {c.mode}</div></div><span className="num" style={{fontWeight:700}}>£{c.revenue}</span></div>)}
+      <div className="li" style={{background:"var(--good-soft)"}}><div className="grow"><div className="h3" style={{color:"var(--good)"}}>Next payout</div><div className="small">Friday 31 October</div></div><span className="num" style={{fontWeight:700,color:"var(--good)"}}>£{Math.round(total*0.48).toLocaleString()}</span></div>
+    </div>
+  </>);
+}
+
+/* ═════════════ CLIENT APP ═════════════ */
+function ClientApp({store,onBack}){
+  const [tab,setTab]=useState("today");
+  const [playing,setPlaying]=useState(false);
+  const [checkin,setCheckin]=useState(false);
+  const [toast,say]=useToast();
+  const TABS=[{id:"today",icon:"today",label:"Today"},{id:"train",icon:"train",label:"Train"},{id:"progress",icon:"progress",label:"Progress"},{id:"chat",icon:"chat",label:"Messages",dot:store.messages.at(-1).from==="coach"},{id:"more",icon:"more",label:"More"}];
+  if(playing) return <Player store={store} onExit={()=>setPlaying(false)} onDone={()=>{setPlaying(false);setTab("today");say("Session saved · Coach Kamal can see it");}}/>;
+  return (
+    <Shell side="Client" onBack={onBack} tabs={TABS} tab={tab} setTab={setTab}>
+      {tab==="today"    && <Today store={store} start={()=>setPlaying(true)} checkin={checkin} setCheckin={setCheckin} say={say}/>}
+      {tab==="train"    && <Train store={store} start={()=>setPlaying(true)}/>}
+      {tab==="progress" && <Progress/>}
+      {tab==="chat"     && <Chat store={store}/>}
+      {tab==="more"     && <More/>}
+      {toast}
+    </Shell>
+  );
+}
+
+function Today({store,start,checkin,setCheckin,say}){
+  const w=store.workout; const done=store.log;
+  const [mood,setMood]=useState(null);
+  const week=[["M",1],["T",1],["W",0],["T",1],["F",0],["S",2],["S",0]];
+  return (<>
+    <div><div className="eyebrow">Saturday 25 October</div><h1 className="h1">Hi Priya.</h1></div>
+    {!done ? (
+      <div className="card" style={{background:"linear-gradient(150deg,var(--act-soft),transparent 70%),var(--card)",borderColor:"color-mix(in srgb,var(--act) 40%,var(--line))",padding:18}}>
+        <div className="eyebrow" style={{color:"var(--act)"}}>Today's session · week {w.week} of {w.of}</div>
+        <h2 className="h1" style={{fontSize:28,marginTop:6}}>{w.name}</h2>
+        <div className="small" style={{marginTop:4}}><span className="num">{w.items.length}</span> exercises · about <span className="num">{w.minutes}</span> min</div>
+        <ul style={{margin:"12px 0 16px",padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:6}}>
+          {w.items.map(it=><li key={it.key} className="row small" style={{gap:8}}><span className="grp" style={{width:28,fontSize:11}}>{it.group}</span><span style={{color:"var(--text)"}}>{exById(it.exId).name}</span><span className="num" style={{marginLeft:"auto"}}>{it.sets}×{it.reps}{it.kg?` · ${it.kg} kg`:""}</span></li>)}
+        </ul>
+        <button className="btn act block" style={{minHeight:54,fontSize:16}} onClick={start}>{I.play} Start workout</button>
+      </div>
+    ) : (
+      <div className="card" style={{borderColor:"color-mix(in srgb,var(--good) 45%,var(--line))",background:"var(--good-soft)"}}>
+        <div className="eyebrow" style={{color:"var(--good)"}}>Done for today</div>
+        <h2 className="h2" style={{marginTop:6}}>{done.name}</h2>
+        <div className="small num" style={{marginTop:4}}>{done.sets} sets · {done.volume.toLocaleString()} kg · {done.minutes} min · RPE {done.rpe}{done.prs?` · ${done.prs} PR 🎉`:""}</div>
+      </div>
+    )}
+
+    {!checkin ? (
+      <div className="card">
+        <div className="sect" style={{marginBottom:8}}><h3 className="h3">How are you feeling today?</h3><span className="tiny">10 seconds</span></div>
+        <div className="rpe">{["Rough","Low","OK","Good","Great"].map((m,i)=><button key={m} className={mood===i?"on":""} onClick={()=>setMood(i)} style={{fontFamily:"var(--ui)",fontSize:13}}>{m}</button>)}</div>
+        {mood!==null && <button className="btn sec block" style={{marginTop:10}} onClick={()=>{setCheckin(true);say("Thanks, Kamal will see this");}}>Send to coach</button>}
+      </div>
+    ) : null}
+
+    <div className="card">
+      <div className="sect" style={{marginBottom:8}}><h3 className="h3">This week</h3><span className="tiny num">{week.filter(d=>d[1]===1).length+(done?1:0)} of 4 done · 🔥 19 days</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+        {week.map(([d,s],i)=>{const st=i===5&&done?1:s;return <div key={i} style={{textAlign:"center"}}><div style={{height:34,borderRadius:6,background:st===1?"var(--good)":st===2?"var(--act-soft)":"var(--bg2)",border:st===2?"1.5px dashed var(--act)":"1px solid var(--line)",display:"grid",placeItems:"center",color:"#04130A",fontWeight:800}}>{st===1?"✓":""}</div><div className="tiny" style={{marginTop:4,fontWeight:i===5?800:500,color:i===5?"var(--text)":undefined}}>{d}</div></div>;})}
+      </div>
+    </div>
+  </>);
+}
+
+function Train({store,start}){
+  const [filter,setFilter]=useState("All"); const [sel,setSel]=useState(null);
+  const cats=["All","Legs","Chest","Back","Shoulders","Core"];
+  const list=filter==="All"?EXERCISES:EXERCISES.filter(e=>e.cat===filter);
+  if(sel) return (<>
+    <button className="link" onClick={()=>setSel(null)} style={{alignSelf:"flex-start"}}>← Library</button>
+    <ExerciseCard ex={sel}/>
+  </>);
+  return (<>
+    <div><div className="eyebrow">Program · week {store.workout.week} of {store.workout.of}</div><h1 className="h1">Foundations</h1></div>
+    <div className="card flat list">
+      {[["Sat 25 Oct",store.workout.name,store.log?"done":"today"],["Mon 27 Oct","Upper A · Strength","next"],["Wed 29 Oct","Lower B · Volume","next"],["Fri 31 Oct","Upper B · Volume","next"]].map((r,i)=>
+        <div key={i} className="li"><div className="grow"><div className="tiny">{r[0]}</div><div className="h3">{r[1]}</div></div>{r[2]==="today"?<button className="btn act sm" onClick={start}>Start</button>:r[2]==="done"?<span className="label l-dec">Done</span>:<span className="tiny">Planned</span>}</div>)}
+    </div>
+    <section>
+      <div className="sect"><h2 className="h2">Exercise library</h2><span className="tiny num">{list.length}</span></div>
+      <div className="chips" style={{marginBottom:10}}>{cats.map(c=><button key={c} className={`chip ${filter===c?"on":""}`} onClick={()=>setFilter(c)}>{c}</button>)}</div>
+      <div className="card flat list">{list.map(e=><button key={e.id} className="li" onClick={()=>setSel(e)}><div className="ava" style={{borderRadius:8,background:"var(--bg2)",color:"var(--text3)"}}>{React.cloneElement(I.figure,{width:26,height:26})}</div><div className="grow"><div className="h3">{e.name}</div><div className="small">{e.muscles.join(", ")} · {e.equip}</div></div></button>)}</div>
+    </section>
+  </>);
+}
+
+function ExerciseCard({ex}){
+  return (<>
+    <div className="video"><span className="tag label l-data">Demo video</span>{I.figure}</div>
+    <div><div className="eyebrow">{ex.pattern} · {ex.equip}</div><h2 className="h1" style={{fontSize:24}}>{ex.name}</h2><div className="small">{ex.muscles.join(", ")}</div></div>
+    <div className="card"><h3 className="h3" style={{marginBottom:8}}>Coaching cues</h3><ol style={{margin:0,paddingLeft:20,display:"flex",flexDirection:"column",gap:6}}>{ex.cues.map(c=><li key={c}>{c}</li>)}</ol>
+      <div className="small" style={{marginTop:10}}><b style={{color:"var(--crit)"}}>Common mistake:</b> {ex.mistake}</div></div>
+  </>);
+}
+
+function Player({store,onExit,onDone}){
+  const w=store.workout;
+  const [idx,setIdx]=useState(0);
+  const [state,setState]=useState(()=>Object.fromEntries(w.items.map(it=>[it.key,Array.from({length:it.sets},()=>({kg:it.kg||"",reps:String(it.reps).replace("s",""),done:false}))])));
+  const [rpe,setRpe]=useState({});
+  const [rest,setRest]=useState(null);
+  const [cues,setCues]=useState(false);
+  const [finish,setFinish]=useState(false);
+  const [sessionRpe,setSessionRpe]=useState(null);
+  const startT=useRef(Date.now());
+  useEffect(()=>{ if(!rest) return; if(rest.left<=0){ try{navigator.vibrate&&navigator.vibrate(200);}catch(e){} setRest(null); return; } const id=setTimeout(()=>setRest(r=>r&&{...r,left:r.left-1}),1000); return ()=>clearTimeout(id); },[rest]);
+  const it=w.items[idx]; const ex=exById(it.exId); const sets=state[it.key];
+  const tog=i=>{ const nowDone=!sets[i].done; setState(s=>({...s,[it.key]:s[it.key].map((x,j)=>j===i?{...x,done:nowDone}:x)})); if(nowDone && it.rest) setRest({left:it.rest,total:it.rest}); if(nowDone && !it.rest && it.group.length>1 && idx<w.items.length-1) setTimeout(()=>setIdx(idx+1),350); };
+  const upd=(i,f,v)=>setState(s=>({...s,[it.key]:s[it.key].map((x,j)=>j===i?{...x,[f]:v}:x)}));
+  const allSets=Object.values(state).flat(); const doneCount=allSets.filter(s=>s.done).length;
+  const exDone=sets.every(s=>s.done);
+  const isPR = it.key==="a" && sets.some(s=>s.done && Number(s.kg)>67.5);
+
+  if(finish){
+    const volume=w.items.reduce((a,x)=>a+state[x.key].filter(s=>s.done).reduce((b,s)=>b+(Number(s.kg)||0)*(Number(s.reps)||0),0),0);
+    const prs=state.a&&state.a.some(s=>s.done&&Number(s.kg)>67.5)?1:0;
+    return <div className="shell"><main className="main" style={{paddingBottom:40}}>
+      <div className="eyebrow" style={{color:"var(--good)"}}>Workout complete</div>
+      <h1 className="h1">Nice work, Priya.</h1>
+      <div className="kpis"><div className="kpi"><b>{doneCount}</b><small>Sets</small></div><div className="kpi"><b>{volume.toLocaleString()}</b><small>kg lifted</small></div><div className="kpi"><b>{Math.max(1,Math.round((Date.now()-startT.current)/60000))}</b><small>Minutes</small></div></div>
+      {prs>0 && <div className="card" style={{background:"var(--act-soft)",borderColor:"var(--act)"}}><div className="h3">🎉 {prs} new personal best{prs>1?"s":""}</div><div className="small">Kamal will see it on the Brief.</div></div>}
+      <div className="card"><h3 className="h3" style={{marginBottom:8}}>How hard was the whole session?</h3><div className="rpe">{[6,7,8,9,10].map(n=><button key={n} className={sessionRpe===n?"on":""} onClick={()=>setSessionRpe(n)}>{n}</button>)}</div><div className="tiny" style={{marginTop:6}}>6 = easy, 10 = maximal</div></div>
+      <input id="sessionnote" className="field" placeholder="Note for Kamal (optional)"/>
+      <button className="btn act block" style={{minHeight:52}} disabled={!sessionRpe} onClick={()=>{store.setLog({name:w.name,sets:doneCount,volume,minutes:Math.max(1,Math.round((Date.now()-startT.current)/60000)),rpe:sessionRpe,prs});onDone();}}>Save and finish</button>
+    </main></div>;
+  }
+
+  return (
+    <div className="shell">
+      <div className="top">
+        <button className="iconbtn" onClick={onExit}>✕ Exit</button>
+        <span className="num small" style={{fontWeight:700}}>{doneCount}/{allSets.length} sets</span>
+        <span className="tiny">{idx+1} of {w.items.length}</span>
+      </div>
+      <div style={{height:4,background:"var(--line)"}}><div style={{height:"100%",width:`${doneCount/allSets.length*100}%`,background:"var(--act)",transition:"width .4s"}}/></div>
+      <main className="main" style={{paddingBottom:rest?170:110}}>
+        <div className="video"><span className="tag label l-data">{it.group.length>1?`Superset ${it.group}`:`Block ${it.group}`}</span>{I.figure}</div>
+        <div>
+          <div className="eyebrow">{ex.muscles.join(" · ")}</div>
+          <h1 className="h1" style={{fontSize:26}}>{ex.name}</h1>
+          <div className="small num" style={{marginTop:4}}>Target {it.sets}×{it.reps}{it.kg?` @ ${it.kg} kg`:""} · RPE {it.rpe} · rest {it.rest?fmtRest(it.rest):"none, go to next"}</div>
+          <button className="link" style={{marginTop:6}} onClick={()=>setCues(!cues)}>{cues?"Hide cues":"Show cues"}</button>
+          {cues && <ol className="small" style={{margin:"6px 0 0",paddingLeft:20}}>{ex.cues.map(c=><li key={c}>{c}</li>)}</ol>}
+        </div>
+        <div className="card" style={{padding:"10px 12px"}}>
+          <div className="small">Last time: <b className="num" style={{color:"var(--text)"}}>{it.last}</b></div>
+        </div>
+        <div>
+          <div className="sets" style={{marginBottom:6}}>{["Set",it.kg?"kg":"—",String(it.reps).includes("s")?"Secs":"Reps","Target",""].map((h,i)=><span key={i} className="tiny" style={{textAlign:"center",fontWeight:700}}>{h}</span>)}</div>
+          {sets.map((s,i)=>(
+            <div key={i} className="sets" style={{marginBottom:8,opacity:s.done?.75:1}}>
+              <span className="num" style={{textAlign:"center",fontWeight:800,color:s.done?"var(--good)":"var(--text2)"}}>{i+1}</span>
+              {it.kg? <input id={`pk-${it.key}-${i}`} className="cell" inputMode="decimal" value={s.kg} onChange={e=>upd(i,"kg",e.target.value)} aria-label={`Set ${i+1} weight`}/> : <span className="tiny" style={{textAlign:"center"}}>BW</span>}
+              <input id={`pr-${it.key}-${i}`} className="cell" inputMode="numeric" value={s.reps} onChange={e=>upd(i,"reps",e.target.value)} aria-label={`Set ${i+1} reps`}/>
+              <span className="num tiny" style={{textAlign:"center"}}>{it.reps}</span>
+              <button className={`tick ${s.done?"on":""}`} onClick={()=>tog(i)} aria-label={`Complete set ${i+1}`}>✓</button>
+            </div>
+          ))}
+        </div>
+        {isPR && <div className="card" style={{background:"var(--act-soft)",borderColor:"var(--act)",padding:"10px 12px"}}><b>🎉 New personal best</b> <span className="small">on {ex.name}</span></div>}
+        {exDone && <div className="card"><h3 className="h3" style={{marginBottom:8}}>How hard was that? (RPE)</h3><div className="rpe">{[6,7,8,9,10].map(n=><button key={n} className={rpe[it.key]===n?"on":""} onClick={()=>setRpe(r=>({...r,[it.key]:n}))}>{n}</button>)}</div></div>}
+      </main>
+      {rest && <div className="rest" role="timer" aria-live="polite"><div className="grow"><div className="tiny" style={{color:"inherit",opacity:.7}}>Rest</div><b>{fmtRest(rest.left)}</b></div><button className="btn sm" style={{background:"var(--bg)",color:"var(--text)"}} onClick={()=>setRest(r=>({...r,left:r.left+30}))}>+30 s</button><button className="btn act sm" onClick={()=>setRest(null)}>Skip</button></div>}
+      <nav className="tabs" style={{gap:8,padding:"10px 16px calc(12px + env(safe-area-inset-bottom,0px))"}}>
+        <button className="btn ghost" style={{flex:1}} disabled={idx===0} onClick={()=>{setIdx(idx-1);setCues(false);}}>Back</button>
+        {idx<w.items.length-1
+          ? <button className={`btn ${exDone?"act":"ghost"}`} style={{flex:2}} onClick={()=>{setIdx(idx+1);setCues(false);window.scrollTo(0,0);}}>Next: {exById(w.items[idx+1].exId).name}</button>
+          : <button className="btn act" style={{flex:2}} onClick={()=>setFinish(true)}>Finish workout</button>}
+      </nav>
+    </div>
+  );
+}
+
+function Progress(){
+  const [photos,setPhotos]=useState(false);
+  return (<>
+    <div><div className="eyebrow">Progress</div><h1 className="h1">8 weeks in</h1></div>
+    <div className="kpis" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+      <div className="kpi"><b>62.3</b><small>Weight, kg</small><i style={{color:"var(--good)"}}>−1.2 since start</i></div>
+      <div className="kpi"><b>70</b><small>Trap bar, kg × 5</small><i style={{color:"var(--good)"}}>+15 since start</i></div>
+    </div>
+    <div className="card"><div className="sect" style={{marginBottom:6}}><h3 className="h3">Trap bar deadlift, top set</h3></div><Spark data={[55,57.5,60,62.5,62.5,65,67.5,70]} unit="kg"/></div>
+    <button className="card" style={{textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%"}} onClick={()=>setPhotos(!photos)}><div><div className="h3">Progress photos</div><div className="small">Start · week 4 · now</div></div><span className="h2">{photos?"–":"+"}</span></button>
+    {photos && <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{["Start","Week 4","Now"].map((l,i)=><div key={l} style={{textAlign:"center"}}><div className="video" style={{aspectRatio:"3/4",borderColor:i===2?"var(--good)":undefined}}>{React.cloneElement(I.figure,{width:48,height:48})}</div><div className="tiny" style={{marginTop:4}}>{l}</div></div>)}</div>}
+    <section><div className="sect"><h2 className="h2">Recovery</h2><Label kind="data">From Apple Health</Label></div>
+      <div className="card flat list">{[["Sleep","7 h 24 m",82,"var(--data)"],["Resting HR","58 bpm",70,"var(--good)"],["Steps","8,412",84,"var(--act)"]].map(r=><div key={r[0]} className="li"><div className="grow"><div className="row" style={{justifyContent:"space-between"}}><span className="h3">{r[0]}</span><span className="num" style={{fontWeight:700}}>{r[1]}</span></div><div style={{marginTop:6}}><Bar pct={r[2]} color={r[3]}/></div></div></div>)}</div>
+    </section>
+  </>);
+}
+
+function Chat({store}){
+  const [t,setT]=useState(""); const end=useRef(null);
+  useEffect(()=>{ end.current&&end.current.scrollIntoView({block:"end"}); },[store.messages.length]);
+  const send=()=>{ if(!t.trim()) return; store.setMessages(m=>[...m,{from:"client",text:t.trim(),time:"Now"}]); setT(""); };
+  return (<>
+    <div className="row"><Ava c="K" tone="var(--act)"/><div><h1 className="h1" style={{fontSize:20}}>Coach Kamal</h1><div className="tiny">Usually replies within a few hours</div></div></div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {store.messages.map((m,i)=><div key={i} style={{alignSelf:m.from==="client"?"flex-end":"flex-start",maxWidth:"82%",background:m.from==="client"?"var(--blue)":"var(--card)",color:m.from==="client"?"#fff":"var(--text)",border:m.from==="client"?"none":"1px solid var(--line)",borderRadius:12,padding:"10px 12px"}}><div>{m.text}</div><div style={{fontSize:11,opacity:.7,marginTop:4,textAlign:"right"}}>{m.time}</div></div>)}
+      <div ref={end}/>
+    </div>
+    <div className="row" style={{position:"sticky",bottom:"calc(84px + env(safe-area-inset-bottom,0px))"}}>
+      <input id="chatbox" className="field" placeholder="Message Kamal" value={t} onChange={e=>setT(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")send();}}/>
+      <button className="btn act" onClick={send} disabled={!t.trim()}>Send</button>
+    </div>
+  </>);
+}
+
+function More(){
+  const [view,setView]=useState(null);
+  if(view==="food") return (<><button className="link" onClick={()=>setView(null)} style={{alignSelf:"flex-start"}}>← More</button><ClientNutrition/></>);
+  if(view==="community") return (<><button className="link" onClick={()=>setView(null)} style={{alignSelf:"flex-start"}}>← More</button><Community/></>);
+  if(view==="habits") return (<><button className="link" onClick={()=>setView(null)} style={{alignSelf:"flex-start"}}>← More</button><Habits/></>);
+  return (<>
+    <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
+    <div className="card flat list">
+      {[["food","Nutrition","1,432 of 1,900 kcal logged today"],["habits","Habits","2 of 3 done today"],["community","Community","Leaderboard and team feed"]].map(([k,t,s])=><button key={k} className="li" onClick={()=>setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>)}
+      {[["Goals","Trap bar 80 kg × 5 by 20 December"],["Settings","Units, notifications, connected apps"]].map(([t,s])=><div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>)}
+    </div>
+  </>);
+}
+
+function ClientNutrition(){
+  const [log,setLog]=useState([FOODS[4],FOODS[3],FOODS[0],FOODS[1]]);
+  const [q,setQ]=useState("");
+  const tot=log.reduce((a,f)=>({kcal:a.kcal+f.kcal,p:a.p+f.p,c:a.c+f.c,f:a.f+f.f}),{kcal:0,p:0,c:0,f:0});
+  const tg={kcal:1900,p:120,c:210,f:60};
+  const hits=FOODS.filter(f=>f.name.toLowerCase().includes(q.toLowerCase()));
+  return (<>
+    <div><div className="eyebrow">Nutrition</div><h1 className="h1"><span className="num">{tot.kcal.toLocaleString()}</span> / {tg.kcal.toLocaleString()} kcal</h1></div>
+    <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}>
+      {[["Protein",tot.p,tg.p,"var(--crit)"],["Carbs",tot.c,tg.c,"var(--data)"],["Fat",tot.f,tg.f,"var(--warn)"]].map(([l,v,t,c])=><div key={l}><div className="row" style={{justifyContent:"space-between",marginBottom:4}}><span className="small">{l}</span><span className="num small" style={{fontWeight:700,color:"var(--text)"}}>{v} / {t} g</span></div><Bar pct={v/t*100} color={c}/></div>)}
+    </div>
+    <div className="card flat list">{log.map((f,i)=><div key={f.id} className="li"><div className="grow"><div className="h3">{f.name}</div><div className="tiny num">P {f.p} · C {f.c} · F {f.f}</div></div><span className="num small">{f.kcal}</span><button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={()=>setLog(l=>l.filter((_,j)=>j!==i))}>×</button></div>)}</div>
+    <input id="foodsearch" className="field" placeholder="Search foods or scan a barcode" value={q} onChange={e=>setQ(e.target.value)}/>
+    {q && <div className="card flat list">{hits.length===0?<div className="li small">No match in the sample list.</div>:hits.map(f=>{const inL=log.some(l=>l.id===f.id);return <div key={f.id} className="li"><div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal</div></div><button className={`btn sm ${inL?"ghost":"act"}`} disabled={inL} onClick={()=>setLog(l=>[...l,f])}>{inL?"Added":"Add"}</button></div>;})}</div>}
+  </>);
+}
+
+function Habits(){
+  const [h,setH]=useState({water:true,steps:true,sleep:false});
+  return (<>
+    <div><div className="eyebrow">Habits</div><h1 className="h1">{Object.values(h).filter(Boolean).length} of 3 today</h1></div>
+    <div className="card flat list">{[["water","Drink 2.5 L water"],["steps","8,000 steps"],["sleep","In bed by 10:30 pm"]].map(([k,t])=><label key={k} className="li" style={{cursor:"pointer"}}><input type="checkbox" checked={h[k]} onChange={e=>setH(s=>({...s,[k]:e.target.checked}))} style={{width:22,height:22,accentColor:"var(--good)"}}/><span className="h3">{t}</span></label>)}</div>
+  </>);
+}
+
+function Community(){
+  const [liked,setLiked]=useState({});
+  const board=[...CLIENTS].sort((a,b)=>b.adherence-a.adherence).slice(0,4);
+  return (<>
+    <div><div className="eyebrow">Community</div><h1 className="h1">This week</h1></div>
+    <div className="card flat list">{board.map((c,i)=><div key={c.id} className="li"><span className="num" style={{width:20,fontWeight:800,color:i===0?"var(--act)":"var(--text3)"}}>{i+1}</span><Ava c={c.ini} size={32}/><div className="grow"><div className="h3">{c.name.split(" ")[0]} {c.name.split(" ")[1][0]}.</div><div className="tiny">🔥 {c.streak} days</div></div><span className="num" style={{fontWeight:700}}>{c.adherence}%</span></div>)}</div>
+    {[["Omar T.","New squat PR today, 100 kg! Eight weeks of steady work.",24],["James K.","Four strict pull-ups in a row. Six months ago I couldn't do one.",31]].map(([u,t,l],i)=><div key={i} className="card"><div className="h3">{u}</div><p className="small" style={{margin:"6px 0 10px",color:"var(--text)"}}>{t}</p><button className="chip" onClick={()=>setLiked(s=>({...s,[i]:!s[i]}))} style={liked[i]?{borderColor:"var(--act)",color:"var(--act)"}:null}>♥ {l+(liked[i]?1:0)}</button></div>)}
+  </>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
+</script>

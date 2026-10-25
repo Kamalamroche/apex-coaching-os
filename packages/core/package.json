@@ -1,0 +1,12 @@
+{
+  "name": "@apex/core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.ts"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  }
+}

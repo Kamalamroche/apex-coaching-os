@@ -1,0 +1,38 @@
+/* Athletic Tech design tokens. Navy field, orange = act, blue = coach/structure, cyan = data, violet = AI.
+   Dark-first with a full light theme: follows the OS setting unless <html data-theme> overrides it. */
+:root{
+  --bg:#0A1220; --bg2:#0D1729; --card:#111C30; --card2:#162540; --line:#1F2E4A; --line2:#2A3D60;
+  --text:#F4F6FA; --text2:#A9B4C8; --text3:#6F7D96;
+  --act:#FF6A1A; --act-ink:#140600; --act-soft:rgba(255,106,26,.14);
+  --blue:#2F6BFF; --blue-soft:rgba(47,107,255,.16);
+  --data:#38BDF8; --data-soft:rgba(56,189,248,.14);
+  --good:#22C55E; --good-soft:rgba(34,197,94,.14);
+  --warn:#F59E0B; --warn-soft:rgba(245,158,11,.14);
+  --crit:#F0524A; --crit-soft:rgba(240,82,74,.14);
+  --ai:#A78BFA; --ai-soft:rgba(167,139,250,.14);
+  --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
+  --r:10px; --r-sm:6px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
+  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
+  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --data:#0284C7; --data-soft:rgba(2,132,199,.10);
+  --good:#15803D; --good-soft:rgba(21,128,61,.10);
+  --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
+  --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
+  --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
+  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
+  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --data:#0284C7; --data-soft:rgba(2,132,199,.10);
+  --good:#15803D; --good-soft:rgba(21,128,61,.10);
+  --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
+  --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
+  --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  color-scheme:light}
