@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_WORKOUT } from "./data/workout";
-import { formatLastTime, latestSetByExercise, toItemRows, toLoggedSetRows, toMessages, toSessionLog, toWorkout, type WorkoutRow } from "./db";
+import { bestKgByExercise, formatLastTime, latestSetByExercise, toPreviousSession, toItemRows, toLoggedSetRows, toMessages, toSessionLog, toWorkout, type WorkoutRow } from "./db";
 import { initialSets } from "./session";
 
 const row: WorkoutRow = { id: "w1", name: "Lower A · Strength", week: 4, est_minutes: 48 };
@@ -56,5 +56,13 @@ describe("sessions and messages", () => {
   it("labels messages by sender", () => {
     const m = toMessages([{ sender_id: "c", body: "Hi", created_at: "2026-10-25T08:02:00Z" }, { sender_id: "x", body: "Hey", created_at: "2026-10-25T08:15:00Z" }], "c");
     expect(m.map((x) => x.from)).toEqual(["coach", "client"]);
+  });
+});
+
+describe("history", () => {
+  it("keeps the heaviest load per exercise and reads the last session", () => {
+    expect(bestKgByExercise([{ exercise_id: 15, load_kg: 67.5 }, { exercise_id: 15, load_kg: 70 }, { exercise_id: 14, load_kg: null }])).toEqual({ 15: 70 });
+    expect(toPreviousSession({ started_at: "2026-10-25T09:00:00Z", finished_at: "2026-10-25T09:46:00Z", sets_completed: 13, volume_kg: 2950, workouts: null }))
+      .toEqual({ workoutName: "Last session", sets: 13, volumeKg: 2950, minutes: 46 });
   });
 });
