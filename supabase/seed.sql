@@ -100,7 +100,7 @@ overriding system value values
   (86, 'Cable Pull-Through', '{}'::text[], 'isolation', 'Legs', 'Cable', array['Hamstrings', 'Glutes'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),
   (87, 'Frog Pump', '{}'::text[], 'isolation', 'Legs', 'Bodyweight', array['Glutes', 'Hamstrings'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),
   (88, 'Fire Hydrant', '{}'::text[], 'isolation', 'Legs', 'Bodyweight', array['Glute medius'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),
-  (89, 'Clamshell', '{}'::text[], 'isolation', 'Legs', 'Bodyweight', array['Glute medius', 'Glutes'], array['Hips stacked', 'Feet stay together', 'Small, slow and controlled'], 'Rolling the hips backwards to lift higher', 'Accessory', 'Isolation / Accessory Muscle'),
+  (89, 'Clamshell', '{}'::text[], 'isolation', 'Legs', 'Bodyweight', array['Glute medius', 'Glutes', 'Obliques'], array['Hand under shoulder', 'Hips stay up', 'Feet stay together'], 'Letting the hips sink or rolling them backwards to lift the knee higher', 'Accessory', 'Isolation / Accessory Muscle'),
   (90, 'Neck Flexion', '{}'::text[], 'isolation', 'Back', 'Bodyweight', array['Neck'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),
   (91, 'Neck Extension', '{}'::text[], 'isolation', 'Back', 'Bodyweight', array['Neck'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),
   (92, 'Neck Lateral Flexion', '{}'::text[], 'isolation', 'Back', 'Bodyweight', array['Neck'], '{}'::text[], null, 'Accessory', 'Isolation / Accessory Muscle'),

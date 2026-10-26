@@ -16,10 +16,10 @@ export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "muscles" |
     commonMistake: "Arching the lower back instead of using the glutes",
   },
   89: {
-    muscles: ["Glute medius", "Glutes"],
-    steps: ["Lie on your side with hips and knees bent and your feet together.", "Stack your hips and rest your head on your lower arm.", "Keeping your feet together, lift your top knee as high as you can without rolling your hips back.", "Pause, then lower slowly."],
-    cues: ["Hips stacked", "Feet stay together", "Small, slow and controlled"],
-    commonMistake: "Rolling the hips backwards to lift higher",
+    muscles: ["Glute medius", "Glutes", "Obliques"],
+    steps: ["Lie on your side with knees bent, feet together and your supporting hand flat on the floor directly under your shoulder.", "Press into the floor and lift your hips so your body is a straight line from shoulders to knees.", "Keeping your hips up and your feet together, open your top knee towards the ceiling.", "Pause at the top, then lower the knee slowly without dropping your hips."],
+    cues: ["Hand under shoulder", "Hips stay up", "Feet stay together"],
+    commonMistake: "Letting the hips sink or rolling them backwards to lift the knee higher",
   },
   109: {
     muscles: ["Quads", "Glutes", "Adductors"],
@@ -53,7 +53,7 @@ export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "muscles" |
   },
   304: {
     muscles: ["Spine", "Core"],
-    steps: ["Start on all fours with wrists under shoulders and knees under hips.", "Breathe in as you drop your belly, lift your chest and look slightly up (cow).", "Breathe out as you round your back, tuck your chin and pull your belly in (cat).", "Flow slowly between the two with your breath."],
+    steps: ["Start on all fours with wrists under shoulders and knees under hips.", "Breathe in as you drop your belly, arch your back, open your chest and lift your head all the way up (cow).", "Breathe out as you round your whole back up to the ceiling, tuck your chin and pull your belly in (cat).", "Flow slowly between the two with your breath."],
     cues: ["Move one vertebra at a time", "Breathe with the movement", "Slow and smooth"],
     commonMistake: "Rushing and only moving the neck",
   },
