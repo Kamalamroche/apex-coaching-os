@@ -15,6 +15,13 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: "money", title: "Nutrition and business", body: "Macro targets, check-in status and revenue live in the same place as training, not in five other apps." },
 ];
 
+/* Duotone card row. Empty until the approved photos are in public/landing/; the row is hidden while empty. */
+const MODES: { img: string; label: string; alt: string }[] = [
+  // { img: "online-coaching", label: "Online coaching", alt: "A coach at her desk reviewing a client's training video on a laptop" },
+  // { img: "train-anywhere", label: "Train anywhere", alt: "A client resting between sets in his garage gym, checking his phone" },
+  // { img: "small-group", label: "Small group", alt: "A coach giving cues during a small group kettlebell session" },
+];
+
 const STEPS = [
   { n: "01", title: "Set up in minutes", body: "Sign in with your email, name your coaching business and you are ready. No card needed." },
   { n: "02", title: "Invite with a link", body: "Create a private invite link for each client. They tap it, sign in and land in their own app." },
@@ -128,6 +135,14 @@ export function Landing() {
               />
               <figcaption>In-person and online coaching</figcaption>
             </figure>
+            {MODES.length > 0 && <div className="lp-duo-row">
+              {MODES.map((m) => (
+                <figure key={m.label} className="lp-duo lp-duo-sm">
+                  <img src={`/landing/${m.img}-900.webp`} width={900} height={675} loading="lazy" alt={m.alt} />
+                  <figcaption>{m.label}</figcaption>
+                </figure>
+              ))}
+            </div>}
             <h2 className="lp-h2 lp-duo-h">We handle the admin, so you can get back to coaching.</h2>
           </div>
         </section>
