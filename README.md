@@ -21,7 +21,7 @@ Runs with sample data and no backend: when no Supabase settings are present, or 
 
 ### Live mode (Supabase)
 
-With Supabase settings the apps sign people in by email link:
+With Supabase settings people sign in with Google, Apple or an email link (providers are switched on in the Supabase dashboard, see `docs/sign-in-providers.md`):
 
 1. A coach signs in at `/coach/` and sets up their account.
 2. In Clients they create an invite link and send it to a client.
@@ -55,7 +55,7 @@ Both run on every pull request.
 ```
 apps/web            Vite app. One origin, three pages, each with its own bundle
   src/app           Demo/live gate, app context
-  src/auth          Email-link sign-in and first-time onboarding
+  src/auth          Google, Apple and email-link sign-in, and first-time onboarding
   src/data          Supabase client, live store, coach queries
   src/launcher      App picker
   src/coach         Coach OS screens
