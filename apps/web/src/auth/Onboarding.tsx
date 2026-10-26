@@ -13,6 +13,13 @@ export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; 
   const save = async () => {
     setBusy(true);
     setError("");
+    // The write only passes the database's checks when it carries the sign-in token,
+    // so make sure Supabase still has the session before asking it to save.
+    if (!(await hasSession(db))) {
+      setError("Your sign-in didn't carry over to this page. Open the sign-in link in your normal browser, or sign in again.");
+      setBusy(false);
+      return;
+    }
     const { error: e1 } = await db.from("profiles").insert({ id: session.user.id, role: side, full_name: name.trim() });
     if (e1) { setError(e1.message); setBusy(false); return; }
     if (side === "client" && invite) {
@@ -45,4 +52,16 @@ export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; 
       </div>
     </div>
   );
+}
+
+/** True when Supabase can still read the signed-in session, refreshing it once if needed. */
+async function hasSession(db: SupabaseClient): Promise<boolean> {
+  try {
+    const { data } = await db.auth.getSession();
+    if (data.session) return true;
+    const { data: refreshed } = await db.auth.refreshSession();
+    return Boolean(refreshed.session);
+  } catch {
+    return false;
+  }
 }
