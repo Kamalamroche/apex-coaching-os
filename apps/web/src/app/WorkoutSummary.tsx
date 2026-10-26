@@ -19,12 +19,12 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
       )}
       {s.exercises && s.exercises.length > 0 && (
         <div className="card" style={{ padding: "10px 12px" }}>
-          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Exercises</h3><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{(s.totalReps ?? 0).toLocaleString("en-GB")} reps in total</span></div>
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Exercises</h3><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{(s.totalReps ?? 0).toLocaleString("en-GB")} reps{s.totalKg ? ` · ${s.totalKg.toLocaleString("en-GB")} kg` : ""} in total</span></div>
           <div className="list">
             {s.exercises.map((e) => (
-              <div key={e.exerciseId} className="row" style={{ justifyContent: "space-between", gap: 8, padding: "5px 0", borderTop: "1px solid var(--line)" }}>
-                <span className="small" style={{ color: "var(--text)" }}>{e.exercise}</span>
-                <span className="tiny num" style={{ textAlign: "right" }}>{describeExerciseTotal(e)}</span>
+              <div key={e.exerciseId} style={{ padding: "6px 0", borderTop: "1px solid var(--line)" }}>
+                <div className="small" style={{ color: "var(--text)" }}>{e.exercise}</div>
+                <div className="tiny num" style={{ marginTop: 2 }}>{describeExerciseTotal(e)}</div>
               </div>
             ))}
           </div>

@@ -109,6 +109,8 @@ export interface ExerciseTotal {
   seconds: number;
   /** Heaviest completed set, 0 for bodyweight. */
   topKg: number;
+  /** kg × reps over completed sets: the total weight lifted on this exercise. */
+  volumeKg?: number;
 }
 
 export interface WorkoutSummary {
@@ -116,6 +118,8 @@ export interface WorkoutSummary {
   exercises?: ExerciseTotal[];
   /** Reps over the whole workout, holds excluded. */
   totalReps?: number;
+  /** kg × reps over the whole workout. */
+  totalKg?: number;
   muscles: MuscleWork[];
   bests: PersonalBest[];
   /** Change against the previous session. Null on the first session. */

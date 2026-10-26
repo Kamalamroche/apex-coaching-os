@@ -21,11 +21,14 @@ describe("post-workout summary", () => {
     sets.a = sets.a!.map((s, i) => ({ ...s, kg: i === 3 ? "72.5" : s.kg, reps: i === 3 ? "4" : s.reps }));
     const t = exerciseTotals(INITIAL_WORKOUT, sets);
     expect(t.map((e) => e.exercise)).toEqual(["Trap Bar Deadlift", "Romanian Deadlift", "Plank", "Goblet Squat"]);
-    expect(t[0]).toMatchObject({ sets: 4, reps: 19, seconds: 0, topKg: 72.5 });
-    expect(describeExerciseTotal(t[0]!)).toBe("4 sets · 19 reps · top 72.5 kg");
+    // 3 × 5 × 70 + 4 × 72.5
+    expect(t[0]).toMatchObject({ sets: 4, reps: 19, seconds: 0, topKg: 72.5, volumeKg: 1340 });
+    expect(describeExerciseTotal(t[0]!)).toBe("4 sets · 19 reps · top 72.5 kg · 1,340 kg lifted");
     expect(describeExerciseTotal(t[2]!)).toBe("3 sets · 120 s");
     // 19 + 24 + 30, the plank's seconds are not reps.
-    expect(buildSummary(INITIAL_WORKOUT, sets, 40, INITIAL_HISTORY).totalReps).toBe(73);
+    const s = buildSummary(INITIAL_WORKOUT, sets, 40, INITIAL_HISTORY);
+    expect(s.totalReps).toBe(73);
+    expect(s.totalKg).toBe(1340 + 1200 + 600);
   });
 
   it("lists each beaten best once, with the heaviest set", () => {
@@ -58,7 +61,7 @@ describe("post-workout summary", () => {
     expect(text).toContain("🏆 New best: Trap Bar Deadlift 70 kg (was 67.5 kg)");
     expect(text).toContain("📈 vs last time: +250 kg · ±0 sets");
     expect(text).toContain('📝 "Hip felt good"');
-    expect(text).toContain("🔁 74 reps in total");
+    expect(text).toContain("🔁 74 reps · 3,200 kg lifted in total");
     expect(text).toContain("• Plank: 3 sets · 120 s");
   });
 

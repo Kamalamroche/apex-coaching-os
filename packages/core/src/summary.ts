@@ -44,12 +44,15 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
     const done = (sets[it.key] ?? []).filter((s) => s.done);
     if (!done.length) continue;
     const isHold = it.reps.trim().endsWith("s");
-    const t = totals.get(it.exerciseId) ?? { exerciseId: it.exerciseId, exercise: exerciseById(it.exerciseId).name, sets: 0, reps: 0, seconds: 0, topKg: 0 };
+    const t = totals.get(it.exerciseId) ?? { exerciseId: it.exerciseId, exercise: exerciseById(it.exerciseId).name, sets: 0, reps: 0, seconds: 0, topKg: 0, volumeKg: 0 };
     for (const s of done) {
       const n = Number(s.reps) || 0;
       t.sets += 1;
       if (isHold) t.seconds += n;
-      else t.reps += n;
+      else {
+        t.reps += n;
+        t.volumeKg = (t.volumeKg ?? 0) + (Number(s.kg) || 0) * n;
+      }
       t.topKg = Math.max(t.topKg, Number(s.kg) || 0);
     }
     totals.set(it.exerciseId, t);
@@ -57,9 +60,9 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
   return [...totals.values()];
 }
 
-/** "4 sets · 20 reps · top 72.5 kg", or "3 sets · 120 s" for a hold. */
+/** "4 sets · 20 reps · top 72.5 kg · 1,405 kg lifted", or "3 sets · 120 s" for a hold. */
 export const describeExerciseTotal = (t: ExerciseTotal): string =>
-  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.topKg ? `top ${t.topKg} kg` : null]
+  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.topKg ? `top ${t.topKg} kg` : null, t.volumeKg ? `${t.volumeKg.toLocaleString("en-GB")} kg lifted` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -100,6 +103,7 @@ export function buildSummary(workout: Workout, sets: SessionSets, minutes: numbe
   return {
     exercises,
     totalReps: exercises.reduce((n, e) => n + e.reps, 0),
+    totalKg: volumeKg,
     muscles: musclesWorked(workout, sets),
     bests: personalBests(workout, sets, history.bestKg),
     vsLast,
@@ -126,7 +130,7 @@ export function summaryMessage(log: SessionLog): string {
   const s = log.summary;
   const lines = [`✅ Finished ${log.workoutName}`, `${log.sets} sets · ${log.volumeKg.toLocaleString("en-GB")} kg · ${log.minutes} min · RPE ${log.rpe}`];
   if (s?.exercises?.length) {
-    lines.push(`🔁 ${s.totalReps ?? 0} reps in total`);
+    lines.push(`🔁 ${s.totalReps ?? 0} reps · ${(s.totalKg ?? log.volumeKg).toLocaleString("en-GB")} kg lifted in total`);
     for (const e of s.exercises) lines.push(`• ${e.exercise}: ${describeExerciseTotal(e)}`);
   }
   if (s?.muscles.length) lines.push(`💪 Worked: ${s.muscles.map((m) => m.muscle).join(", ")}`);
