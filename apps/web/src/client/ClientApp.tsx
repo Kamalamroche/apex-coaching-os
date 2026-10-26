@@ -33,7 +33,7 @@ export function ClientApp() {
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} />}
       {tab === "train" && <Train start={start} />}
       {tab === "progress" && <Progress />}
