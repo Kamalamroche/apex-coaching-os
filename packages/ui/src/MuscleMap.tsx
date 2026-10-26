@@ -1,8 +1,10 @@
 import type { BodyRegion, RegionRole } from "@apex/core";
+import { useId } from "react";
 
 /* Original HELIX body map: a segmented figure, front and back, with the worked muscles lit.
    Each figure is drawn as its left half and mirrored, so both sides always match.
-   Primary muscles use the action orange, supporting ones the structure blue. */
+   Primary muscles take a soft orange gradient, supporting ones the structure blue;
+   hairline gaps in the card colour separate the segments. */
 
 type Shape = { region?: BodyRegion; d: string };
 
@@ -48,27 +50,40 @@ const BACK: Shape[] = [
   { d: "M44 225 C42.5 228.5 42 232 43 235 C46.5 236.5 50.5 236 52 233.5 C51 230 50 227 49.5 225 Z" },
 ];
 
-const fill = (role?: RegionRole) =>
-  role === "primary" ? "var(--act)" : role === "supporting" ? "color-mix(in srgb,var(--blue) 55%,transparent)" : "var(--line2)";
+const MUSCLE = "color-mix(in srgb,var(--text3) 26%,transparent)";
+const FRAME = "color-mix(in srgb,var(--text3) 14%,transparent)";
+const SUPPORT = "color-mix(in srgb,var(--blue) 50%,transparent)";
 
 function Figure({ shapes, lit, label }: { shapes: Shape[]; lit: Partial<Record<BodyRegion, RegionRole>>; label: string }) {
+  const grad = `mm-${useId().replace(/:/g, "")}`;
+  const fill = (s: Shape) => {
+    if (!s.region) return FRAME;
+    const role = lit[s.region];
+    return role === "primary" ? `url(#${grad})` : role === "supporting" ? SUPPORT : MUSCLE;
+  };
   const half = shapes.map((s, i) => (
-    <path key={i} d={s.d} fill={s.region ? fill(lit[s.region]) : "var(--line)"} />
+    <path key={i} d={s.d} fill={fill(s)} stroke="var(--card)" strokeWidth={0.9} strokeLinejoin="round" />
   ));
   return (
-    <figure style={{ margin: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <svg viewBox="14 2 92 238" width="100%" style={{ maxWidth: 120 }} role="img" aria-label={`${label} body map`}>
+    <figure style={{ margin: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+      <svg viewBox="14 2 92 238" width="100%" style={{ maxWidth: 104 }} role="img" aria-label={`${label} body map`}>
+        <defs>
+          <linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "color-mix(in srgb,var(--act) 70%,#FFD2B0)" }} />
+            <stop offset="1" style={{ stopColor: "var(--act)" }} />
+          </linearGradient>
+        </defs>
         <g>{half}</g>
         <g transform="translate(120 0) scale(-1 1)">{half}</g>
       </svg>
-      <figcaption className="tiny">{label}</figcaption>
+      <figcaption style={{ font: "600 9.5px/1 var(--ui)", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text3)" }}>{label}</figcaption>
     </figure>
   );
 }
 
 export function MuscleMap({ lit }: { lit: Partial<Record<BodyRegion, RegionRole>> }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
       <Figure shapes={FRONT} lit={lit} label="Front" />
       <Figure shapes={BACK} lit={lit} label="Back" />
     </div>
