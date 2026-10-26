@@ -43,6 +43,13 @@ describe("demo store", () => {
     expect(store.get().messages.slice(before)).toEqual([{ from: "client", text: "Hip felt fine", time: "Now" }]);
   });
 
+  it("a finished session becomes the next comparison", () => {
+    const store = createDemoStore(memoryStorage(), null);
+    store.finishSession({ workoutName: "Lower A", sets: 1, volumeKg: 350, minutes: 5, rpe: 7, prs: 1 }, { a: [{ kg: "75", reps: "5", done: true }] });
+    expect(store.get().history.previous).toMatchObject({ volumeKg: 350, sets: 1 });
+    expect(store.get().history.bestKg[15]).toBe(75);
+  });
+
   it("reset clears saved data", () => {
     const storage = memoryStorage();
     const store = createDemoStore(storage, null);

@@ -1,4 +1,4 @@
-import type { Message, Workout } from "../types";
+import type { Message, TrainingHistory, Workout } from "../types";
 
 /* Today's workout for the demo client (Priya). Both apps read and write this one program. */
 export const INITIAL_WORKOUT: Workout = {
@@ -21,3 +21,9 @@ export const INITIAL_MESSAGES: Message[] = [
 
 /** Best previous top-set load per exercise, used for PR detection in the player. */
 export const PREVIOUS_BEST_KG: Record<number, number> = { 15: 67.5, 2: 50, 9: 18 };
+
+/** Priya's last session and bests, so the demo can show a "vs last time" comparison. */
+export const INITIAL_HISTORY: TrainingHistory = {
+  bestKg: PREVIOUS_BEST_KG,
+  previous: { workoutName: "Lower A · Strength", sets: 13, volumeKg: 2950, minutes: 46 },
+};

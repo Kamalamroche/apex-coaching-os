@@ -66,6 +66,66 @@ export interface SessionLog {
   minutes: number;
   rpe: number;
   prs: number;
+  /** The client's note to the coach. */
+  note?: string;
+  /** What the client saw at the end and the coach receives. Missing on older sessions. */
+  summary?: WorkoutSummary;
+}
+
+/** The client's training so far, used for personal bests and the "vs last time" comparison. */
+export interface TrainingHistory {
+  /** Heaviest completed set per exercise id. */
+  bestKg: Record<number, number>;
+  previous: PreviousSession | null;
+}
+
+export interface PreviousSession {
+  workoutName: string;
+  sets: number;
+  volumeKg: number;
+  minutes: number;
+}
+
+export interface MuscleWork {
+  muscle: string;
+  sets: number;
+}
+
+export interface PersonalBest {
+  exerciseId: number;
+  exercise: string;
+  kg: number;
+  previousKg: number;
+}
+
+/** What the client did on one exercise: completed sets added up. */
+export interface ExerciseTotal {
+  exerciseId: number;
+  exercise: string;
+  sets: number;
+  /** Total reps over completed sets. 0 for holds. */
+  reps: number;
+  /** Total seconds for holds such as a plank. 0 otherwise. */
+  seconds: number;
+  /** Heaviest completed set, 0 for bodyweight. */
+  topKg: number;
+  /** kg × reps over completed sets: the total weight lifted on this exercise. */
+  volumeKg?: number;
+}
+
+export interface WorkoutSummary {
+  /** Per exercise, in workout order. Missing on summaries saved before it was added. */
+  exercises?: ExerciseTotal[];
+  /** Reps over the whole workout, holds excluded. */
+  totalReps?: number;
+  /** kg × reps over the whole workout. */
+  totalKg?: number;
+  muscles: MuscleWork[];
+  bests: PersonalBest[];
+  /** Change against the previous session. Null on the first session. */
+  vsLast: { volumeKg: number; sets: number; minutes: number } | null;
+  /** A light-hearted way to picture the volume, e.g. "about 2 grand pianos". */
+  fun: string;
 }
 
 export interface Message {
