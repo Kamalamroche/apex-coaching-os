@@ -106,6 +106,23 @@ export function Landing() {
           </div>
         </section>
 
+        <section className="lp-photo">
+          <img
+            src="/landing/coach-and-client-2000.webp"
+            srcSet="/landing/coach-and-client-1000.webp 1000w, /landing/coach-and-client-2000.webp 2000w"
+            sizes="100vw"
+            width={2000}
+            height={1131}
+            loading="lazy"
+            alt="A coach and his client smiling at her workout on a phone, between sets in a gym at sunset"
+          />
+          <div className="lp-wrap lp-photo-copy">
+            <span className="eyebrow" style={{ color: "var(--act)" }}>Built by a coach</span>
+            <h2 className="lp-h2">The coaching happens on the gym floor. APEX handles the rest.</h2>
+            <p className="lp-lead">Programs, logs, check-ins and messages stay in sync between you and your client, so your time goes on the person in front of you.</p>
+          </div>
+        </section>
+
         <section className="lp-sec">
           <div className="lp-wrap">
             <div className="lp-head">

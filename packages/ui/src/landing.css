@@ -50,6 +50,15 @@
 .lp-strip-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 22px;padding-block:18px;font:800 13px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--text2)}
 .lp-strip-row i{width:7px;height:7px;background:var(--act);transform:rotate(45deg);border-radius:1px}
 
+/* ---------- photo band ---------- */
+.lp-photo{position:relative;overflow:hidden;background:var(--bg);min-height:min(56vw,640px);display:flex;align-items:center}
+.lp-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right 20%}
+.lp-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#0A1220 0%,color-mix(in srgb,#0A1220 80%,transparent) 32%,transparent 62%)}
+.lp-photo-copy{position:relative;z-index:1;width:100%}
+.lp-photo-copy>*{max-width:470px}
+.lp-photo .lp-h2,.lp-photo .lp-lead{color:#F4F6FA}
+.lp-photo .lp-lead{opacity:.85}
+
 /* ---------- sections ---------- */
 .lp-sec{padding:88px 0}
 .lp-head{max-width:720px;margin-bottom:36px}
@@ -109,6 +118,10 @@
 }
 @media (max-width:760px){
   .lp-nav{display:none}
+  .lp-photo{display:block;min-height:0}
+  .lp-photo img{position:relative;height:auto;aspect-ratio:4/3;object-position:72% center}
+  .lp-photo::after{inset:auto 0 0;height:100%;background:linear-gradient(0deg,#0A1220 0%,#0A1220 50%,transparent 68%)}
+  .lp-photo-copy{margin-top:-64px;padding-bottom:48px}
   .lp-hero{padding:44px 0 48px}
   .lp-sec{padding:64px 0}
   .lp-grid,.lp-steps{grid-template-columns:1fr}
