@@ -54,7 +54,7 @@ describe("filterLibrary", () => {
 
 describe("the movement library", () => {
   it("has the 15 starter movements under their original ids, then the sheet", () => {
-    expect(EXERCISES).toHaveLength(622);
+    expect(EXERCISES).toHaveLength(624);
     expect(exerciseById(1).name).toBe("Barbell Back Squat");
     expect(exerciseById(15).name).toBe("Trap Bar Deadlift");
     expect(EXERCISES.map((e) => e.id)).toEqual(EXERCISES.map((_, i) => i + 1));
@@ -69,5 +69,30 @@ describe("the movement library", () => {
 describe("exerciseById", () => {
   it("throws on an unknown id instead of returning undefined", () => {
     expect(() => exerciseById(999)).toThrow();
+  });
+});
+
+describe("library data", () => {
+  it("has unique, stable ids with later additions after the sheet", () => {
+    const ids = EXERCISES.map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(exerciseById(623).name).toBe("Bodyweight Squat");
+    expect(exerciseById(624).name).toBe("Push-Up");
+  });
+
+  it("merges coach-written details and demo clips over sheet rows", () => {
+    const dog = exerciseById(534);
+    expect(dog.name).toBe("Downward Dog");
+    expect(dog.muscles[0]).toBe("Hamstrings");
+    expect(dog.steps?.length).toBeGreaterThan(0);
+    expect(dog.video?.avatar).toBe("female");
+  });
+
+  it("gives every clip full details", () => {
+    for (const e of EXERCISES.filter((x) => x.video)) {
+      expect(e.muscles.length, e.name).toBeGreaterThan(0);
+      expect(e.steps?.length, e.name).toBeGreaterThan(0);
+      expect(e.cues.length, e.name).toBeGreaterThan(0);
+    }
   });
 });

@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./format";
 export * from "./library";
+export * from "./muscleMap";
 export * from "./workout";
 export * from "./session";
 export * from "./plates";

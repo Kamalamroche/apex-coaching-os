@@ -15,12 +15,23 @@ export interface Exercise {
   category: BodyArea;
   equipment: string;
   muscles: string[];
+  /** Step-by-step instructions. Code only for now: not yet a database column. */
+  steps?: string[];
+  /** Coaching tips. */
   cues: string[];
   /** Empty until a coach writes one. */
   commonMistake: string;
   type: TrainingType;
   /** "Primary Focus" from the sheet, e.g. "Lateral Core (Obliques)". */
   focus: string;
+  /** Short HELIX demo clip. Code only for now: not yet a database column. */
+  video?: DemoVideo;
+}
+
+export interface DemoVideo {
+  src: string;
+  /** Which HELIX avatar performs it. */
+  avatar: "male" | "female";
 }
 
 export type Risk = "high" | "medium" | "low";
