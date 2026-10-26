@@ -2,8 +2,10 @@
    They mirror the Supabase schema in supabase/migrations: a workout item is a
    prescription, a logged set is what the client actually did. */
 
-export type MovementPattern = "Squat" | "Hinge" | "Push" | "Pull" | "Isolation" | "Core";
-export type BodyArea = "Legs" | "Chest" | "Back" | "Shoulders" | "Core";
+export type MovementPattern = "Squat" | "Hinge" | "Push" | "Pull" | "Isolation" | "Core" | "Carry" | "Power" | "Mobility";
+export type BodyArea = "Legs" | "Chest" | "Back" | "Shoulders" | "Arms" | "Core" | "Full body";
+/** The section of the APEX Movement Library sheet a movement comes from. */
+export type TrainingType = "Strength" | "Accessory" | "Power" | "Plyometric" | "Isometric" | "Balance" | "Core" | "Mobility" | "Stretching" | "Yoga";
 
 export interface Exercise {
   id: number;
@@ -14,7 +16,11 @@ export interface Exercise {
   equipment: string;
   muscles: string[];
   cues: string[];
+  /** Empty until a coach writes one. */
   commonMistake: string;
+  type: TrainingType;
+  /** "Primary Focus" from the sheet, e.g. "Lateral Core (Obliques)". */
+  focus: string;
 }
 
 export type Risk = "high" | "medium" | "low";

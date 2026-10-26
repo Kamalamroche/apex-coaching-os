@@ -5,9 +5,9 @@ import type { Exercise, Workout, WorkoutItem } from "./types";
 export const newKey = (): string =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `n${Date.now()}${Math.random().toString(16).slice(2)}`;
 
-/** Isolation and core work rests 60 s, compound work 90 s. */
+/** Mobility work rests 30 s, isolation and core work 60 s, compound work 90 s. */
 export const defaultRestFor = (exercise: Exercise): number =>
-  exercise.pattern === "Isolation" || exercise.pattern === "Core" ? 60 : 90;
+  exercise.pattern === "Mobility" ? 30 : exercise.pattern === "Isolation" || exercise.pattern === "Core" ? 60 : 90;
 
 /** Next free block letter: A, B1/B2 and C in use → "D". */
 export const nextGroupLetter = (items: WorkoutItem[]): string =>
