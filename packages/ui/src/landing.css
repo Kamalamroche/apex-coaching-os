@@ -56,6 +56,7 @@
 .lp-pick{max-width:none}
 .lp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .lp-grid-4{grid-template-columns:repeat(4,1fr)}
+.lp-grid-2{grid-template-columns:repeat(2,1fr)}
 .lp-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px}
 .lp-card p{margin:0}
 .lp-ico{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:var(--act-soft);color:var(--act)}

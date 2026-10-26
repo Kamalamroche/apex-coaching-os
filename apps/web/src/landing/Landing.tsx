@@ -9,6 +9,8 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: "build", title: "Fast program builder", body: "Search a movement library by name or nickname, swap an exercise in one tap, and edits reach the client's phone live." },
   { icon: "play", title: "Guided workout player", body: "Clients open straight onto today's session with cues, a rest timer and last time's numbers on every set." },
   { icon: "chat", title: "Messages in context", body: "Chat sits next to the training log, so every reply is grounded in what the client actually did this week." },
+  { icon: "plates", title: "Plate calculator", body: "Clients tap the target weight and see exactly which plates go on each side of the bar. No more mental maths between sets." },
+  { icon: "trophy", title: "Post-workout summary", body: "Muscles worked, new personal bests and how today compares with last time. The client sees it the moment they finish, and so do you." },
   { icon: "money", title: "Nutrition and business", body: "Macro targets, check-in status and revenue live in the same place as training, not in five other apps." },
 ];
 
@@ -27,8 +29,6 @@ const LABELS: { kind: LabelKind; name: string; body: string }[] = [
 
 const NEXT = [
   { title: "Check-ins", body: "Weekly measurements, progress photos and questions, reviewed side by side." },
-  { title: "Post-workout summary", body: "Muscles worked, new personal bests and how today compares with last time, sent to you the moment a client finishes." },
-  { title: "Plate calculator", body: "Tap a target weight and see exactly which plates go on each side of the bar." },
   { title: "Apple Watch", body: "Log sets and see rest timers from the wrist." },
 ];
 
@@ -146,7 +146,7 @@ export function Landing() {
               <h2 className="lp-h2">Less admin. More coaching.</h2>
               <p className="lp-lead">The jobs that eat your evenings, handled in one place.</p>
             </div>
-            <div className="lp-grid">
+            <div className="lp-grid lp-grid-4">
               {FEATURES.map((f) => {
                 const Icon = Icons[f.icon];
                 return (
@@ -203,7 +203,7 @@ export function Landing() {
               <span className="eyebrow" style={{ color: "var(--data)" }}>Coming next</span>
               <h2 className="lp-h2">On the roadmap now.</h2>
             </div>
-            <div className="lp-grid lp-grid-4">
+            <div className="lp-grid lp-grid-2">
               {NEXT.map((n) => (
                 <article key={n.title} className="lp-card lp-soon">
                   <span className="label l-data">Coming soon</span>
