@@ -91,6 +91,17 @@ input,select{font-family:inherit}
 .rpe button{flex:1;min-height:40px;border-radius:var(--r-sm);border:1px solid var(--line2);background:none;font:700 14px/1 var(--num)}
 .rpe button.on{background:var(--act);color:var(--act-ink);border-color:var(--act)}
 
+/* ---------- progress ---------- */
+.video.photo{aspect-ratio:3/4}
+.video.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.video.photo svg{width:48px;height:48px}
+.poses{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.measures{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.measures label{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:flex;flex-direction:column;gap:4px}
+.stack{display:flex;flex-direction:column;gap:14px}
+textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
+
 /* ---------- sheet & toast ---------- */
 .scrim{position:fixed;inset:0;background:rgba(3,7,15,.55);z-index:80;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--card);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-height:85vh;overflow:auto}

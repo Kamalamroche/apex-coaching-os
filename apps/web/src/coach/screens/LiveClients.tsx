@@ -6,6 +6,7 @@ import { useStoreStatus } from "../../app/AppContext";
 import { createInviteLink } from "../../data/coach";
 import { useStore } from "../../data/StoreContext";
 import type { CoachLiveProps } from "../CoachApp";
+import { ClientCheckIns } from "./CheckIns";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {
@@ -33,7 +34,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
 
   const selected = clients?.find((c) => c.id === open);
   if (selected) {
-    return <LiveProfile name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => setOpen(null)} goBuild={goBuild} />;
+    return <LiveProfile name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => setOpen(null)} goBuild={goBuild} say={say} />;
   }
 
   const list = (clients ?? []).filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
@@ -64,10 +65,12 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   );
 }
 
-function LiveProfile({ name, mode, lastSession, onBack, goBuild }: { name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void }) {
+function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
   const store = useStore();
-  const { workout } = useApexState(store);
+  const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
+  const [tab, setTab] = useState<"Program" | "Check-ins">("Program");
+  const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   return (
     <>
       <BackLink onClick={onBack}>All clients</BackLink>
@@ -75,6 +78,11 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild }: { name: strin
         <Avatar initials={initials(name)} size={56} tone="var(--act)" />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
+      <div className="chips">
+        {(["Program", "Check-ins"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}</button>)}
+      </div>
+      {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
+      {tab === "Program" && <>
       <section>
         <div className="sect"><h2 className="h2">Program</h2></div>
         {status === "ready" ? (
@@ -92,6 +100,7 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild }: { name: strin
         )}
       </section>
       <button className="btn act block" onClick={() => { if (status === "no-program") void (store as { createProgram?: () => Promise<void> }).createProgram?.(); goBuild(); }}>{status === "no-program" ? "Create program" : "Edit program"}</button>
+      </>}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { createDemoStore, INITIAL_WORKOUT, type ApexStore } from "@apex/core";
+import { createDemoStore, emptyState, type ApexStore } from "@apex/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
@@ -27,7 +27,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(refreshClients, [refreshClients]);
 
   const store: ApexStore = useMemo(
-    () => (activeId ? createSupabaseStore(db, { coachId: profile.id, clientId: activeId, me: profile.id }) : createDemoStore(null, null, () => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [] }))),
+    () => (activeId ? createSupabaseStore(db, { coachId: profile.id, clientId: activeId, me: profile.id }) : createDemoStore(null, null, emptyState)),
     [db, profile.id, activeId],
   );
 

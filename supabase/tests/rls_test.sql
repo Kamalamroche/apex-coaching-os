@@ -85,4 +85,49 @@ do $$ begin
   exception when no_data_found then null; end;
 end $$;
 
+-- check-ins, measurements and photos
+reset role;
+insert into check_ins (id, client_id, weight_kg, energy) values ('50000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1',62.0,4);
+insert into body_measurements (client_id, waist_cm) values ('00000000-0000-0000-0000-0000000000c1',71),('00000000-0000-0000-0000-0000000000c2',80);
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into check_ins (client_id, weight_kg, coach_reply) values ('00000000-0000-0000-0000-0000000000c1',61.8,'self-praise');
+update check_ins set coach_reply = 'forged', energy = 5 where id = '50000000-0000-0000-0000-000000000001';
+insert into progress_photos (client_id, pose, storage_path) values ('00000000-0000-0000-0000-0000000000c1','front','00000000-0000-0000-0000-0000000000c1/a/front.jpg');
+insert into storage.objects (bucket_id, name) values ('progress-photos','00000000-0000-0000-0000-0000000000c1/a/front.jpg');
+do $$ begin
+  assert (select count(*) from check_ins where coach_reply is not null) = 0, 'client cannot write a coach reply';
+  assert (select energy from check_ins where id = '50000000-0000-0000-0000-000000000001') = 5, 'client can edit own check-in';
+  assert (select count(*) from body_measurements) = 1, 'client sees only own measurements';
+  begin
+    insert into progress_photos (client_id, pose, storage_path) values ('00000000-0000-0000-0000-0000000000c1','side','00000000-0000-0000-0000-0000000000c2/x.jpg');
+    raise exception 'client registered a photo in someone else''s folder';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('progress-photos','00000000-0000-0000-0000-0000000000c2/x.jpg');
+    raise exception 'client uploaded into someone else''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+update check_ins set coach_reply = 'Great week', reviewed_at = now(), weight_kg = 99 where id = '50000000-0000-0000-0000-000000000001';
+do $$ begin
+  assert (select coach_reply from check_ins where id = '50000000-0000-0000-0000-000000000001') = 'Great week', 'coach replies to a check-in';
+  assert (select weight_kg from check_ins where id = '50000000-0000-0000-0000-000000000001') = 62.0, 'coach cannot change what the client reported';
+  assert (select count(*) from body_measurements) = 1, 'coach sees own client measurements only';
+  assert (select count(*) from progress_photos) = 1, 'coach sees client photos';
+  assert (select count(*) from storage.objects) = 1, 'coach can open client photo files';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update check_ins set coach_reply = 'poach' where id = '50000000-0000-0000-0000-000000000001';
+do $$ begin
+  assert (select count(*) from progress_photos) = 0, 'rival sees no photos';
+  assert (select count(*) from storage.objects) = 0, 'rival opens no photo files';
+end $$;
+reset role;
+do $$ begin
+  assert (select coach_reply from check_ins where id = '50000000-0000-0000-0000-000000000001') = 'Great week', 'rival cannot reply';
+end $$;
+
 select 'RLS checks passed';

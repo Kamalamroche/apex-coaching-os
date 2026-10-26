@@ -1,4 +1,4 @@
-import { CLIENTS, firstName, type Client } from "@apex/core";
+import { CLIENTS, firstName, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
@@ -41,7 +41,8 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
   const { coachName, clientName, mode } = useAppInfo();
   const clientFirst = firstName(clientName);
   const clientInitials = clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-  const { log } = useApexState(store);
+  const { log, progress } = useApexState(store);
+  const newCheckIn = mode === "live" ? newestFirst(progress.checkIns).find((c) => !c.reviewedAt) : undefined;
   const [handled, setHandled] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<TriageItem | null>(null);
   const [selected, setSelected] = useState<Record<number, boolean>>({ 2: true, 4: true, 5: true });
@@ -123,11 +124,21 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
               <span className="tiny">Just now</span>
             </div>
           )}
+          {newCheckIn && (
+            <div className="li">
+              <Avatar initials={clientInitials} size={34} />
+              <div className="grow">
+                <div className="h3">{clientFirst} sent a check-in</div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{[newCheckIn.sleepHours !== null && `Sleep ${newCheckIn.sleepHours} h`, newCheckIn.energy && `energy ${newCheckIn.energy}/5`, newCheckIn.weightKg !== null && `weight ${newCheckIn.weightKg} kg`].filter(Boolean).join(" · ")}</span></div>
+              </div>
+              <span className="tiny">Clients › Check-ins</span>
+            </div>
+          )}
           {mode === "demo" && <>
           <div className="li"><Avatar initials="OT" size={34} tone="var(--good)" /><div className="grow"><div className="h3">Omar hit a 100 kg squat PR</div><div className="small">Send a congratulations?</div></div><button className="btn ghost sm" onClick={() => say("Message sent to Omar")}>Send</button></div>
           <div className="li"><Avatar initials="PS" size={34} /><div className="grow"><div className="h3">Priya submitted a check-in</div><div className="small">Sleep 7.5 h · energy 4/5 · weight 62.3 kg</div></div><button className="btn ghost sm" onClick={() => openClient(5)}>View</button></div>
           </>}
-          {mode === "live" && !log && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
+          {mode === "live" && !log && !newCheckIn && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
         </div>
       </section>
 

@@ -1,8 +1,9 @@
-import { CLIENTS, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
+import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, Bar, Label, Spark, riskColor } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
+import { ClientCheckIns } from "./CheckIns";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
@@ -102,7 +103,8 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         </div>
       )}
 
-      {tab === "Check-ins" && (
+      {tab === "Check-ins" && c.id === DEMO_CLIENT_ID && <ClientCheckIns clientName={c.name} say={say} />}
+      {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
         <div className="card flat list">
           {CHECK_INS.map((r) => (
             <div key={r.date} className="li"><div className="grow"><div className="h3">{r.date} · <span className="num">{r.weight}</span></div><div className="small">{r.stats}</div><div className="tiny">“{r.note}”</div></div></div>

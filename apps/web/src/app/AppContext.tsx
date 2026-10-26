@@ -34,3 +34,9 @@ export function SampleNote() {
   if (mode === "demo") return null;
   return <div className="tiny full" style={{ border: "1px dashed var(--line2)", borderRadius: "var(--r-sm)", padding: "8px 10px" }}>Sample data. This section connects to your real data in a later update.</div>;
 }
+
+/** Why check-ins, measurements and photos couldn't load, if they couldn't. Always null in the demo. */
+export function useProgressError(): string | null {
+  const store = useStore() as Partial<LiveStore> & ReturnType<typeof useStore>;
+  return useSyncExternalStore(store.subscribe, () => store.progressError?.() ?? null);
+}
