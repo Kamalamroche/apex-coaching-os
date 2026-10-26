@@ -7,14 +7,14 @@ const CLIP = "https://d8j0ntlcm91z4.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXN
 const UPLOAD = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/";
 
 export const DEMO_VIDEOS: Record<number, DemoVideo> = {
-  1: { src: `${CLIP}hf_20261026_194431_6396fb00-dbce-45ae-8511-ed44bf5a17d0.mp4`, avatar: "male" },
+  1: { src: `${CLIP}hf_20261026_213009_f00a6efb-0753-4f17-80e4-d2450ce30be3.mp4`, avatar: "male" },
   2: { src: `${UPLOAD}400ebf52-de60-4922-b651-0b4e50331c42.mp4`, avatar: "male" },
   8: { src: `${CLIP}hf_20261026_194842_a7432182-d66f-4b27-862d-15895a583615.mp4`, avatar: "female" },
   9: { src: `${CLIP}hf_20261026_194411_7ba0881c-8a90-4964-becc-2e6263040ff0.mp4`, avatar: "female" },
   14: { src: `${CLIP}hf_20261026_194410_3521b374-fc08-418b-83bc-a717a2e61c45.mp4`, avatar: "male" },
   17: { src: `${CLIP}hf_20261026_201449_94282063-4842-4f1e-8444-f080461a67ac.mp4`, avatar: "male" },
   83: { src: `${CLIP}hf_20261026_201448_095616b7-9b37-42ad-8832-1c5e2f65aeb3.mp4`, avatar: "female" },
-  89: { src: `${CLIP}hf_20261026_211758_657b9cca-bb57-49e5-a327-0997ba87e981.mp4`, avatar: "female" },
+  89: { src: `${CLIP}hf_20261026_213007_2d23a04e-67da-448e-a5fa-590783048f09.mp4`, avatar: "female" },
   109: { src: `${CLIP}hf_20261026_201448_b7b9e676-99ac-4c73-bef8-b7af755f802f.mp4`, avatar: "female" },
   112: { src: `${UPLOAD}e606fb84-11ed-41c2-a871-a7c8d8660636.mp4`, avatar: "male" },
   120: { src: `${CLIP}hf_20261026_201450_ad54d444-9b3f-4c65-ada7-e42565cb7fcf.mp4`, avatar: "male" },
