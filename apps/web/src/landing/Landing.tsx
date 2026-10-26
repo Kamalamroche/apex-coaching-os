@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Icons, Label, ThemeButton, type IconName, type LabelKind } from "@apex/ui";
 
 /* Public marketing page at /. Sign-in and demos live at /start/, /coach/ and /client/.
@@ -55,8 +56,15 @@ const Check = () => (
 );
 
 export function Landing() {
+  const [offer, setOffer] = useState(true);
   return (
     <div className="lp">
+      {offer && (
+        <div className="lp-offer" role="region" aria-label="Offer">
+          <p><b>Founding coaches:</b> start free with up to 3 clients, every feature included. <a href="/coach/">Claim your spot</a></p>
+          <button className="lp-offer-x" onClick={() => setOffer(false)} aria-label="Close offer">×</button>
+        </div>
+      )}
       <header className="lp-top">
         <div className="lp-wrap lp-bar">
           <a href="/" className="wordmark" style={{ gap: 8, color: "inherit", textDecoration: "none" }} aria-label="APEX home">
@@ -106,20 +114,21 @@ export function Landing() {
           </div>
         </section>
 
-        <section className="lp-photo">
-          <img
-            src="/landing/coach-and-client-2000.webp"
-            srcSet="/landing/coach-and-client-1000.webp 1000w, /landing/coach-and-client-2000.webp 2000w"
-            sizes="100vw"
-            width={2000}
-            height={1131}
-            loading="lazy"
-            alt="A coach and his client smiling at her workout on a phone, between sets in a gym at sunset"
-          />
-          <div className="lp-wrap lp-photo-copy">
-            <span className="eyebrow" style={{ color: "var(--act)" }}>Built by a coach</span>
-            <h2 className="lp-h2">The coaching happens on the gym floor. APEX handles the rest.</h2>
-            <p className="lp-lead">Programs, logs, check-ins and messages stay in sync between you and your client, so your time goes on the person in front of you.</p>
+        <section className="lp-sec lp-duo-sec">
+          <div className="lp-wrap">
+            <figure className="lp-duo">
+              <img
+                src="/landing/coach-and-client-2000.webp"
+                srcSet="/landing/coach-and-client-1000.webp 1000w, /landing/coach-and-client-2000.webp 2000w"
+                sizes="(max-width: 1140px) 100vw, 1140px"
+                width={2000}
+                height={1131}
+                loading="lazy"
+                alt="A coach and his client smiling at her workout on a phone, between sets in a gym"
+              />
+              <figcaption>In-person and online coaching</figcaption>
+            </figure>
+            <h2 className="lp-h2 lp-duo-h">We handle the admin, so you can get back to coaching.</h2>
           </div>
         </section>
 
