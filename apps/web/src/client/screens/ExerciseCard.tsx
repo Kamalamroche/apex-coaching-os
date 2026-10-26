@@ -9,7 +9,14 @@ export function ExerciseCard({ exercise: ex }: { exercise: Exercise }) {
   const steps = ex.steps ?? [];
   return (
     <>
-      <div className="video"><span className="tag label l-data">Demo video</span><Icons.figure /></div>
+      {ex.video ? (
+        <div className="video clip">
+          <video src={ex.video.src} autoPlay muted loop playsInline preload="metadata" aria-label={`${ex.name} demonstration`} />
+          <span className="tag label l-data">Demo video</span>
+        </div>
+      ) : (
+        <div className="video"><span className="tag label l-data">Demo video</span><Icons.figure /></div>
+      )}
 
       <header>
         <div style={{ ...overline, color: "var(--act)" }}>{[ex.category, ex.equipment, ex.type].join("  ·  ")}</div>

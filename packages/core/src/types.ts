@@ -24,6 +24,14 @@ export interface Exercise {
   type: TrainingType;
   /** "Primary Focus" from the sheet, e.g. "Lateral Core (Obliques)". */
   focus: string;
+  /** Short HELIX demo clip. Code only for now: not yet a database column. */
+  video?: DemoVideo;
+}
+
+export interface DemoVideo {
+  src: string;
+  /** Which HELIX avatar performs it. */
+  avatar: "male" | "female";
 }
 
 export type Risk = "high" | "medium" | "low";
