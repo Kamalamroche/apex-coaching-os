@@ -1,6 +1,6 @@
 import {
-  INITIAL_WORKOUT, latestSetByExercise, toItemRows, toLoggedSetRows, toMessages, toSessionLog, toWorkout,
-  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, nextHistory, toItemRows, toLoggedSetRows, toMessages, toPreviousSession, toSessionLog, toWorkout,
+  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -24,7 +24,10 @@ const SAVE_DELAY_MS = 400;
 /** Ignore realtime echoes this long after a local edit so they can't overwrite typing. */
 const ECHO_GUARD_MS = 1500;
 
-const empty = (): ApexState => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [] });
+const empty = (): ApexState => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [], history: { bestKg: {}, previous: null } });
+
+/** Postgres "undefined column" (select) and PostgREST "column not in schema cache" (insert). */
+const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
 
 /** ApexStore backed by Supabase. Loads the client's latest published program and keeps it live. */
 export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
@@ -37,6 +40,8 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let lastLocalEdit = 0;
   let channel: RealtimeChannel | null = null;
   let loadSeq = 0;
+  // False until the session_summary migration has run on this database; then we save without it.
+  let hasSummaryColumn = true;
   let reloadTimer: ReturnType<typeof setTimeout> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
   const listeners = new Set<() => void>();
@@ -70,20 +75,33 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (!workout) throw new Error("This program has no workouts yet");
       workoutId = workout.id;
 
-      const [{ data: items, error: iErr }, { data: recent, error: rErr }, { data: session, error: sErr }] = await Promise.all([
+      const sessionCols = `id, started_at, finished_at, session_rpe, sets_completed, volume_kg, prs, note${hasSummaryColumn ? ", summary" : ""}`;
+      const [{ data: items, error: iErr }, { data: recent, error: rErr }, { data: session, error: sErr }, { data: previous, error: lErr }] = await Promise.all([
         db.from("workout_items").select("*").eq("workout_id", workout.id).returns<WorkoutItemRow[]>(),
         db.from("logged_sets").select("exercise_id, load_kg, reps, seconds, rpe, sessions!inner(client_id)").eq("sessions.client_id", ids.clientId).order("completed_at", { ascending: false }).limit(300),
-        db.from("sessions").select("id, started_at, finished_at, session_rpe, sets_completed, volume_kg, prs").eq("client_id", ids.clientId).eq("workout_id", workout.id).not("finished_at", "is", null).gte("finished_at", startOfToday()).order("finished_at", { ascending: false }).limit(1).maybeSingle<SessionRow>(),
+        db.from("sessions").select(sessionCols).eq("client_id", ids.clientId).eq("workout_id", workout.id).not("finished_at", "is", null).gte("finished_at", startOfToday()).order("finished_at", { ascending: false }).limit(1).maybeSingle<SessionRow>(),
+        db.from("sessions").select("started_at, finished_at, sets_completed, volume_kg, workouts(name)").eq("client_id", ids.clientId).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1).maybeSingle<PreviousSessionRow>(),
       ]);
       if (iErr) throw iErr;
       if (rErr) throw rErr;
+      if (sErr && isMissingColumn(sErr) && hasSummaryColumn) {
+        hasSummaryColumn = false;
+        return void (await load());
+      }
       if (sErr) throw sErr;
+      if (lErr) throw lErr;
 
       if (stale()) return;
-      const last = latestSetByExercise((recent ?? []) as unknown as Pick<LoggedSetRow, "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[]);
+      const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
+      const last = latestSetByExercise(recentSets);
       const w = toWorkout(workout, items ?? [], program.weeks, last);
       savedKeys = new Set(w.items.map((i) => i.key));
-      state = { workout: w, log: session ? toSessionLog(session, w.name) : null, messages };
+      state = {
+        workout: w,
+        log: session ? toSessionLog(session, w.name) : null,
+        messages,
+        history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null },
+      };
       status = "ready";
       error = null;
       emit();
@@ -172,15 +190,22 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       saveTimer = setTimeout(() => { lastLocalEdit = Date.now(); persistWorkout(state.workout).catch(fail); }, SAVE_DELAY_MS);
     },
     finishSession(log, sets) {
-      state = { ...state, log };
+      state = { ...state, log, history: nextHistory(state.history, log, state.workout, sets) };
       emit();
       void (async () => {
         const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
-        const { data, error: e1 } = await db.from("sessions").insert({
+        const row: Record<string, unknown> = {
           client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
-          session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs,
-        }).select("id").single();
-        if (e1) throw e1;
+          session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
+        };
+        const insert = (withSummary: boolean) =>
+          db.from("sessions").insert(withSummary ? { ...row, summary: log.summary ?? null } : row).select("id").single();
+        let { data, error: e1 } = await insert(hasSummaryColumn);
+        if (e1 && isMissingColumn(e1) && hasSummaryColumn) {
+          hasSummaryColumn = false;
+          ({ data, error: e1 } = await insert(false));
+        }
+        if (e1 || !data) throw e1 ?? new Error("The session wasn't saved");
         const rows = toLoggedSetRows(sets, state.workout, data.id);
         if (rows.length) {
           const { error: e2 } = await db.from("logged_sets").insert(rows);

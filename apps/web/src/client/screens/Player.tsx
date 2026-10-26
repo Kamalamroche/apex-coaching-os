@@ -1,11 +1,13 @@
 import {
-  PREVIOUS_BEST_KG, completedSets, countPersonalBests, exerciseFor, formatRest, initialSets, isPersonalBest, isSuperset,
-  sessionVolume, totalSets, type SessionSets, type SetEntry, type Workout,
+  buildSummary, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest, isSuperset,
+  sessionVolume, summaryMessage, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { Icons } from "@apex/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
+import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
+import { PlateCalculator } from "./PlateCalculator";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
@@ -14,12 +16,17 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const store = useStore();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
   const [w] = useState(() => store.get().workout);
+  // Bests and last session as they were before this workout, so the summary compares against them.
+  const [history] = useState(() => store.get().history);
   const [idx, setIdx] = useState(0);
   const [sets, setSets] = useState<SessionSets>(() => initialSets(w));
   const [rpe, setRpe] = useState<Record<string, number>>({});
   const [rest, setRest] = useState<{ left: number } | null>(null);
   const [showCues, setShowCues] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [plates, setPlates] = useState(false);
+  /** Bar chosen in the plate calculator, per exercise, for this session. */
+  const [barKg, setBarKg] = useState<Record<number, number>>({});
   const startedAt = useRef(Date.now());
 
   useEffect(() => {
@@ -53,7 +60,11 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
     else if (isSuperset(it) && idx < w.items.length - 1) setTimeout(() => setIdx(idx + 1), 350);
   };
 
-  if (finishing) return <Finish workout={w} sets={sets} minutes={minutes} onDone={onDone} />;
+  if (finishing) return <Finish workout={w} sets={sets} history={history} minutes={minutes} onDone={onDone} />;
+
+  // The plate calculator opens on the next set still to do.
+  const nextSet = itemSets.find((s) => !s.done) ?? itemSets.at(-1);
+  const plateKg = Number(nextSet?.kg.replace(",", ".")) || it.kg;
 
   const next = w.items[idx + 1];
   return (
@@ -72,7 +83,10 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           <div className="eyebrow">{ex.muscles.join(" · ")}</div>
           <h1 className="h1" style={{ fontSize: 26 }}>{ex.name}</h1>
           <div className="small num" style={{ marginTop: 4 }}>Target {it.sets}×{it.reps}{it.kg ? ` @ ${it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : "none, go to next"}</div>
-          <button className="link" style={{ marginTop: 6 }} onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
+          <div className="row" style={{ gap: 14, marginTop: 6 }}>
+            <button className="link" onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
+            {usesPlates(ex) && it.kg > 0 && <button className="link" onClick={() => setPlates(true)}>Plate calculator</button>}
+          </div>
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
         <div className="card" style={{ padding: "10px 12px" }}>
@@ -96,7 +110,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
             </div>
           ))}
         </div>
-        {isPersonalBest(it, itemSets, PREVIOUS_BEST_KG) && (
+        {isPersonalBest(it, itemSets, history.bestKg) && (
           <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}><b>🎉 New personal best</b> <span className="small">on {ex.name}</span></div>
         )}
         {exerciseDone && (
@@ -106,6 +120,9 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
         )}
       </main>
+      {plates && (
+        <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
+      )}
       {rest && (
         <div className="rest" role="timer" aria-live="polite">
           <div className="grow"><div className="tiny" style={{ color: "inherit", opacity: 0.7 }}>Rest</div><b>{formatRest(rest.left)}</b></div>
@@ -125,16 +142,23 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   );
 }
 
-function Finish({ workout: w, sets, minutes, onDone }: { workout: Workout; sets: SessionSets; minutes: () => number; onDone: () => void }) {
+function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; minutes: () => number; onDone: () => void }) {
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
+  const [note, setNote] = useState("");
+  // Freeze the duration when the summary opens, so time spent here doesn't count as training.
+  const [mins] = useState(minutes);
   const volume = sessionVolume(sets);
-  const prs = countPersonalBests(w, sets, PREVIOUS_BEST_KG);
+  const prs = countPersonalBests(w, sets, history.bestKg);
   const count = completedSets(sets);
+  const summary = useMemo(() => buildSummary(w, sets, mins, history), [w, sets, mins, history]);
   const save = () => {
     if (sessionRpe === null) return;
-    store.finishSession({ workoutName: w.name, sets: count, volumeKg: volume, minutes: minutes(), rpe: sessionRpe, prs }, sets);
+    const log: SessionLog = { workoutName: w.name, sets: count, volumeKg: volume, minutes: mins, rpe: sessionRpe, prs, summary, ...(note.trim() ? { note: note.trim() } : {}) };
+    store.finishSession(log, sets);
+    // The coach gets the summary straight away in the message thread too.
+    store.sendMessage("client", summaryMessage(log));
     onDone();
   };
   return (
@@ -145,21 +169,17 @@ function Finish({ workout: w, sets, minutes, onDone }: { workout: Workout; sets:
         <div className="kpis">
           <div className="kpi"><b>{count}</b><small>Sets</small></div>
           <div className="kpi"><b>{volume.toLocaleString()}</b><small>kg lifted</small></div>
-          <div className="kpi"><b>{minutes()}</b><small>Minutes</small></div>
+          <div className="kpi"><b>{mins}</b><small>Minutes</small></div>
         </div>
-        {prs > 0 && (
-          <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)" }}>
-            <div className="h3">🎉 {prs} new personal best{prs > 1 ? "s" : ""}</div>
-            <div className="small">{coachName} will see it on the Brief.</div>
-          </div>
-        )}
+        <WorkoutSummaryCard summary={summary} />
         <div className="card">
           <h3 className="h3" style={{ marginBottom: 8 }}>How hard was the whole session?</h3>
           <div className="rpe">{RPE_SCALE.map((n) => <button key={n} className={sessionRpe === n ? "on" : ""} onClick={() => setSessionRpe(n)}>{n}</button>)}</div>
           <div className="tiny" style={{ marginTop: 6 }}>6 = easy, 10 = maximal</div>
         </div>
-        <input id="sessionnote" className="field" placeholder={`Note for ${coachName} (optional)`} />
-        <button className="btn act block" style={{ minHeight: 52 }} disabled={sessionRpe === null} onClick={save}>Save and finish</button>
+        <input id="sessionnote" className="field" placeholder={`Note for ${coachName} (optional)`} value={note} onChange={(e) => setNote(e.target.value)} />
+        <button className="btn act block" style={{ minHeight: 52 }} disabled={sessionRpe === null} onClick={save}>Save and send to {coachName}</button>
+        <div className="tiny" style={{ textAlign: "center" }}>{coachName} gets this summary as soon as you save.</div>
       </main>
     </div>
   );

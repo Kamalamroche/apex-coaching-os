@@ -3,6 +3,7 @@ import { useApexState } from "@apex/core/react";
 import { Icons } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
+import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
@@ -44,6 +45,7 @@ export function Today({ start, checkedIn, onCheckIn }: { start: () => void; chec
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
           <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR 🎉` : ""}</div>
+          {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}
 

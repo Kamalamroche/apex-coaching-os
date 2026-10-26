@@ -3,6 +3,7 @@ import { useApexState } from "@apex/core/react";
 import { Avatar, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 
 interface TriageItem {
@@ -114,13 +115,15 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
         <div className="sect"><h2 className="h2">Latest activity</h2></div>
         <div className="card flat list">
           {log && (
-            <div className="li">
+            <div className="li" style={{ flexWrap: "wrap" }}>
               <Avatar initials={clientInitials} size={34} tone="var(--good)" />
               <div className="grow">
                 <div className="h3">{clientFirst} finished {log.workoutName}</div>
-                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets · {log.volumeKg.toLocaleString()} kg · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}>📝 "{log.note}"</div>}
               </div>
-              <span className="tiny">Just now</span>
+              <span className="tiny">Today</span>
+              {log.summary && <div style={{ flexBasis: "100%", marginTop: 8 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
             </div>
           )}
           {mode === "demo" && <>

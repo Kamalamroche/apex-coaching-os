@@ -27,7 +27,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(refreshClients, [refreshClients]);
 
   const store: ApexStore = useMemo(
-    () => (activeId ? createSupabaseStore(db, { coachId: profile.id, clientId: activeId, me: profile.id }) : createDemoStore(null, null, () => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [] }))),
+    () => (activeId ? createSupabaseStore(db, { coachId: profile.id, clientId: activeId, me: profile.id }) : createDemoStore(null, null, () => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [], history: { bestKg: {}, previous: null } }))),
     [db, profile.id, activeId],
   );
 

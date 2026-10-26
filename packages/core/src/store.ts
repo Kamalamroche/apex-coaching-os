@@ -1,5 +1,6 @@
-import { INITIAL_MESSAGES, INITIAL_WORKOUT } from "./data/workout";
-import type { Message, SessionLog, Workout } from "./types";
+import { INITIAL_HISTORY, INITIAL_MESSAGES, INITIAL_WORKOUT } from "./data/workout";
+import { nextHistory } from "./summary";
+import type { Message, SessionLog, TrainingHistory, Workout } from "./types";
 import type { SessionSets } from "./session";
 
 /* The data both apps share, behind one interface with two implementations:
@@ -12,6 +13,8 @@ export interface ApexState {
   workout: Workout;
   log: SessionLog | null;
   messages: Message[];
+  /** Personal bests and the previous session, for the post-workout summary. */
+  history: TrainingHistory;
 }
 
 export interface ApexStore {
@@ -28,7 +31,7 @@ export interface ApexStore {
 
 export const DEMO_STORAGE_KEY = "apex-demo-v1";
 
-export const initialState = (): ApexState => ({ workout: INITIAL_WORKOUT, log: null, messages: INITIAL_MESSAGES });
+export const initialState = (): ApexState => ({ workout: INITIAL_WORKOUT, log: null, messages: INITIAL_MESSAGES, history: INITIAL_HISTORY });
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -75,7 +78,7 @@ export function createDemoStore(
   return {
     get: () => state,
     saveWorkout: (workout) => update((s) => ({ ...s, workout })),
-    finishSession: (log) => update((s) => ({ ...s, log })),
+    finishSession: (log, sets) => update((s) => ({ ...s, log, history: nextHistory(s.history, log, s.workout, sets) })),
     sendMessage: (from, text) => update((s) => ({ ...s, messages: [...s.messages, { from, text, time: "Now" }] })),
     subscribe(listener) {
       if (listeners.size === 0) events?.addEventListener("storage", onStorage);
