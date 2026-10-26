@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { alternativesFor, exerciseById, searchExercises } from "./library";
+import { EXERCISES } from "./data/exercises";
+import { alternativesFor, exerciseById, filterLibrary, searchExercises } from "./library";
 
 describe("searchExercises", () => {
   it("finds an exercise by alias and reports which alias matched", () => {
@@ -14,7 +15,14 @@ describe("searchExercises", () => {
   });
 
   it("matches equipment", () => {
-    expect(searchExercises("cable").map((h) => h.exercise.name)).toEqual(["Lat Pulldown", "Face Pull"]);
+    expect(searchExercises("cable", 2).map((h) => h.exercise.name)).toEqual(["Lat Pulldown", "Face Pull"]);
+    expect(searchExercises("cable", 50).every((h) => h.exercise.equipment === "Cable" || h.exercise.name.toLowerCase().includes("cable"))).toBe(true);
+  });
+
+  it("matches a training type exactly", () => {
+    const hits = searchExercises("yoga", 50);
+    expect(hits.length).toBeGreaterThan(10);
+    expect(hits.every((h) => h.exercise.type === "Yoga")).toBe(true);
   });
 
   it("returns nothing for a blank query and respects the limit", () => {
@@ -29,6 +37,32 @@ describe("alternativesFor", () => {
     const alts = alternativesFor(trapBar);
     expect(alts.length).toBeGreaterThan(0);
     expect(alts.every((a) => a.pattern === "Hinge" && a.id !== 15)).toBe(true);
+  });
+});
+
+describe("filterLibrary", () => {
+  it("returns the whole library with no filters", () => {
+    expect(filterLibrary({})).toHaveLength(EXERCISES.length);
+  });
+
+  it("combines body area, type and a muscle search", () => {
+    const list = filterLibrary({ area: "Legs", type: "Accessory", query: "calves" });
+    expect(list.length).toBeGreaterThan(3);
+    expect(list.every((e) => e.category === "Legs" && e.type === "Accessory" && e.muscles.includes("Calves"))).toBe(true);
+  });
+});
+
+describe("the movement library", () => {
+  it("has the 15 starter movements under their original ids, then the sheet", () => {
+    expect(EXERCISES).toHaveLength(622);
+    expect(exerciseById(1).name).toBe("Barbell Back Squat");
+    expect(exerciseById(15).name).toBe("Trap Bar Deadlift");
+    expect(EXERCISES.map((e) => e.id)).toEqual(EXERCISES.map((_, i) => i + 1));
+  });
+
+  it("has unique names", () => {
+    const names = EXERCISES.map((e) => e.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
   });
 });
 

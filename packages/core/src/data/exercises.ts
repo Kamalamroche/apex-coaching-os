@@ -1,20 +1,6 @@
 import type { Exercise } from "../types";
+import { MOVEMENT_LIBRARY } from "./movementLibrary";
+import { STARTER_EXERCISES } from "./starterExercises";
 
-/* Sample library. The real library is imported from Kamal's 620-movement sheet. */
-export const EXERCISES: Exercise[] = [
-  { id: 1, name: "Barbell Back Squat", aliases: ["squat", "back squat"], pattern: "Squat", category: "Legs", equipment: "Barbell", muscles: ["Quads", "Glutes"], cues: ["Brace before you descend", "Knees track over toes", "Drive the floor away"], commonMistake: "Heels lifting at the bottom" },
-  { id: 2, name: "Romanian Deadlift", aliases: ["rdl", "stiff leg", "romanian"], pattern: "Hinge", category: "Legs", equipment: "Barbell", muscles: ["Hamstrings", "Glutes"], cues: ["Soft knees, push hips back", "Bar stays against thighs", "Stop when hips stop"], commonMistake: "Rounding the lower back" },
-  { id: 3, name: "Incline Bench Press", aliases: ["incline press", "bench"], pattern: "Push", category: "Chest", equipment: "Barbell", muscles: ["Upper chest", "Triceps"], cues: ["Shoulder blades pinned", "Bar to upper chest", "Press up and slightly back"], commonMistake: "Flaring elbows to 90°" },
-  { id: 4, name: "Pull-Up", aliases: ["chin", "pullup", "chin-up"], pattern: "Pull", category: "Back", equipment: "Bodyweight", muscles: ["Lats", "Biceps"], cues: ["Start from a dead hang", "Pull elbows to ribs", "Chin over bar"], commonMistake: "Kipping without control" },
-  { id: 5, name: "Overhead Press", aliases: ["ohp", "military press"], pattern: "Push", category: "Shoulders", equipment: "Barbell", muscles: ["Delts", "Triceps"], cues: ["Glutes tight", "Head through at lockout", "Bar over mid-foot"], commonMistake: "Leaning back to press" },
-  { id: 6, name: "Barbell Row", aliases: ["bent over row", "row"], pattern: "Pull", category: "Back", equipment: "Barbell", muscles: ["Lats", "Rhomboids"], cues: ["Hinge to 45°", "Row to lower ribs", "Pause at the top"], commonMistake: "Using momentum" },
-  { id: 7, name: "Dumbbell Lateral Raise", aliases: ["lateral", "side raise"], pattern: "Isolation", category: "Shoulders", equipment: "Dumbbell", muscles: ["Side delts"], cues: ["Lead with elbows", "Stop at shoulder height", "Control the lowering"], commonMistake: "Shrugging" },
-  { id: 8, name: "Hip Thrust", aliases: ["glute bridge", "thrust"], pattern: "Hinge", category: "Legs", equipment: "Barbell", muscles: ["Glutes", "Hamstrings"], cues: ["Chin tucked", "Shins vertical at top", "Squeeze for one second"], commonMistake: "Arching the lower back" },
-  { id: 9, name: "Goblet Squat", aliases: ["goblet"], pattern: "Squat", category: "Legs", equipment: "Dumbbell", muscles: ["Quads", "Glutes"], cues: ["Elbows inside knees", "Chest tall", "Sit between heels"], commonMistake: "Knees caving in" },
-  { id: 10, name: "Leg Press", aliases: ["press"], pattern: "Squat", category: "Legs", equipment: "Machine", muscles: ["Quads", "Glutes"], cues: ["Feet hip width", "Lower to 90°", "Don't lock knees"], commonMistake: "Hips lifting off the pad" },
-  { id: 11, name: "Dumbbell Bench Press", aliases: ["db bench", "bench"], pattern: "Push", category: "Chest", equipment: "Dumbbell", muscles: ["Chest", "Triceps"], cues: ["Wrists stacked", "Lower to chest level", "Press together"], commonMistake: "Bouncing at the bottom" },
-  { id: 12, name: "Lat Pulldown", aliases: ["pulldown", "lat"], pattern: "Pull", category: "Back", equipment: "Cable", muscles: ["Lats", "Biceps"], cues: ["Chest up", "Pull to collarbone", "Slow return"], commonMistake: "Leaning far back" },
-  { id: 13, name: "Face Pull", aliases: ["facepull", "rear delt"], pattern: "Pull", category: "Back", equipment: "Cable", muscles: ["Rear delts", "Rotator cuff"], cues: ["Thumbs back", "Pull to eyes", "Elbows high"], commonMistake: "Arching back" },
-  { id: 14, name: "Plank", aliases: ["front plank", "core"], pattern: "Core", category: "Core", equipment: "Bodyweight", muscles: ["Core"], cues: ["Ribs down", "Squeeze glutes", "Breathe"], commonMistake: "Hips sagging" },
-  { id: 15, name: "Trap Bar Deadlift", aliases: ["hex bar", "deadlift"], pattern: "Hinge", category: "Legs", equipment: "Trap bar", muscles: ["Glutes", "Quads", "Back"], cues: ["Handles in line with ankles", "Push the floor", "Stand tall"], commonMistake: "Hips shooting up first" },
-];
+/* The shared APEX library: the 15 hand-written starter movements, then the movement sheet. */
+export const EXERCISES: Exercise[] = [...STARTER_EXERCISES, ...MOVEMENT_LIBRARY];
