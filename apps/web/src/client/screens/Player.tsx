@@ -167,7 +167,7 @@ function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Worko
         <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete</div>
         <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">
-          <div className="kpi"><b>{count}</b><small>Sets</small></div>
+          <div className="kpi"><b>{count}</b><small>Sets · {summary.totalReps ?? 0} reps</small></div>
           <div className="kpi"><b>{volume.toLocaleString()}</b><small>kg lifted</small></div>
           <div className="kpi"><b>{mins}</b><small>Minutes</small></div>
         </div>

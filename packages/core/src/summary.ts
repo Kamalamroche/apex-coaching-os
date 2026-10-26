@@ -1,7 +1,7 @@
 import { exerciseById } from "./library";
 import type { SessionSets } from "./session";
 import { completedSets, sessionVolume } from "./session";
-import type { MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
+import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
 
 /* The post-workout summary: what the client sees when they finish and what their coach receives. */
 
@@ -37,6 +37,32 @@ export function musclesWorked(workout: Workout, sets: SessionSets): MuscleWork[]
   return [...count].map(([muscle, n]) => ({ muscle, sets: n })).sort((a, b) => b.sets - a.sets);
 }
 
+/** Sets, reps (or seconds for holds) and top load per exercise, over completed sets, in workout order. */
+export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTotal[] {
+  const totals = new Map<number, ExerciseTotal>();
+  for (const it of workout.items) {
+    const done = (sets[it.key] ?? []).filter((s) => s.done);
+    if (!done.length) continue;
+    const isHold = it.reps.trim().endsWith("s");
+    const t = totals.get(it.exerciseId) ?? { exerciseId: it.exerciseId, exercise: exerciseById(it.exerciseId).name, sets: 0, reps: 0, seconds: 0, topKg: 0 };
+    for (const s of done) {
+      const n = Number(s.reps) || 0;
+      t.sets += 1;
+      if (isHold) t.seconds += n;
+      else t.reps += n;
+      t.topKg = Math.max(t.topKg, Number(s.kg) || 0);
+    }
+    totals.set(it.exerciseId, t);
+  }
+  return [...totals.values()];
+}
+
+/** "4 sets · 20 reps · top 72.5 kg", or "3 sets · 120 s" for a hold. */
+export const describeExerciseTotal = (t: ExerciseTotal): string =>
+  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.topKg ? `top ${t.topKg} kg` : null]
+    .filter(Boolean)
+    .join(" · ");
+
 /** Exercises where a completed set beat the previous best load. One entry per exercise, heaviest set. */
 export function personalBests(workout: Workout, sets: SessionSets, bestKg: Record<number, number>): PersonalBest[] {
   const top = new Map<number, number>();
@@ -70,7 +96,10 @@ export function buildSummary(workout: Workout, sets: SessionSets, minutes: numbe
   const count = completedSets(sets);
   const prev = history.previous;
   const vsLast = prev ? { volumeKg: volumeKg - prev.volumeKg, sets: count - prev.sets, minutes: minutes - prev.minutes } : null;
+  const exercises = exerciseTotals(workout, sets);
   return {
+    exercises,
+    totalReps: exercises.reduce((n, e) => n + e.reps, 0),
     muscles: musclesWorked(workout, sets),
     bests: personalBests(workout, sets, history.bestKg),
     vsLast,
@@ -96,6 +125,10 @@ const signed = (n: number, unit: string) => `${n > 0 ? "+" : n < 0 ? "−" : "±
 export function summaryMessage(log: SessionLog): string {
   const s = log.summary;
   const lines = [`✅ Finished ${log.workoutName}`, `${log.sets} sets · ${log.volumeKg.toLocaleString("en-GB")} kg · ${log.minutes} min · RPE ${log.rpe}`];
+  if (s?.exercises?.length) {
+    lines.push(`🔁 ${s.totalReps ?? 0} reps in total`);
+    for (const e of s.exercises) lines.push(`• ${e.exercise}: ${describeExerciseTotal(e)}`);
+  }
   if (s?.muscles.length) lines.push(`💪 Worked: ${s.muscles.map((m) => m.muscle).join(", ")}`);
   for (const b of s?.bests ?? []) lines.push(`🏆 New best: ${b.exercise} ${b.kg} kg (was ${b.previousKg} kg)`);
   if (s?.vsLast) lines.push(`📈 vs last time: ${signed(s.vsLast.volumeKg, " kg")} · ${signed(s.vsLast.sets, " sets")}`);

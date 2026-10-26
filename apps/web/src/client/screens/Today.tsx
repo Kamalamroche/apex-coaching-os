@@ -44,7 +44,7 @@ export function Today({ start, checkedIn, onCheckIn }: { start: () => void; chec
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
-          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR 🎉` : ""}</div>
+          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR 🎉` : ""}</div>
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}

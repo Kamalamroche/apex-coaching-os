@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_HISTORY, INITIAL_WORKOUT } from "./data/workout";
 import { initialSets, type SessionSets } from "./session";
-import { buildSummary, musclesWorked, nextHistory, personalBests, pictureWeight, summaryMessage } from "./summary";
+import { buildSummary, describeExerciseTotal, exerciseTotals, musclesWorked, nextHistory, personalBests, pictureWeight, summaryMessage } from "./summary";
 
 const finishAll = (sets: SessionSets): SessionSets =>
   Object.fromEntries(Object.entries(sets).map(([k, v]) => [k, v.map((s) => ({ ...s, done: true }))]));
@@ -14,6 +14,18 @@ describe("post-workout summary", () => {
     // Trap bar 4 + RDL 3 + goblet 3 all hit glutes.
     expect(m[0]).toEqual({ muscle: "Glutes", sets: 10 });
     expect(m.find((x) => x.muscle === "Core")).toEqual({ muscle: "Core", sets: 3 });
+  });
+
+  it("adds up reps per exercise and keeps holds as seconds", () => {
+    const sets = finishAll(initialSets(INITIAL_WORKOUT));
+    sets.a = sets.a!.map((s, i) => ({ ...s, kg: i === 3 ? "72.5" : s.kg, reps: i === 3 ? "4" : s.reps }));
+    const t = exerciseTotals(INITIAL_WORKOUT, sets);
+    expect(t.map((e) => e.exercise)).toEqual(["Trap Bar Deadlift", "Romanian Deadlift", "Plank", "Goblet Squat"]);
+    expect(t[0]).toMatchObject({ sets: 4, reps: 19, seconds: 0, topKg: 72.5 });
+    expect(describeExerciseTotal(t[0]!)).toBe("4 sets · 19 reps · top 72.5 kg");
+    expect(describeExerciseTotal(t[2]!)).toBe("3 sets · 120 s");
+    // 19 + 24 + 30, the plank's seconds are not reps.
+    expect(buildSummary(INITIAL_WORKOUT, sets, 40, INITIAL_HISTORY).totalReps).toBe(73);
   });
 
   it("lists each beaten best once, with the heaviest set", () => {
@@ -46,6 +58,8 @@ describe("post-workout summary", () => {
     expect(text).toContain("🏆 New best: Trap Bar Deadlift 70 kg (was 67.5 kg)");
     expect(text).toContain("📈 vs last time: +250 kg · ±0 sets");
     expect(text).toContain('📝 "Hip felt good"');
+    expect(text).toContain("🔁 74 reps in total");
+    expect(text).toContain("• Plank: 3 sets · 120 s");
   });
 
   it("makes this session the next comparison and raises bests", () => {

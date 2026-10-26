@@ -1,4 +1,4 @@
-import type { WorkoutSummary } from "@apex/core";
+import { describeExerciseTotal, type WorkoutSummary } from "@apex/core";
 import { Label } from "@apex/ui";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}`;
@@ -15,6 +15,19 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
           {s.bests.map((b) => (
             <div key={b.exerciseId} className="small num" style={{ marginTop: 4 }}>{b.exercise}: <b style={{ color: "var(--text)" }}>{b.kg} kg</b> (was {b.previousKg} kg)</div>
           ))}
+        </div>
+      )}
+      {s.exercises && s.exercises.length > 0 && (
+        <div className="card" style={{ padding: "10px 12px" }}>
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Exercises</h3><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{(s.totalReps ?? 0).toLocaleString("en-GB")} reps in total</span></div>
+          <div className="list">
+            {s.exercises.map((e) => (
+              <div key={e.exerciseId} className="row" style={{ justifyContent: "space-between", gap: 8, padding: "5px 0", borderTop: "1px solid var(--line)" }}>
+                <span className="small" style={{ color: "var(--text)" }}>{e.exercise}</span>
+                <span className="tiny num" style={{ textAlign: "right" }}>{describeExerciseTotal(e)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {s.muscles.length > 0 && (

@@ -119,7 +119,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
               <Avatar initials={clientInitials} size={34} tone="var(--good)" />
               <div className="grow">
                 <div className="h3">{clientFirst} finished {log.workoutName}</div>
-                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
                 {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}>📝 "{log.note}"</div>}
               </div>
               <span className="tiny">Today</span>

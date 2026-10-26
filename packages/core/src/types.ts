@@ -98,7 +98,24 @@ export interface PersonalBest {
   previousKg: number;
 }
 
+/** What the client did on one exercise: completed sets added up. */
+export interface ExerciseTotal {
+  exerciseId: number;
+  exercise: string;
+  sets: number;
+  /** Total reps over completed sets. 0 for holds. */
+  reps: number;
+  /** Total seconds for holds such as a plank. 0 otherwise. */
+  seconds: number;
+  /** Heaviest completed set, 0 for bodyweight. */
+  topKg: number;
+}
+
 export interface WorkoutSummary {
+  /** Per exercise, in workout order. Missing on summaries saved before it was added. */
+  exercises?: ExerciseTotal[];
+  /** Reps over the whole workout, holds excluded. */
+  totalReps?: number;
   muscles: MuscleWork[];
   bests: PersonalBest[];
   /** Change against the previous session. Null on the first session. */
