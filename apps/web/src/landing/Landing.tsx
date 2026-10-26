@@ -15,11 +15,11 @@ const FEATURES: { icon: IconName; title: string; body: string }[] = [
   { icon: "money", title: "Nutrition and business", body: "Macro targets, check-in status and revenue live in the same place as training, not in five other apps." },
 ];
 
-/* Duotone card row. Empty until the approved photos are in public/landing/; the row is hidden while empty. */
+/* Duotone card row under the main photo. The row hides itself if this list is empty. */
 const MODES: { img: string; label: string; alt: string }[] = [
-  // { img: "online-coaching", label: "Online coaching", alt: "A coach at her desk reviewing a client's training video on a laptop" },
-  // { img: "train-anywhere", label: "Train anywhere", alt: "A client resting between sets in his garage gym, checking his phone" },
-  // { img: "small-group", label: "Small group", alt: "A coach giving cues during a small group kettlebell session" },
+  { img: "online-coaching", label: "Online coaching", alt: "A coach at her desk reviewing a client's training video on a laptop" },
+  { img: "train-anywhere", label: "Train anywhere", alt: "A client resting between sets in his garage gym, checking his phone" },
+  { img: "small-group", label: "Small group", alt: "A coach giving cues during a small group kettlebell session" },
 ];
 
 const STEPS = [
@@ -138,7 +138,7 @@ export function Landing() {
             {MODES.length > 0 && <div className="lp-duo-row">
               {MODES.map((m) => (
                 <figure key={m.label} className="lp-duo lp-duo-sm">
-                  <img src={`/landing/${m.img}-900.webp`} width={900} height={675} loading="lazy" alt={m.alt} />
+                  <img src={`/landing/${m.img}-900.webp`} width={900} height={672} loading="lazy" alt={m.alt} />
                   <figcaption>{m.label}</figcaption>
                 </figure>
               ))}
