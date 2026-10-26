@@ -15,6 +15,9 @@ export interface Exercise {
   category: BodyArea;
   equipment: string;
   muscles: string[];
+  /** Step-by-step instructions. Code only for now: not yet a database column. */
+  steps?: string[];
+  /** Coaching tips. */
   cues: string[];
   /** Empty until a coach writes one. */
   commonMistake: string;

@@ -5,3 +5,4 @@ export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
+export { MuscleMap } from "./MuscleMap";
