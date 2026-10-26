@@ -34,7 +34,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const goBuild = () => setTab("build");
   const changeTab = (t: Tab) => { setTab(t); if (t !== "clients") setClientId(null); };
   return (
-    <Shell side="Coach" switchHref="/" tabs={TABS} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Coach" switchHref="/start/" tabs={TABS} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} />}
       {tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} />}

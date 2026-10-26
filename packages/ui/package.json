@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./landing.css": "./src/landing.css"
   },
   "peerDependencies": {
     "react": "^18.3.1"
