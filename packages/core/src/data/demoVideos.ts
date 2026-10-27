@@ -8,7 +8,7 @@ const UPLOAD = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2Tptr
 
 export const DEMO_VIDEOS: Record<number, DemoVideo> = {
   1: { src: `${CLIP}hf_20261027_201422_28d5788a-4bdb-417e-9408-4755731585c1.mp4`, avatar: "male" },
-  2: { src: `${UPLOAD}e0d69d6f-6a73-47eb-afd1-75399f66343f.mp4`, avatar: "male" },
+  2: { src: `${CLIP}hf_20261027_211555_b7c1e870-5525-457b-b83a-1d6e2605bd85.mp4`, avatar: "male" },
   3: { src: `${CLIP}hf_20261027_194210_ccf2d90e-7bef-48c2-a6b0-7a9951a352e1.mp4`, avatar: "male" },
   4: { src: `${CLIP}hf_20261027_210835_b87f322d-62f8-4f1f-b6ea-84971fc8fa75.mp4`, avatar: "male" },
   5: { src: `${CLIP}hf_20261027_201632_4e24df66-393b-4d23-90bd-d6bfcb59e7dd.mp4`, avatar: "male" },
