@@ -7,19 +7,19 @@ const CLIP = "https://d8j0ntlcm91z4.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXN
 const UPLOAD = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/";
 
 export const DEMO_VIDEOS: Record<number, DemoVideo> = {
-  1: { src: `${UPLOAD}2e360aff-6591-48c3-81e4-ea103c0abb7e.mp4`, avatar: "male" },
+  1: { src: `${CLIP}hf_20261027_201422_28d5788a-4bdb-417e-9408-4755731585c1.mp4`, avatar: "male" },
   2: { src: `${UPLOAD}e0d69d6f-6a73-47eb-afd1-75399f66343f.mp4`, avatar: "male" },
   3: { src: `${CLIP}hf_20261027_194210_ccf2d90e-7bef-48c2-a6b0-7a9951a352e1.mp4`, avatar: "male" },
   4: { src: `${CLIP}hf_20261026_223004_d874eb6a-3ce5-4e3e-9492-de99196da773.mp4`, avatar: "male" },
-  5: { src: `${UPLOAD}dca3899c-4c56-4faf-8b12-353cce98a50c.mp4`, avatar: "male" },
-  6: { src: `${UPLOAD}61dd0905-4f7a-47dc-8043-31ef3f956df9.mp4`, avatar: "male" },
+  5: { src: `${CLIP}hf_20261027_201632_4e24df66-393b-4d23-90bd-d6bfcb59e7dd.mp4`, avatar: "male" },
+  6: { src: `${CLIP}hf_20261027_201638_fa697863-f256-4e24-84b4-f72f9418201c.mp4`, avatar: "male" },
   7: { src: `${CLIP}hf_20261027_192055_99bbbfcf-367c-49ee-b989-7ca176dbefbe.mp4`, avatar: "male" },
   8: { src: `${CLIP}hf_20261027_195200_b14629d3-d8bc-4f03-8cbe-c061c3c6ab40.mp4`, avatar: "female" },
   9: { src: `${CLIP}hf_20261027_195050_af42dc90-38e0-4394-95d0-e2680b014ea1.mp4`, avatar: "female" },
   10: { src: `${CLIP}hf_20261027_194212_9d0fed20-a209-47ec-9efe-e0672faa2382.mp4`, avatar: "male" },
   11: { src: `${CLIP}hf_20261027_192413_e1a8c687-ef22-4041-9335-239c9bdd1e45.mp4`, avatar: "male" },
   12: { src: `${CLIP}hf_20261027_194324_f87bc8e2-7a89-4d15-a5f2-89838804c571.mp4`, avatar: "male" },
-  13: { src: `${CLIP}hf_20261027_194325_e03a48a2-8696-40cd-b937-5f2f6572ecbb.mp4`, avatar: "male" },
+  13: { src: `${CLIP}hf_20261027_201421_823173ce-5a8f-40f3-8839-f4663912971f.mp4`, avatar: "male" },
   14: { src: `${CLIP}hf_20261027_194506_01c37aaf-5010-400f-8eda-840231697df4.mp4`, avatar: "male" },
   15: { src: `${CLIP}hf_20261027_195048_1b5c827c-4507-4611-b40d-59b51293af03.mp4`, avatar: "male" },
   17: { src: `${CLIP}hf_20261026_201449_94282063-4842-4f1e-8444-f080461a67ac.mp4`, avatar: "male" },
