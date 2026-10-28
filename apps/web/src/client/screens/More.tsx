@@ -1,5 +1,5 @@
 import { CLIENTS, FOODS, type Food } from "@apex/core";
-import { Avatar, BackLink, Bar } from "@apex/ui";
+import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 
@@ -121,7 +121,7 @@ function Community() {
             <div key={c.id} className="li">
               <span className="num" style={{ width: 20, fontWeight: 800, color: i === 0 ? "var(--act)" : "var(--text3)" }}>{i + 1}</span>
               <Avatar initials={c.initials} size={32} />
-              <div className="grow"><div className="h3">{first} {last[0]}.</div><div className="tiny">🔥 {c.streak} days</div></div>
+              <div className="grow"><div className="h3">{first} {last[0]}.</div><div className="tiny"><Icons.flame width={12} height={12} style={{ verticalAlign: -2, color: "var(--act)" }} /> {c.streak} days</div></div>
               <span className="num" style={{ fontWeight: 700 }}>{c.adherence}%</span>
             </div>
           );
@@ -131,7 +131,7 @@ function Community() {
         <div key={p.user} className="card">
           <div className="h3">{p.user}</div>
           <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{p.text}</p>
-          <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}>♥ {p.likes + (liked[i] ? 1 : 0)}</button>
+          <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}><Icons.heart width={13} height={13} fill={liked[i] ? "currentColor" : "none"} /> {p.likes + (liked[i] ? 1 : 0)}</button>
         </div>
       ))}
     </>

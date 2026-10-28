@@ -7,8 +7,7 @@ import type { CSSProperties } from "react";
 export const bandColour = (band: ReadinessBand | null): string => (band === "ready" ? "var(--good)" : band === "steady" ? "var(--warn)" : band === "low" ? "var(--crit)" : "var(--text3)");
 export const answerColour = (n: number | undefined): string => (!n ? "var(--text3)" : n >= 4 ? "var(--good)" : n === 3 ? "var(--warn)" : "var(--crit)");
 /** Each factor's own colour, so the four read apart at a glance. Quality (low → high) stays red → amber → green. */
-export const FACTOR_COLOUR = { sleep: "var(--ai)", energy: "var(--act)", soreness: "var(--data)", stress: "var(--blue)" } as const;
-export const SCORE_GRADIENT = ["var(--crit)", "var(--warn)", "var(--good)"];
+export const FACTOR_COLOUR = { sleep: "var(--viz-1)", energy: "var(--viz-2)", soreness: "var(--viz-3)", stress: "var(--viz-4)" } as const;
 export const QUESTION_ICON = { sleep: Icons.sleep, energy: Icons.energy, soreness: Icons.soreness, stress: Icons.stress } as const;
 
 /** The four answers as small rings, each with its icon and word. */
@@ -33,10 +32,10 @@ export function Contributors({ answers, size = 52 }: { answers: Partial<Readines
 /** Compact card for a finished session: gauge, the four answers, and whether the client went lighter. */
 export function ReadinessSummary({ readiness: r }: { readiness: Readiness }) {
   return (
-    <div className="card rdy-card" style={{ "--band": bandColour(r.band), padding: "12px", display: "flex", flexDirection: "column", gap: 10 } as CSSProperties}>
-      <div className="sect" style={{ margin: 0 }}><h3 className="h3">Readiness</h3><span className="row" style={{ gap: 6 }}>{r.adjusted && <span className="chip" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>Went lighter</span>}<Label kind="data">Data</Label></span></div>
+    <div className="card" style={{ "--band": bandColour(r.band), padding: "12px", display: "flex", flexDirection: "column", gap: 10 } as CSSProperties}>
+      <div className="sect" style={{ margin: 0 }}><h3 className="h3">Readiness</h3><span className="row" style={{ gap: 6 }}>{r.adjusted && <span className="chip">Went lighter</span>}<Label kind="data">Data</Label></span></div>
       <div className="rdy-sum">
-        <Gauge value={r.score} size={96} stroke={9} color={bandColour(r.band)} gradient={SCORE_GRADIENT} label={`Readiness ${r.score} out of 100, ${BAND_LABEL[r.band]}`}>
+        <Gauge value={r.score} size={96} stroke={9} color={bandColour(r.band)} label={`Readiness ${r.score} out of 100, ${BAND_LABEL[r.band]}`}>
           <b className="rdy-num sm">{r.score}</b><span className="rdy-word" style={{ fontSize: 9 }}>{BAND_LABEL[r.band]}</span>
         </Gauge>
         <div className="grow"><Contributors answers={r} size={38} /></div>

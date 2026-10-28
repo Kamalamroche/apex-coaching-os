@@ -10,6 +10,8 @@
   --warn:#F59E0B; --warn-soft:rgba(245,158,11,.14);
   --crit:#F0524A; --crit-soft:rgba(240,82,74,.14);
   --ai:#A78BFA; --ai-soft:rgba(167,139,250,.14);
+  /* Data-viz series: four calm hues, checked for colour-blind separation and 3:1 contrast on both themes. */
+  --viz-1:#5468E0; --viz-2:#DB6A30; --viz-3:#159A86; --viz-4:#A85CC8;
   --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
   --r:10px; --r-sm:6px;
   color-scheme:dark;
