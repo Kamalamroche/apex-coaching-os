@@ -3,8 +3,6 @@ import type { DemoVideo } from "../types";
 /* Original HELIX demo clips (Higgsfield), keyed by exercise id. Male avatar by default;
    the female avatar performs yoga, mobility and women-focused movements. */
 const CLIP = "https://d8j0ntlcm91z4.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/";
-/* Clips trimmed after generation (e.g. to cut a stray ending) live in Higgsfield's upload store. */
-const UPLOAD = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/";
 
 export const DEMO_VIDEOS: Record<number, DemoVideo> = {
   1: { src: `${CLIP}hf_20261027_201422_28d5788a-4bdb-417e-9408-4755731585c1.mp4`, avatar: "male" },
