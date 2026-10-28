@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_WORKOUT } from "./data/workout";
 import { exerciseById } from "./library";
-import { ADJUSTMENTS, addExercise, diffWorkouts, nextGroupLetter, removeItem, swapExercise, updateItem } from "./workout";
+import { ADJUSTMENTS, addExercise, diffWorkouts, insertExercise, moveItem, nextGroupLetter, relabelGroups, removeItem, swapExercise, updateItem } from "./workout";
 
 const adjustment = (id: string) => {
   const a = ADJUSTMENTS.find((x) => x.id === id);
@@ -50,5 +50,41 @@ describe("AI adjustments", () => {
     const next = adjustment("beginner").apply(INITIAL_WORKOUT);
     next.items.forEach((it, i) => expect(it.rpe).toBe((INITIAL_WORKOUT.items[i]?.rpe ?? 0) - 1));
     expect(next.items[0]?.exerciseId).toBe(9);
+  });
+});
+
+describe("drag and drop", () => {
+  const groups = (w: { items: { group: string }[] }) => w.items.map((i) => i.group).join(" ");
+
+  it("drops a library exercise at the pointer and re-letters the blocks", () => {
+    expect(groups(INITIAL_WORKOUT)).toBe("A B1 B2 C");
+    const w = insertExercise(INITIAL_WORKOUT, exerciseById(7), 1, "k1");
+    expect(w.items[1]).toMatchObject({ key: "k1", exerciseId: 7, group: "B", restSeconds: 60 });
+    expect(groups(w)).toBe("A B C1 C2 D");
+  });
+
+  it("clamps the drop position to the ends of the list", () => {
+    expect(insertExercise(INITIAL_WORKOUT, exerciseById(7), 99, "end").items.at(-1)?.key).toBe("end");
+    expect(insertExercise(INITIAL_WORKOUT, exerciseById(7), -3, "top").items[0]).toMatchObject({ key: "top", group: "A" });
+  });
+
+  it("moves an item before the one at the drop position", () => {
+    const keys = (w: { items: { key: string }[] }) => w.items.map((i) => i.key);
+    const [a, b1, b2, c] = keys(INITIAL_WORKOUT);
+    expect(keys(moveItem(INITIAL_WORKOUT, c as string, 0))).toEqual([c, a, b1, b2]);
+    expect(keys(moveItem(INITIAL_WORKOUT, a as string, 4))).toEqual([b1, b2, c, a]);
+    expect(groups(moveItem(INITIAL_WORKOUT, c as string, 0))).toBe("A B C1 C2");
+  });
+
+  it("leaves the workout alone for a no-op or unknown move", () => {
+    const first = INITIAL_WORKOUT.items[0]?.key as string;
+    expect(moveItem(INITIAL_WORKOUT, first, 0)).toBe(INITIAL_WORKOUT);
+    expect(moveItem(INITIAL_WORKOUT, first, 1)).toBe(INITIAL_WORKOUT);
+    expect(moveItem(INITIAL_WORKOUT, "nope", 2)).toBe(INITIAL_WORKOUT);
+  });
+
+  it("keeps superset numbering when re-lettering", () => {
+    const items = INITIAL_WORKOUT.items.map((i, n) => ({ ...i, group: ["C", "A1", "A2", "B"][n] as string }));
+    expect(relabelGroups(items).map((i) => i.group)).toEqual(["A", "B1", "B2", "C"]);
   });
 });

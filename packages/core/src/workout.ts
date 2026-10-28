@@ -28,6 +28,38 @@ export function addExercise(workout: Workout, exercise: Exercise, key = newKey()
   return { ...workout, items: [...workout.items, item] };
 }
 
+/** Re-letters blocks in order of appearance (A, B1/B2, C…) after an insert or a move, keeping superset numbers. */
+export function relabelGroups(items: WorkoutItem[]): WorkoutItem[] {
+  const letters = new Map<string, string>();
+  return items.map((it) => {
+    const base = it.group[0] ?? "?";
+    if (!letters.has(base)) letters.set(base, String.fromCharCode(65 + letters.size));
+    const group = letters.get(base) + it.group.slice(1);
+    return group === it.group ? it : { ...it, group };
+  });
+}
+
+/** Drops a library exercise at a position in the list (what drag and drop does). Out-of-range positions clamp. */
+export function insertExercise(workout: Workout, exercise: Exercise, index: number, key = newKey()): Workout {
+  const added = addExercise(workout, exercise, key).items.at(-1) as WorkoutItem;
+  const at = Math.max(0, Math.min(index, workout.items.length));
+  const items = [...workout.items.slice(0, at), { ...added, group: "#" }, ...workout.items.slice(at)];
+  return { ...workout, items: relabelGroups(items) };
+}
+
+/** Moves an item so it ends up before whatever is at `index` now (index = length moves it to the end). */
+export function moveItem(workout: Workout, key: string, index: number): Workout {
+  const from = workout.items.findIndex((it) => it.key === key);
+  if (from < 0) return workout;
+  const at = Math.max(0, Math.min(index, workout.items.length));
+  const to = at > from ? at - 1 : at;
+  if (to === from) return workout;
+  const items = [...workout.items];
+  const [moved] = items.splice(from, 1);
+  items.splice(to, 0, moved as WorkoutItem);
+  return { ...workout, items: relabelGroups(items) };
+}
+
 export const updateItem = (workout: Workout, key: string, patch: Partial<WorkoutItem>): Workout => ({
   ...workout,
   items: workout.items.map((it) => (it.key === key ? { ...it, ...patch } : it)),
