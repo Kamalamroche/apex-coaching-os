@@ -153,7 +153,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks} · {DAY_NAMES[openDay?.dayIndex ?? 0]}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
-          <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste text</button>
+          <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste or speak</button>
           <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
         </div>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />
@@ -180,7 +180,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         <div className="chips">
           <button className="chip bld-libchip" onClick={() => setLibOpen(true)}><Icons.plus width={12} height={12} />Browse library</button>
           <button className="chip bld-libchip" onClick={() => fileRef.current?.click()}><Icons.file width={12} height={12} />Import PDF</button>
-          <button className="chip bld-libchip" onClick={() => setImporting("text")}>Paste text</button>
+          <button className="chip bld-libchip" onClick={() => setImporting("text")}>Paste or speak</button>
           <span className="tiny" style={{ alignSelf: "center" }}>Recent:</span>
           {RECENT_IDS.map((id) => <button key={id} className="chip" onClick={() => add(exerciseById(id))}>+ {exerciseById(id).name}</button>)}
         </div>

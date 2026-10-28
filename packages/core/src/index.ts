@@ -20,6 +20,7 @@ export { STARTER_TEMPLATES } from "./data/starterTemplates";
 export * from "./csv";
 export * from "./exerciseMatch";
 export * from "./programText";
+export * from "./voice";
 export * from "./transfer";
 export * from "./exportData";
 export * from "./zip";

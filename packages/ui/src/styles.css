@@ -196,6 +196,11 @@ input,select{font-family:inherit}
 .pb-day.add{border-style:dashed;justify-content:center;align-self:stretch;font-size:13px;font-weight:700;color:var(--text3)}
 .pb-day.add:hover{border-color:var(--act);color:var(--act)}
 .pb-pick{display:flex;flex-wrap:wrap;gap:6px}
+/* voice to workout */
+.voice{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.voice-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);margin-right:6px;display:inline-block}
+.voice-dot.on{background:var(--act-ink);animation:voice-pulse 1.2s ease-in-out infinite}
+@keyframes voice-pulse{50%{opacity:.3}}
 /* plateau alerts */
 .plat{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding:10px;border-radius:var(--r-sm);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
 .plat-acts{display:flex;flex-wrap:wrap;gap:6px}
