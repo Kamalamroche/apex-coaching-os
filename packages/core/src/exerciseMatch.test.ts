@@ -34,7 +34,8 @@ describe("matchExercise", () => {
 });
 
 describe("synonyms", () => {
-  it("reads a shoulder press as an overhead press", () => {
-    expect(best("DB shoulder press")).toMatch(/Overhead Press/);
+  it("reads shoulder and military presses", () => {
+    expect(best("DB shoulder press")).toBe("Dumbbell Shoulder Press");
+    expect(best("military press")).toBe("Overhead Press");
   });
 });

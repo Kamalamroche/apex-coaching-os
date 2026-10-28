@@ -54,7 +54,7 @@ describe("filterLibrary", () => {
 
 describe("the movement library", () => {
   it("has the 15 starter movements under their original ids, then the sheet", () => {
-    expect(EXERCISES).toHaveLength(634);
+    expect(EXERCISES).toHaveLength(637);
     expect(exerciseById(1).name).toBe("Barbell Back Squat");
     expect(exerciseById(15).name).toBe("Trap Bar Deadlift");
     expect(EXERCISES.map((e) => e.id)).toEqual(EXERCISES.map((_, i) => i + 1));

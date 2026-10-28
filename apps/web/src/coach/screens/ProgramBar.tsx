@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 
 /** Weeks and days of the program. Pick a day to edit it; add days, copy a week forward (as is or progressed), remove. */
-export function ProgramBar({ say, onTemplates }: { say: (m: string) => void; onTemplates: () => void }) {
+export function ProgramBar({ say, onTemplates, onCopilot }: { say: (m: string) => void; onTemplates: () => void; onCopilot: () => void }) {
   const store = useStore();
   const { program, activeDay, workout } = useApexState(store);
   const [week, setWeek] = useState(workout.week);
@@ -59,6 +59,7 @@ export function ProgramBar({ say, onTemplates }: { say: (m: string) => void; onT
       <div className="pb-tools">
         <button className="btn ghost sm" onClick={() => setTools(true)}>Week tools</button>
         <button className="btn ghost sm" onClick={onTemplates}>Templates</button>
+        <button className="btn ghost sm pb-cop" onClick={onCopilot}>Copilot</button>
       </div>
       </div>
       <div className="pb-days">
