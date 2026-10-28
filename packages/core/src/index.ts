@@ -12,3 +12,6 @@ export { EXERCISES } from "./data/exercises";
 export { CLIENTS, DEMO_CLIENT_ID } from "./data/clients";
 export { INITIAL_WORKOUT, INITIAL_MESSAGES, INITIAL_HISTORY, PREVIOUS_BEST_KG } from "./data/workout";
 export { FOODS } from "./data/foods";
+export * from "./csv";
+export * from "./exerciseMatch";
+export * from "./programText";
