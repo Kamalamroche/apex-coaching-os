@@ -244,3 +244,15 @@ input,select{font-family:inherit}
   .shell.wide .tabs{max-width:1100px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Readiness check before a session */
+.rdy-q{display:flex;flex-direction:column;gap:6px}
+.rdy-q .sect{margin:0}
+.rdy-score{display:flex;align-items:baseline;gap:10px}
+.rdy-score b{font:800 40px/1 var(--num)}
+.rdy-band{font:700 12px/1 var(--ui);padding:4px 8px;border-radius:999px;border:1px solid currentColor}
+.rdy-ready{color:var(--good)}
+.rdy-steady{color:var(--warn)}
+.rdy-low{color:var(--crit)}
+.rdy-meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.rdy-meter span{display:block;height:100%;background:currentColor;border-radius:4px}

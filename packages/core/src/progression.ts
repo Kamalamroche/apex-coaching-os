@@ -28,9 +28,12 @@ export function estimatedOneRepMax(set: LastSet | null): number | null {
   return Math.round(set.kg * (1 + reps / 30) * 2) / 2;
 }
 
+/** Smallest loadable jump: 2 kg on dumbbells and kettlebells, 2.5 kg otherwise. */
+export const roundingStep = (exercise: Exercise): number => (/dumbbell|kettlebell/i.test(exercise.equipment) ? 2 : 2.5);
+
 /** Rounds to what can actually be loaded: 2.5 kg steps on barbells and machines, 2 kg on dumbbells and kettlebells. */
 export function roundLoad(kg: number, exercise: Exercise): number {
-  const step = /dumbbell|kettlebell/i.test(exercise.equipment) ? 2 : 2.5;
+  const step = roundingStep(exercise);
   return Math.max(0, Math.round(kg / step) * step);
 }
 

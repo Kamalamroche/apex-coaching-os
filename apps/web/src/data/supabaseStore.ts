@@ -108,6 +108,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (stale()) return;
 
       const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "session_id" | "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
+      // Sessions where the client chose the lighter version after the readiness check: left out of plateau alerts.
+      const lighter = new Set<string>();
+      if (hasSummaryColumn) {
+        const { data: light } = await db.from("sessions").select("id").eq("client_id", ids.clientId).eq("summary->readiness->>adjusted", "true").order("started_at", { ascending: false }).limit(100);
+        for (const row of (light ?? []) as { id: string }[]) lighter.add(row.id);
+        if (stale()) return;
+      }
       const last = latestSetByExercise(recentSets);
       const days: ProgramDay[] = dayRows.map((d) => ({ ...toWorkout(d, (items ?? []).filter((i) => i.workout_id === d.id), program.weeks, last), key: d.id, dayIndex: d.day_index }));
       const plan: Program = { name: program.name, weeks: program.weeks, days };
@@ -126,7 +133,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets) } }, plan, active ?? undefined);
+      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter) } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
       savedDays = new Set(dayIds);
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };

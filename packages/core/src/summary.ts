@@ -1,6 +1,7 @@
 import { exerciseById } from "./library";
 import { addSessionToTrend } from "./plateau";
 import { estimatedOneRepMax } from "./progression";
+import { readinessReason } from "./readiness";
 import type { SessionSets } from "./session";
 import { completedSets, sessionVolume } from "./session";
 import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
@@ -134,7 +135,8 @@ export function nextHistory(history: TrainingHistory, log: SessionLog, workout: 
   return {
     bestKg,
     previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes },
-    trend: addSessionToTrend(history.trend ?? {}, e1rms),
+    // A lighter day isn't a fair test of strength, so it doesn't count towards a plateau.
+    trend: log.summary?.readiness?.adjusted ? (history.trend ?? {}) : addSessionToTrend(history.trend ?? {}, e1rms),
   };
 }
 
@@ -151,6 +153,7 @@ export function summaryMessage(log: SessionLog): string {
   if (s?.muscles.length) lines.push(`💪 Worked: ${s.muscles.map((m) => m.muscle).join(", ")}`);
   for (const b of s?.bests ?? []) lines.push(`🏆 New best: ${b.exercise} ${b.kg} kg (was ${b.previousKg} kg)`);
   if (s?.vsLast) lines.push(`📈 vs last time: ${signed(s.vsLast.volumeKg, " kg")} · ${signed(s.vsLast.sets, " sets")}`);
+  if (s?.readiness) lines.push(`🔋 ${readinessReason(s.readiness)}${s.readiness.adjusted ? " Chose the lighter session." : ""}`);
   if (s?.fun) lines.push(s.fun);
   if (log.note?.trim()) lines.push(`📝 "${log.note.trim()}"`);
   return lines.join("\n");

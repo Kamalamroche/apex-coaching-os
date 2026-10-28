@@ -25,11 +25,12 @@ interface SetRow {
   rpe: number | null;
 }
 
-/** Builds the trend from logged sets, newest first (as the stores query them). */
-export function trendFromSets(rowsNewestFirst: SetRow[]): StrengthTrend {
+/** Builds the trend from logged sets, newest first (as the stores query them). Sessions in `skip` (lighter days) are left out. */
+export function trendFromSets(rowsNewestFirst: SetRow[], skip: ReadonlySet<string> = new Set()): StrengthTrend {
   const order: string[] = [];
   const best = new Map<string, number>();
   for (const r of rowsNewestFirst) {
+    if (skip.has(r.session_id)) continue;
     const e1rm = estimatedOneRepMax({ kg: r.load_kg ?? 0, reps: r.reps ?? 0, seconds: 0, rpe: r.rpe });
     if (!e1rm) continue;
     const k = `${r.exercise_id}:${r.session_id}`;
