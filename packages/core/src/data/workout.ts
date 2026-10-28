@@ -28,4 +28,13 @@ export const INITIAL_HISTORY: TrainingHistory = {
   previous: { workoutName: "Lower A · Strength", sets: 13, volumeKg: 2950, minutes: 46 },
   // Trap bar climbing; RDL stuck around 65 kg for three sessions, so the demo shows a plateau alert.
   trend: { 15: [77.5, 79, 80.5, 78.5], 2: [65, 64.5, 65, 63.5], 9: [22.5, 23.5, 24] },
+  // Six recent sessions, so the demo readiness screen has a week to compare with.
+  readiness: [
+    { at: "2026-10-18T07:30:00.000Z", score: 75 },
+    { at: "2026-10-19T07:30:00.000Z", score: 69 },
+    { at: "2026-10-21T07:30:00.000Z", score: 81 },
+    { at: "2026-10-22T07:30:00.000Z", score: 63 },
+    { at: "2026-10-23T07:30:00.000Z", score: 88 },
+    { at: "2026-10-24T07:30:00.000Z", score: 72 },
+  ],
 };

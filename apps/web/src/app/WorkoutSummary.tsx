@@ -1,5 +1,6 @@
 import { describeExerciseTotal, type WorkoutSummary } from "@apex/core";
 import { Label } from "@apex/ui";
+import { ReadinessSummary } from "./ReadinessViz";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}`;
 const tone = (n: number) => (n > 0 ? "var(--good)" : n < 0 ? "var(--warn)" : "var(--text2)");
@@ -9,6 +10,7 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
   const top = s.muscles[0]?.sets ?? 1;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {s.readiness && <ReadinessSummary readiness={s.readiness} />}
       {s.bests.length > 0 && (
         <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}>
           <div className="h3">🏆 {s.bests.length} new personal best{s.bests.length > 1 ? "s" : ""}</div>

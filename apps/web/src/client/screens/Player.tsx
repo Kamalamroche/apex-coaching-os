@@ -1,6 +1,6 @@
 import {
   afterSet, blockAt, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
-  sessionVolume, setTargets, summaryMessage, timedSeconds, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, setTargets, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { PlateCalculator } from "./PlateCalculator";
+import { ReadinessCheck } from "./Readiness";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
@@ -16,7 +17,9 @@ const RPE_SCALE = [6, 7, 8, 9, 10];
 export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
   const store = useStore();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
-  const [w] = useState(() => store.get().workout);
+  const [w, setW] = useState(() => store.get().workout);
+  /** Undefined until the client answers or skips the readiness check. */
+  const [readiness, setReadiness] = useState<Readiness | null | undefined>(undefined);
   // Bests and last session as they were before this workout, so the summary compares against them.
   const [history] = useState(() => store.get().history);
   const [idx, setIdx] = useState(0);
@@ -67,6 +70,17 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
     if (next !== null) setTimeout(() => { setIdx(next); setShowCues(false); window.scrollTo(0, 0); }, 350);
   }
 
+  if (readiness === undefined) {
+    return (
+      <ReadinessCheck workout={w} history={history.readiness} onExit={onExit} onStart={(r, session) => {
+        setReadiness(r);
+        setW(session);
+        setSets(initialSets(session));
+        startedAt.current = Date.now();
+      }} />
+    );
+  }
+
   const it = w.items[idx];
   if (!it) return null;
   const ex = exerciseFor(it);
@@ -93,7 +107,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const workSecs = timedSeconds(it.reps);
   const round = itemSets.filter((s) => s.done).length + 1;
 
-  if (finishing) return <Finish workout={w} sets={sets} history={history} minutes={minutes} onDone={onDone} />;
+  if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} minutes={minutes} onDone={onDone} />;
 
   // The plate calculator opens on the next set still to do.
   const nextSet = itemSets.find((s) => !s.done) ?? itemSets.at(-1);
@@ -195,7 +209,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   );
 }
 
-function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; minutes: () => number; onDone: () => void }) {
+function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; minutes: () => number; onDone: () => void }) {
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
@@ -205,7 +219,7 @@ function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Worko
   const volume = sessionVolume(sets);
   const prs = countPersonalBests(w, sets, history.bestKg);
   const count = completedSets(sets);
-  const summary = useMemo(() => buildSummary(w, sets, mins, history), [w, sets, mins, history]);
+  const summary = useMemo(() => ({ ...buildSummary(w, sets, mins, history), ...(readiness ? { readiness } : {}) }), [w, sets, mins, history, readiness]);
   const save = () => {
     if (sessionRpe === null) return;
     const log: SessionLog = { workoutName: w.name, sets: count, volumeKg: volume, minutes: mins, rpe: sessionRpe, prs, summary, ...(note.trim() ? { note: note.trim() } : {}) };

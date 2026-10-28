@@ -32,6 +32,10 @@ export const Icons = {
   link: (p) => <svg viewBox="0 0 24 24" {...line} strokeLinejoin="round" {...p}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>,
   upload: (p) => <svg viewBox="0 0 24 24" {...line} strokeLinejoin="round" {...p}><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4" /></svg>,
   figure: (p) => <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" {...p}><circle cx="32" cy="12" r="5" /><path d="M32 18v18M32 24l-12 6M32 24l12 6M32 36l-8 18M32 36l8 18" /></svg>,
+  sleep: (p) => <svg viewBox="0 0 24 24" {...line} strokeLinejoin="round" {...p}><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>,
+  energy: (p) => <svg viewBox="0 0 24 24" {...line} strokeLinejoin="round" {...p}><path d="M13 2 4 14h7l-1 8 9-12h-7z" /></svg>,
+  soreness: (p) => <svg viewBox="0 0 24 24" {...line} {...p}><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" /></svg>,
+  stress: (p) => <svg viewBox="0 0 24 24" {...line} {...p}><path d="M2 9c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1" /><path d="M2 15c2.5-3 5-3 7.5 0s5 3 7.5 0 3.5-2 5-1" /></svg>,
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;

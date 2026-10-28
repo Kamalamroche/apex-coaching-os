@@ -2,6 +2,8 @@
    They mirror the Supabase schema in supabase/migrations: a workout item is a
    prescription, a logged set is what the client actually did. */
 
+import type { Readiness } from "./readiness";
+
 export type MovementPattern = "Squat" | "Hinge" | "Push" | "Pull" | "Isolation" | "Core" | "Carry" | "Power" | "Mobility";
 export type BodyArea = "Legs" | "Chest" | "Back" | "Shoulders" | "Arms" | "Core" | "Full body";
 /** The section of the APEX Movement Library sheet a movement comes from. */
@@ -141,6 +143,14 @@ export interface TrainingHistory {
   previous: PreviousSession | null;
   /** Best estimated 1RM per session for each exercise id, oldest first, for plateau alerts. Missing on older saved state. */
   trend?: Record<number, number[]>;
+  /** Readiness scores from recent sessions, oldest first. Missing on older saved state. */
+  readiness?: ReadinessPoint[];
+}
+
+export interface ReadinessPoint {
+  /** ISO date-time the session started. */
+  at: string;
+  score: number;
 }
 
 export interface PreviousSession {
@@ -192,6 +202,8 @@ export interface WorkoutSummary {
   vsLast: { volumeKg: number; sets: number; minutes: number } | null;
   /** A light-hearted way to picture the volume, e.g. "about 2 grand pianos". */
   fun: string;
+  /** The pre-session check, when the client did it. */
+  readiness?: Readiness;
 }
 
 export interface Message {

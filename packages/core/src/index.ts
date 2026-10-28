@@ -6,6 +6,7 @@ export * from "./workout";
 export * from "./progression";
 export * from "./blocks";
 export * from "./plateau";
+export * from "./readiness";
 export * from "./copilot";
 export * from "./program";
 export * from "./session";
