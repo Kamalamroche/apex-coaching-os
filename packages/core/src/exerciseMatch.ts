@@ -36,6 +36,7 @@ export function normaliseName(name: string): string {
     .replace(/&/g, " and ")
     .replace(/['’]/g, "")
     .replace(/press[\s-]?ups?/g, "push up")
+    .replace(/shoulder press/g, "overhead press")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .split(" ")

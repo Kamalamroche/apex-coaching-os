@@ -3,7 +3,7 @@
 
 import { toCsv } from "./csv";
 import { EXERCISES } from "./data/exercises";
-import type { DbTrainingMode } from "./transfer";
+import type { DbTrainingMode, ExerciseChoices, ImportClient } from "./transfer";
 
 export interface ExportItem {
   group: string;
@@ -50,6 +50,34 @@ export interface ExportData {
   coachName: string;
   exportedAt: string;
   clients: ExportClient[];
+}
+
+/** An imported client who hasn't joined yet, as they'd appear in an export. */
+export function pendingToExport(client: ImportClient, choices: ExerciseChoices, createdAt: string): ExportClient {
+  const id = (name: string) => choices[name.trim().toLowerCase()] ?? null;
+  return {
+    name: client.name, email: client.email, goal: client.goal, mode: client.mode, status: "invited", startedAt: createdAt,
+    program: client.program && {
+      name: client.program.name,
+      weeks: Math.max(1, ...client.program.workouts.map((w) => w.week)),
+      workouts: client.program.workouts.map((w) => ({
+        name: w.name, week: w.week, dayIndex: w.dayIndex,
+        items: w.items.flatMap((it) => {
+          const exerciseId = id(it.exercise);
+          return exerciseId === null ? [] : [{ group: it.group, exerciseId, sets: it.sets, reps: it.reps, kg: it.kg || null, rpe: it.rpe, restSeconds: it.restSeconds, notes: it.notes || null }];
+        }),
+      })),
+    },
+    sessions: client.sessions.map((s) => {
+      const startedAt = `${s.date}T12:00:00.000Z`;
+      return {
+        startedAt, finishedAt: new Date(Date.parse(startedAt) + Math.max(1, s.minutes || 60) * 60000).toISOString(), workoutName: s.workoutName, rpe: s.rpe, note: s.note || null,
+        sets: s.sets.flatMap((x) => { const exerciseId = id(x.exercise); return exerciseId === null ? [] : [{ exerciseId, kg: x.kg, reps: x.reps, seconds: x.seconds, rpe: x.rpe }]; }),
+      };
+    }),
+    checkIns: client.checkIns.map((c) => ({ submittedAt: `${c.date}T09:00:00.000Z`, weightKg: c.weightKg, energy: c.energy, mood: c.mood, sleepHours: c.sleepHours, note: c.note || null })),
+    messages: [],
+  };
 }
 
 export const TEMPLATE_HEADERS = {

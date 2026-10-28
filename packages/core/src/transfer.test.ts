@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseCsv } from "./csv";
-import { buildExportFiles, templateFiles, type ExportData } from "./exportData";
+import { buildExportFiles, pendingToExport, templateFiles, type ExportData } from "./exportData";
 import { parseProgramText } from "./programText";
 import {
   defaultChoices, describeClient, detectKind, exerciseNames, mergeClient, parseDate, parseDayIndex, parseKg, parseMode, parseRest,
@@ -180,5 +180,14 @@ describe("export", () => {
     const t = readTables(templateFiles().filter((f) => f.name.endsWith(".csv")).map((f) => table(f.name, f.content)));
     expect(t.problems).toEqual([]);
     expect(t.clients.map((c) => describeClient(c))).toEqual(["1 workout · 1 session · 1 check-in"]);
+  });
+});
+
+describe("pendingToExport", () => {
+  it("exports a client who hasn't joined yet with their matched exercises", () => {
+    const b = readTables([table("p.csv", "Client,Exercise,Sets,Reps\nJo,Back squat,3,5\nJo,Zumba,1,1")]);
+    const e = pendingToExport(b.clients[0]!, { "back squat": 1, zumba: null }, "2026-10-28T10:00:00.000Z");
+    expect(e).toMatchObject({ name: "Jo", status: "invited" });
+    expect(e.program?.workouts[0]?.items.map((i) => i.exerciseId)).toEqual([1]);
   });
 });

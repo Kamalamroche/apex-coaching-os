@@ -164,6 +164,9 @@ export function detectKind(headers: string[]): TableKind | null {
   return null;
 }
 
+/** Whether a table says whose rows they are. Without it the coach names the client. */
+export const hasClientColumn = (headers: string[]): boolean => columnsOf(headers).index.client !== undefined;
+
 /* ───────────── values ───────────── */
 
 const LB_TO_KG = 0.45359237;

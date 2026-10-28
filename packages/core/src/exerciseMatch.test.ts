@@ -32,3 +32,9 @@ describe("matchExercise", () => {
     expect(matchExercise("").candidates).toEqual([]);
   });
 });
+
+describe("synonyms", () => {
+  it("reads a shoulder press as an overhead press", () => {
+    expect(best("DB shoulder press")).toMatch(/Overhead Press/);
+  });
+});
