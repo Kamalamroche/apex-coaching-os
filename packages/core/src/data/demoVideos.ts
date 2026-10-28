@@ -27,7 +27,7 @@ export const DEMO_VIDEOS: Record<number, DemoVideo> = {
   112: { src: `${CLIP}hf_20261027_210837_dbeecc93-8796-48cf-a201-a54541e6cd06.mp4`, avatar: "male" },
   120: { src: `${CLIP}hf_20261027_210951_25102aaf-a46e-4665-8da7-4cb539814cc5.mp4`, avatar: "male" },
   132: { src: `${CLIP}hf_20261027_210952_44091dc1-34b9-49b1-aa01-0cad70e4729d.mp4`, avatar: "male" },
-  140: { src: `${CLIP}hf_20261026_203827_f0b5f47b-e5af-4b2e-925f-2774af1f727b.mp4`, avatar: "male" },
+  140: { src: `${CLIP}hf_20261028_144617_e126900c-9764-4ce7-b0fd-96af5c930b69.mp4`, avatar: "male" },
   304: { src: `${CLIP}hf_20261028_102554_86448167-8596-4890-a343-b8109c72cb7e.mp4`, avatar: "female" },
   534: { src: `${CLIP}hf_20261028_102556_550a3cca-3449-4ffa-b1d2-246db9ad3a37.mp4`, avatar: "female" },
   536: { src: `${CLIP}hf_20261028_103239_1a181830-34ff-4b93-86c2-8f20f4bb1e6d.mp4`, avatar: "female" },
