@@ -5,6 +5,7 @@ import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
+import { PlateauFixes, usePlateaus } from "./Plateaus";
 
 interface TriageItem {
   id: string;
@@ -43,6 +44,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
   const clientFirst = firstName(clientName);
   const clientInitials = clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const { log } = useApexState(store);
+  const plateaus = usePlateaus();
   const [handled, setHandled] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<TriageItem | null>(null);
   const [selected, setSelected] = useState<Record<number, boolean>>({ 2: true, 4: true, 5: true });
@@ -110,6 +112,20 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
           </div>
         </div>
       </section>
+
+      {plateaus.length > 0 && (
+        <section>
+          <div className="sect"><h2 className="h2">Plateau watch</h2><Label kind="insight">Rule-based</Label></div>
+          <div className="card flat list">
+            {plateaus.map((p) => (
+              <div key={p.exercise.id} className="li" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                <div className="h3">{clientFirst} · {p.exercise.name} has stalled</div>
+                <PlateauFixes plateau={p} say={say} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="sect"><h2 className="h2">Latest activity</h2></div>

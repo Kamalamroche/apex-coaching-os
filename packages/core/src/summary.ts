@@ -1,4 +1,6 @@
 import { exerciseById } from "./library";
+import { addSessionToTrend } from "./plateau";
+import { estimatedOneRepMax } from "./progression";
 import type { SessionSets } from "./session";
 import { completedSets, sessionVolume } from "./session";
 import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
@@ -122,7 +124,18 @@ export function nextHistory(history: TrainingHistory, log: SessionLog, workout: 
       if (s.done && kg > (bestKg[it.exerciseId] ?? 0)) bestKg[it.exerciseId] = kg;
     }
   }
-  return { bestKg, previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes } };
+  const e1rms: Record<number, number> = {};
+  for (const it of workout.items) {
+    for (const s of sets[it.key] ?? []) {
+      const e1rm = s.done ? estimatedOneRepMax({ kg: Number(s.kg) || 0, reps: Number(s.reps) || 0, seconds: 0, rpe: null }) : null;
+      if (e1rm && e1rm > (e1rms[it.exerciseId] ?? 0)) e1rms[it.exerciseId] = e1rm;
+    }
+  }
+  return {
+    bestKg,
+    previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes },
+    trend: addSessionToTrend(history.trend ?? {}, e1rms),
+  };
 }
 
 const signed = (n: number, unit: string) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}${unit}`;

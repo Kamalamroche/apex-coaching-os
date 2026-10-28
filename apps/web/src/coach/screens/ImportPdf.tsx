@@ -1,6 +1,6 @@
-import { EXERCISES, appendItems, parseProgramText, type ParsedDay, type ParsedItem, type ParsedProgram, type Workout } from "@apex/core";
+import { EXERCISES, appendItems, parseProgramText, spokenToProgramText, type ParsedDay, type ParsedItem, type ParsedProgram, type Workout } from "@apex/core";
 import { Label, Sheet } from "@apex/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { readProgramFromPdf } from "../importPlan";
 
 interface Props {
@@ -13,6 +13,23 @@ interface Props {
 
 type Row = ParsedItem & { on: boolean; pick: number | null };
 
+/* The browser's own speech recognition (Chrome, Edge, Safari). No library, nothing to install;
+   where it's missing the Speak button simply doesn't show. */
+interface Recognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  start(): void;
+  stop(): void;
+}
+const speechApi = (): (new () => Recognition) | null => {
+  const w = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+};
+
 const toRows = (day: ParsedDay | undefined): Row[] =>
   (day?.items ?? []).map((it) => ({ ...it, on: it.match !== null, pick: it.match?.exercise.id ?? null }));
 
@@ -23,6 +40,40 @@ export function ImportPdf({ file, workout, onClose, onApply }: Props) {
   const [dayIx, setDayIx] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [text, setText] = useState("");
+  const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState("");
+  const [micError, setMicError] = useState<string | null>(null);
+  const rec = useRef<Recognition | null>(null);
+  const canSpeak = !file && speechApi() !== null;
+  useEffect(() => () => rec.current?.stop(), []);
+
+  const speak = () => {
+    if (listening) return rec.current?.stop();
+    const Api = speechApi();
+    if (!Api) return;
+    const r = new Api();
+    r.lang = "en-GB";
+    r.continuous = true;
+    r.interimResults = true;
+    r.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (!res) continue;
+        if (res.isFinal) {
+          const lines = spokenToProgramText(res[0].transcript);
+          if (lines) setText((t) => (t.trim() ? `${t.trimEnd()}\n${lines}` : lines));
+        } else interim += res[0].transcript;
+      }
+      setHeard(interim);
+    };
+    r.onerror = (e) => setMicError(e.error === "not-allowed" ? "Microphone access was blocked. Allow it in the browser and try again." : `Speech stopped (${e.error}).`);
+    r.onend = () => { setListening(false); setHeard(""); };
+    rec.current = r;
+    setMicError(null);
+    setListening(true);
+    r.start();
+  };
   const source = file?.name ?? "pasted text";
   const show = (p: ParsedProgram) => { setPlan(p); setDayIx(0); setRows(toRows(p.days[0])); };
 
@@ -62,7 +113,16 @@ export function ImportPdf({ file, workout, onClose, onApply }: Props) {
             placeholder={"Paste from WhatsApp, notes or an email, one exercise per line:\nDay 1 – Lower\nA) Back squat 4 x 6-8 @ 80kg RPE 8, rest 2 min\nB1) RDL 3 sets of 10\nB2) Plank 3x40s"}
             style={{ fontFamily: "var(--num)", fontSize: 13, lineHeight: 1.5, resize: "vertical" }}
           />
-          <button className="btn act block" disabled={!text.trim()} onClick={() => show(parseProgramText(text))}>Read program</button>
+          {canSpeak && (
+            <div className="voice">
+              <button className={`btn ${listening ? "act" : "ghost"} sm`} aria-pressed={listening} onClick={speak}>
+                <span className={`voice-dot ${listening ? "on" : ""}`} aria-hidden />{listening ? "Stop" : "Speak the session"}
+              </button>
+              <span className="tiny">{listening ? heard || "Listening… say each exercise, then “then” for the next" : "e.g. “Squat four by six at eighty kilos, then RDL three sets of ten”"}</span>
+            </div>
+          )}
+          {micError && <p className="small" style={{ margin: 0, color: "var(--crit)" }}>{micError}</p>}
+          <button className="btn act block" disabled={!text.trim() || listening} onClick={() => show(parseProgramText(text))}>Read program</button>
         </>
       )}
 

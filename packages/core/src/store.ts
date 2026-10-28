@@ -71,6 +71,8 @@ function read(storage: StorageLike | null): ApexState {
     const raw = storage?.getItem(DEMO_STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as Partial<ApexState>;
+      // Saved before plateau alerts: keep the sample trend so the demo still shows one.
+      if (saved.history && !saved.history.trend) saved.history = { ...saved.history, trend: initialState().history.trend ?? {} };
       // Saved before programs had days: wrap the one workout in a program.
       if (!saved.program && saved.workout) return { ...initialState(), ...saved, ...stateForWorkout(saved.workout, { ...initialState(), ...saved }) };
       return { ...initialState(), ...saved };

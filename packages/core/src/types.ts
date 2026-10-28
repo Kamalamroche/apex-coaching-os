@@ -139,6 +139,8 @@ export interface TrainingHistory {
   /** Heaviest completed set per exercise id. */
   bestKg: Record<number, number>;
   previous: PreviousSession | null;
+  /** Best estimated 1RM per session for each exercise id, oldest first, for plateau alerts. Missing on older saved state. */
+  trend?: Record<number, number[]>;
 }
 
 export interface PreviousSession {

@@ -1,6 +1,6 @@
 import {
   INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, newKey, nextDayKey, nextHistory, programFromWorkout, stateForWorkout, toItemRows, toLoggedSetRows, toMessages,
-  toPreviousSession, toSessionLog, toWorkout, withDayWorkout, withProgram,
+  toPreviousSession, toSessionLog, toWorkout, trendFromSets, withDayWorkout, withProgram,
   type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type Program, type ProgramDay, type SessionRow, type Workout,
   type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
@@ -97,7 +97,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
 
       const [{ data: items, error: iErr }, { data: recent, error: rErr }, { data: finished, error: fErr }, { data: previous, error: lErr }] = await Promise.all([
         db.from("workout_items").select("*").in("workout_id", dayIds).returns<WorkoutItemRow[]>(),
-        db.from("logged_sets").select("exercise_id, load_kg, reps, seconds, rpe, sessions!inner(client_id)").eq("sessions.client_id", ids.clientId).order("completed_at", { ascending: false }).limit(300),
+        db.from("logged_sets").select("session_id, exercise_id, load_kg, reps, seconds, rpe, sessions!inner(client_id)").eq("sessions.client_id", ids.clientId).order("completed_at", { ascending: false }).limit(300),
         db.from("sessions").select("workout_id, finished_at").eq("client_id", ids.clientId).in("workout_id", dayIds).not("finished_at", "is", null).order("finished_at", { ascending: false }).returns<{ workout_id: string; finished_at: string }[]>(),
         db.from("sessions").select("started_at, finished_at, sets_completed, volume_kg, workouts(name)").eq("client_id", ids.clientId).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1).maybeSingle<PreviousSessionRow>(),
       ]);
@@ -107,7 +107,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (lErr) throw lErr;
       if (stale()) return;
 
-      const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
+      const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "session_id" | "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
       const last = latestSetByExercise(recentSets);
       const days: ProgramDay[] = dayRows.map((d) => ({ ...toWorkout(d, (items ?? []).filter((i) => i.workout_id === d.id), program.weeks, last), key: d.id, dayIndex: d.day_index }));
       const plan: Program = { name: program.name, weeks: program.weeks, days };
@@ -126,7 +126,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null } }, plan, active ?? undefined);
+      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets) } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
       savedDays = new Set(dayIds);
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };
