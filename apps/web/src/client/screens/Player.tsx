@@ -1,5 +1,5 @@
 import {
-  afterSet, blockAt, blockLabel, buildSummary, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
+  afterSet, blockAt, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, summaryMessage, timedSeconds, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { Icons } from "@apex/ui";
@@ -135,7 +135,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         </div>
         <div>
           <div className="sets" style={{ marginBottom: 6 }}>
-            {[circuit ? "Rnd" : "Set", hasKg ? "kg" : "—", workSecs ? "Secs" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
+            {[circuit ? "Rnd" : "Set", hasKg ? "kg" : "—", workSecs ? "Secs" : distanceMetres(it.reps) ? "Metres" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
           </div>
           {itemSets.map((s, i) => (
             <div key={i} className="sets" style={{ marginBottom: 8, opacity: s.done ? 0.75 : 1 }}>

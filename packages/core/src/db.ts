@@ -126,7 +126,8 @@ export const toItemRows = (workout: Workout, workoutId: string): WorkoutItemRow[
     block_style: it.blockStyle ?? null,
   }));
 
-/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`. */
+/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`.
+    A distance ("1000m") has no column of its own yet, so its metres go to `reps`. */
 export function toLoggedSetRows(sets: SessionSets, workout: Workout, sessionId: string): LoggedSetRow[] {
   return workout.items.flatMap((it) =>
     (sets[it.key] ?? []).flatMap((s, i) => {

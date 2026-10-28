@@ -8,7 +8,7 @@ export const initialSets = (workout: Workout): SessionSets =>
   Object.fromEntries(
     workout.items.map((it) => [
       it.key,
-      setTargets(it).map((t) => ({ kg: t.kg ? String(t.kg) : "", reps: t.reps.replace("s", ""), done: false })),
+      setTargets(it).map((t) => ({ kg: t.kg ? String(t.kg) : "", reps: t.reps.replace(/\s*[sm]$/i, ""), done: false })),
     ]),
   );
 

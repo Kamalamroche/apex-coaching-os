@@ -104,6 +104,12 @@ export function afterSet(workout: Workout, sets: SessionSets, index: number): { 
 }
 
 /** Seconds for a timed target such as "40s"; null for reps. */
+/** "1000m" or "20 m" → 1000 / 20: a distance station (run, row, sled). Null for reps or time. */
+export const distanceMetres = (reps: string): number | null => {
+  const m = /^(\d+)\s*m$/i.exec(reps.trim());
+  return m ? Number(m[1]) : null;
+};
+
 export const timedSeconds = (reps: string): number | null => {
   const m = /^(\d+)\s*s$/i.exec(reps.trim());
   return m ? Number(m[1]) : null;

@@ -41,4 +41,13 @@ export const STARTER_TEMPLATES: ProgramTemplate[] = [
       day(4, "Circuit B · giant set", 35, [["A1", 139, 4, "12", 8, 0], ["A2", 184, 4, "8", 8, 0], ["A3", 164, 4, "30s", 8, 0], ["A4", 14, 4, "40s", 8, 90]], true),
     ],
   },
+  {
+    id: "starter-hybrid-race", starter: true, name: "Hybrid race prep", weeks: 8,
+    note: "Hybrid fitness racing: running between functional stations, one strength day and two race-style circuits.",
+    days: [
+      day(0, "Stations · strength", 50, [["A", 164, 4, "20m", 8, 120], ["B", 165, 4, "20m", 8, 120], ["C1", 629, 3, "20m", 8, 0], ["C2", 269, 3, "40m", 8, 90], ["D", 628, 3, "20", 8, 90]]),
+      day(2, "Race circuit A", 45, [["A1", 625, 4, "1000m", 7, 0], ["A2", 627, 4, "500m", 8, 0], ["A3", 164, 4, "20m", 8, 0], ["A4", 630, 4, "20m", 8, 120]], true),
+      day(4, "Race circuit B", 45, [["A1", 625, 3, "1000m", 7, 0], ["A2", 626, 3, "500m", 8, 0], ["A3", 629, 3, "40m", 8, 0], ["A4", 628, 3, "25", 8, 120]], true),
+    ],
+  },
 ];

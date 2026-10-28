@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { afterSet, blockAt, blockLabel, planSummary, setCircuit, setRounds, setTargets, setVarySets, timedSeconds, updateSetTarget } from "./blocks";
+import { afterSet, blockAt, blockLabel, planSummary, setCircuit, setRounds, setTargets, distanceMetres, setVarySets, timedSeconds, updateSetTarget } from "./blocks";
 import { INITIAL_WORKOUT } from "./data/workout";
 import { initialSets } from "./session";
+import { describeExerciseTotal, exerciseTotals } from "./summary";
 import type { Workout, WorkoutItem } from "./types";
 
 const item = (key: string, group: string, patch: Partial<WorkoutItem> = {}): WorkoutItem =>
@@ -68,5 +69,25 @@ describe("the player's route through a block", () => {
   it("reads timed targets", () => {
     expect(timedSeconds("40s")).toBe(40);
     expect(timedSeconds("10")).toBeNull();
+  });
+});
+
+describe("distance stations", () => {
+  it("reads metres and leaves reps and time alone", () => {
+    expect(distanceMetres("1000m")).toBe(1000);
+    expect(distanceMetres("20 m")).toBe(20);
+    expect(distanceMetres("12")).toBeNull();
+    expect(distanceMetres("40s")).toBeNull();
+  });
+
+  it("pre-fills the number and totals metres in the summary", () => {
+    const w: Workout = { name: "Run", week: 1, ofWeeks: 1, minutes: 30, items: [{ key: "r", group: "A", exerciseId: 625, sets: 2, reps: "1000m", kg: 0, rpe: 7, restSeconds: 60, lastTime: "" }] };
+    const sets = initialSets(w);
+    expect(sets.r?.[0]?.reps).toBe("1000");
+    const done = { r: (sets.r ?? []).map((s) => ({ ...s, done: true })) };
+    const [t] = exerciseTotals(w, done);
+    expect(t?.metres).toBe(2000);
+    expect(t?.reps).toBe(0);
+    expect(describeExerciseTotal(t!)).toBe("2 sets · 2,000 m");
   });
 });

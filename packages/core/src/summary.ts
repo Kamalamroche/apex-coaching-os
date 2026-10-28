@@ -44,11 +44,13 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
     const done = (sets[it.key] ?? []).filter((s) => s.done);
     if (!done.length) continue;
     const isHold = it.reps.trim().endsWith("s");
+    const isDistance = /\d\s*m$/i.test(it.reps.trim());
     const t = totals.get(it.exerciseId) ?? { exerciseId: it.exerciseId, exercise: exerciseById(it.exerciseId).name, sets: 0, reps: 0, seconds: 0, topKg: 0, volumeKg: 0 };
     for (const s of done) {
       const n = Number(s.reps) || 0;
       t.sets += 1;
       if (isHold) t.seconds += n;
+      else if (isDistance) t.metres = (t.metres ?? 0) + n;
       else {
         t.reps += n;
         t.volumeKg = (t.volumeKg ?? 0) + (Number(s.kg) || 0) * n;
@@ -60,9 +62,9 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
   return [...totals.values()];
 }
 
-/** "4 sets · 20 reps · top 72.5 kg · 1,405 kg lifted", or "3 sets · 120 s" for a hold. */
+/** "4 sets · 20 reps · top 72.5 kg · 1,405 kg lifted", "3 sets · 120 s" for a hold, "4 sets · 4,000 m" for a distance. */
 export const describeExerciseTotal = (t: ExerciseTotal): string =>
-  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.topKg ? `top ${t.topKg} kg` : null, t.volumeKg ? `${t.volumeKg.toLocaleString("en-GB")} kg lifted` : null]
+  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.metres ? `${t.metres.toLocaleString("en-GB")} m` : null, t.topKg ? `top ${t.topKg} kg` : null, t.volumeKg ? `${t.volumeKg.toLocaleString("en-GB")} kg lifted` : null]
     .filter(Boolean)
     .join(" · ");
 

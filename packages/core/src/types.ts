@@ -169,6 +169,8 @@ export interface ExerciseTotal {
   reps: number;
   /** Total seconds for holds such as a plank. 0 otherwise. */
   seconds: number;
+  /** Total metres for distance stations such as a run or a sled push. Missing on older summaries. */
+  metres?: number;
   /** Heaviest completed set, 0 for bodyweight. */
   topKg: number;
   /** kg × reps over completed sets: the total weight lifted on this exercise. */
