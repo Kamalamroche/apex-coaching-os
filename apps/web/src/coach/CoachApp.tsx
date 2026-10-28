@@ -60,7 +60,7 @@ function useFinishedAlert(say: (m: string) => void) {
       seen.current = { store, key };
       return;
     }
-    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR 🏆` : ""}`);
+    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
     seen.current.key = key;
   }, [store, status, log, clientName, say]);
 }

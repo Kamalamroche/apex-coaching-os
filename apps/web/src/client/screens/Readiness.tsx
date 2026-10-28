@@ -5,11 +5,9 @@ import {
 import { Gauge, Icons, Label } from "@apex/ui";
 import { useState, type CSSProperties } from "react";
 import { useAppInfo } from "../../app/AppContext";
-import { ContributorRows, FACTOR_COLOUR, QUESTION_ICON, ReadinessTrend, SCORE_GRADIENT, answerColour, bandColour } from "../../app/ReadinessViz";
+import { ContributorRows, FACTOR_COLOUR, QUESTION_ICON, ReadinessTrend, answerColour, bandColour } from "../../app/ReadinessViz";
 
 const line = (it: WorkoutItem) => `${it.sets}×${it.reps}${it.kg ? ` · ${it.kg} kg` : ""}`;
-const LEVEL_HEIGHTS = [14, 20, 26, 32, 38];
-const FOUR = ["var(--ai)", "var(--act)", "var(--data)", "var(--blue)"];
 
 /** Before the first set: four taps, then a score screen (score, advice, what's driving it, the week, today's plan).
     On a low day the client can pick a lighter version of today; the program stays as the coach wrote it. */
@@ -25,14 +23,14 @@ export function ReadinessCheck({ workout, history, onStart, onExit }: { workout:
   return (
     <div className="shell">
       <div className="top">
-        <button className="iconbtn" onClick={onExit}>✕ Exit</button>
+        <button className="iconbtn" onClick={onExit} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Icons.close width={15} height={15} /> Exit</button>
         <span className="small" style={{ fontWeight: 700 }}>{workout.name}</span>
         <button className="link" onClick={() => onStart(null, workout)}>Skip</button>
       </div>
       <main className="main" style={{ paddingBottom: 40 }}>
-        <section className="rdy-hero" style={{ "--band": "var(--ai)", flexDirection: "row", gap: 16, padding: "18px 16px" } as CSSProperties}>
-          <Gauge value={answered ? (answered / 4) * 100 : null} size={96} stroke={9} color="var(--act)" gradient={FOUR} label={`${answered} of 4 answered`}>
-            <b className="rdy-num sm">{answered}<span style={{ fontSize: 14, color: "var(--text3)" }}>/4</span></b>
+        <section className="rdy-hero row">
+          <Gauge value={answered ? (answered / 4) * 100 : null} size={84} stroke={6} color="var(--act)" label={`${answered} of 4 answered`}>
+            <b className="rdy-num sm">{answered}<span style={{ fontSize: 13, color: "var(--text3)" }}>/4</span></b>
           </Gauge>
           <div style={{ textAlign: "left" }}>
             <div className="eyebrow">Daily readiness</div>
@@ -54,7 +52,7 @@ export function ReadinessCheck({ workout, history, onStart, onExit }: { workout:
               <div className="rdy-lvl">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} className={`${v && n <= v ? "fill" : ""} ${v === n ? "on" : ""}`} aria-pressed={v === n} aria-label={`${q.label} ${n}: ${q.scale[n - 1]}`} onClick={() => setA((x) => ({ ...x, [q.key]: n }))}>
-                    <i style={{ height: LEVEL_HEIGHTS[n - 1], opacity: v && n <= v ? 0.5 + n * 0.1 : 1 }} />{n}
+                    {n}
                   </button>
                 ))}
               </div>
@@ -81,19 +79,19 @@ function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness;
   return (
     <div className="shell">
       <div className="top">
-        <button className="iconbtn" onClick={onExit}>✕ Exit</button>
+        <button className="iconbtn" onClick={onExit} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Icons.close width={15} height={15} /> Exit</button>
         <span className="small" style={{ fontWeight: 700 }}>Your readiness</span>
         <button className="link" onClick={onBack}>Edit answers</button>
       </div>
       <main className="main" style={{ paddingBottom: 40 }}>
         <section className="rdy-hero" style={{ "--band": colour } as CSSProperties}>
           <div className="eyebrow">{today}</div>
-          <Gauge value={r.score} size={230} stroke={18} color={colour} gradient={SCORE_GRADIENT} label={`Readiness ${r.score} out of 100, ${BAND_LABEL[r.band]}`}>
+          <Gauge value={r.score} size={210} stroke={10} color={colour} label={`Readiness ${r.score} out of 100, ${BAND_LABEL[r.band]}`}>
             <b className="rdy-num num">{r.score}</b><span className="rdy-word">{BAND_LABEL[r.band]}</span>
           </Gauge>
           {usual && (
             <span className="rdy-delta" style={{ "--d": usual.diff >= 0 ? "var(--good)" : "var(--crit)" } as CSSProperties}>
-              {usual.diff >= 0 ? "▲" : "▼"} <span className="num">{Math.abs(usual.diff)}</span> {usual.diff >= 0 ? "above" : "below"} your usual <span className="num">{usual.usual}</span>
+              <b className="num">{usual.diff >= 0 ? "+" : "−"}{Math.abs(usual.diff)}</b> {usual.diff >= 0 ? "above" : "below"} your usual <span className="num">{usual.usual}</span>
             </span>
           )}
           <div style={{ textAlign: "center" }}>
@@ -109,13 +107,13 @@ function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness;
 
         <section>
           <div className="sect"><h3 className="h3">Your last sessions</h3><span className="tiny">Readiness score</span></div>
-          <div className="card rdy-card" style={{ "--band": colour } as CSSProperties}><ReadinessTrend points={history ?? []} today={r.score} usual={usual?.usual ?? null} /></div>
+          <div className="card"><ReadinessTrend points={history ?? []} today={r.score} usual={usual?.usual ?? null} /></div>
         </section>
 
         <section>
           <div className="sect"><h3 className="h3">Today's plan</h3><span className="tiny">{workout.name}</span></div>
           {lighter ? (
-            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, borderColor: "color-mix(in srgb,var(--ai) 40%,var(--line))", background: "radial-gradient(80% 60% at 100% 0%,var(--ai-soft),transparent 70%),var(--card)" }}>
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, }}>
               <div className="row" style={{ gap: 8 }}><Label kind="ai">AI suggestion</Label><span className="tiny">Rule-based · your choice</span></div>
               <div className="small" style={{ color: "var(--text)" }}>A lighter version of today: {describeLighter(r.band === "ready" ? "steady" : r.band)}. Same exercises, so it still counts.</div>
               {changed.length > 0 && (
@@ -134,7 +132,7 @@ function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness;
               </div>
             </div>
           ) : (
-            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, borderColor: "color-mix(in srgb,var(--good) 40%,var(--line))", background: "radial-gradient(80% 60% at 100% 0%,var(--good-soft),transparent 70%),var(--card)" }}>
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, }}>
               <div className="small" style={{ color: "var(--text)" }}>As {workout.items.length ? "planned" : "written"}: <span className="num">{workout.items.length}</span> exercises · about <span className="num">{workout.minutes}</span> min.</div>
               <button className="btn act block" style={{ minHeight: 54, fontSize: 16 }} onClick={() => onStart(r, workout)}><Icons.play /> Start workout</button>
             </div>

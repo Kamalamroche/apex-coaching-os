@@ -117,7 +117,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   return (
     <div className="shell">
       <div className="top">
-        <button className="iconbtn" onClick={onExit}>✕ Exit</button>
+        <button className="iconbtn" onClick={onExit} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Icons.close width={15} height={15} /> Exit</button>
         <span className="num small" style={{ fontWeight: 700 }}>{done}/{total} sets</span>
         <span className="tiny">{idx + 1} of {w.items.length}</span>
       </div>
@@ -161,7 +161,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
               )}
               <input id={`pr-${it.key}-${i}`} className="cell" inputMode="numeric" value={s.reps} onChange={(e) => patchSet(i, { reps: e.target.value })} aria-label={`Set ${i + 1} reps`} />
               <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{targets[i]?.kg} kg</> : null}</span>
-              <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}>✓</button>
+              <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}><Icons.check width={20} height={20} strokeWidth={2.25} /></button>
             </div>
           ))}
         </div>
@@ -171,7 +171,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </button>
         )}
         {isPersonalBest(it, itemSets, history.bestKg) && (
-          <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}><b>🎉 New personal best</b> <span className="small">on {ex.name}</span></div>
+          <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}><b style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icons.trophy width={16} height={16} style={{ color: "var(--act)" }} />New personal best</b> <span className="small">on {ex.name}</span></div>
         )}
         {exerciseDone && (
           <div className="card">

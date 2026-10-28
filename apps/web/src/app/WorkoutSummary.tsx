@@ -1,5 +1,5 @@
 import { describeExerciseTotal, type WorkoutSummary } from "@apex/core";
-import { Label } from "@apex/ui";
+import { Icons, Label } from "@apex/ui";
 import { ReadinessSummary } from "./ReadinessViz";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}`;
@@ -13,7 +13,7 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
       {s.readiness && <ReadinessSummary readiness={s.readiness} />}
       {s.bests.length > 0 && (
         <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}>
-          <div className="h3">🏆 {s.bests.length} new personal best{s.bests.length > 1 ? "s" : ""}</div>
+          <div className="h3" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icons.trophy width={16} height={16} style={{ color: "var(--act)" }} />{s.bests.length} new personal best{s.bests.length > 1 ? "s" : ""}</div>
           {s.bests.map((b) => (
             <div key={b.exerciseId} className="small num" style={{ marginTop: 4 }}>{b.exercise}: <b style={{ color: "var(--text)" }}>{b.kg} kg</b> (was {b.previousKg} kg)</div>
           ))}
