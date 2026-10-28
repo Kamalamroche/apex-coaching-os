@@ -1,6 +1,6 @@
 import {
-  buildSummary, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest, isSuperset,
-  sessionVolume, summaryMessage, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  afterSet, blockAt, blockLabel, buildSummary, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
+  sessionVolume, setTargets, summaryMessage, timedSeconds, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -11,7 +11,8 @@ import { PlateCalculator } from "./PlateCalculator";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
-/** Guided workout: one exercise per screen, pre-filled sets, auto rest timer, superset auto-advance. */
+/** Guided workout: one exercise per screen, pre-filled sets, auto rest timer. Supersets, giant sets and circuits
+    move station to station and rest after the round; timed stations get a work countdown. */
 export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
   const store = useStore();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
@@ -22,6 +23,8 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const [sets, setSets] = useState<SessionSets>(() => initialSets(w));
   const [rpe, setRpe] = useState<Record<string, number>>({});
   const [rest, setRest] = useState<{ left: number } | null>(null);
+  /** Work countdown for a timed station ("40s"): the set ticks itself off when it reaches zero. */
+  const [work, setWork] = useState<{ key: string; set: number; left: number } | null>(null);
   const [showCues, setShowCues] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [plates, setPlates] = useState(false);
@@ -40,6 +43,30 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
     return () => clearTimeout(id);
   }, [rest]);
 
+  useEffect(() => {
+    if (!work) return;
+    if (work.left <= 0) {
+      try { navigator.vibrate?.([120, 80, 120]); } catch { /* not supported */ }
+      setWork(null);
+      complete(work.key, work.set);
+      return;
+    }
+    const id = setTimeout(() => setWork((x) => x && { ...x, left: x.left - 1 }), 1000);
+    return () => clearTimeout(id);
+    // complete() reads this render's sets; only the tick matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [work]);
+
+  /** Marks a set done, then rests and/or moves to the next station of the block. */
+  function complete(key: string, i: number) {
+    const at = w.items.findIndex((x) => x.key === key);
+    const after = { ...sets, [key]: (sets[key] ?? []).map((x, j) => (j === i ? { ...x, done: true } : x)) };
+    setSets(after);
+    const { next, restSeconds } = afterSet(w, after, at);
+    if (restSeconds) setRest({ left: restSeconds });
+    if (next !== null) setTimeout(() => { setIdx(next); setShowCues(false); window.scrollTo(0, 0); }, 350);
+  }
+
   const it = w.items[idx];
   if (!it) return null;
   const ex = exerciseFor(it);
@@ -53,12 +80,18 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
     setSets((s) => ({ ...s, [it.key]: (s[it.key] ?? []).map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
 
   const toggle = (i: number) => {
-    const nowDone = !itemSets[i]?.done;
-    patchSet(i, { done: nowDone });
-    if (!nowDone) return;
-    if (it.restSeconds) setRest({ left: it.restSeconds });
-    else if (isSuperset(it) && idx < w.items.length - 1) setTimeout(() => setIdx(idx + 1), 350);
+    if (itemSets[i]?.done) return patchSet(i, { done: false });
+    if (work?.key === it.key && work.set === i) setWork(null);
+    complete(it.key, i);
   };
+
+  const block = blockAt(w.items, idx);
+  const inBlock = block.items.length > 1;
+  const circuit = it.blockStyle === "circuit";
+  const targets = setTargets(it);
+  const hasKg = targets.some((t) => t.kg > 0);
+  const workSecs = timedSeconds(it.reps);
+  const round = itemSets.filter((s) => s.done).length + 1;
 
   if (finishing) return <Finish workout={w} sets={sets} history={history} minutes={minutes} onDone={onDone} />;
 
@@ -78,11 +111,19 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         <div style={{ height: "100%", width: `${(done / total) * 100}%`, background: "var(--act)", transition: "width .4s" }} />
       </div>
       <main className="main" style={{ paddingBottom: rest ? 170 : 110 }}>
-        <div className="video"><span className="tag label l-data">{isSuperset(it) ? `Superset ${it.group}` : `Block ${it.group}`}</span><Icons.figure /></div>
+        <div className="video"><span className="tag label l-data">{inBlock ? `${blockLabel(block.items)} · ${it.group}` : `Block ${it.group}`}</span><Icons.figure /></div>
         <div>
           <div className="eyebrow">{ex.muscles.join(" · ")}</div>
           <h1 className="h1" style={{ fontSize: 26 }}>{ex.name}</h1>
-          <div className="small num" style={{ marginTop: 4 }}>Target {it.sets}×{it.reps}{it.kg ? ` @ ${it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : "none, go to next"}</div>
+          <div className="small num" style={{ marginTop: 4 }}>
+            {circuit ? `Round ${Math.min(round, it.sets)} of ${it.sets} · ${it.reps}` : `Target ${it.sets}×${it.setPlan ? targets.map((t) => t.reps).join("/") : it.reps}`}
+            {it.kg ? ` @ ${it.setPlan ? `up to ${Math.max(...targets.map((t) => t.kg))}` : it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
+          </div>
+          {inBlock && (
+            <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              {block.items.map((b) => <span key={b.key} className={`chip ${b.key === it.key ? "on" : ""}`}>{b.group} {exerciseFor(b).name}</span>)}
+            </div>
+          )}
           <div className="row" style={{ gap: 14, marginTop: 6 }}>
             <button className="link" onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
             {usesPlates(ex) && it.kg > 0 && <button className="link" onClick={() => setPlates(true)}>Plate calculator</button>}
@@ -94,22 +135,27 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         </div>
         <div>
           <div className="sets" style={{ marginBottom: 6 }}>
-            {["Set", it.kg ? "kg" : "—", it.reps.includes("s") ? "Secs" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
+            {[circuit ? "Rnd" : "Set", hasKg ? "kg" : "—", workSecs ? "Secs" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
           </div>
           {itemSets.map((s, i) => (
             <div key={i} className="sets" style={{ marginBottom: 8, opacity: s.done ? 0.75 : 1 }}>
               <span className="num" style={{ textAlign: "center", fontWeight: 800, color: s.done ? "var(--good)" : "var(--text2)" }}>{i + 1}</span>
-              {it.kg ? (
+              {hasKg ? (
                 <input id={`pk-${it.key}-${i}`} className="cell" inputMode="decimal" value={s.kg} onChange={(e) => patchSet(i, { kg: e.target.value })} aria-label={`Set ${i + 1} weight`} />
               ) : (
                 <span className="tiny" style={{ textAlign: "center" }}>BW</span>
               )}
               <input id={`pr-${it.key}-${i}`} className="cell" inputMode="numeric" value={s.reps} onChange={(e) => patchSet(i, { reps: e.target.value })} aria-label={`Set ${i + 1} reps`} />
-              <span className="num tiny" style={{ textAlign: "center" }}>{it.reps}</span>
+              <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{targets[i]?.kg} kg</> : null}</span>
               <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}>✓</button>
             </div>
           ))}
         </div>
+        {workSecs && !exerciseDone && (
+          <button className="btn act block" style={{ minHeight: 52 }} disabled={!!work} onClick={() => { const n = itemSets.findIndex((s) => !s.done); if (n >= 0) setWork({ key: it.key, set: n, left: workSecs }); setRest(null); }}>
+            {work ? "Working…" : `Start ${workSecs} s`}
+          </button>
+        )}
         {isPersonalBest(it, itemSets, history.bestKg) && (
           <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}><b>🎉 New personal best</b> <span className="small">on {ex.name}</span></div>
         )}
@@ -123,7 +169,14 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
       {plates && (
         <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
       )}
-      {rest && (
+      {work && (
+        <div className="rest" role="timer" aria-live="polite" style={{ background: "var(--act)", color: "var(--act-ink)" }}>
+          <div className="grow"><div className="tiny" style={{ color: "inherit", opacity: 0.7 }}>Work · {exerciseFor(w.items.find((x) => x.key === work.key) ?? it).name}</div><b>{formatRest(work.left)}</b></div>
+          <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setWork(null)}>Stop</button>
+          <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setWork((x) => x && { ...x, left: 0 })}>Done</button>
+        </div>
+      )}
+      {rest && !work && (
         <div className="rest" role="timer" aria-live="polite">
           <div className="grow"><div className="tiny" style={{ color: "inherit", opacity: 0.7 }}>Rest</div><b>{formatRest(rest.left)}</b></div>
           <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setRest((r) => r && { left: r.left + 30 })}>+30 s</button>

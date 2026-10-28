@@ -201,7 +201,6 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     if (id === workoutId) savedKeys = new Set(w.items.map((i) => i.key));
   }
 
-  const dayRow = (d: ProgramDay, version: string) => ({ id: d.key, program_version_id: version, name: d.name, week: d.week, day_index: d.dayIndex, est_minutes: d.minutes });
 
   /** Adds, removes and re-dates days. Items of days that already exist are saved by persistWorkout. */
   async function persistProgram(before: Program, after: Program) {
@@ -231,18 +230,6 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (e) throw e;
     }
     savedDays = new Set(after.days.map((d) => d.key));
-  }
-
-  /** A new program row for this client: the latest program is the one that counts, older ones stay as history. */
-  async function insertProgram(plan: Program) {
-    const { data: program, error: e1 } = await db.from("programs").insert({ coach_id: ids.coachId, client_id: ids.clientId, name: plan.name, weeks: Math.min(52, Math.max(1, plan.weeks)) }).select("id").single();
-    if (e1) throw e1;
-    const { data: version, error: e2 } = await db.from("program_versions").insert({ program_id: program.id, version: 1, published_at: new Date().toISOString(), published_by: ids.me }).select("id").single();
-    if (e2) throw e2;
-    const { error: e3 } = await db.from("workouts").insert(plan.days.map((d) => dayRow(d, version.id)));
-    if (e3) throw e3;
-    const rows = plan.days.flatMap((d) => toItemRows(d, d.key));
-    if (rows.length) await upsertItems(rows);
   }
 
   void load();
@@ -299,7 +286,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       status = "loading";
       emit();
       chosenDay = null;
-      void insertProgram(program).then(() => load()).catch(fail);
+      void insertProgram(db, { ...ids, hasPlanColumns }, program).then(() => load()).catch(fail);
     },
     finishSession(log, sets) {
       state = { ...state, log, history: nextHistory(state.history, log, state.workout, sets) };
@@ -333,7 +320,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     async createProgram() {
       try {
         const day = { ...INITIAL_WORKOUT, items: INITIAL_WORKOUT.items.map((i) => ({ ...i, key: newKey() })) };
-        await insertProgram(programFromWorkout(day, newKey(), "Foundations"));
+        await insertProgram(db, { ...ids, hasPlanColumns }, programFromWorkout(day, newKey(), "Foundations"));
         await load();
       } catch (e) {
         fail(e);
@@ -354,4 +341,24 @@ function startOfToday(): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
+}
+
+const dayRow = (d: ProgramDay, version: string) => ({ id: d.key, program_version_id: version, name: d.name, week: d.week, day_index: d.dayIndex, est_minutes: d.minutes });
+
+/** Gives a client a new program (a template, an import, the starter): the latest program is the one that counts,
+    older ones stay as history. Used for the open client and when assigning a template to several clients. */
+export async function insertProgram(db: SupabaseClient, ids: { coachId: string; clientId: string; me: string; hasPlanColumns?: boolean }, plan: Program): Promise<void> {
+  const { data: program, error: e1 } = await db.from("programs").insert({ coach_id: ids.coachId, client_id: ids.clientId, name: plan.name, weeks: Math.min(52, Math.max(1, plan.weeks)) }).select("id").single();
+  if (e1) throw e1;
+  const { data: version, error: e2 } = await db.from("program_versions").insert({ program_id: program.id, version: 1, published_at: new Date().toISOString(), published_by: ids.me }).select("id").single();
+  if (e2) throw e2;
+  const { error: e3 } = await db.from("workouts").insert(plan.days.map((d) => dayRow(d, version.id)));
+  if (e3) throw e3;
+  const rows = plan.days.flatMap((d) => toItemRows(d, d.key));
+  if (!rows.length) return;
+  const first = await db.from("workout_items").insert(ids.hasPlanColumns === false ? withoutPlan(rows) : rows);
+  if (first.error && isMissingColumn(first.error)) {
+    const { error: e5 } = await db.from("workout_items").insert(withoutPlan(rows));
+    if (e5) throw e5;
+  } else if (first.error) throw first.error;
 }

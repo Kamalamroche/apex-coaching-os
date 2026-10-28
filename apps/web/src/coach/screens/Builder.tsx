@@ -1,15 +1,18 @@
 import {
   addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
-  swapExercise, toggleSuperset, updateItem,
+  swapExercise, toggleSuperset, updateItem, DAY_NAMES, addDay, blockAt, blockLabel, freeDayIndex, setCircuit, setRounds, setTargets, setVarySets, updateSetTarget,
   type Exercise, type Workout, type WorkoutItem,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons, Sheet } from "@apex/ui";
-import { useMemo, useRef, useState, type DragEvent } from "react";
+import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
 import { ImportPdf } from "./ImportPdf";
+import { ProgramBar } from "./ProgramBar";
+import { Templates } from "./Templates";
+import type { CoachLiveProps } from "../CoachApp";
 import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
 
 const RECENT_IDS = [2, 9, 13];
@@ -26,11 +29,12 @@ const highlight = (name: string, q: string) => {
   return <>{name.slice(0, i)}<mark>{name.slice(i, i + s.length)}</mark>{name.slice(i + s.length)}</>;
 };
 
-export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite: () => void }) {
+export function Builder({ say, onInvite, live }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps }) {
   const store = useStore();
   const { clientName, mode } = useAppInfo();
   const { status, error } = useStoreStatus();
-  const { workout } = useApexState(store);
+  const { workout, program, activeDay } = useApexState(store);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
@@ -104,13 +108,27 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
   };
 
   const first = clientName.split(" ")[0] ?? clientName;
+  const openDay = program.days.find((d) => d.key === activeDay);
+  const duplicateDay = () => {
+    if (!openDay) return;
+    const at = freeDayIndex(program, openDay.week, openDay.dayIndex);
+    if (at === null) return say(`Week ${openDay.week} has no free day left`);
+    const { program: p, day } = addDay(program, openDay.week, at, workout);
+    store.saveProgram(p, day.key);
+    say(`${workout.name} duplicated to ${DAY_NAMES[at]}`);
+  };
   if (mode === "live" && !clientName) {
     return <Empty title="No clients yet" body="Invite your first client, then build their program here." action="Invite a client" onAction={onInvite} />;
   }
   if (status === "loading") return <Empty title="Loading program…" body={`Fetching ${first}'s program.`} />;
   if (status === "error") return <Empty title="Couldn't load the program" body={error ?? "Unknown error"} />;
   if (status === "no-program") {
-    return <Empty title={`${first} has no program yet`} body="Start from the Foundations template, then edit it here. Changes save as you type." action="Create program" onAction={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />;
+    return (
+      <>
+        <Empty title={`${first} has no program yet`} body="Start from a template (yours or an APEX starter), or from the Foundations day, then edit it here. Changes save as you type." action="Choose a template" onAction={() => setTemplatesOpen(true)} secondary="Start with Foundations" onSecondary={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />
+        {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
+      </>
+    );
   }
 
   return (
@@ -122,8 +140,14 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
     >
       <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
       <section className="bld-main">
+      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} />
+      {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
+        <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
+          <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the program builder SQL is run in Supabase.</span>
+        </div>
+      )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
+        <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks} · {DAY_NAMES[openDay?.dayIndex ?? 0]}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
           <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste text</button>
@@ -176,9 +200,24 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
           const ex = exerciseFor(it);
           const e1rm = estimatedOneRepMax(parseLastTime(it.lastTime));
           const linked = workout.items[i - 1]?.group[0] === it.group[0];
+          const block = blockAt(workout.items, i);
+          const circuit = it.blockStyle === "circuit";
+          const vary = !!it.setPlan;
           return (
+            <Fragment key={it.key}>
+            {block.start === i && block.items.length > 1 && (
+              <div className={`bld-block ${circuit ? "circuit" : ""}`}>
+                <span className="grp" style={{ width: 28 }}>{it.group[0]}</span>
+                <b>{blockLabel(block.items)}</b>
+                <span className="tiny">{block.items.length} exercises{circuit ? ", station to station, rest after each round" : ", back to back"}</span>
+                <span className="grow" />
+                {circuit && (
+                  <label className="bld-rounds">Rounds<input inputMode="numeric" value={it.sets} onChange={(e) => edit((w) => setRounds(w, it.key, Math.min(20, Number(e.target.value.replace(/\D/g, "")) || 1)))} /></label>
+                )}
+                <button className={`chip ${circuit ? "on" : ""}`} aria-pressed={circuit} onClick={() => { edit((w) => setCircuit(w, it.key, !circuit)); say(circuit ? "Back to a linked set" : "Running as a circuit"); }}>Circuit</button>
+              </div>
+            )}
             <div
-              key={it.key}
               data-row
               className={`bld-row ${dropAt === i ? "drop-before" : ""} ${fresh === it.key ? "fresh" : ""}`}
               draggable={armed === it.key}
@@ -210,37 +249,54 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
                   }}
                 ><Icons.grip width={14} height={14} /></button>
                 <span className="grp" style={{ width: 28 }}>{it.group}</span>
-                <div className="grow"><div className="h3">{ex.name}</div><div className="tiny">{ex.pattern} · {ex.equipment}{isSuperset(it) ? " · superset" : ""}</div></div>
+                <div className="grow"><div className="h3">{ex.name}</div><div className="tiny">{ex.pattern} · {ex.equipment}{isSuperset(it) ? ` · ${circuit ? "station" : "linked"} ${it.group.slice(1)}` : ""}</div></div>
                 <button className="btn ghost sm" onClick={() => setSwapping(it)}>Swap</button>
                 <button className="iconbtn" aria-label={`Remove ${ex.name}`} onClick={() => edit((w) => removeItem(w, it.key))}>×</button>
               </div>
               <div className="mini">
-                <label>Sets<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => upd(it.key, { sets: Number(e.target.value.replace(/\D/g, "")) || 1 })} /></label>
-                <label>Reps<input id={`r-${it.key}`} value={it.reps} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
-                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
+                <label>{circuit ? "Rounds" : "Sets"}<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => { const n = Math.min(20, Number(e.target.value.replace(/\D/g, "")) || 1); edit((w) => (circuit ? setRounds(w, it.key, n) : updateItem(w, it.key, { sets: n }))); }} /></label>
+                <label>{circuit ? "Reps / time" : "Reps"}<input id={`r-${it.key}`} value={vary ? "per set" : it.reps} disabled={vary} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
+                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={vary ? "per set" : it.kg} disabled={vary} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
                 <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={(e) => upd(it.key, { rpe: Number(e.target.value) || 0 })} /></label>
                 <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.restSeconds} onChange={(e) => upd(it.key, { restSeconds: Number(e.target.value) || 0 })} /></label>
               </div>
+              {vary && (
+                <div className="bld-sets">
+                  {setTargets(it).map((t, n) => (
+                    <div key={n} className="bld-set">
+                      <span className="tiny num">Set {n + 1}</span>
+                      <label>Reps<input value={t.reps} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { reps: e.target.value })))} aria-label={`Set ${n + 1} reps`} /></label>
+                      <label>kg<input inputMode="decimal" value={t.kg} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { kg: Number(e.target.value.replace(",", ".")) || 0 })))} aria-label={`Set ${n + 1} kg`} /></label>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="bld-foot">
                 <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
-                {i > 0 && (
-                  <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Split from the exercise above" : "Superset with the exercise above"}>
-                    {linked ? "Superset ✓" : "+ Superset"}
-                  </button>
-                )}
+                <span className="row" style={{ gap: 6 }}>
+                  <button className={`chip bld-ss ${vary ? "on" : ""}`} aria-pressed={vary} onClick={() => edit((w) => updateItem(w, it.key, setVarySets(it, !vary)))} title="Different reps and kg on each set: pyramids, top set and back-offs">{vary ? "Per set ✓" : "Per set"}</button>
+                  {i > 0 && (
+                    <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Unlink from the exercise above" : "Link with the exercise above: superset, tri-set, giant set or circuit"}>
+                      {linked ? "Linked ✓" : "+ Link above"}
+                    </button>
+                  )}
+                </span>
               </div>
             </div>
+            </Fragment>
           );
         })}
       </div>
       <div className="row">
-        <button className="btn ghost" style={{ flex: 1 }} onClick={() => say("Day duplicated to Thursday")}>Duplicate day</button>
+        <button className="btn ghost" style={{ flex: 1 }} onClick={duplicateDay}>Duplicate day</button>
         <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
       </div>
       <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
 
       {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}
+
+      {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
 
       {libOpen && (
         <Sheet onClose={() => setLibOpen(false)} label="Movement library">
@@ -284,12 +340,15 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
   );
 }
 
-function Empty({ title, body, action, onAction }: { title: string; body: string; action?: string; onAction?: () => void }) {
+function Empty({ title, body, action, onAction, secondary, onSecondary }: { title: string; body: string; action?: string; onAction?: () => void; secondary?: string; onSecondary?: () => void }) {
   return (
     <div className="card full" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 22 }}>
       <h1 className="h1" style={{ fontSize: 22 }}>{title}</h1>
       <p className="sub" style={{ margin: 0 }}>{body}</p>
-      {action && <button className="btn act" style={{ alignSelf: "flex-start" }} onClick={onAction}>{action}</button>}
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {action && <button className="btn act" onClick={onAction}>{action}</button>}
+        {secondary && <button className="btn ghost" onClick={onSecondary}>{secondary}</button>}
+      </div>
     </div>
   );
 }
