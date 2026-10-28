@@ -1,7 +1,7 @@
 import { exerciseById } from "./library";
 import { addSessionToTrend } from "./plateau";
 import { estimatedOneRepMax } from "./progression";
-import { readinessReason } from "./readiness";
+import { addReadinessPoint, readinessReason } from "./readiness";
 import type { SessionSets } from "./session";
 import { completedSets, sessionVolume } from "./session";
 import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
@@ -137,6 +137,7 @@ export function nextHistory(history: TrainingHistory, log: SessionLog, workout: 
     previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes },
     // A lighter day isn't a fair test of strength, so it doesn't count towards a plateau.
     trend: log.summary?.readiness?.adjusted ? (history.trend ?? {}) : addSessionToTrend(history.trend ?? {}, e1rms),
+    ...(log.summary?.readiness ? { readiness: addReadinessPoint(history.readiness, { at: new Date().toISOString(), score: log.summary.readiness.score }) } : history.readiness ? { readiness: history.readiness } : {}),
   };
 }
 

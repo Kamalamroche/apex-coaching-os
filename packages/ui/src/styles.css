@@ -249,9 +249,15 @@ input,select{font-family:inherit}
 .gauge{position:relative;display:inline-grid;place-items:center;flex:none}
 .gauge svg{display:block;overflow:visible}
 .gauge-fill{transition:stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1),opacity .3s;filter:drop-shadow(0 0 6px color-mix(in srgb,currentColor 55%,transparent))}
+.gauge-knob{transition:cx .7s cubic-bezier(.2,.8,.2,1),cy .7s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px currentColor)}
 .gauge-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center}
 .rdy-hero{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 16px 18px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--band) 35%,var(--line));
-  background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--band) 20%,transparent),transparent 70%),var(--card);transition:border-color .4s}
+  background:radial-gradient(60% 45% at 50% 42%,color-mix(in srgb,var(--band) 22%,transparent),transparent 70%),
+    radial-gradient(55% 40% at 0% 0%,color-mix(in srgb,var(--ai) 22%,transparent),transparent 70%),
+    radial-gradient(55% 40% at 100% 0%,color-mix(in srgb,var(--act) 20%,transparent),transparent 70%),
+    radial-gradient(70% 35% at 15% 100%,color-mix(in srgb,var(--data) 18%,transparent),transparent 70%),
+    radial-gradient(70% 35% at 85% 100%,color-mix(in srgb,var(--blue) 18%,transparent),transparent 70%),var(--card);transition:border-color .4s;overflow:hidden}
+.rdy-hero:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--ai),var(--act),var(--data),var(--blue))}
 .rdy-num{font:800 56px/1 var(--num);letter-spacing:-.04em;color:var(--text)}
 .rdy-num.sm{font-size:26px}
 .rdy-num.wait{color:var(--text3)}
@@ -262,21 +268,44 @@ input,select{font-family:inherit}
 .rdy-contrib .gauge-mid svg{width:18px;height:18px}
 .rdy-sum .gauge-mid svg{width:15px;height:15px}
 .rdy-contrib .tiny{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.rdy-q{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:var(--r);background:var(--card);border:1px solid var(--line)}
+.rdy-q{position:relative;display:flex;flex-direction:column;gap:10px;padding:14px 14px 14px 17px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--c) 30%,var(--line));overflow:hidden;
+  background:radial-gradient(70% 90% at 100% 0%,color-mix(in srgb,var(--c) 14%,transparent),transparent 70%),var(--card)}
+.rdy-q:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,var(--c),color-mix(in srgb,var(--c) 30%,transparent))}
 .rdy-qh{display:flex;align-items:center;gap:10px}
-.rdy-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;color:var(--c,var(--text2));background:color-mix(in srgb,var(--c,var(--text3)) 16%,transparent);transition:color .3s,background .3s}
+.rdy-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;color:var(--card);background:linear-gradient(140deg,var(--c),color-mix(in srgb,var(--c) 55%,var(--bg)));box-shadow:0 6px 16px -6px var(--c)}
 .rdy-ico svg{width:18px;height:18px}
-.rdy-val{margin-left:auto;font:700 13px/1 var(--ui);color:var(--c,var(--text3))}
+.rdy-val{margin-left:auto;font:700 12px/1 var(--ui);color:var(--q,var(--text3));padding:6px 9px;border-radius:999px;background:color-mix(in srgb,var(--q,var(--text3)) 14%,transparent);transition:color .3s,background .3s}
 .rdy-lvl{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-items:end}
 .rdy-lvl button{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--text3);font:700 12px/1 var(--num);cursor:pointer}
 .rdy-lvl i{display:block;width:100%;border-radius:6px;background:var(--bg2);border:1px solid var(--line2);transition:background .25s,border-color .25s,transform .15s}
 .rdy-lvl button:active i{transform:scale(.96)}
-.rdy-lvl button.fill i{background:var(--c);border-color:var(--c)}
+.rdy-lvl button.fill i{background:linear-gradient(180deg,var(--c),color-mix(in srgb,var(--c) 55%,var(--bg)));border-color:transparent;box-shadow:0 4px 12px -6px var(--c)}
 .rdy-lvl button.on{color:var(--text)}
 .rdy-lvl button.on i{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--c)}
 .rdy-band{font:700 12px/1 var(--ui);padding:4px 8px;border-radius:999px;border:1px solid currentColor}
 .rdy-meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .rdy-meter span{display:block;height:100%;background:currentColor;border-radius:4px}
 .rdy-sum{display:flex;gap:14px;align-items:center}
+.rdy-card{position:relative;overflow:hidden;background:radial-gradient(50% 70% at 0% 30%,color-mix(in srgb,var(--band) 16%,transparent),transparent 70%),radial-gradient(60% 60% at 100% 100%,color-mix(in srgb,var(--ai) 12%,transparent),transparent 70%),var(--card)}
+.rdy-card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--ai),var(--act),var(--data),var(--blue))}
 .rdy-sum .rdy-contrib{gap:4px}
 .rdy-sum .rdy-contrib .tiny{font-size:10px;overflow:visible;letter-spacing:-.01em}
+.rdy-delta{font:700 12.5px/1 var(--ui);color:var(--d);padding:7px 12px;border-radius:999px;background:color-mix(in srgb,var(--d) 14%,transparent);border:1px solid color-mix(in srgb,var(--d) 35%,transparent)}
+.rdy-rows{display:flex;flex-direction:column;gap:14px}
+.rdy-row{display:flex;align-items:center;gap:12px}
+.rdy-ico.sm{width:34px;height:34px;border-radius:10px}
+.rdy-ico.sm svg{width:16px;height:16px}
+.rdy-seg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:7px}
+.rdy-seg i{height:7px;border-radius:4px;background:var(--line)}
+.rdy-seg i.on{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 70%,var(--bg)),var(--c));box-shadow:0 0 8px -2px var(--c)}
+.rdy-trend{display:flex;flex-direction:column;gap:6px;position:relative;padding-top:4px}
+.rdy-trend-plot{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end}
+.rdy-bar{display:flex;flex-direction:column;align-items:center;gap:4px;z-index:1}
+.rdy-bar span{font-size:11px;font-weight:700;color:var(--text3)}
+.rdy-bar i{display:block;width:100%;max-width:30px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--b),color-mix(in srgb,var(--b) 35%,transparent));opacity:.6}
+.rdy-bar.now i{opacity:1;box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--b),0 6px 18px -4px var(--b)}
+.rdy-bar.now span{color:var(--b);font-size:13px}
+.rdy-usual{position:absolute;left:0;right:0;border-top:1.5px dashed var(--line2);z-index:0}
+.rdy-usual span{position:absolute;left:0;top:-8px;padding:1px 5px;border-radius:4px;background:var(--card);border:1px solid var(--line);font-size:10px;color:var(--text2);z-index:2}
+.rdy-trend-days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center}
+.rdy-trend-days .now{color:var(--text);font-weight:800}

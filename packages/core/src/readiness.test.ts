@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_HISTORY, INITIAL_WORKOUT } from "./data/workout";
 import { trendFromSets } from "./plateau";
-import { describeLighter, lighterSession, readinessBand, readinessOf, readinessReason, readinessScore, weakSpots } from "./readiness";
+import { addReadinessPoint, describeLighter, lighterSession, vsUsual, readinessBand, readinessOf, readinessReason, readinessScore, weakSpots } from "./readiness";
 import { initialSets } from "./session";
 import { buildSummary, nextHistory, summaryMessage } from "./summary";
 import type { SessionLog } from "./types";
@@ -89,5 +89,20 @@ describe("readiness in the summary and history", () => {
     ];
     expect(trendFromSets(rows)[1]).toHaveLength(2);
     expect(trendFromSets(rows, new Set(["b"]))[1]).toHaveLength(1);
+  });
+});
+
+describe("readiness trend", () => {
+  const pts = (scores: number[]) => scores.map((score, i) => ({ at: `2026-10-${10 + i}T07:00:00.000Z`, score }));
+
+  it("compares today with the average of the last 7, once there are 3", () => {
+    expect(vsUsual(pts([70, 80]), 50)).toBeNull();
+    expect(vsUsual(pts([70, 80, 90]), 50)).toEqual({ usual: 80, diff: -30 });
+    expect(vsUsual(pts([0, 0, 60, 60, 60, 60, 60, 60, 60]), 70)).toEqual({ usual: 60, diff: 10 });
+  });
+
+  it("keeps the last 14 points", () => {
+    expect(addReadinessPoint(pts(Array(14).fill(50)), { at: "x", score: 99 })).toHaveLength(14);
+    expect(addReadinessPoint(undefined, { at: "x", score: 99 }).at(-1)?.score).toBe(99);
   });
 });

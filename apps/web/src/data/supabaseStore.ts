@@ -1,7 +1,7 @@
 import {
   INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, newKey, nextDayKey, nextHistory, programFromWorkout, stateForWorkout, toItemRows, toLoggedSetRows, toMessages,
   toPreviousSession, toSessionLog, toWorkout, trendFromSets, withDayWorkout, withProgram,
-  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type Program, type ProgramDay, type SessionRow, type Workout,
+  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type Program, type ProgramDay, type ReadinessPoint, type SessionRow, type Workout,
   type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
@@ -109,10 +109,15 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
 
       const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "session_id" | "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
       // Sessions where the client chose the lighter version after the readiness check: left out of plateau alerts.
+      // Readiness from recent sessions: the trend on the readiness screen, and lighter days to leave out of plateau alerts.
       const lighter = new Set<string>();
+      const readiness: ReadinessPoint[] = [];
       if (hasSummaryColumn) {
-        const { data: light } = await db.from("sessions").select("id").eq("client_id", ids.clientId).eq("summary->readiness->>adjusted", "true").order("started_at", { ascending: false }).limit(100);
-        for (const row of (light ?? []) as { id: string }[]) lighter.add(row.id);
+        const { data: rows } = await db.from("sessions").select("id, started_at, readiness:summary->readiness").eq("client_id", ids.clientId).not("summary->readiness", "is", null).order("started_at", { ascending: false }).limit(100);
+        for (const row of (rows ?? []) as { id: string; started_at: string; readiness: { score?: number; adjusted?: boolean } | null }[]) {
+          if (row.readiness?.adjusted) lighter.add(row.id);
+          if (typeof row.readiness?.score === "number" && readiness.length < 14) readiness.unshift({ at: row.started_at, score: row.readiness.score });
+        }
         if (stale()) return;
       }
       const last = latestSetByExercise(recentSets);
@@ -133,7 +138,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter) } }, plan, active ?? undefined);
+      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
       savedDays = new Set(dayIds);
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };

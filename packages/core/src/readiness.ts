@@ -4,7 +4,7 @@
 
 import { exerciseFor } from "./workout";
 import { roundLoad, roundingStep } from "./progression";
-import type { Workout, WorkoutItem } from "./types";
+import type { ReadinessPoint, Workout, WorkoutItem } from "./types";
 
 /** Each answer is 1–5, where 5 is always the good end (slept well, full of energy, fresh, calm). */
 export interface ReadinessAnswers {
@@ -58,6 +58,26 @@ export function weakSpots(a: ReadinessAnswers): (keyof ReadinessAnswers)[] {
   return READINESS_QUESTIONS.map((q) => q.key)
     .filter((k) => clamp(a[k]) <= 2)
     .sort((x, y) => clamp(a[x]) - clamp(a[y]));
+}
+
+/** The headline for the score screen. */
+export const BAND_ADVICE: Record<ReadinessBand, { title: string; line: string }> = {
+  ready: { title: "Primed to train", line: "Your body's ready for today's session as planned. Go after it." },
+  steady: { title: "Train, but keep it steady", line: "Some strain is showing. A slightly lighter day keeps the week on track." },
+  low: { title: "Recovery comes first", line: "Today's a day to move well rather than push. A lighter session still counts." },
+};
+
+/** Sessions kept for the readiness trend. */
+const KEEP_POINTS = 14;
+
+export const addReadinessPoint = (points: ReadinessPoint[] | undefined, point: ReadinessPoint): ReadinessPoint[] => [...(points ?? []), point].slice(-KEEP_POINTS);
+
+/** Today's score against the average of up to the last 7 sessions. Null until there are 3 to compare with. */
+export function vsUsual(points: ReadinessPoint[] | undefined, score: number): { usual: number; diff: number } | null {
+  const last = (points ?? []).slice(-7);
+  if (last.length < 3) return null;
+  const usual = Math.round(last.reduce((n, p) => n + p.score, 0) / last.length);
+  return { usual, diff: score - usual };
 }
 
 /** What the lighter session does, per band. Ready days get nothing. */

@@ -72,7 +72,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
 
   if (readiness === undefined) {
     return (
-      <ReadinessCheck workout={w} onExit={onExit} onStart={(r, session) => {
+      <ReadinessCheck workout={w} history={history.readiness} onExit={onExit} onStart={(r, session) => {
         setReadiness(r);
         setW(session);
         setSets(initialSets(session));

@@ -143,6 +143,14 @@ export interface TrainingHistory {
   previous: PreviousSession | null;
   /** Best estimated 1RM per session for each exercise id, oldest first, for plateau alerts. Missing on older saved state. */
   trend?: Record<number, number[]>;
+  /** Readiness scores from recent sessions, oldest first. Missing on older saved state. */
+  readiness?: ReadinessPoint[];
+}
+
+export interface ReadinessPoint {
+  /** ISO date-time the session started. */
+  at: string;
+  score: number;
 }
 
 export interface PreviousSession {

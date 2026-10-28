@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 /* Arc gauge for 0–100 scores (readiness and anything like it). A 270° sweep, open at the bottom,
    with optional band markers. Colour comes from the caller as a token, e.g. "var(--good)". */
-export function Gauge({ value, size = 200, stroke = 14, color = "var(--act)", marks = [], label, children }: {
+export function Gauge({ value, size = 200, stroke = 14, color = "var(--act)", gradient, marks = [], label, children }: {
   value: number | null;
+  /** Colours along the sweep, low to high, e.g. ["var(--crit)", "var(--warn)", "var(--good)"]. The track shows them faintly. */
+  gradient?: string[];
   size?: number;
   stroke?: number;
   color?: string;
@@ -25,14 +27,26 @@ export function Gauge({ value, size = 200, stroke = 14, color = "var(--act)", ma
   const [x0, y0] = at(0);
   const [x1, y1] = at(100);
   const arc = `M${x0} ${y0}A${r} ${r} 0 1 1 ${x1} ${y1}`;
+  const id = useId().replace(/:/g, "");
+  const paint = gradient ? `url(#g${id})` : "currentColor";
+  const [kx, ky] = at(pct * 100);
   return (
     <div className="gauge" style={{ width: size, height: size, color }} role="img" aria-label={label}>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+        {gradient && (
+          <defs>
+            <linearGradient id={`g${id}`} gradientUnits="userSpaceOnUse" x1={x0} y1={0} x2={x1} y2={0}>
+              {gradient.map((c, i) => <stop key={i} offset={i / Math.max(1, gradient.length - 1)} style={{ stopColor: c }} />)}
+            </linearGradient>
+          </defs>
+        )}
         <path d={arc} fill="none" stroke="var(--line)" strokeWidth={stroke} strokeLinecap="round" />
+        {gradient && <path d={arc} fill="none" stroke={paint} strokeWidth={stroke} strokeLinecap="round" opacity={0.18} />}
         {value !== null && (
-          <path className="gauge-fill" d={arc} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round"
+          <path className="gauge-fill" d={arc} fill="none" stroke={paint} strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={len} strokeDashoffset={len * (1 - pct)} />
         )}
+        {value !== null && gradient && pct > 0 && <circle className="gauge-knob" cx={kx} cy={ky} r={stroke * 0.62} fill="var(--card)" stroke="currentColor" strokeWidth={stroke * 0.32} />}
         {marks.map((m) => {
           const [mx, my] = at(m);
           return <circle key={m} cx={mx} cy={my} r={stroke / 5} fill="var(--bg)" opacity={0.85} />;
