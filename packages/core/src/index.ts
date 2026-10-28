@@ -15,3 +15,6 @@ export { FOODS } from "./data/foods";
 export * from "./csv";
 export * from "./exerciseMatch";
 export * from "./programText";
+export * from "./transfer";
+export * from "./exportData";
+export * from "./zip";

@@ -27,3 +27,11 @@ describe("toCsv", () => {
     expect(toCsv([["a", null, undefined, 3]])).toBe("a,,,3\r\n");
   });
 });
+
+describe("formula safety", () => {
+  it("stops a client's note running as a spreadsheet formula, and reads it back unchanged", () => {
+    const csv = toCsv([["=HYPERLINK(\"x\")", -5, "-3 kg this week"]]);
+    expect(csv.startsWith("\"'=HYPERLINK")).toBe(true);
+    expect(parseCsv(csv)).toEqual([['=HYPERLINK("x")', "-5", "-3 kg this week"]]);
+  });
+});

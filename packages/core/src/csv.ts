@@ -35,12 +35,15 @@ export function parseCsv(text: string, delimiter = detectDelimiter(text)): strin
   }
   row.push(cell);
   rows.push(row);
-  return rows.map((r) => r.map((v) => v.trim())).filter((r) => r.some((v) => v !== ""));
+  return rows.map((r) => r.map((v) => v.trim().replace(/^'(?=[=+\-@])/, ""))).filter((r) => r.some((v) => v !== ""));
 }
 
+/* A text cell starting with = + - or @ would run as a formula in a spreadsheet, so it gets the
+   usual apostrophe in front; parseCsv takes it off again. Numbers are written as they are. */
+const safe = (v: string | number) => (typeof v === "string" && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v));
 const quote = (v: string) => (/[",\r\n]/.test(v) || /^\s|\s$/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
 /** CSV with CRLF line ends, as spreadsheets expect. Null and undefined become empty cells. */
-export function toCsv(rows: (string | number | null | undefined)[][]): string {
-  return rows.map((r) => r.map((v) => quote(v == null ? "" : String(v))).join(",")).join("\r\n") + "\r\n";
+export function toCsv(rows: readonly (readonly (string | number | null | undefined)[])[]): string {
+  return rows.map((r) => r.map((v) => quote(v == null ? "" : safe(v))).join(",")).join("\r\n") + "\r\n";
 }
