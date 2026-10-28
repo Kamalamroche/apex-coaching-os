@@ -6,3 +6,4 @@ export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
 export { MuscleMap } from "./MuscleMap";
+export { Gauge, MiniRing } from "./Gauge";

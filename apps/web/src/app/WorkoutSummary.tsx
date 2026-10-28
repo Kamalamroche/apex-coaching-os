@@ -1,5 +1,6 @@
-import { BAND_LABEL, describeExerciseTotal, readinessReason, type WorkoutSummary } from "@apex/core";
+import { describeExerciseTotal, type WorkoutSummary } from "@apex/core";
 import { Label } from "@apex/ui";
+import { ReadinessSummary } from "./ReadinessViz";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}`;
 const tone = (n: number) => (n > 0 ? "var(--good)" : n < 0 ? "var(--warn)" : "var(--text2)");
@@ -9,17 +10,7 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
   const top = s.muscles[0]?.sets ?? 1;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {s.readiness && (
-        <div className={`card rdy-${s.readiness.band}`} style={{ padding: "10px 12px" }}>
-          <div className="sect" style={{ marginBottom: 6 }}>
-            <h3 className="h3">Readiness <span className="num">{s.readiness.score}</span>/100</h3>
-            <span className="row" style={{ gap: 6 }}><span className="rdy-band">{BAND_LABEL[s.readiness.band]}</span><Label kind="data">Data</Label></span>
-          </div>
-          <div className="rdy-meter"><span style={{ width: `${s.readiness.score}%` }} /></div>
-          <div className="small" style={{ marginTop: 6, color: "var(--text)" }}>{readinessReason(s.readiness)}{s.readiness.adjusted ? " Chose the lighter session." : ""}</div>
-          <div className="tiny num" style={{ marginTop: 4 }}>Sleep {s.readiness.sleep}/5 · Energy {s.readiness.energy}/5 · Soreness {s.readiness.soreness}/5 · Stress {s.readiness.stress}/5</div>
-        </div>
-      )}
+      {s.readiness && <ReadinessSummary readiness={s.readiness} />}
       {s.bests.length > 0 && (
         <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}>
           <div className="h3">🏆 {s.bests.length} new personal best{s.bests.length > 1 ? "s" : ""}</div>

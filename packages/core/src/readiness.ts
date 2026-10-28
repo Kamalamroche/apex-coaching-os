@@ -23,12 +23,13 @@ export interface Readiness extends ReadinessAnswers {
   adjusted: boolean;
 }
 
-export const READINESS_QUESTIONS: { key: keyof ReadinessAnswers; label: string; low: string; high: string }[] = [
-  { key: "sleep", label: "Sleep", low: "Poor", high: "Great" },
-  { key: "energy", label: "Energy", low: "Flat", high: "Raring to go" },
-  { key: "soreness", label: "Soreness", low: "Very sore", high: "Fresh" },
-  { key: "stress", label: "Stress", low: "Frazzled", high: "Calm" },
+export const READINESS_QUESTIONS: { key: keyof ReadinessAnswers; label: string; low: string; high: string; scale: [string, string, string, string, string] }[] = [
+  { key: "sleep", label: "Sleep", low: "Poor", high: "Great", scale: ["Poor", "Restless", "OK", "Good", "Great"] },
+  { key: "energy", label: "Energy", low: "Flat", high: "Raring to go", scale: ["Drained", "Flat", "OK", "Good", "Raring to go"] },
+  { key: "soreness", label: "Soreness", low: "Very sore", high: "Fresh", scale: ["Very sore", "Sore", "A bit stiff", "Mostly fresh", "Fresh"] },
+  { key: "stress", label: "Stress", low: "Frazzled", high: "Calm", scale: ["Frazzled", "Tense", "OK", "Settled", "Calm"] },
 ];
+
 
 /** Score at or above this: train as planned. */
 export const READY_FROM = 70;
