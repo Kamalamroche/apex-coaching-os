@@ -54,7 +54,7 @@ describe("filterLibrary", () => {
 
 describe("the movement library", () => {
   it("has the 15 starter movements under their original ids, then the sheet", () => {
-    expect(EXERCISES).toHaveLength(630);
+    expect(EXERCISES).toHaveLength(634);
     expect(exerciseById(1).name).toBe("Barbell Back Squat");
     expect(exerciseById(15).name).toBe("Trap Bar Deadlift");
     expect(EXERCISES.map((e) => e.id)).toEqual(EXERCISES.map((_, i) => i + 1));
@@ -80,6 +80,13 @@ describe("library data", () => {
     expect(exerciseById(624).name).toBe("Push-Up");
     expect(exerciseById(625).name).toBe("Run");
     expect(exerciseById(630).name).toBe("Burpee Broad Jump");
+    expect(exerciseById(634).name).toBe("Sled Drag");
+  });
+
+  it("lists the run and all eight hybrid-race stations under one search", () => {
+    const names = filterLibrary({ query: "race station" }).map((e) => e.name).sort();
+    expect(names).toEqual(["Burpee Broad Jump", "Farmer's Carry", "Rowing Machine", "Run", "Sandbag Walking Lunge", "Ski Erg", "Sled Pull", "Sled Push", "Wall Ball"]);
+    expect(searchExercises("hyrox sled")[0]?.exercise.name).toMatch(/Sled P/);
   });
 
   it("merges coach-written details and demo clips over sheet rows", () => {

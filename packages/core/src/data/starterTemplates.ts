@@ -12,6 +12,13 @@ const day = (dayIndex: number, name: string, minutes: number, rows: Row[], circu
   })),
 });
 
+/* A hybrid race runs 1 km before each of eight stations. Half distances for weekly practice. */
+const STATIONS: [exerciseId: number, target: string][] = [[627, "500m"], [164, "25m"], [165, "25m"], [630, "40m"], [626, "500m"], [631, "100m"], [629, "50m"], [628, "50"]];
+const simulation: Row[] = STATIONS.flatMap(([id, target], i): Row[] => [
+  [String.fromCharCode(65 + i * 2), 625, 1, "500m", 7, 0],
+  [String.fromCharCode(66 + i * 2), id, 1, target, 8, 0],
+]);
+
 export const STARTER_TEMPLATES: ProgramTemplate[] = [
   {
     id: "starter-foundations", starter: true, name: "Foundations · full body", weeks: 6,
@@ -43,11 +50,12 @@ export const STARTER_TEMPLATES: ProgramTemplate[] = [
   },
   {
     id: "starter-hybrid-race", starter: true, name: "Hybrid race prep", weeks: 8,
-    note: "Hybrid fitness racing: running between functional stations, one strength day and two race-style circuits.",
+    note: "Hybrid fitness racing: running between eight functional stations. A strength day, two race circuits and a half-distance race simulation.",
     days: [
-      day(0, "Stations · strength", 50, [["A", 164, 4, "20m", 8, 120], ["B", 165, 4, "20m", 8, 120], ["C1", 629, 3, "20m", 8, 0], ["C2", 269, 3, "40m", 8, 90], ["D", 628, 3, "20", 8, 90]]),
+      day(0, "Stations · strength", 50, [["A", 164, 4, "20m", 8, 120], ["B", 165, 4, "20m", 8, 120], ["C1", 629, 3, "20m", 8, 0], ["C2", 631, 3, "40m", 8, 90], ["D", 628, 3, "20", 8, 90]]),
       day(2, "Race circuit A", 45, [["A1", 625, 4, "1000m", 7, 0], ["A2", 627, 4, "500m", 8, 0], ["A3", 164, 4, "20m", 8, 0], ["A4", 630, 4, "20m", 8, 120]], true),
       day(4, "Race circuit B", 45, [["A1", 625, 3, "1000m", 7, 0], ["A2", 626, 3, "500m", 8, 0], ["A3", 629, 3, "40m", 8, 0], ["A4", 628, 3, "25", 8, 120]], true),
+      day(5, "Race simulation · half", 60, simulation),
     ],
   },
 ];
