@@ -9,6 +9,7 @@ import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
+import { Copilot } from "./Copilot";
 import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
@@ -41,6 +42,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const [plateauOpen, setPlateauOpen] = useState<number | null>(null);
   const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
   const [importing, setImporting] = useState<File | "text" | null>(null);
@@ -143,7 +145,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     >
       <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
       <section className="bld-main">
-      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} />
+      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} />
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
           <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the program builder SQL is run in Supabase.</span>
@@ -325,6 +327,8 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
           <button className="btn ghost block" onClick={() => setSwapping(null)}>Cancel</button>
         </Sheet>
       )}
+
+      {copilotOpen && <Copilot onClose={() => setCopilotOpen(false)} say={say} />}
 
       {aiOpen && (
         <AiAdjust

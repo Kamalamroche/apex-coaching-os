@@ -201,6 +201,10 @@ input,select{font-family:inherit}
 .voice-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);margin-right:6px;display:inline-block}
 .voice-dot.on{background:var(--act-ink);animation:voice-pulse 1.2s ease-in-out infinite}
 @keyframes voice-pulse{50%{opacity:.3}}
+/* program copilot */
+.cop-sum{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:var(--r-sm);background:var(--ai-soft);border-left:3px solid var(--ai)}
+.cop-row s{color:var(--text3)}
+.pb-cop{border-color:var(--ai);color:var(--ai)}
 /* plateau alerts */
 .plat{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding:10px;border-radius:var(--r-sm);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
 .plat-acts{display:flex;flex-wrap:wrap;gap:6px}

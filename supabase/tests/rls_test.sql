@@ -21,7 +21,7 @@ do $$ begin
   assert (select count(*) from program_versions) = 1, 'client must not see unpublished draft';
   assert (select count(*) from workouts) = 1, 'client sees only published workouts';
   assert (select count(*) from check_ins) = 1, 'client sees only own check-ins';
-  assert (select count(*) from exercises) = 634, 'client reads shared library';
+  assert (select count(*) from exercises) = 637, 'client reads shared library';
   assert (select count(*) from profiles) = 2, 'client sees self and own coach';
 end $$;
 insert into messages (coach_id, client_id, sender_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Hip felt fine');
