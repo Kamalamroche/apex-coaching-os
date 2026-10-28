@@ -1,4 +1,5 @@
 import { exerciseById } from "./library";
+import { progressWorkout } from "./progression";
 import type { Exercise, Workout, WorkoutItem } from "./types";
 
 /** Item keys are UUIDs so a new item can be saved to the database under the same id. */
@@ -28,15 +29,37 @@ export function addExercise(workout: Workout, exercise: Exercise, key = newKey()
   return { ...workout, items: [...workout.items, item] };
 }
 
-/** Re-letters blocks in order of appearance (A, B1/B2, C…) after an insert or a move, keeping superset numbers. */
+/** Re-letters blocks top to bottom after an insert, move or link: a run of items sharing a letter
+    is one block, so A, B1/B2, C… A block of one has no number; a superset is numbered 1, 2, 3. */
 export function relabelGroups(items: WorkoutItem[]): WorkoutItem[] {
-  const letters = new Map<string, string>();
-  return items.map((it) => {
-    const base = it.group[0] ?? "?";
-    if (!letters.has(base)) letters.set(base, String.fromCharCode(65 + letters.size));
-    const group = letters.get(base) + it.group.slice(1);
-    return group === it.group ? it : { ...it, group };
+  const runs: WorkoutItem[][] = [];
+  items.forEach((it, i) => {
+    const prev = items[i - 1];
+    if (prev && prev.group[0] === it.group[0]) runs.at(-1)?.push(it);
+    else runs.push([it]);
   });
+  return runs.flatMap((run, r) =>
+    run.map((it, n) => {
+      const group = String.fromCharCode(65 + r) + (run.length > 1 ? String(n + 1) : "");
+      return group === it.group ? it : { ...it, group };
+    }),
+  );
+}
+
+/** Joins an item to the block above it as a superset, or splits it out if it is already in one. */
+export function toggleSuperset(workout: Workout, key: string): Workout {
+  const i = workout.items.findIndex((it) => it.key === key);
+  const item = workout.items[i];
+  const above = workout.items[i - 1];
+  if (!item || !above) return workout;
+  const joined = above.group[0] === item.group[0];
+  const items = workout.items.map((it, n) => {
+    if (n === i) return { ...it, group: joined ? "#" : (above.group[0] as string) };
+    // Items below that shared the old block stay together, under their own letter.
+    if (joined && n > i && it.group[0] === item.group[0]) return { ...it, group: "%" };
+    return it;
+  });
+  return { ...workout, items: relabelGroups(items) };
 }
 
 /** Drops a library exercise at a position in the list (what drag and drop does). Out-of-range positions clamp. */
@@ -109,13 +132,22 @@ export const isSuperset = (item: WorkoutItem): boolean => item.group.length > 1;
    In the real build the proposal comes from the Claude API and is stored as an ai_suggestion. */
 
 export interface Adjustment {
-  id: "short" | "beginner";
+  id: "progress" | "short" | "beginner";
   title: string;
   note: string;
   apply: (w: Workout) => Workout;
+  /** Why each item changed, by item key, when the adjustment can explain itself. */
+  reasons?: (w: Workout) => Record<string, string>;
 }
 
 export const ADJUSTMENTS: Adjustment[] = [
+  {
+    id: "progress",
+    title: "Progress next week",
+    note: "Reads what the client logged last time: more load when every rep was hit at or under target RPE, a rep more inside a range, a 5% back-off after a grind.",
+    apply: (w) => progressWorkout(w).workout,
+    reasons: (w) => progressWorkout(w).reasons,
+  },
   {
     id: "short",
     title: "30-minute version",

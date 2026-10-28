@@ -10,8 +10,9 @@ interface Props {
 
 /** AI proposals shown as a diff. Nothing changes until the coach accepts. */
 export function AiAdjust({ workout, onClose, onApply }: Props) {
-  const [picked, setPicked] = useState<Adjustment | null>(null);
+  const [picked, setPicked] = useState<Adjustment | null>(ADJUSTMENTS[0] ?? null);
   const next = picked?.apply(workout);
+  const reasons = picked?.reasons?.(workout) ?? {};
   return (
     <Sheet onClose={onClose} label="Adjust this workout">
       <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">You review every change before it applies</span></div>
@@ -36,7 +37,8 @@ export function AiAdjust({ workout, onClose, onApply }: Props) {
                   <span className={`label ${change.kind === "changed" ? "l-ai" : "l-data"}`}>{change.kind === "changed" ? "Changed" : "Same"}</span>
                   <div className="grow small">
                     <b style={{ color: "var(--text)" }}>{exerciseById(change.after.exerciseId).name}</b>{" "}
-                    <span className="num">{change.after.sets}×{change.after.reps} · RPE {change.after.rpe} · {formatRest(change.after.restSeconds)}</span>
+                    <span className="num">{change.after.sets}×{change.after.reps}{change.after.kg ? ` · ${change.after.kg} kg` : ""} · RPE {change.after.rpe} · {formatRest(change.after.restSeconds)}</span>
+                    {reasons[change.before.key] && <div className="tiny" style={{ marginTop: 3 }}>{reasons[change.before.key]}</div>}
                   </div>
                 </div>
               ),

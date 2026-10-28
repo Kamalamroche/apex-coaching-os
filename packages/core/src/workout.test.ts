@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_WORKOUT } from "./data/workout";
 import { exerciseById } from "./library";
-import { ADJUSTMENTS, addExercise, appendItems, diffWorkouts, insertExercise, moveItem, nextGroupLetter, relabelGroups, removeItem, swapExercise, updateItem } from "./workout";
+import { ADJUSTMENTS, addExercise, appendItems, diffWorkouts, insertExercise, moveItem, nextGroupLetter, relabelGroups, removeItem, swapExercise, toggleSuperset, updateItem } from "./workout";
 
 const adjustment = (id: string) => {
   const a = ADJUSTMENTS.find((x) => x.id === id);
@@ -100,5 +100,25 @@ describe("importing drafted items", () => {
   it("fills gaps with sensible defaults", () => {
     const [item] = appendItems({ ...INITIAL_WORKOUT, items: [] }, [{ ...draft(7, "A"), sets: 0, reps: "" }], ["k"]).items;
     expect(item).toMatchObject({ group: "A", sets: 3, reps: "10", kg: 80, rpe: 7, restSeconds: 60, lastTime: "New exercise" });
+  });
+});
+
+describe("supersets", () => {
+  const groups = (w: { items: { group: string }[] }) => w.items.map((i) => i.group).join(" ");
+
+  it("links an item to the block above, and splits it back out", () => {
+    const linked = toggleSuperset(INITIAL_WORKOUT, "c");
+    expect(groups(linked)).toBe("A B1 B2 B3");
+    expect(groups(toggleSuperset(linked, "c"))).toBe("A B1 B2 C");
+  });
+
+  it("splitting the middle of a superset keeps the items below together", () => {
+    const three = toggleSuperset(INITIAL_WORKOUT, "c");
+    expect(groups(toggleSuperset(three, "b2"))).toBe("A B C D");
+    expect(groups(toggleSuperset(INITIAL_WORKOUT, "a"))).toBe("A B1 B2 C");
+  });
+
+  it("moving one half of a superset away leaves a single block", () => {
+    expect(groups(moveItem(INITIAL_WORKOUT, "b2", 4))).toBe("A B C D");
   });
 });

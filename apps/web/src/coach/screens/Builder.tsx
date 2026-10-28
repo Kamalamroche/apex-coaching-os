@@ -1,5 +1,6 @@
 import {
-  addExercise, alternativesFor, exerciseById, exerciseFor, insertExercise, isSuperset, moveItem, removeItem, searchExercises, swapExercise, updateItem,
+  addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
+  swapExercise, toggleSuperset, updateItem,
   type Exercise, type Workout, type WorkoutItem,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
@@ -34,7 +35,8 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
-  const [pdf, setPdf] = useState<File | null>(null);
+  /* What the importer reads: a PDF, or "text" to paste one in. */
+  const [importing, setImporting] = useState<File | "text" | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const [armed, setArmed] = useState<string | null>(null);
@@ -55,6 +57,15 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
     say(`${ex.name} added${item ? ` as ${item.group}` : ""} · rest ${item?.restSeconds} s`);
   };
   const move = (key: string, at: number) => edit((w) => moveItem(w, key, at));
+  /* "75%" in the kg box loads 75% of the estimated 1RM from the last logged set. */
+  const setKg = (it: WorkoutItem, raw: string) => {
+    const pct = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(raw.trim());
+    if (!pct) return upd(it.key, { kg: Number(raw.replace(",", ".")) || 0 });
+    const kg = kgFromPercent(it, Number(pct[1]?.replace(",", ".")));
+    if (kg === null) return say("No logged sets yet, so there's no 1RM to work from");
+    upd(it.key, { kg });
+    say(`${pct[1]}% of the estimated 1RM = ${kg} kg`);
+  };
 
   /* Where a drop at this pointer height lands: before the first row whose middle is below it. */
   const indexAt = (y: number) => {
@@ -88,7 +99,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
     e.preventDefault();
     setFileOver(false);
     const file = Array.from(e.dataTransfer.files).find(isPdf);
-    if (file) setPdf(file);
+    if (file) setImporting(file);
     else say("Drop a PDF program to import it");
   };
 
@@ -115,9 +126,10 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
+          <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste text</button>
           <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
         </div>
-        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); e.target.value = ""; }} />
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />
       </div>
 
       <div className="bld-quick" style={{ position: "relative" }}>
@@ -141,6 +153,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         <div className="chips">
           <button className="chip bld-libchip" onClick={() => setLibOpen(true)}><Icons.plus width={12} height={12} />Browse library</button>
           <button className="chip bld-libchip" onClick={() => fileRef.current?.click()}><Icons.file width={12} height={12} />Import PDF</button>
+          <button className="chip bld-libchip" onClick={() => setImporting("text")}>Paste text</button>
           <span className="tiny" style={{ alignSelf: "center" }}>Recent:</span>
           {RECENT_IDS.map((id) => <button key={id} className="chip" onClick={() => add(exerciseById(id))}>+ {exerciseById(id).name}</button>)}
         </div>
@@ -161,6 +174,8 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         )}
         {workout.items.map((it, i) => {
           const ex = exerciseFor(it);
+          const e1rm = estimatedOneRepMax(parseLastTime(it.lastTime));
+          const linked = workout.items[i - 1]?.group[0] === it.group[0];
           return (
             <div
               key={it.key}
@@ -202,11 +217,18 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
               <div className="mini">
                 <label>Sets<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => upd(it.key, { sets: Number(e.target.value.replace(/\D/g, "")) || 1 })} /></label>
                 <label>Reps<input id={`r-${it.key}`} value={it.reps} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
-                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} onChange={(e) => upd(it.key, { kg: Number(e.target.value) || 0 })} /></label>
+                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
                 <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={(e) => upd(it.key, { rpe: Number(e.target.value) || 0 })} /></label>
                 <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.restSeconds} onChange={(e) => upd(it.key, { restSeconds: Number(e.target.value) || 0 })} /></label>
               </div>
-              <div className="tiny" style={{ marginTop: 6 }}>Last time: <span className="num">{it.lastTime}</span></div>
+              <div className="bld-foot">
+                <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
+                {i > 0 && (
+                  <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Split from the exercise above" : "Superset with the exercise above"}>
+                    {linked ? "Superset ✓" : "+ Superset"}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -215,7 +237,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         <button className="btn ghost" style={{ flex: 1 }} onClick={() => say("Day duplicated to Thursday")}>Duplicate day</button>
         <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
       </div>
-      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder.</p>
+      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
 
       {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}
@@ -250,12 +272,12 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         />
       )}
 
-      {pdf && (
+      {importing && (
         <ImportPdf
-          file={pdf}
+          file={importing === "text" ? null : importing}
           workout={workout}
-          onClose={() => setPdf(null)}
-          onApply={(next, msg) => { edit(() => next); setPdf(null); say(msg); }}
+          onClose={() => setImporting(null)}
+          onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
         />
       )}
     </div>
