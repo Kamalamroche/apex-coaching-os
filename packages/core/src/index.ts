@@ -6,6 +6,7 @@ export * from "./workout";
 export * from "./session";
 export * from "./plates";
 export * from "./summary";
+export * from "./share";
 export * from "./store";
 export * from "./db";
 export { EXERCISES } from "./data/exercises";

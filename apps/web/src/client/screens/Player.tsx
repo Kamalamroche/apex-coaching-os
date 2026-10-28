@@ -1,6 +1,6 @@
 import {
   buildSummary, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest, isSuperset,
-  sessionVolume, summaryMessage, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, shareCardData, summaryMessage, totalSets, usesPlates, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { PlateCalculator } from "./PlateCalculator";
+import { ShareWorkout } from "./ShareWorkout";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
@@ -147,6 +148,7 @@ function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Worko
   const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [note, setNote] = useState("");
+  const [sharing, setSharing] = useState(false);
   // Freeze the duration when the summary opens, so time spent here doesn't count as training.
   const [mins] = useState(minutes);
   const volume = sessionVolume(sets);
@@ -172,6 +174,7 @@ function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Worko
           <div className="kpi"><b>{mins}</b><small>Minutes</small></div>
         </div>
         <WorkoutSummaryCard summary={summary} />
+        <button className="btn ghost block" style={{ minHeight: 48 }} onClick={() => setSharing(true)}>📸 Share with a photo</button>
         <div className="card">
           <h3 className="h3" style={{ marginBottom: 8 }}>How hard was the whole session?</h3>
           <div className="rpe">{RPE_SCALE.map((n) => <button key={n} className={sessionRpe === n ? "on" : ""} onClick={() => setSessionRpe(n)}>{n}</button>)}</div>
@@ -181,6 +184,7 @@ function Finish({ workout: w, sets, history, minutes, onDone }: { workout: Worko
         <button className="btn act block" style={{ minHeight: 52 }} disabled={sessionRpe === null} onClick={save}>Save and send to {coachName}</button>
         <div className="tiny" style={{ textAlign: "center" }}>{coachName} gets this summary as soon as you save.</div>
       </main>
+      {sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />}
     </div>
   );
 }
