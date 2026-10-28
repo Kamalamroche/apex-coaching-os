@@ -1,6 +1,6 @@
 import {
-  fromActivityRow, fromConnectionRow, mergeActivities, toActivityRow,
-  type ActivityRow, type ActivityState, type ActivityStore, type ConnectionRow,
+  fromActivityRow, fromConnectionRow, fromRecoveryRow, localDate, mergeActivities, mergeRecovery, toActivityRow, toRecoveryRow,
+  type ActivityRow, type ActivityState, type ActivityStore, type ConnectionRow, type RecoveryRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -8,15 +8,17 @@ import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 const isMissingTable = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205";
 
 const RECENT = 120;
+/** Mornings of recovery loaded: enough for a two-week baseline and the 30-day charts. */
+const RECOVERY_DAYS = 60;
 
 export interface LiveActivityStore extends ActivityStore {
   reload(): Promise<void>;
   close(): void;
 }
 
-/** ActivityStore backed by the `activities` and `device_connections` tables, kept live with Realtime. */
+/** ActivityStore backed by the `activities`, `recovery_days` and `device_connections` tables, kept live with Realtime. */
 export function createSupabaseActivities(db: SupabaseClient, clientId: string): LiveActivityStore {
-  let state: ActivityState = { activities: [], connections: [], status: "loading" };
+  let state: ActivityState = { activities: [], connections: [], recovery: [], status: "loading" };
   let channel: RealtimeChannel | null = null;
   let seq = 0;
   const listeners = new Set<() => void>();
@@ -31,13 +33,16 @@ export function createSupabaseActivities(db: SupabaseClient, clientId: string): 
 
   async function load() {
     const mine = ++seq;
-    const [{ data: rows, error: e1 }, { data: links, error: e2 }] = await Promise.all([
+    const since = new Date();
+    since.setDate(since.getDate() - RECOVERY_DAYS);
+    const [{ data: rows, error: e1 }, { data: links, error: e2 }, { data: mornings, error: e3 }] = await Promise.all([
       db.from("activities").select("*").eq("client_id", clientId).order("started_at", { ascending: false }).limit(RECENT).returns<ActivityRow[]>(),
       db.from("device_connections").select("provider, athlete_name, connected_at, last_sync_at").eq("client_id", clientId).returns<ConnectionRow[]>(),
+      db.from("recovery_days").select("*").eq("client_id", clientId).gte("day", localDate(since)).order("day", { ascending: false }).returns<RecoveryRow[]>(),
     ]);
     if (mine !== seq) return;
-    if (e1 || e2) return fail(e1 ?? e2);
-    set({ activities: (rows ?? []).map(fromActivityRow), connections: (links ?? []).map(fromConnectionRow), status: "ready", error: undefined });
+    if (e1 || e2 || e3) return fail(e1 ?? e2 ?? e3);
+    set({ activities: (rows ?? []).map(fromActivityRow), connections: (links ?? []).map(fromConnectionRow), recovery: (mornings ?? []).map(fromRecoveryRow), status: "ready", error: undefined });
   }
 
   function open() {
@@ -45,6 +50,7 @@ export function createSupabaseActivities(db: SupabaseClient, clientId: string): 
     channel = db
       .channel(`apex-activities-${clientId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "activities", filter: `client_id=eq.${clientId}` }, () => void load().catch(fail))
+      .on("postgres_changes", { event: "*", schema: "public", table: "recovery_days", filter: `client_id=eq.${clientId}` }, () => void load().catch(fail))
       .subscribe();
   }
 
@@ -85,6 +91,11 @@ export function createSupabaseActivities(db: SupabaseClient, clientId: string): 
     remove(id) {
       set({ activities: state.activities.filter((a) => a.id !== id) });
       void db.from("activities").delete().eq("id", id).then(({ error }) => { if (error) fail(error); });
+    },
+    saveRecovery(days) {
+      if (!days.length) return;
+      set({ recovery: mergeRecovery(state.recovery, days) });
+      void db.from("recovery_days").upsert(days.map((d) => toRecoveryRow(d, clientId)), { onConflict: "client_id,day,source" }).then(({ error }) => { if (error) fail(error); });
     },
     // Connections are written by the edge function; here we only show the change straight away.
     setConnection(c) {

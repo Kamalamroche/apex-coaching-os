@@ -217,6 +217,6 @@ describe("activity store", () => {
     s.setConnection({ provider: "strava", connectedAt: "2026-10-28T10:00:00Z", athleteName: "Priya" });
     const again = createDemoActivityStore(storage);
     expect(again.get().activities.some((a) => a.id === first.id)).toBe(false);
-    expect(again.get().connections[0]?.athleteName).toBe("Priya");
+    expect(again.get().connections.find((c) => c.provider === "strava")?.athleteName).toBe("Priya");
   });
 });

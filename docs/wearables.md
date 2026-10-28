@@ -32,3 +32,25 @@ Until step 5 the Strava row says "Soon" and everything else works.
 
 - Garmin Connect (needs Garmin's developer programme approval), Whoop, Oura, Polar and Fitbit: the same pattern as Strava (OAuth in an edge function). Whoop and Oura bring sleep, HRV and recovery, which can pre-fill the readiness check.
 - Apple Health and Android Health Connect need a native phone app.
+
+# Recovery from watches and rings
+
+**Progress → Recovery** shows last night's sleep (with stages), HRV and resting heart rate against the client's own last two weeks, stress, strain and steps. The readiness check before a session fills in sleep, energy and stress from this morning's numbers; the client checks them and always answers soreness.
+
+Sources: Whoop, Oura, Fitbit / Pixel Watch and Polar (connect from Connected apps), Garmin once Garmin approves the app, or numbers typed in by hand.
+
+## Setting up a provider (each is free, do only the ones you want)
+
+For each one: create a developer app, set its redirect address to `https://apex-coaching-os-web.vercel.app/client/`, then copy its two codes (client id and client secret).
+
+| Provider | Where | Codes go in Supabase secrets as | And in Vercel as |
+| --- | --- | --- | --- |
+| Whoop | developer-dashboard.whoop.com | `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET` | `VITE_WHOOP_CLIENT_ID` |
+| Oura | cloud.ouraring.com/oauth/applications | `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET` | `VITE_OURA_CLIENT_ID` |
+| Fitbit | dev.fitbit.com/apps/new (type: Server) | `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET` | `VITE_FITBIT_CLIENT_ID` |
+| Polar | admin.polaraccesslink.com | `POLAR_CLIENT_ID`, `POLAR_CLIENT_SECRET` | `VITE_POLAR_CLIENT_ID` |
+| Garmin | developer.garmin.com/gc-developer-program (apply; Garmin reviews) | later | later |
+
+Then deploy once: `npx supabase functions deploy wearables --project-ref ptxtshirthnzovfbdyav`, and redeploy on Vercel.
+
+Code: `packages/core/src/recovery.ts` (mappers, baselines, readiness pre-fill), `packages/core/src/wearables.ts` (sign-in links), `supabase/functions/wearables` (tokens and API calls), `apps/web/src/app/RecoveryView.tsx`.

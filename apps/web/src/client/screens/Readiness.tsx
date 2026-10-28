@@ -1,10 +1,11 @@
 import {
-  BAND_ADVICE, BAND_LABEL, READINESS_QUESTIONS, describeLighter, exerciseFor, lighterSession, readinessOf, vsUsual,
+  BAND_ADVICE, BAND_LABEL, READINESS_QUESTIONS, RECOVERY_SOURCES, describeLighter, localDate, readinessFromWatch, exerciseFor, lighterSession, readinessOf, vsUsual,
   type Readiness, type ReadinessAnswers, type ReadinessPoint, type Workout, type WorkoutItem,
 } from "@apex/core";
 import { Gauge, Icons, Label } from "@apex/ui";
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useAppInfo } from "../../app/AppContext";
+import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { ContributorRows, FACTOR_COLOUR, QUESTION_ICON, ReadinessTrend, SCORE_GRADIENT, answerColour, bandColour } from "../../app/ReadinessViz";
 
 const line = (it: WorkoutItem) => `${it.sets}×${it.reps}${it.kg ? ` · ${it.kg} kg` : ""}`;
@@ -15,7 +16,10 @@ const FOUR = ["var(--ai)", "var(--act)", "var(--data)", "var(--blue)"];
     On a low day the client can pick a lighter version of today; the program stays as the coach wrote it. */
 export function ReadinessCheck({ workout, history, onStart, onExit }: { workout: Workout; history: ReadinessPoint[] | undefined; onStart: (readiness: Readiness | null, session: Workout) => void; onExit: () => void }) {
   const { coachName } = useAppInfo();
-  const [a, setA] = useState<Partial<ReadinessAnswers>>({});
+  const { recovery } = useActivitiesIfAny();
+  // This morning's watch numbers fill in what they can; the client checks them and answers the rest.
+  const watch = useMemo(() => readinessFromWatch(recovery, localDate(new Date())), [recovery]);
+  const [a, setA] = useState<Partial<ReadinessAnswers>>(() => watch?.answers ?? {});
   const [step, setStep] = useState<"ask" | "score">("ask");
   const answered = READINESS_QUESTIONS.filter((q) => a[q.key]).length;
   const r = answered === READINESS_QUESTIONS.length ? readinessOf(a as ReadinessAnswers) : null;
@@ -40,6 +44,13 @@ export function ReadinessCheck({ workout, history, onStart, onExit }: { workout:
             <div className="small" style={{ marginTop: 4 }}>Four taps. {coachName} sees this with your session.</div>
           </div>
         </section>
+
+        {watch && (
+          <div className="rc-prefill">
+            <div className="row" style={{ gap: 8 }}><span style={{ flexShrink: 0 }}><Label kind="data">From {RECOVERY_SOURCES[watch.source]}</Label></span><span className="tiny">Filled in for you. Change anything that feels off.</span></div>
+            <ul>{READINESS_QUESTIONS.filter((q) => watch.why[q.key]).map((q) => <li key={q.key}><b>{q.label}:</b> {watch.why[q.key]}</li>)}</ul>
+          </div>
+        )}
 
         {READINESS_QUESTIONS.map((q) => {
           const v = a[q.key];

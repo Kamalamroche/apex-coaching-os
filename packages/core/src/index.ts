@@ -30,3 +30,5 @@ export * from "./activity";
 export * from "./activityFiles";
 export * from "./activityStore";
 export * from "./strava";
+export * from "./recovery";
+export * from "./wearables";

@@ -1,4 +1,4 @@
-import type { ActivityState, ActivityStore } from "@apex/core";
+import type { ActivityState, ActivityStore, WearableProvider } from "@apex/core";
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 
 /** What the Connected apps screen can do. The demo fakes it; the live app talks to the `strava` edge function. */
@@ -12,17 +12,28 @@ export interface StravaLink {
   disconnect(): Promise<void>;
 }
 
+/** The same for watches and rings (Whoop, Oura, Fitbit, Polar; Garmin once approved). */
+export interface WearableLink {
+  /** False until that provider's client id is set (VITE_WHOOP_CLIENT_ID and so on). */
+  available(p: WearableProvider): boolean;
+  connect(p: WearableProvider): void;
+  /** Brings in recent mornings. Resolves to how many came in. */
+  sync(p: WearableProvider): Promise<number>;
+  disconnect(p: WearableProvider): Promise<void>;
+}
+
 interface Value {
   store: ActivityStore;
   strava: StravaLink | null;
+  wearables: WearableLink | null;
   /** False on the coach side: the coach reads a client's cardio but never changes it. */
   editable: boolean;
 }
 
 const Ctx = createContext<Value | null>(null);
 
-export const ActivityProvider = ({ store, strava = null, editable = true, children }: { store: ActivityStore; strava?: StravaLink | null; editable?: boolean; children: ReactNode }) => (
-  <Ctx.Provider value={{ store, strava, editable }}>{children}</Ctx.Provider>
+export const ActivityProvider = ({ store, strava = null, wearables = null, editable = true, children }: { store: ActivityStore; strava?: StravaLink | null; wearables?: WearableLink | null; editable?: boolean; children: ReactNode }) => (
+  <Ctx.Provider value={{ store, strava, wearables, editable }}>{children}</Ctx.Provider>
 );
 
 export function useActivityContext(): Value {
@@ -36,8 +47,16 @@ export function useActivities(): ActivityState {
   return useSyncExternalStore(store.subscribe, store.get, store.get);
 }
 
+const EMPTY = emptyActivityStore();
+
+/** Like useActivities, but empty outside an ActivityProvider (screens shared with places that have none). */
+export function useActivitiesIfAny(): ActivityState {
+  const store = useContext(Ctx)?.store ?? EMPTY;
+  return useSyncExternalStore(store.subscribe, store.get, store.get);
+}
+
 /** A store with nothing in it, for a coach with no clients yet. */
 export function emptyActivityStore(): ActivityStore {
-  const state: ActivityState = { activities: [], connections: [], status: "ready" };
-  return { get: () => state, subscribe: () => () => {}, save: () => {}, remove: () => {}, setConnection: () => {}, removeConnection: () => {} };
+  const state: ActivityState = { activities: [], connections: [], recovery: [], status: "ready" };
+  return { get: () => state, subscribe: () => () => {}, save: () => {}, remove: () => {}, saveRecovery: () => {}, setConnection: () => {}, removeConnection: () => {} };
 }

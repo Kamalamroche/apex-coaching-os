@@ -1,4 +1,4 @@
-import { fromStravaActivity, newKey, stravaAuthorizeUrl, type ActivityStore, type StravaActivity } from "@apex/core";
+import { connectState, fromStravaActivity, newKey, providerFromState, stravaAuthorizeUrl, type ActivityStore, type StravaActivity } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StravaLink } from "./ActivityContext";
 
@@ -6,14 +6,17 @@ import type { StravaLink } from "./ActivityContext";
    calling Strava's API) is the `strava` edge function in supabase/functions/strava. */
 
 const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID as string | undefined;
-const STATE_KEY = "apex-strava-state";
+const STATE_KEY = "apex-connect-state";
 
-const redirectUri = () => `${location.origin}/client/`;
+/** Every provider sends the client back here. */
+export const redirectUri = (): string => `${location.origin}/client/`;
 
-function remember(state: string) {
+/** The `state` we sent, so a reply that isn't ours is ignored. Shared by every provider. */
+export function rememberState(state: string) {
   try { sessionStorage.setItem(STATE_KEY, state); } catch { /* in-app browsers can block storage */ }
 }
-function recalled(): string | null | undefined {
+/** undefined: storage is blocked, so there's nothing to compare against. */
+export function recalledState(): string | null | undefined {
   try { return sessionStorage.getItem(STATE_KEY); } catch { return undefined; }
 }
 
@@ -32,8 +35,8 @@ export function liveStravaLink(db: SupabaseClient, store: ActivityStore & { relo
     available: !!clientId,
     connect() {
       if (!clientId) return;
-      const state = `apex-${newKey()}`;
-      remember(state);
+      const state = connectState("strava", newKey());
+      rememberState(state);
       location.assign(stravaAuthorizeUrl(clientId, redirectUri(), state));
     },
     async sync() {
@@ -57,11 +60,10 @@ export async function finishStravaConnect(db: SupabaseClient): Promise<{ athlete
   const q = new URLSearchParams(location.search);
   const code = q.get("code");
   const state = q.get("state");
-  if (!state?.startsWith("apex-")) return null;
+  if (providerFromState(state) !== "strava") return null;
   const clear = () => history.replaceState(null, "", location.pathname);
   if (q.get("error")) { clear(); throw new Error("Strava wasn't connected. You can try again from Connected apps."); }
-  const expected = recalled();
-  // undefined: storage is blocked, so there's nothing to compare against.
+  const expected = recalledState();
   if (!code || (expected !== undefined && expected !== state)) { clear(); return null; }
   if (!(q.get("scope") ?? "").includes("activity:read")) {
     clear();

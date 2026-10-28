@@ -32,7 +32,6 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   useEffect(() => {
     if (!notice) return;
     say(notice);
-    setTab("train");
   }, [notice, say]);
 
   if (playing) {
@@ -42,7 +41,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} />}
       {tab === "train" && <Train start={start} say={say} />}
-      {tab === "progress" && <Progress />}
+      {tab === "progress" && <Progress say={say} />}
       {tab === "chat" && <Chat />}
       {tab === "more" && <More say={say} />}
       {toast}

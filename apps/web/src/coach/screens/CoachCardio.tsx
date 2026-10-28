@@ -2,6 +2,7 @@ import { firstName, formatDistance, formatDuration, sportLabel, weekTotals } fro
 import { Label, Sheet } from "@apex/ui";
 import { useState } from "react";
 import { ActivityRow, ActivityView } from "../../app/ActivityView";
+import { RecoveryView } from "../../app/RecoveryView";
 import { useAppInfo } from "../../app/AppContext";
 import { useActivities } from "../../data/ActivityContext";
 
@@ -41,6 +42,28 @@ export function CoachCardio() {
           <ActivityView activity={shown} all={activities} />
           {shown.rpe && <div className="small">{first} rated it <b className="num">{shown.rpe}/10</b>.</div>}
           <button className="btn ghost block" onClick={() => setOpen(null)}>Close</button>
+        </Sheet>
+      )}
+    </section>
+  );
+}
+
+/** The client's last night and recovery trend, from their watch or ring. Read-only. */
+export function CoachRecovery() {
+  const { recovery, status } = useActivities();
+  const { clientName } = useAppInfo();
+  const [open, setOpen] = useState(false);
+  const first = firstName(clientName) || "Your client";
+  if (status !== "ready" || !recovery.length) return null;
+  return (
+    <section>
+      <div className="sect"><h2 className="h2">{first}'s recovery</h2><button className="link" onClick={() => setOpen(true)}>Trends</button></div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}><RecoveryView recovery={recovery} compact /></div>
+      {open && (
+        <Sheet onClose={() => setOpen(false)} label={`${first}'s recovery`}>
+          <h2 className="h2">{first}'s recovery</h2>
+          <RecoveryView recovery={recovery} />
+          <button className="btn ghost block" onClick={() => setOpen(false)}>Close</button>
         </Sheet>
       )}
     </section>

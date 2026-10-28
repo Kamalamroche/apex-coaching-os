@@ -8,6 +8,7 @@ import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
 import { StoreProvider } from "../data/StoreContext";
 import { demoStravaLink } from "../data/strava";
+import { demoWearableLink } from "../data/wearables";
 import { isDemo, supabase } from "../data/supabase";
 import { AppInfoProvider } from "./AppContext";
 
@@ -31,7 +32,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} editable={side === "client"}>{demo()}</ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}>{demo()}</ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

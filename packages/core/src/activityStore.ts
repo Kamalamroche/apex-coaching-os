@@ -4,8 +4,10 @@
 
 import { mergeActivities, type Activity, type ActivitySource, type Sport } from "./activity";
 import { sampleActivities } from "./data/activities";
+import { sampleRecovery } from "./data/recovery";
+import { mergeRecovery, type RecoveryDay, type RecoverySource } from "./recovery";
 
-export type Provider = "strava";
+export type Provider = "strava" | Exclude<RecoverySource, "manual">;
 
 export interface Connection {
   provider: Provider;
@@ -19,6 +21,8 @@ export interface ActivityState {
   /** Newest first. */
   activities: Activity[];
   connections: Connection[];
+  /** Sleep, HRV, resting heart rate and the rest, one per morning per source, newest first. */
+  recovery: RecoveryDay[];
   /** "needs-update": the database doesn't have the cardio tables yet (the SQL hasn't run). */
   status: "loading" | "ready" | "needs-update" | "error";
   error?: string;
@@ -30,6 +34,8 @@ export interface ActivityStore {
   /** Adds or replaces activities. One already brought in from the same source is updated, not doubled. */
   save(list: Activity[]): void;
   remove(id: string): void;
+  /** Adds or updates mornings. Same date and source replaces. */
+  saveRecovery(days: RecoveryDay[]): void;
   /** Records a connection (or a fresh sync) once the provider has said yes. */
   setConnection(c: Connection): void;
   removeConnection(p: Provider): void;
@@ -55,6 +61,44 @@ export interface ActivityRow {
   source: ActivitySource;
   external_id: string | null;
   detail: Activity["detail"] | null;
+}
+
+export interface RecoveryRow {
+  client_id: string;
+  day: string;
+  source: RecoverySource;
+  sleep_minutes: number | null;
+  deep_minutes: number | null;
+  rem_minutes: number | null;
+  light_minutes: number | null;
+  awake_minutes: number | null;
+  sleep_score: number | null;
+  hrv_ms: number | null;
+  resting_hr: number | null;
+  recovery_score: number | null;
+  stress: number | null;
+  strain: number | null;
+  steps: number | null;
+  respiratory_rate: number | null;
+}
+
+export function toRecoveryRow(d: RecoveryDay, clientId: string): RecoveryRow {
+  return {
+    client_id: clientId, day: d.date, source: d.source, sleep_minutes: d.sleepMinutes ?? null,
+    deep_minutes: d.stages?.deep ?? null, rem_minutes: d.stages?.rem ?? null, light_minutes: d.stages?.light ?? null, awake_minutes: d.stages?.awake ?? null,
+    sleep_score: d.sleepScore ?? null, hrv_ms: d.hrvMs ?? null, resting_hr: d.restingHr ?? null, recovery_score: d.recoveryScore ?? null,
+    stress: d.stress ?? null, strain: d.strain ?? null, steps: d.steps ?? null, respiratory_rate: d.respiratoryRate ?? null,
+  };
+}
+
+export function fromRecoveryRow(r: RecoveryRow): RecoveryDay {
+  const n = (v: number | string | null) => (v === null ? undefined : Number(v));
+  const d: RecoveryDay = {
+    date: r.day.slice(0, 10), source: r.source, sleepMinutes: n(r.sleep_minutes), sleepScore: n(r.sleep_score), hrvMs: n(r.hrv_ms), restingHr: n(r.resting_hr),
+    recoveryScore: n(r.recovery_score), stress: n(r.stress), strain: n(r.strain), steps: n(r.steps), respiratoryRate: n(r.respiratory_rate),
+    ...(r.deep_minutes !== null ? { stages: { deep: Number(r.deep_minutes), rem: Number(r.rem_minutes ?? 0), light: Number(r.light_minutes ?? 0), awake: Number(r.awake_minutes ?? 0) } } : {}),
+  };
+  return Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)) as unknown as RecoveryDay;
 }
 
 export interface ConnectionRow {
@@ -103,19 +147,21 @@ export const DEMO_ACTIVITY_KEY = "apex-activities-v1";
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
 export function createDemoActivityStore(storage: StorageLike | null = safeStorage(), now = new Date()): ActivityStore {
-  let state: ActivityState = { activities: [], connections: [], status: "ready" };
+  // The demo ring is "connected" from the start so the recovery screens have data.
+  const demoRing: Connection = { provider: "oura", athleteName: "Priya Sharma (demo)", connectedAt: now.toISOString(), lastSyncAt: now.toISOString() };
+  let state: ActivityState = { activities: [], connections: [], recovery: [], status: "ready" };
   try {
     const raw = storage?.getItem(DEMO_ACTIVITY_KEY);
     const saved = raw ? (JSON.parse(raw) as Partial<ActivityState>) : null;
-    state = { ...state, activities: saved?.activities ?? sampleActivities(now), connections: saved?.connections ?? [] };
+    state = { ...state, activities: saved?.activities ?? sampleActivities(now), connections: saved?.connections ?? [demoRing], recovery: saved?.recovery ?? sampleRecovery(now) };
   } catch {
-    state = { ...state, activities: sampleActivities(now) };
+    state = { ...state, activities: sampleActivities(now), connections: [demoRing], recovery: sampleRecovery(now) };
   }
   const listeners = new Set<() => void>();
   const update = (fn: (s: ActivityState) => ActivityState) => {
     state = fn(state);
     try {
-      storage?.setItem(DEMO_ACTIVITY_KEY, JSON.stringify({ activities: state.activities, connections: state.connections }));
+      storage?.setItem(DEMO_ACTIVITY_KEY, JSON.stringify({ activities: state.activities, connections: state.connections, recovery: state.recovery }));
     } catch {
       /* storage full or blocked: the change still shows in this tab */
     }
@@ -129,6 +175,7 @@ export function createDemoActivityStore(storage: StorageLike | null = safeStorag
     },
     save: (list) => update((s) => ({ ...s, activities: mergeActivities(s.activities, list) })),
     remove: (id) => update((s) => ({ ...s, activities: s.activities.filter((a) => a.id !== id) })),
+    saveRecovery: (days) => update((s) => ({ ...s, recovery: mergeRecovery(s.recovery, days) })),
     setConnection: (c) => update((s) => ({ ...s, connections: [...s.connections.filter((x) => x.provider !== c.provider), c] })),
     removeConnection: (p) => update((s) => ({ ...s, connections: s.connections.filter((x) => x.provider !== p) })),
   };

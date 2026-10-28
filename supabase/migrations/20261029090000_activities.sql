@@ -1,5 +1,6 @@
--- Cardio and connected apps: runs, swims, rides, rows, walks and hikes, logged by hand,
--- uploaded from a watch file (GPX, TCX, FIT) or brought in from Strava.
+-- Cardio, recovery and connected apps: runs, swims, rides, rows, walks and hikes (by hand, from a
+-- watch file or Strava), and sleep, HRV, resting heart rate and stress from Whoop, Oura, Garmin, Polar or Fitbit.
+-- Safe to run more than once.
 
 create table if not exists public.activities (
   id                uuid primary key default gen_random_uuid(),
@@ -36,7 +37,7 @@ create policy "coach reads client activities" on public.activities for select us
 -- Which apps a client has connected. Written by the edge functions (service role); the client and coach read it.
 create table if not exists public.device_connections (
   client_id     uuid not null references public.profiles (id) on delete cascade,
-  provider      text not null check (provider in ('strava')),
+  provider      text not null,
   athlete_id    text,
   athlete_name  text,
   connected_at  timestamptz not null default now(),
@@ -53,7 +54,7 @@ create policy "coach reads client connections" on public.device_connections for 
 -- (service role) can read them: never the browser, not even the client's own.
 create table if not exists public.device_tokens (
   client_id      uuid not null references public.profiles (id) on delete cascade,
-  provider       text not null check (provider in ('strava')),
+  provider       text not null,
   access_token   text not null,
   refresh_token  text not null,
   expires_at     timestamptz not null,
@@ -62,10 +63,48 @@ create table if not exists public.device_tokens (
 );
 alter table public.device_tokens enable row level security;
 
+-- Providers a client can connect. Kept as a named constraint so adding one later is a one-line change.
+alter table public.device_connections drop constraint if exists device_connections_provider_check;
+alter table public.device_connections add constraint device_connections_provider_check check (provider in ('strava', 'whoop', 'oura', 'garmin', 'polar', 'fitbit'));
+alter table public.device_tokens drop constraint if exists device_tokens_provider_check;
+alter table public.device_tokens add constraint device_tokens_provider_check check (provider in ('strava', 'whoop', 'oura', 'garmin', 'polar', 'fitbit'));
+
+-- One row per morning per source: what the watch or ring measured overnight, or what the client typed in.
+create table if not exists public.recovery_days (
+  client_id         uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  day               date not null,
+  source            text not null check (source in ('whoop', 'oura', 'garmin', 'polar', 'fitbit', 'manual')),
+  sleep_minutes     int check (sleep_minutes between 0 and 1440),
+  deep_minutes      int check (deep_minutes >= 0),
+  rem_minutes       int check (rem_minutes >= 0),
+  light_minutes     int check (light_minutes >= 0),
+  awake_minutes     int check (awake_minutes >= 0),
+  sleep_score       int check (sleep_score between 0 and 100),
+  hrv_ms            numeric(5, 1) check (hrv_ms between 0 and 400),
+  resting_hr        int check (resting_hr between 20 and 150),
+  recovery_score    int check (recovery_score between 0 and 100),
+  stress            int check (stress between 0 and 100),
+  strain            numeric(4, 1) check (strain between 0 and 21),
+  steps             int check (steps >= 0),
+  respiratory_rate  numeric(4, 1),
+  updated_at        timestamptz not null default now(),
+  primary key (client_id, day, source)
+);
+alter table public.recovery_days enable row level security;
+drop policy if exists "client manages own recovery" on public.recovery_days;
+create policy "client manages own recovery" on public.recovery_days for all
+  using (client_id = auth.uid()) with check (client_id = auth.uid());
+drop policy if exists "coach reads client recovery" on public.recovery_days;
+create policy "coach reads client recovery" on public.recovery_days for select using (public.is_coach_of(client_id));
+
 do $$
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
      and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'activities') then
     alter publication supabase_realtime add table public.activities;
+  end if;
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'recovery_days') then
+    alter publication supabase_realtime add table public.recovery_days;
   end if;
 end $$;

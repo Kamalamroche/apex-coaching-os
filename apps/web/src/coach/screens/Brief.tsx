@@ -5,7 +5,7 @@ import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
-import { CoachCardio } from "./CoachCardio";
+import { CoachCardio, CoachRecovery } from "./CoachCardio";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 
 interface TriageItem {
@@ -151,6 +151,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
         </div>
       </section>
 
+      <CoachRecovery />
       <CoachCardio />
 
       {draft && (

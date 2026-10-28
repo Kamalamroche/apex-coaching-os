@@ -1,12 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
-import type { StravaLink } from "../data/ActivityContext";
+import { WEARABLES } from "@apex/core";
+import type { StravaLink, WearableLink } from "../data/ActivityContext";
 import type { LiveActivityStore } from "../data/supabaseActivities";
 import { AppInfoProvider } from "../app/AppContext";
 import { Splash, type Live } from "../app/Gate";
 import { ActivityProvider } from "../data/ActivityContext";
 import { StoreProvider } from "../data/StoreContext";
 import { finishStravaConnect, liveStravaLink } from "../data/strava";
+import { finishWearableConnect, liveWearableLink } from "../data/wearables";
 import { createSupabaseActivities } from "../data/supabaseActivities";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
@@ -33,7 +35,8 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const activities = useMemo(() => createSupabaseActivities(db, profile.id), [db, profile.id]);
   const strava = useMemo(() => liveStravaLink(db, activities), [db, activities]);
   useEffect(() => () => activities.close(), [activities]);
-  const stravaNotice = useStravaReturn(db, activities, strava);
+  const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
+  const notice = useConnectReturn(db, activities, strava, wearables);
 
   if (coach === undefined) return <Splash />;
   if (!coach || !store) {
@@ -48,28 +51,35 @@ export function ClientLive({ db, profile, signOut }: Live) {
   return (
     <AppInfoProvider info={{ mode: "live", coachName: coach.name.split(" ")[0] ?? coach.name, clientName: profile.full_name, signOut }}>
       <StoreProvider store={store}>
-        <ActivityProvider store={activities} strava={strava}>
-          <ClientApp notice={stravaNotice} />
+        <ActivityProvider store={activities} strava={strava} wearables={wearables}>
+          <ClientApp notice={notice} />
         </ActivityProvider>
       </StoreProvider>
     </AppInfoProvider>
   );
 }
 
-/** Back from Strava's "Authorise" page: finish connecting, bring in recent activities, and say how it went. */
-function useStravaReturn(db: SupabaseClient, store: LiveActivityStore, strava: StravaLink): string | null {
+/** Back from Strava's or a watch maker's "Allow" page: finish connecting, bring in recent data, and say how it went. */
+function useConnectReturn(db: SupabaseClient, store: LiveActivityStore, strava: StravaLink, wearables: WearableLink): string | null {
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     finishStravaConnect(db)
       .then(async (done) => {
-        if (!done) return;
+        if (done) {
+          await store.reload();
+          const n = await strava.sync();
+          if (live) setNotice(`Strava connected${n ? ` · ${n} activit${n === 1 ? "y" : "ies"} brought in` : ""}`);
+          return;
+        }
+        const w = await finishWearableConnect(db);
+        if (!w) return;
         await store.reload();
-        const n = await strava.sync();
-        if (live) setNotice(`Strava connected${n ? ` · ${n} activit${n === 1 ? "y" : "ies"} brought in` : ""}`);
+        const n = await wearables.sync(w.provider);
+        if (live) setNotice(`${WEARABLES[w.provider].name} connected${n ? ` · ${n} nights brought in` : ""}`);
       })
       .catch((e: unknown) => live && setNotice(e instanceof Error ? e.message : String(e)));
     return () => { live = false; };
-  }, [db, store, strava]);
+  }, [db, store, strava, wearables]);
   return notice;
 }
