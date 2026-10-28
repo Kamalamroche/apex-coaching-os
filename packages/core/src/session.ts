@@ -1,3 +1,4 @@
+import { setTargets } from "./blocks";
 import type { SetEntry, Workout, WorkoutItem } from "./types";
 
 export type SessionSets = Record<string, SetEntry[]>;
@@ -7,7 +8,7 @@ export const initialSets = (workout: Workout): SessionSets =>
   Object.fromEntries(
     workout.items.map((it) => [
       it.key,
-      Array.from({ length: it.sets }, () => ({ kg: it.kg ? String(it.kg) : "", reps: it.reps.replace("s", ""), done: false })),
+      setTargets(it).map((t) => ({ kg: t.kg ? String(t.kg) : "", reps: t.reps.replace("s", ""), done: false })),
     ]),
   );
 
