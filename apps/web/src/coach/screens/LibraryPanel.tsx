@@ -9,7 +9,7 @@ const SHOWN = 80;
 export const EXERCISE_MIME = "application/x-apex-exercise";
 
 /** The movement library as a drag source. Drag a row into the workout, or tap + to add it at the end. */
-export function LibraryPanel({ onAdd }: { onAdd: (ex: Exercise) => void }) {
+export function LibraryPanel({ onAdd, inSheet }: { onAdd: (ex: Exercise) => void; inSheet?: boolean }) {
   const [q, setQ] = useState("");
   const [area, setArea] = useState<(typeof AREAS)[number]>("All");
   const [more, setMore] = useState(false);
@@ -17,7 +17,7 @@ export function LibraryPanel({ onAdd }: { onAdd: (ex: Exercise) => void }) {
   const rows = more ? all : all.slice(0, SHOWN);
 
   return (
-    <div className="bld-lib">
+    <div className={`bld-lib ${inSheet ? "in-sheet" : ""}`}>
       <div className="bld-lib-head">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div className="eyebrow">Movement library</div>
@@ -35,14 +35,14 @@ export function LibraryPanel({ onAdd }: { onAdd: (ex: Exercise) => void }) {
             key={e.id}
             role="listitem"
             className="bld-src"
-            draggable
+            draggable={!inSheet}
             onDragStart={(ev) => {
               ev.dataTransfer.setData(EXERCISE_MIME, String(e.id));
               ev.dataTransfer.setData("text/plain", e.name);
               ev.dataTransfer.effectAllowed = "copy";
             }}
           >
-            <Icons.grip width={14} height={14} className="bld-grip" aria-hidden />
+            {!inSheet && <Icons.grip width={14} height={14} className="bld-grip" aria-hidden />}
             <div className="grow">
               <div className="h3" style={{ fontSize: 14 }}>{e.name}</div>
               <div className="tiny">{e.pattern} · {e.equipment}</div>

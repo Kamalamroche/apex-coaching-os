@@ -114,8 +114,8 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
         <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn ghost sm" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
-          <button className="btn ghost sm" onClick={() => setAiOpen(true)}>Adjust with AI</button>
+          <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
+          <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
         </div>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); e.target.value = ""; }} />
       </div>
@@ -140,6 +140,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
       {!q && (
         <div className="chips">
           <button className="chip bld-libchip" onClick={() => setLibOpen(true)}><Icons.plus width={12} height={12} />Browse library</button>
+          <button className="chip bld-libchip" onClick={() => fileRef.current?.click()}><Icons.file width={12} height={12} />Import PDF</button>
           <span className="tiny" style={{ alignSelf: "center" }}>Recent:</span>
           {RECENT_IDS.map((id) => <button key={id} className="chip" onClick={() => add(exerciseById(id))}>+ {exerciseById(id).name}</button>)}
         </div>
@@ -166,6 +167,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
               data-row
               className={`bld-row ${dropAt === i ? "drop-before" : ""} ${fresh === it.key ? "fresh" : ""}`}
               draggable={armed === it.key}
+              data-lifted={armed === it.key && dropAt !== null ? "" : undefined}
               onDragStart={(e) => { e.dataTransfer.setData(ITEM_MIME, it.key); e.dataTransfer.effectAllowed = "move"; }}
               onDragEnd={() => { setArmed(null); setDropAt(null); }}
               onAnimationEnd={() => setFresh(null)}
@@ -174,8 +176,19 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
                 <button
                   className="bld-handle"
                   aria-label={`Move ${ex.name}. Drag, or use the arrow keys`}
-                  onPointerDown={() => setArmed(it.key)}
-                  onPointerUp={() => setArmed(null)}
+                  onPointerDown={(e) => {
+                    if (e.pointerType === "mouse") { setArmed(it.key); return; }
+                    // Touch screens don't drag natively: follow the finger and drop where it lifts.
+                    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+                    setArmed(it.key);
+                  }}
+                  onPointerMove={(e) => { if (e.pointerType !== "mouse" && armed === it.key) setDropAt(indexAt(e.clientY)); }}
+                  onPointerUp={(e) => {
+                    if (e.pointerType !== "mouse" && armed === it.key && dropAt !== null) move(it.key, dropAt);
+                    setArmed(null);
+                    setDropAt(null);
+                  }}
+                  onPointerCancel={() => { setArmed(null); setDropAt(null); }}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); move(it.key, i - 1); }
                     if (e.key === "ArrowDown" && i < workout.items.length - 1) { e.preventDefault(); move(it.key, i + 2); }
@@ -209,7 +222,7 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
 
       {libOpen && (
         <Sheet onClose={() => setLibOpen(false)} label="Movement library">
-          <LibraryPanel onAdd={(ex) => add(ex)} />
+          <LibraryPanel onAdd={(ex) => add(ex)} inSheet />
           <button className="btn ghost block" onClick={() => setLibOpen(false)}>Done</button>
         </Sheet>
       )}

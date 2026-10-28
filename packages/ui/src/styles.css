@@ -113,6 +113,10 @@ input,select{font-family:inherit}
 .bld-main{display:flex;flex-direction:column;gap:18px;min-width:0}
 .bld-side{display:none}
 .bld-lib{display:flex;flex-direction:column;min-height:0}
+.bld-lib.in-sheet{flex-shrink:0;margin-inline:-4px}
+.bld-lib.in-sheet .bld-lib-head{padding:0 0 12px}
+.bld-lib.in-sheet .bld-lib-list{max-height:52vh;overflow:auto}
+.bld-lib.in-sheet .bld-src{cursor:default;padding-left:2px}
 .bld-lib-head{display:flex;flex-direction:column;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
 .bld-lib-list{display:flex;flex-direction:column}
 .bld-lib-list>*+*{border-top:1px solid var(--line)}
@@ -127,6 +131,7 @@ input,select{font-family:inherit}
 .bld-row.drop-before{box-shadow:inset 0 3px 0 var(--act)}
 .bld-list.drop-end>.bld-row:last-child{box-shadow:inset 0 -3px 0 var(--act)}
 .bld-list.dragging{border-color:var(--act);box-shadow:0 0 0 3px var(--act-soft)}
+.bld-row[data-lifted]{opacity:.55}
 .bld-row.fresh{animation:bld-fresh 1.4s ease-out}
 @keyframes bld-fresh{from{background:var(--act-soft)}to{background:transparent}}
 .bld-handle{width:24px;height:34px;margin-left:-6px;border:0;background:none;color:var(--text3);display:grid;place-items:center;cursor:grab;border-radius:4px;touch-action:none}
@@ -134,6 +139,7 @@ input,select{font-family:inherit}
 .bld-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:40px 20px;margin:10px;border:1.5px dashed var(--line2);border-radius:var(--r)}
 .bld-list.dragging .bld-empty{border-color:var(--act);background:var(--act-soft)}
 .bld-libchip{border-color:var(--act);color:var(--act)}
+.bld-pdfbtn{display:none}
 .bld-filedrop{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(6px);color:var(--text);pointer-events:none;outline:2px dashed var(--act);outline-offset:-16px}
 .bld-filedrop svg{color:var(--act)}
 .imp-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 14px}
@@ -146,6 +152,7 @@ input,select{font-family:inherit}
   .bld-side{display:block;position:sticky;top:72px}
   .bld-side .bld-lib-list{max-height:calc(100vh - 290px);overflow:auto}
   .bld-quick,.bld-libchip{display:none}
+  .bld-pdfbtn{display:inline-flex}
 }
 
 /* ---------- selector ---------- */

@@ -60,6 +60,35 @@ export function moveItem(workout: Workout, key: string, index: number): Workout 
   return { ...workout, items: relabelGroups(items) };
 }
 
+/** An exercise read from another source (a PDF, a sheet) before it becomes a workout item. */
+export interface DraftItem {
+  exerciseId: number;
+  /** Block as written in the source: "A", or "B1"/"B2" for a superset. */
+  group: string;
+  sets: number;
+  reps: string;
+  kg: number;
+  rpe: number | null;
+  restSeconds: number | null;
+}
+
+/** Adds drafted items after the current ones as new blocks, keeping the source's supersets together. */
+export function appendItems(workout: Workout, drafts: DraftItem[], keys: string[] = drafts.map(() => newKey())): Workout {
+  const added: WorkoutItem[] = drafts.map((d, i) => ({
+    key: keys[i] ?? newKey(),
+    // Lower case can't clash with the existing blocks; relabelGroups gives them the next free letters.
+    group: (d.group[0] ?? "a").toLowerCase() + d.group.slice(1),
+    exerciseId: d.exerciseId,
+    sets: d.sets || 3,
+    reps: d.reps || "10",
+    kg: d.kg,
+    rpe: d.rpe ?? 7,
+    restSeconds: d.restSeconds ?? defaultRestFor(exerciseById(d.exerciseId)),
+    lastTime: "New exercise",
+  }));
+  return { ...workout, items: relabelGroups([...workout.items, ...added]) };
+}
+
 export const updateItem = (workout: Workout, key: string, patch: Partial<WorkoutItem>): Workout => ({
   ...workout,
   items: workout.items.map((it) => (it.key === key ? { ...it, ...patch } : it)),

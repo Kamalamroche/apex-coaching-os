@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_WORKOUT } from "./data/workout";
 import { exerciseById } from "./library";
-import { ADJUSTMENTS, addExercise, diffWorkouts, insertExercise, moveItem, nextGroupLetter, relabelGroups, removeItem, swapExercise, updateItem } from "./workout";
+import { ADJUSTMENTS, addExercise, appendItems, diffWorkouts, insertExercise, moveItem, nextGroupLetter, relabelGroups, removeItem, swapExercise, updateItem } from "./workout";
 
 const adjustment = (id: string) => {
   const a = ADJUSTMENTS.find((x) => x.id === id);
@@ -86,5 +86,19 @@ describe("drag and drop", () => {
   it("keeps superset numbering when re-lettering", () => {
     const items = INITIAL_WORKOUT.items.map((i, n) => ({ ...i, group: ["C", "A1", "A2", "B"][n] as string }));
     expect(relabelGroups(items).map((i) => i.group)).toEqual(["A", "B1", "B2", "C"]);
+  });
+});
+
+describe("importing drafted items", () => {
+  const draft = (exerciseId: number, group: string) => ({ exerciseId, group, sets: 4, reps: "6-8", kg: 80, rpe: null, restSeconds: null });
+
+  it("appends after the current blocks, keeping the source's supersets", () => {
+    const w = appendItems(INITIAL_WORKOUT, [draft(1, "A"), draft(7, "B1"), draft(8, "B2")], ["x", "y", "z"]);
+    expect(w.items.slice(-3).map((i) => [i.key, i.group])).toEqual([["x", "D"], ["y", "E1"], ["z", "E2"]]);
+  });
+
+  it("fills gaps with sensible defaults", () => {
+    const [item] = appendItems({ ...INITIAL_WORKOUT, items: [] }, [{ ...draft(7, "A"), sets: 0, reps: "" }], ["k"]).items;
+    expect(item).toMatchObject({ group: "A", sets: 3, reps: "10", kg: 80, rpe: 7, restSeconds: 60, lastTime: "New exercise" });
   });
 });
