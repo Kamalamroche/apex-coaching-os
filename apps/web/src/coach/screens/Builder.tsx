@@ -1,15 +1,23 @@
 import {
-  addExercise, alternativesFor, exerciseById, exerciseFor, isSuperset, removeItem, searchExercises, swapExercise, updateItem,
+  addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
+  swapExercise, toggleSuperset, updateItem,
   type Exercise, type Workout, type WorkoutItem,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Sheet } from "@apex/ui";
-import { useMemo, useState } from "react";
+import { Icons, Sheet } from "@apex/ui";
+import { useMemo, useRef, useState, type DragEvent } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
+import { ImportPdf } from "./ImportPdf";
+import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
 
 const RECENT_IDS = [2, 9, 13];
+/** Drag payload for a workout row being moved. */
+const ITEM_MIME = "application/x-apex-item";
+
+const hasType = (e: DragEvent, type: string) => Array.from(e.dataTransfer.types).includes(type);
+const isPdf = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
 
 const highlight = (name: string, q: string) => {
   const s = q.trim();
@@ -26,15 +34,73 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [libOpen, setLibOpen] = useState(false);
+  /* What the importer reads: a PDF, or "text" to paste one in. */
+  const [importing, setImporting] = useState<File | "text" | null>(null);
+  const [dropAt, setDropAt] = useState<number | null>(null);
+  const [fileOver, setFileOver] = useState(false);
+  const [armed, setArmed] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const hits = useMemo(() => searchExercises(q), [q]);
 
   const edit = (fn: (w: Workout) => Workout) => store.saveWorkout(fn(store.get().workout));
   const upd = (key: string, patch: Partial<WorkoutItem>) => edit((w) => updateItem(w, key, patch));
-  const add = (ex: Exercise) => {
-    const next = addExercise(workout, ex);
+  const add = (ex: Exercise, at?: number) => {
+    const cur = store.get().workout;
+    const next = at === undefined ? addExercise(cur, ex) : insertExercise(cur, ex, at);
+    const item = next.items.find((i) => !cur.items.some((c) => c.key === i.key));
     edit(() => next);
     setQ("");
-    say(`${ex.name} added · rest set to ${next.items.at(-1)?.restSeconds} s`);
+    setFresh(item?.key ?? null);
+    say(`${ex.name} added${item ? ` as ${item.group}` : ""} · rest ${item?.restSeconds} s`);
+  };
+  const move = (key: string, at: number) => edit((w) => moveItem(w, key, at));
+  /* "75%" in the kg box loads 75% of the estimated 1RM from the last logged set. */
+  const setKg = (it: WorkoutItem, raw: string) => {
+    const pct = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(raw.trim());
+    if (!pct) return upd(it.key, { kg: Number(raw.replace(",", ".")) || 0 });
+    const kg = kgFromPercent(it, Number(pct[1]?.replace(",", ".")));
+    if (kg === null) return say("No logged sets yet, so there's no 1RM to work from");
+    upd(it.key, { kg });
+    say(`${pct[1]}% of the estimated 1RM = ${kg} kg`);
+  };
+
+  /* Where a drop at this pointer height lands: before the first row whose middle is below it. */
+  const indexAt = (y: number) => {
+    const rows = listRef.current?.querySelectorAll<HTMLElement>("[data-row]") ?? [];
+    const i = Array.from(rows).findIndex((r) => { const b = r.getBoundingClientRect(); return y < b.top + b.height / 2; });
+    return i < 0 ? rows.length : i;
+  };
+  const onListOver = (e: DragEvent) => {
+    if (hasType(e, EXERCISE_MIME) || hasType(e, ITEM_MIME)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = hasType(e, ITEM_MIME) ? "move" : "copy";
+      setDropAt(indexAt(e.clientY));
+    }
+  };
+  const onListDrop = (e: DragEvent) => {
+    const exId = e.dataTransfer.getData(EXERCISE_MIME);
+    const key = e.dataTransfer.getData(ITEM_MIME);
+    if (!exId && !key) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const at = indexAt(e.clientY);
+    if (exId) add(exerciseById(Number(exId)), at);
+    else move(key, at);
+    setDropAt(null);
+    setArmed(null);
+  };
+  /* A PDF dropped anywhere on the builder opens the importer. */
+  const onPageOver = (e: DragEvent) => { if (hasType(e, "Files")) { e.preventDefault(); setFileOver(true); } };
+  const onPageDrop = (e: DragEvent) => {
+    if (!hasType(e, "Files")) return;
+    e.preventDefault();
+    setFileOver(false);
+    const file = Array.from(e.dataTransfer.files).find(isPdf);
+    if (file) setImporting(file);
+    else say("Drop a PDF program to import it");
   };
 
   const first = clientName.split(" ")[0] ?? clientName;
@@ -48,13 +114,25 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
   }
 
   return (
-    <>
+    <div
+      className={`full bld ${fileOver ? "file-over" : ""}`}
+      onDragOver={onPageOver}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFileOver(false); }}
+      onDrop={onPageDrop}
+    >
+      <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
+      <section className="bld-main">
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
         <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
-        <button className="btn ghost sm" onClick={() => setAiOpen(true)}>Adjust with AI</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
+          <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste text</button>
+          <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
+        </div>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />
       </div>
 
-      <div style={{ position: "relative" }}>
+      <div className="bld-quick" style={{ position: "relative" }}>
         <input id="exsearch" className="field" placeholder='Add exercise: try "rdl", "hinge" or "cable"' value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         {q && (
           <div className="card flat list" style={{ position: "absolute", left: 0, right: 0, top: "calc(100% + 6px)", zIndex: 30, boxShadow: "0 12px 30px rgba(0,0,0,.3)" }}>
@@ -73,18 +151,64 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
       </div>
       {!q && (
         <div className="chips">
+          <button className="chip bld-libchip" onClick={() => setLibOpen(true)}><Icons.plus width={12} height={12} />Browse library</button>
+          <button className="chip bld-libchip" onClick={() => fileRef.current?.click()}><Icons.file width={12} height={12} />Import PDF</button>
+          <button className="chip bld-libchip" onClick={() => setImporting("text")}>Paste text</button>
           <span className="tiny" style={{ alignSelf: "center" }}>Recent:</span>
           {RECENT_IDS.map((id) => <button key={id} className="chip" onClick={() => add(exerciseById(id))}>+ {exerciseById(id).name}</button>)}
         </div>
       )}
 
-      <div className="card flat list">
-        {workout.items.length === 0 && <div className="li small">This workout is empty. Search above to add the first exercise.</div>}
-        {workout.items.map((it) => {
+      <div
+        ref={listRef}
+        className={`card flat list bld-list ${dropAt !== null ? "dragging" : ""} ${dropAt !== null && dropAt >= workout.items.length ? "drop-end" : ""}`}
+        onDragOver={onListOver}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropAt(null); }}
+        onDrop={onListDrop}
+      >
+        {workout.items.length === 0 && (
+          <div className="bld-empty">
+            <b>Drag movements here</b>
+            <span className="small">From the library, or drop a PDF program anywhere on this page. Search above works too.</span>
+          </div>
+        )}
+        {workout.items.map((it, i) => {
           const ex = exerciseFor(it);
+          const e1rm = estimatedOneRepMax(parseLastTime(it.lastTime));
+          const linked = workout.items[i - 1]?.group[0] === it.group[0];
           return (
-            <div key={it.key} style={{ padding: "12px 14px" }}>
+            <div
+              key={it.key}
+              data-row
+              className={`bld-row ${dropAt === i ? "drop-before" : ""} ${fresh === it.key ? "fresh" : ""}`}
+              draggable={armed === it.key}
+              data-lifted={armed === it.key && dropAt !== null ? "" : undefined}
+              onDragStart={(e) => { e.dataTransfer.setData(ITEM_MIME, it.key); e.dataTransfer.effectAllowed = "move"; }}
+              onDragEnd={() => { setArmed(null); setDropAt(null); }}
+              onAnimationEnd={() => setFresh(null)}
+            >
               <div className="row" style={{ gap: 10 }}>
+                <button
+                  className="bld-handle"
+                  aria-label={`Move ${ex.name}. Drag, or use the arrow keys`}
+                  onPointerDown={(e) => {
+                    if (e.pointerType === "mouse") { setArmed(it.key); return; }
+                    // Touch screens don't drag natively: follow the finger and drop where it lifts.
+                    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+                    setArmed(it.key);
+                  }}
+                  onPointerMove={(e) => { if (e.pointerType !== "mouse" && armed === it.key) setDropAt(indexAt(e.clientY)); }}
+                  onPointerUp={(e) => {
+                    if (e.pointerType !== "mouse" && armed === it.key && dropAt !== null) move(it.key, dropAt);
+                    setArmed(null);
+                    setDropAt(null);
+                  }}
+                  onPointerCancel={() => { setArmed(null); setDropAt(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); move(it.key, i - 1); }
+                    if (e.key === "ArrowDown" && i < workout.items.length - 1) { e.preventDefault(); move(it.key, i + 2); }
+                  }}
+                ><Icons.grip width={14} height={14} /></button>
                 <span className="grp" style={{ width: 28 }}>{it.group}</span>
                 <div className="grow"><div className="h3">{ex.name}</div><div className="tiny">{ex.pattern} · {ex.equipment}{isSuperset(it) ? " · superset" : ""}</div></div>
                 <button className="btn ghost sm" onClick={() => setSwapping(it)}>Swap</button>
@@ -93,11 +217,18 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
               <div className="mini">
                 <label>Sets<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => upd(it.key, { sets: Number(e.target.value.replace(/\D/g, "")) || 1 })} /></label>
                 <label>Reps<input id={`r-${it.key}`} value={it.reps} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
-                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} onChange={(e) => upd(it.key, { kg: Number(e.target.value) || 0 })} /></label>
+                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={it.kg} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
                 <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={(e) => upd(it.key, { rpe: Number(e.target.value) || 0 })} /></label>
                 <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.restSeconds} onChange={(e) => upd(it.key, { restSeconds: Number(e.target.value) || 0 })} /></label>
               </div>
-              <div className="tiny" style={{ marginTop: 6 }}>Last time: <span className="num">{it.lastTime}</span></div>
+              <div className="bld-foot">
+                <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
+                {i > 0 && (
+                  <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Split from the exercise above" : "Superset with the exercise above"}>
+                    {linked ? "Superset ✓" : "+ Superset"}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
@@ -106,7 +237,17 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
         <button className="btn ghost" style={{ flex: 1 }} onClick={() => say("Day duplicated to Thursday")}>Duplicate day</button>
         <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
       </div>
-      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}.</p>
+      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
+      </section>
+
+      {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}
+
+      {libOpen && (
+        <Sheet onClose={() => setLibOpen(false)} label="Movement library">
+          <LibraryPanel onAdd={(ex) => add(ex)} inSheet />
+          <button className="btn ghost block" onClick={() => setLibOpen(false)}>Done</button>
+        </Sheet>
+      )}
 
       {swapping && (
         <Sheet onClose={() => setSwapping(null)} label="Swap exercise">
@@ -130,13 +271,22 @@ export function Builder({ say, onInvite }: { say: (m: string) => void; onInvite:
           onApply={(next, msg) => { edit(() => next); setAiOpen(false); say(msg); }}
         />
       )}
-    </>
+
+      {importing && (
+        <ImportPdf
+          file={importing === "text" ? null : importing}
+          workout={workout}
+          onClose={() => setImporting(null)}
+          onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
+        />
+      )}
+    </div>
   );
 }
 
 function Empty({ title, body, action, onAction }: { title: string; body: string; action?: string; onAction?: () => void }) {
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 22 }}>
+    <div className="card full" style={{ display: "flex", flexDirection: "column", gap: 10, padding: 22 }}>
       <h1 className="h1" style={{ fontSize: 22 }}>{title}</h1>
       <p className="sub" style={{ margin: 0 }}>{body}</p>
       {action && <button className="btn act" style={{ alignSelf: "flex-start" }} onClick={onAction}>{action}</button>}

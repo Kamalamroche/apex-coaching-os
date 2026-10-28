@@ -3,6 +3,7 @@ export * from "./format";
 export * from "./library";
 export * from "./muscleMap";
 export * from "./workout";
+export * from "./progression";
 export * from "./session";
 export * from "./plates";
 export * from "./summary";
