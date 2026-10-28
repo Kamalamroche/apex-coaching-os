@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
 import { listClients, type LiveClient } from "../data/coach";
+import { applyJoinedImports } from "../data/transfer";
 import { StoreProvider } from "../data/StoreContext";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
@@ -23,6 +24,8 @@ export function CoachLive({ db, profile, signOut }: Live) {
       setClients(list);
       setActiveId((cur) => cur ?? list[0]?.id ?? null);
     });
+    // Imported clients who have joined since last time get their program and history now.
+    void applyJoinedImports(db, profile.id).catch((e) => console.error("Couldn't bring in imported data", e));
   }, [db, profile.id]);
   useEffect(refreshClients, [refreshClients]);
 

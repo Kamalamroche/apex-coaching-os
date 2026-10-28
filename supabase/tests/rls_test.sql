@@ -85,4 +85,46 @@ do $$ begin
   exception when no_data_found then null; end;
 end $$;
 
+-- imports: a coach writes imported history for their own client only, and an invite links the waiting import
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into sessions (id, client_id, started_at, finished_at, source) values ('50000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', now() - interval '1 day', now() - interval '23 hours', 'import');
+insert into logged_sets (session_id, exercise_id, set_index, load_kg, reps) values ('50000000-0000-0000-0000-000000000001', 1, 0, 60, 8);
+insert into check_ins (client_id, weight_kg, source) values ('00000000-0000-0000-0000-0000000000c1', 62, 'import');
+insert into invites (token, coach_id) values ('40000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c');
+insert into imported_clients (coach_id, full_name, goal, mode, invite_token) values ('00000000-0000-0000-0000-00000000000c','Jo Import','Run 10k','hybrid','40000000-0000-0000-0000-000000000002');
+do $$ begin
+  begin
+    insert into sessions (client_id, source) values ('00000000-0000-0000-0000-0000000000c1', 'app');
+    raise exception 'coach logged a session as if the client did it';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into sessions (client_id, source) values ('00000000-0000-0000-0000-0000000000c2', 'import');
+    raise exception 'coach imported history for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into check_ins (client_id, source) values ('00000000-0000-0000-0000-0000000000c2', 'import');
+    raise exception 'coach imported a check-in for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from imported_clients) = 0, 'rival cannot see imported clients';
+  begin
+    insert into imported_clients (coach_id, full_name) values ('00000000-0000-0000-0000-00000000000c','planted');
+    raise exception 'rival added an import for another coach';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000c5');
+insert into profiles values ('00000000-0000-0000-0000-0000000000c5','client','Jo');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c5');
+select public.accept_invite('40000000-0000-0000-0000-000000000002');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select client_id from imported_clients where full_name = 'Jo Import') = '00000000-0000-0000-0000-0000000000c5', 'accepting links the import';
+  assert (select mode::text || goal from coach_clients where client_id = '00000000-0000-0000-0000-0000000000c5') = 'hybridRun 10k', 'goal and mode carried across';
+  insert into sessions (client_id, started_at, finished_at, source) values ('00000000-0000-0000-0000-0000000000c5', now(), now(), 'import');
+end $$;
+
 select 'RLS checks passed';
