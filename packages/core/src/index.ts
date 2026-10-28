@@ -5,6 +5,7 @@ export * from "./muscleMap";
 export * from "./workout";
 export * from "./progression";
 export * from "./blocks";
+export * from "./plateau";
 export * from "./program";
 export * from "./session";
 export * from "./plates";

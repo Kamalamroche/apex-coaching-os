@@ -26,4 +26,6 @@ export const PREVIOUS_BEST_KG: Record<number, number> = { 15: 67.5, 2: 50, 9: 18
 export const INITIAL_HISTORY: TrainingHistory = {
   bestKg: PREVIOUS_BEST_KG,
   previous: { workoutName: "Lower A · Strength", sets: 13, volumeKg: 2950, minutes: 46 },
+  // Trap bar climbing; RDL stuck around 65 kg for three sessions, so the demo shows a plateau alert.
+  trend: { 15: [77.5, 79, 80.5, 78.5], 2: [65, 64.5, 65, 63.5], 9: [22.5, 23.5, 24] },
 };

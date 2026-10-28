@@ -11,6 +11,7 @@ import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
 import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
+import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Templates } from "./Templates";
 import type { CoachLiveProps } from "../CoachApp";
 import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
@@ -37,6 +38,8 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
+  const [plateauOpen, setPlateauOpen] = useState<number | null>(null);
+  const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
@@ -203,6 +206,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
           const block = blockAt(workout.items, i);
           const circuit = it.blockStyle === "circuit";
           const vary = !!it.setPlan;
+          const stalled = plateaus.find((p) => p.exercise.id === it.exerciseId);
           return (
             <Fragment key={it.key}>
             {block.start === i && block.items.length > 1 && (
@@ -271,9 +275,11 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
                   ))}
                 </div>
               )}
+              {plateauOpen === it.exerciseId && stalled && <PlateauFixes plateau={stalled} say={say} onDone={() => setPlateauOpen(null)} />}
               <div className="bld-foot">
                 <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
                 <span className="row" style={{ gap: 6 }}>
+                  {stalled && <button className="chip plat-chip" aria-expanded={plateauOpen === it.exerciseId} onClick={() => setPlateauOpen(plateauOpen === it.exerciseId ? null : it.exerciseId)} title={stalled.reason}>Stalled</button>}
                   <button className={`chip bld-ss ${vary ? "on" : ""}`} aria-pressed={vary} onClick={() => edit((w) => updateItem(w, it.key, setVarySets(it, !vary)))} title="Different reps and kg on each set: pyramids, top set and back-offs">{vary ? "Per set ✓" : "Per set"}</button>
                   {i > 0 && (
                     <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Unlink from the exercise above" : "Link with the exercise above: superset, tri-set, giant set or circuit"}>
