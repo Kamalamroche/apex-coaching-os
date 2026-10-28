@@ -6,3 +6,4 @@ export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
 export { MuscleMap } from "./MuscleMap";
+export { RouteMap, ProfileChart, SplitsTable, HrZones, WeekBars, RouteThumb, SportIcon, ZONE_COLOURS } from "./ActivityViz";

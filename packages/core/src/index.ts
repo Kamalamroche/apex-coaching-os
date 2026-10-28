@@ -25,3 +25,7 @@ export * from "./voice";
 export * from "./transfer";
 export * from "./exportData";
 export * from "./zip";
+export * from "./activity";
+export * from "./activityFiles";
+export * from "./activityStore";
+export * from "./strava";

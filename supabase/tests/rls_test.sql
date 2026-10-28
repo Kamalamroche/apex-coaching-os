@@ -158,3 +158,49 @@ do $$ begin
   assert (select count(*) from program_templates) = 0, 'client cannot see templates';
 end $$;
 reset role;
+
+-- cardio: the client logs their own, their coach reads, nobody else sees; tokens stay server-side
+reset role;
+grant all on public.activities, public.device_connections, public.device_tokens to authenticated;
+insert into device_connections (client_id, provider, athlete_name) values ('00000000-0000-0000-0000-0000000000c1', 'strava', 'Priya S.');
+insert into device_tokens (client_id, provider, access_token, refresh_token, expires_at) values ('00000000-0000-0000-0000-0000000000c1', 'strava', 'secret', 'secret', now());
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into activities (sport, name, started_at, distance_m, moving_seconds, source, external_id, detail)
+  values ('run', 'Morning run', now(), 5012.3, 1500, 'strava', '123', '{"splits":[]}');
+do $$ begin
+  assert (select count(*) from activities) = 1, 'client sees own activity';
+  assert (select client_id from activities) = '00000000-0000-0000-0000-0000000000c1', 'client_id defaults to the signed-in client';
+  assert (select count(*) from device_connections) = 1, 'client sees own connection';
+  assert (select count(*) from device_tokens) = 0, 'client cannot read tokens';
+  begin
+    insert into activities (sport, name, started_at, source, external_id) values ('run', 'Twice', now(), 'strava', '123');
+    raise exception 'same Strava activity saved twice';
+  exception when unique_violation then null; end;
+  begin
+    insert into activities (client_id, sport, name, started_at) values ('00000000-0000-0000-0000-0000000000c2', 'run', 'forged', now());
+    raise exception 'client logged an activity for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into activities (sport, name, started_at) values ('parkour', 'x', now());
+    raise exception 'unknown sport accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into device_connections (client_id, provider) values ('00000000-0000-0000-0000-0000000000c1', 'strava');
+    raise exception 'client wrote a connection';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from activities) = 1, 'coach reads client activity';
+  assert (select count(*) from device_connections) = 1, 'coach sees client connection';
+  assert (select count(*) from device_tokens) = 0, 'coach cannot read tokens';
+  update activities set name = 'edited by coach';
+  assert (select name from activities) = 'Morning run', 'coach cannot edit client activity';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from activities) = 0, 'rival sees no activities';
+  assert (select count(*) from device_connections) = 0, 'rival sees no connections';
+end $$;
+reset role;

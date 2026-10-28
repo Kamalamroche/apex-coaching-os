@@ -1,6 +1,6 @@
 import { useApexState } from "@apex/core/react";
 import { Shell, useToast, type TabDef } from "@apex/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppInfo } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
@@ -12,7 +12,8 @@ import { Train } from "./screens/Train";
 
 type Tab = "today" | "train" | "progress" | "chat" | "more";
 
-export function ClientApp() {
+/** `notice`: a one-off message to show on arrival, e.g. after coming back from Strava. */
+export function ClientApp({ notice }: { notice?: string | null }) {
   const store = useStore();
   const { coachName, signOut } = useAppInfo();
   const { messages } = useApexState(store);
@@ -28,6 +29,11 @@ export function ClientApp() {
     { id: "more", icon: "more", label: "More" },
   ];
   const start = () => setPlaying(true);
+  useEffect(() => {
+    if (!notice) return;
+    say(notice);
+    setTab("train");
+  }, [notice, say]);
 
   if (playing) {
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
@@ -35,10 +41,10 @@ export function ClientApp() {
   return (
     <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} />}
-      {tab === "train" && <Train start={start} />}
+      {tab === "train" && <Train start={start} say={say} />}
       {tab === "progress" && <Progress />}
       {tab === "chat" && <Chat />}
-      {tab === "more" && <More />}
+      {tab === "more" && <More say={say} />}
       {toast}
     </Shell>
   );

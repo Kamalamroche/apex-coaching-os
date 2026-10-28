@@ -1,7 +1,13 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
+import type { StravaLink } from "../data/ActivityContext";
+import type { LiveActivityStore } from "../data/supabaseActivities";
 import { AppInfoProvider } from "../app/AppContext";
 import { Splash, type Live } from "../app/Gate";
+import { ActivityProvider } from "../data/ActivityContext";
 import { StoreProvider } from "../data/StoreContext";
+import { finishStravaConnect, liveStravaLink } from "../data/strava";
+import { createSupabaseActivities } from "../data/supabaseActivities";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 
@@ -24,6 +30,10 @@ export function ClientLive({ db, profile, signOut }: Live) {
   }, [db, profile.id]);
 
   const store = useMemo(() => (coach ? createSupabaseStore(db, { coachId: coach.id, clientId: profile.id, me: profile.id }) : null), [db, coach, profile.id]);
+  const activities = useMemo(() => createSupabaseActivities(db, profile.id), [db, profile.id]);
+  const strava = useMemo(() => liveStravaLink(db, activities), [db, activities]);
+  useEffect(() => () => activities.close(), [activities]);
+  const stravaNotice = useStravaReturn(db, activities, strava);
 
   if (coach === undefined) return <Splash />;
   if (!coach || !store) {
@@ -38,8 +48,28 @@ export function ClientLive({ db, profile, signOut }: Live) {
   return (
     <AppInfoProvider info={{ mode: "live", coachName: coach.name.split(" ")[0] ?? coach.name, clientName: profile.full_name, signOut }}>
       <StoreProvider store={store}>
-        <ClientApp />
+        <ActivityProvider store={activities} strava={strava}>
+          <ClientApp notice={stravaNotice} />
+        </ActivityProvider>
       </StoreProvider>
     </AppInfoProvider>
   );
+}
+
+/** Back from Strava's "Authorise" page: finish connecting, bring in recent activities, and say how it went. */
+function useStravaReturn(db: SupabaseClient, store: LiveActivityStore, strava: StravaLink): string | null {
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    finishStravaConnect(db)
+      .then(async (done) => {
+        if (!done) return;
+        await store.reload();
+        const n = await strava.sync();
+        if (live) setNotice(`Strava connected${n ? ` · ${n} activit${n === 1 ? "y" : "ies"} brought in` : ""}`);
+      })
+      .catch((e: unknown) => live && setNotice(e instanceof Error ? e.message : String(e)));
+    return () => { live = false; };
+  }, [db, store, strava]);
+  return notice;
 }

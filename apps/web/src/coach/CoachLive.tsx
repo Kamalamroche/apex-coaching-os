@@ -4,7 +4,9 @@ import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
 import { listClients, type LiveClient } from "../data/coach";
 import { applyJoinedImports } from "../data/transfer";
+import { ActivityProvider, emptyActivityStore } from "../data/ActivityContext";
 import { StoreProvider } from "../data/StoreContext";
+import { createSupabaseActivities } from "../data/supabaseActivities";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -34,11 +36,16 @@ export function CoachLive({ db, profile, signOut }: Live) {
     [db, profile.id, activeId],
   );
 
+  const activities = useMemo(() => (activeId ? createSupabaseActivities(db, activeId) : emptyActivityStore()), [db, activeId]);
+  useEffect(() => () => (activities as { close?: () => void }).close?.(), [activities]);
+
   const active = clients?.find((c) => c.id === activeId);
   return (
     <AppInfoProvider info={{ mode: "live", coachName: profile.full_name.split(" ")[0] ?? profile.full_name, clientName: active?.name ?? "", signOut }}>
       <StoreProvider store={store}>
-        <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+        <ActivityProvider store={activities} editable={false}>
+          <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+        </ActivityProvider>
       </StoreProvider>
     </AppInfoProvider>
   );
