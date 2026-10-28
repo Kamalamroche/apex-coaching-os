@@ -54,7 +54,7 @@ describe("filterLibrary", () => {
 
 describe("the movement library", () => {
   it("has the 15 starter movements under their original ids, then the sheet", () => {
-    expect(EXERCISES).toHaveLength(624);
+    expect(EXERCISES).toHaveLength(630);
     expect(exerciseById(1).name).toBe("Barbell Back Squat");
     expect(exerciseById(15).name).toBe("Trap Bar Deadlift");
     expect(EXERCISES.map((e) => e.id)).toEqual(EXERCISES.map((_, i) => i + 1));
@@ -78,6 +78,8 @@ describe("library data", () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(exerciseById(623).name).toBe("Bodyweight Squat");
     expect(exerciseById(624).name).toBe("Push-Up");
+    expect(exerciseById(625).name).toBe("Run");
+    expect(exerciseById(630).name).toBe("Burpee Broad Jump");
   });
 
   it("merges coach-written details and demo clips over sheet rows", () => {

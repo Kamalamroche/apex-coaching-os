@@ -2,7 +2,7 @@
    Kept here (no Supabase client) so they can be unit tested. */
 
 import type { SessionSets } from "./session";
-import type { Message, PreviousSession, SessionLog, Workout, WorkoutItem, WorkoutSummary } from "./types";
+import type { BlockStyle, Message, PreviousSession, SetTarget, SessionLog, Workout, WorkoutItem, WorkoutSummary } from "./types";
 
 export interface WorkoutRow {
   id: string;
@@ -22,6 +22,9 @@ export interface WorkoutItemRow {
   load_kg: number | null;
   target_rpe: number | null;
   rest_seconds: number;
+  /** Per-set targets. Missing until the program-builder migration has run. */
+  set_plan?: SetTarget[] | null;
+  block_style?: BlockStyle | null;
 }
 
 export interface LoggedSetRow {
@@ -101,6 +104,8 @@ export function toWorkout(
         rpe: Number(r.target_rpe ?? 7),
         restSeconds: r.rest_seconds,
         lastTime: formatLastTime(lastSets.get(Number(r.exercise_id))),
+        ...(r.set_plan?.length ? { setPlan: r.set_plan } : {}),
+        ...(r.block_style ? { blockStyle: r.block_style } : {}),
       })),
   };
 }
@@ -117,9 +122,12 @@ export const toItemRows = (workout: Workout, workoutId: string): WorkoutItemRow[
     load_kg: it.kg || null,
     target_rpe: it.rpe || null,
     rest_seconds: it.restSeconds,
+    set_plan: it.setPlan ?? null,
+    block_style: it.blockStyle ?? null,
   }));
 
-/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`. */
+/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`.
+    A distance ("1000m") has no column of its own yet, so its metres go to `reps`. */
 export function toLoggedSetRows(sets: SessionSets, workout: Workout, sessionId: string): LoggedSetRow[] {
   return workout.items.flatMap((it) =>
     (sets[it.key] ?? []).flatMap((s, i) => {

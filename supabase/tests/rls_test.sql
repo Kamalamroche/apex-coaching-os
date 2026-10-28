@@ -21,7 +21,7 @@ do $$ begin
   assert (select count(*) from program_versions) = 1, 'client must not see unpublished draft';
   assert (select count(*) from workouts) = 1, 'client sees only published workouts';
   assert (select count(*) from check_ins) = 1, 'client sees only own check-ins';
-  assert (select count(*) from exercises) = 624, 'client reads shared library';
+  assert (select count(*) from exercises) = 630, 'client reads shared library';
   assert (select count(*) from profiles) = 2, 'client sees self and own coach';
 end $$;
 insert into messages (coach_id, client_id, sender_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Hip felt fine');
@@ -128,3 +128,33 @@ do $$ begin
 end $$;
 
 select 'RLS checks passed';
+
+-- program builder: templates are private to their coach; per-set targets and circuits save on items
+reset role;
+grant all on public.program_templates to authenticated;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into program_templates (name, weeks, days) values ('Upper / lower', 8, '[]');
+insert into workout_items (workout_id, position, group_label, exercise_id, sets, reps, set_plan, block_style)
+  values ('30000000-0000-0000-0000-000000000001', 50, 'Z1', 1, 3, '8', '[{"reps":"8","kg":60},{"reps":"6","kg":70},{"reps":"4","kg":80}]', 'circuit');
+do $$ begin
+  assert (select count(*) from program_templates) = 1, 'coach sees own template';
+  assert (select jsonb_array_length(set_plan) from workout_items where position = 50) = 3, 'per-set plan saved';
+  begin
+    insert into program_templates (coach_id, name) values ('00000000-0000-0000-0000-00000000000d', 'forged');
+    raise exception 'coach wrote a template for another coach';
+  exception when insufficient_privilege then null; end;
+  begin
+    update workout_items set block_style = 'chaos' where position = 50;
+    raise exception 'unknown block style accepted';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from program_templates) = 0, 'rival cannot see templates';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from program_templates) = 0, 'client cannot see templates';
+end $$;
+reset role;

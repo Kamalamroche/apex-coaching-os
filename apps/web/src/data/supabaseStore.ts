@@ -1,6 +1,8 @@
 import {
-  INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, nextHistory, toItemRows, toLoggedSetRows, toMessages, toPreviousSession, toSessionLog, toWorkout,
-  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, newKey, nextDayKey, nextHistory, programFromWorkout, stateForWorkout, toItemRows, toLoggedSetRows, toMessages,
+  toPreviousSession, toSessionLog, toWorkout, withDayWorkout, withProgram,
+  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type Program, type ProgramDay, type SessionRow, type Workout,
+  type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -10,6 +12,8 @@ export interface LiveStore extends ApexStore {
   error(): string | null;
   /** Coach only: create the client's first program from the starter template. */
   createProgram(): Promise<void>;
+  /** True once the program-builder migration (per-set targets, circuits) is in the database. */
+  hasPlanColumns(): boolean;
   close(): void;
 }
 
@@ -24,7 +28,15 @@ const SAVE_DELAY_MS = 400;
 /** Ignore realtime echoes this long after a local edit so they can't overwrite typing. */
 const ECHO_GUARD_MS = 1500;
 
-const empty = (): ApexState => ({ workout: { ...INITIAL_WORKOUT, items: [] }, log: null, messages: [], history: { bestKg: {}, previous: null } });
+const empty = (): ApexState => stateForWorkout({ ...INITIAL_WORKOUT, items: [] }, { log: null, messages: [], history: { bestKg: {}, previous: null } });
+
+interface DayRow extends WorkoutRow {
+  day_index: number;
+}
+
+/** The new columns from the program-builder migration. Stripped when the database doesn't have them yet. */
+const PLAN_COLUMNS = ["set_plan", "block_style"] as const;
+const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_style: _b, ...r }) => r);
 
 /** Postgres "undefined column" (select) and PostgREST "column not in schema cache" (insert). */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
@@ -35,7 +47,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let status: ReturnType<LiveStore["status"]> = "loading";
   let error: string | null = null;
   let workoutId: string | null = null;
+  let programId: string | null = null;
+  let versionId: string | null = null;
+  /** Day the coach opened; the client always gets the next day to train. */
+  let chosenDay: string | null = null;
   let savedKeys = new Set<string>();
+  let savedDays = new Set<string>();
+  let hasPlanColumns = true;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let lastLocalEdit = 0;
   let channel: RealtimeChannel | null = null;
@@ -57,7 +75,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     const seq = ++loadSeq;
     const stale = () => seq !== loadSeq;
     try {
-      const { data: program, error: pErr } = await db.from("programs").select("id, weeks").eq("client_id", ids.clientId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: program, error: pErr } = await db.from("programs").select("id, name, weeks").eq("client_id", ids.clientId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (pErr) throw pErr;
       const messages = await loadMessages();
       if (stale()) return;
@@ -67,41 +85,51 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         emit();
         return;
       }
+      programId = program.id;
       const { data: version, error: vErr } = await db.from("program_versions").select("id").eq("program_id", program.id).order("version", { ascending: false }).limit(1).maybeSingle();
       if (vErr) throw vErr;
       if (!version) throw new Error("This program has no published version yet");
-      const { data: workout, error: wErr } = await db.from("workouts").select("id, name, week, est_minutes").eq("program_version_id", version.id).order("week").order("day_index").limit(1).maybeSingle<WorkoutRow>();
+      versionId = version.id;
+      const { data: dayRows, error: wErr } = await db.from("workouts").select("id, name, week, day_index, est_minutes").eq("program_version_id", version.id).order("week").order("day_index").returns<DayRow[]>();
       if (wErr) throw wErr;
-      if (!workout) throw new Error("This program has no workouts yet");
-      workoutId = workout.id;
+      if (!dayRows?.length) throw new Error("This program has no workouts yet");
+      const dayIds = dayRows.map((d) => d.id);
 
-      const sessionCols = `id, started_at, finished_at, session_rpe, sets_completed, volume_kg, prs, note${hasSummaryColumn ? ", summary" : ""}`;
-      const [{ data: items, error: iErr }, { data: recent, error: rErr }, { data: session, error: sErr }, { data: previous, error: lErr }] = await Promise.all([
-        db.from("workout_items").select("*").eq("workout_id", workout.id).returns<WorkoutItemRow[]>(),
+      const [{ data: items, error: iErr }, { data: recent, error: rErr }, { data: finished, error: fErr }, { data: previous, error: lErr }] = await Promise.all([
+        db.from("workout_items").select("*").in("workout_id", dayIds).returns<WorkoutItemRow[]>(),
         db.from("logged_sets").select("exercise_id, load_kg, reps, seconds, rpe, sessions!inner(client_id)").eq("sessions.client_id", ids.clientId).order("completed_at", { ascending: false }).limit(300),
-        db.from("sessions").select(sessionCols).eq("client_id", ids.clientId).eq("workout_id", workout.id).not("finished_at", "is", null).gte("finished_at", startOfToday()).order("finished_at", { ascending: false }).limit(1).maybeSingle<SessionRow>(),
+        db.from("sessions").select("workout_id, finished_at").eq("client_id", ids.clientId).in("workout_id", dayIds).not("finished_at", "is", null).order("finished_at", { ascending: false }).returns<{ workout_id: string; finished_at: string }[]>(),
         db.from("sessions").select("started_at, finished_at, sets_completed, volume_kg, workouts(name)").eq("client_id", ids.clientId).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1).maybeSingle<PreviousSessionRow>(),
       ]);
       if (iErr) throw iErr;
       if (rErr) throw rErr;
+      if (fErr) throw fErr;
+      if (lErr) throw lErr;
+      if (stale()) return;
+
+      const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
+      const last = latestSetByExercise(recentSets);
+      const days: ProgramDay[] = dayRows.map((d) => ({ ...toWorkout(d, (items ?? []).filter((i) => i.workout_id === d.id), program.weeks, last), key: d.id, dayIndex: d.day_index }));
+      const plan: Program = { name: program.name, weeks: program.weeks, days };
+      const today = startOfToday();
+      const doneToday = (finished ?? []).find((f) => f.finished_at >= today)?.workout_id ?? null;
+      const coach = ids.me !== ids.clientId;
+      const active = (coach && chosenDay && dayIds.includes(chosenDay) ? chosenDay : null) ?? nextDayKey(plan, new Set((finished ?? []).map((f) => f.workout_id)), doneToday);
+      workoutId = active;
+
+      const sessionCols = `id, started_at, finished_at, session_rpe, sets_completed, volume_kg, prs, note${hasSummaryColumn ? ", summary" : ""}`;
+      const { data: session, error: sErr } = await db.from("sessions").select(sessionCols).eq("client_id", ids.clientId).eq("workout_id", active ?? "").not("finished_at", "is", null).gte("finished_at", today).order("finished_at", { ascending: false }).limit(1).maybeSingle<SessionRow>();
       if (sErr && isMissingColumn(sErr) && hasSummaryColumn) {
         hasSummaryColumn = false;
         return void (await load());
       }
       if (sErr) throw sErr;
-      if (lErr) throw lErr;
-
+      hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const recentSets = (recent ?? []) as unknown as Pick<LoggedSetRow, "exercise_id" | "load_kg" | "reps" | "seconds" | "rpe">[];
-      const last = latestSetByExercise(recentSets);
-      const w = toWorkout(workout, items ?? [], program.weeks, last);
-      savedKeys = new Set(w.items.map((i) => i.key));
-      state = {
-        workout: w,
-        log: session ? toSessionLog(session, w.name) : null,
-        messages,
-        history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null },
-      };
+      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null } }, plan, active ?? undefined);
+      savedKeys = new Set(next.workout.items.map((i) => i.key));
+      savedDays = new Set(dayIds);
+      state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };
       status = "ready";
       error = null;
       emit();
@@ -130,6 +158,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     channel = db
       .channel(`apex-${ids.clientId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "workout_items", filter: `workout_id=eq.${workoutId}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "workouts", filter: `program_version_id=eq.${versionId}` }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "sessions", filter: `client_id=eq.${ids.clientId}` }, reload)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `client_id=eq.${ids.clientId}` }, async () => {
         try { state = { ...state, messages: await loadMessages() }; emit(); } catch (e) { fail(e); }
@@ -143,26 +172,64 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     channel = null;
   }
 
-  async function persistWorkout(w: Workout) {
-    if (!workoutId) return;
-    const rows = toItemRows(w, workoutId);
-    const removed = [...savedKeys].filter((k) => !w.items.some((i) => i.key === k));
-    // Positions are unique per workout, so park the old rows out of the way before rewriting the order.
-    if (rows.length) {
-      const { error: e1 } = await db.from("workout_items").upsert(rows.map((r) => ({ ...r, position: r.position + 1000 })));
-      if (e1) throw e1;
+  /** Writes item rows, dropping the per-set and circuit columns if the migration hasn't run yet. */
+  async function upsertItems(rows: WorkoutItemRow[]) {
+    const send = hasPlanColumns ? rows : withoutPlan(rows);
+    const { error: e } = await db.from("workout_items").upsert(send);
+    if (e && isMissingColumn(e) && hasPlanColumns) {
+      hasPlanColumns = false;
+      emit();
+      return upsertItems(rows);
     }
+    if (e) throw e;
+  }
+
+  /** Saves one day's items. Takes the day's id and saved keys up front, so a day switch mid-save can't mix them up. */
+  async function persistWorkout(w: Workout, id = workoutId, saved = savedKeys) {
+    if (!id) return;
+    const rows = toItemRows(w, id);
+    const removed = [...saved].filter((k) => !w.items.some((i) => i.key === k));
+    // Positions are unique per workout, so park the old rows out of the way before rewriting the order.
+    if (rows.length) await upsertItems(rows.map((r) => ({ ...r, position: r.position + 1000 })));
     if (removed.length) {
       const { error: e2 } = await db.from("workout_items").delete().in("id", removed);
       if (e2) throw e2;
     }
-    if (rows.length) {
-      const { error: e3 } = await db.from("workout_items").upsert(rows);
-      if (e3) throw e3;
-    }
-    const { error: e4 } = await db.from("workouts").update({ est_minutes: w.minutes, name: w.name }).eq("id", workoutId);
+    if (rows.length) await upsertItems(rows);
+    const { error: e4 } = await db.from("workouts").update({ est_minutes: w.minutes, name: w.name }).eq("id", id);
     if (e4) throw e4;
-    savedKeys = new Set(w.items.map((i) => i.key));
+    if (id === workoutId) savedKeys = new Set(w.items.map((i) => i.key));
+  }
+
+
+  /** Adds, removes and re-dates days. Items of days that already exist are saved by persistWorkout. */
+  async function persistProgram(before: Program, after: Program) {
+    if (!versionId || !programId) return;
+    const removed = before.days.filter((d) => !after.days.some((a) => a.key === d.key)).map((d) => d.key).filter((k) => savedDays.has(k));
+    const added = after.days.filter((d) => !savedDays.has(d.key));
+    const moved = after.days.filter((d) => {
+      const b = before.days.find((x) => x.key === d.key);
+      return b && savedDays.has(d.key) && (b.week !== d.week || b.dayIndex !== d.dayIndex || b.name !== d.name || b.minutes !== d.minutes);
+    });
+    if (removed.length) {
+      const { error: e } = await db.from("workouts").delete().in("id", removed);
+      if (e) throw e;
+    }
+    if (added.length) {
+      const { error: e } = await db.from("workouts").insert(added.map((d) => dayRow(d, versionId as string)));
+      if (e) throw e;
+      const rows = added.flatMap((d) => toItemRows(d, d.key));
+      if (rows.length) await upsertItems(rows);
+    }
+    for (const d of moved) {
+      const { error: e } = await db.from("workouts").update({ name: d.name, week: d.week, day_index: d.dayIndex, est_minutes: d.minutes }).eq("id", d.key);
+      if (e) throw e;
+    }
+    if (before.weeks !== after.weeks || before.name !== after.name) {
+      const { error: e } = await db.from("programs").update({ weeks: after.weeks, name: after.name }).eq("id", programId);
+      if (e) throw e;
+    }
+    savedDays = new Set(after.days.map((d) => d.key));
   }
 
   void load();
@@ -171,6 +238,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     get: () => state,
     status: () => status,
     error: () => error,
+    hasPlanColumns: () => hasPlanColumns,
     subscribe(listener) {
       listeners.add(listener);
       openChannel();
@@ -183,11 +251,42 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       };
     },
     saveWorkout(workout) {
-      state = { ...state, workout };
+      state = { ...state, workout, program: withDayWorkout(state.program, state.activeDay, workout) };
       lastLocalEdit = Date.now();
       emit();
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => { lastLocalEdit = Date.now(); persistWorkout(state.workout).catch(fail); }, SAVE_DELAY_MS);
+    },
+    selectDay(key) {
+      if (key === state.activeDay) return;
+      clearTimeout(saveTimer);
+      // Save what was typed on the day being left before switching.
+      const leaving = state.workout;
+      const pending = workoutId ? persistWorkout(leaving) : Promise.resolve();
+      chosenDay = key;
+      state = withProgram({ ...state, log: null }, state.program, key);
+      workoutId = state.activeDay;
+      savedKeys = new Set(state.workout.items.map((i) => i.key));
+      emit();
+      closeChannel();
+      void pending.then(() => load()).catch(fail);
+    },
+    saveProgram(program, activeDay) {
+      const before = state.program;
+      const switching = activeDay !== undefined && activeDay !== state.activeDay;
+      if (switching) chosenDay = activeDay;
+      state = withProgram(state, program, activeDay);
+      workoutId = state.activeDay;
+      if (switching) savedKeys = new Set(before.days.find((d) => d.key === state.activeDay)?.items.map((i) => i.key) ?? []);
+      lastLocalEdit = Date.now();
+      emit();
+      void persistProgram(before, state.program).then(() => { if (switching) { closeChannel(); return load(); } }).catch(fail);
+    },
+    startProgram(program) {
+      status = "loading";
+      emit();
+      chosenDay = null;
+      void insertProgram(db, { ...ids, hasPlanColumns }, program).then(() => load()).catch(fail);
     },
     finishSession(log, sets) {
       state = { ...state, log, history: nextHistory(state.history, log, state.workout, sets) };
@@ -220,15 +319,8 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     },
     async createProgram() {
       try {
-        const { data: program, error: e1 } = await db.from("programs").insert({ coach_id: ids.coachId, client_id: ids.clientId, name: "Foundations", weeks: INITIAL_WORKOUT.ofWeeks }).select("id").single();
-        if (e1) throw e1;
-        const { data: version, error: e2 } = await db.from("program_versions").insert({ program_id: program.id, version: 1, published_at: new Date().toISOString(), published_by: ids.me }).select("id").single();
-        if (e2) throw e2;
-        const { data: workout, error: e3 } = await db.from("workouts").insert({ program_version_id: version.id, name: INITIAL_WORKOUT.name, week: 1, day_index: 0, est_minutes: INITIAL_WORKOUT.minutes }).select("id").single();
-        if (e3) throw e3;
-        const template: Workout = { ...INITIAL_WORKOUT, items: INITIAL_WORKOUT.items.map((i) => ({ ...i, key: crypto.randomUUID() })) };
-        const { error: e4 } = await db.from("workout_items").insert(toItemRows(template, workout.id));
-        if (e4) throw e4;
+        const day = { ...INITIAL_WORKOUT, items: INITIAL_WORKOUT.items.map((i) => ({ ...i, key: newKey() })) };
+        await insertProgram(db, { ...ids, hasPlanColumns }, programFromWorkout(day, newKey(), "Foundations"));
         await load();
       } catch (e) {
         fail(e);
@@ -249,4 +341,24 @@ function startOfToday(): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
+}
+
+const dayRow = (d: ProgramDay, version: string) => ({ id: d.key, program_version_id: version, name: d.name, week: d.week, day_index: d.dayIndex, est_minutes: d.minutes });
+
+/** Gives a client a new program (a template, an import, the starter): the latest program is the one that counts,
+    older ones stay as history. Used for the open client and when assigning a template to several clients. */
+export async function insertProgram(db: SupabaseClient, ids: { coachId: string; clientId: string; me: string; hasPlanColumns?: boolean }, plan: Program): Promise<void> {
+  const { data: program, error: e1 } = await db.from("programs").insert({ coach_id: ids.coachId, client_id: ids.clientId, name: plan.name, weeks: Math.min(52, Math.max(1, plan.weeks)) }).select("id").single();
+  if (e1) throw e1;
+  const { data: version, error: e2 } = await db.from("program_versions").insert({ program_id: program.id, version: 1, published_at: new Date().toISOString(), published_by: ids.me }).select("id").single();
+  if (e2) throw e2;
+  const { error: e3 } = await db.from("workouts").insert(plan.days.map((d) => dayRow(d, version.id)));
+  if (e3) throw e3;
+  const rows = plan.days.flatMap((d) => toItemRows(d, d.key));
+  if (!rows.length) return;
+  const first = await db.from("workout_items").insert(ids.hasPlanColumns === false ? withoutPlan(rows) : rows);
+  if (first.error && isMissingColumn(first.error)) {
+    const { error: e5 } = await db.from("workout_items").insert(withoutPlan(rows));
+    if (e5) throw e5;
+  } else if (first.error) throw first.error;
 }
