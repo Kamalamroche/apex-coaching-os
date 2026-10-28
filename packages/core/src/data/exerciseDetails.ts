@@ -2,7 +2,21 @@ import type { Exercise } from "../types";
 
 /* Coach-written details for movements from the sheet, which arrived without muscles, steps or tips.
    Keyed by exercise id; merged over the generated library. */
-export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "muscles" | "steps" | "cues" | "commonMistake">>> = {
+export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "aliases" | "muscles" | "steps" | "cues" | "commonMistake">>> = {
+  164: {
+    aliases: ["sled", "prowler", "hyrox sled push", "race station"],
+    muscles: ["Quads", "Glutes", "Calves", "Core"],
+    steps: ["Hold the sled's uprights with straight or slightly bent arms, body leaning forward at about 45 degrees.", "Brace your core so your body forms one line from head to back heel.", "Drive the floor away with short, powerful steps, pushing through the balls of your feet.", "Keep your hips low and your head neutral until you reach the line."],
+    cues: ["Low and long body line", "Short, fast steps", "Push through the balls of the feet"],
+    commonMistake: "Standing too upright, so the arms push instead of the legs",
+  },
+  165: {
+    aliases: ["rope sled pull", "hand over hand sled pull", "hyrox sled pull", "race station"],
+    muscles: ["Lats", "Upper back", "Biceps", "Hamstrings", "Glutes"],
+    steps: ["Stand facing the sled with the rope in front of you, feet planted and knees soft.", "Sit your hips back and brace, keeping your back flat.", "Pull the rope hand over hand, driving each pull with your back and hips, not just your arms.", "Let the rope fall to one side so you don't trip, and keep pulling until the sled crosses the line."],
+    cues: ["Sit back into the pull", "Long, strong pulls", "Back flat, hips do the work"],
+    commonMistake: "Standing straight-legged and pulling with the arms only",
+  },
   17: {
     muscles: ["Biceps", "Forearms"],
     steps: ["Stand tall with a dumbbell in each hand, arms by your sides and palms facing forward.", "Pin your elbows to your sides and brace your core.", "Curl the weights up towards your shoulders without letting your elbows drift forward.", "Squeeze at the top, then lower slowly until your arms are straight."],

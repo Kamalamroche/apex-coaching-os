@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 const AREAS: ("All" | BodyArea)[] = ["All", "Legs", "Chest", "Back", "Shoulders", "Arms", "Core", "Full body"];
 const SHOWN = 80;
+/** Search term every hybrid-race station carries as an alias, so one chip lists them all. */
+const RACE = "race station";
 
 /** Drag payload for a library exercise; the workout list reads it on drop. */
 export const EXERCISE_MIME = "application/x-apex-exercise";
@@ -25,7 +27,8 @@ export function LibraryPanel({ onAdd, inSheet }: { onAdd: (ex: Exercise) => void
         </div>
         <input className="field" placeholder='Search: "rdl", "glutes", "cable"' value={q} onChange={(e) => { setQ(e.target.value); setMore(false); }} autoComplete="off" aria-label="Search the library" />
         <div className="chips">
-          {AREAS.map((a) => <button key={a} className={`chip ${area === a ? "on" : ""}`} onClick={() => { setArea(a); setMore(false); }}>{a}</button>)}
+          {AREAS.map((a) => <button key={a} className={`chip ${area === a && q !== RACE ? "on" : ""}`} onClick={() => { setArea(a); setMore(false); if (q === RACE) setQ(""); }}>{a}</button>)}
+          <button className={`chip ${q === RACE ? "on" : ""}`} onClick={() => { setQ(q === RACE ? "" : RACE); setArea("All"); setMore(false); }}>Race stations</button>
         </div>
       </div>
       <div className="bld-lib-list" role="list">
