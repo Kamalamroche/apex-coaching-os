@@ -1,6 +1,6 @@
 import { CLIENTS, firstName, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Label, Sheet } from "@apex/ui";
+import { Avatar, Icons, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -137,7 +137,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
               <div className="grow">
                 <div className="h3">{clientFirst} finished {log.workoutName}</div>
                 <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
-                {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}>📝 "{log.note}"</div>}
+                {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}><Icons.note width={13} height={13} style={{ verticalAlign: -2, color: "var(--text3)" }} /> "{log.note}"</div>}
               </div>
               <span className="tiny">Today</span>
               {log.summary && <div style={{ flexBasis: "100%", marginTop: 8 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}

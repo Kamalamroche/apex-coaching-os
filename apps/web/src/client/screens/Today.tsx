@@ -44,7 +44,7 @@ export function Today({ start, checkedIn, onCheckIn }: { start: () => void; chec
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
-          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR 🎉` : ""}</div>
+          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}
@@ -62,14 +62,14 @@ export function Today({ start, checkedIn, onCheckIn }: { start: () => void; chec
       <div className="card">
         <div className="sect" style={{ marginBottom: 8 }}>
           <h3 className="h3">This week</h3>
-          <span className="tiny num">{WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0)} of 4 done · 🔥 19 days</span>
+          <span className="tiny num">{WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0)} of 4 done · <Icons.flame width={13} height={13} style={{ verticalAlign: -2, color: "var(--act)" }} /> 19 days</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
           {WEEK.map(([d, s], i) => {
             const st = i === TODAY_INDEX && log ? 1 : s;
             return (
               <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ height: 34, borderRadius: 6, background: st === 1 ? "var(--good)" : st === 2 ? "var(--act-soft)" : "var(--bg2)", border: st === 2 ? "1.5px dashed var(--act)" : "1px solid var(--line)", display: "grid", placeItems: "center", color: "#04130A", fontWeight: 800 }}>{st === 1 ? "✓" : ""}</div>
+                <div style={{ height: 34, borderRadius: 6, background: st === 1 ? "var(--good-soft)" : st === 2 ? "var(--act-soft)" : "var(--bg2)", border: st === 1 ? "1px solid color-mix(in srgb,var(--good) 45%,transparent)" : st === 2 ? "1.5px dashed var(--act)" : "1px solid var(--line)", display: "grid", placeItems: "center", color: "var(--good)", fontWeight: 800 }}>{st === 1 ? <Icons.check width={16} height={16} strokeWidth={2.5} /> : null}</div>
                 <div className="tiny" style={{ marginTop: 4, fontWeight: i === TODAY_INDEX ? 800 : 500, color: i === TODAY_INDEX ? "var(--text)" : undefined }}>{d}</div>
               </div>
             );
