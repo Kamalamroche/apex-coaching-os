@@ -3,7 +3,7 @@ import { useApexState } from "@apex/core/react";
 import { BackLink, Sheet, Spark } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
-import { MeasureInputs, MeasurementTable, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
+import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
 import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
 import { ConnectedApps } from "./ConnectedApps";
@@ -47,10 +47,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
       <ProgressHub progress={progress} onDelete={(id) => void store.deletePhoto(id).catch((e: unknown) => say(e instanceof Error ? e.message : "Couldn't delete"))} extra={<button className="link" onClick={() => setSheet("photos")}>+ Add photos</button>} />
 
       <WeightTrend measurements={measurements} />
-      <section>
-        <div className="sect"><h2 className="h2">Measurements</h2><button className="link" onClick={() => setSheet("measure")}>+ Log</button></div>
-        <div className="card flat list"><MeasurementTable measurements={measurements} /></div>
-      </section>
+      <MeasurementHub progress={progress} extra={<button className="link" onClick={() => setSheet("measure")}>+ Log</button>} />
 
       <section>
         <div className="sect"><h2 className="h2">Check-ins</h2><button className="link" onClick={openCheckIn}>+ New check-in</button></div>

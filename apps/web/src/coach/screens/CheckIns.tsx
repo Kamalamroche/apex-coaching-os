@@ -2,7 +2,7 @@ import { WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, ne
 import { useApexState } from "@apex/core/react";
 import { Label, PhotoFrame } from "@apex/ui";
 import { useState } from "react";
-import { MeasurementTable, POSE_LABEL, ProgressHub, ProgressNotice, WeightTrend } from "../../app/ProgressParts";
+import { MeasurementHub, POSE_LABEL, ProgressHub, ProgressNotice, WeightTrend } from "../../app/ProgressParts";
 import { useStore } from "../../data/StoreContext";
 
 /** The coach's view of one client's check-ins, measurements and photos, with a reply box on each check-in. */
@@ -43,13 +43,8 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
 
       <ProgressHub progress={progress} />
 
-      <section>
-        <div className="sect"><h2 className="h2">Measurements</h2><Label kind="data">Data</Label></div>
-        <div className="stack">
-          <WeightTrend measurements={progress.measurements} />
-          <div className="card flat list"><MeasurementTable measurements={progress.measurements} /></div>
-        </div>
-      </section>
+      <WeightTrend measurements={progress.measurements} />
+      <MeasurementHub progress={progress} />
 
     </>
   );
