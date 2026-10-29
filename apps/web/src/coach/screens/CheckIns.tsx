@@ -2,7 +2,7 @@ import { WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, ne
 import { useApexState } from "@apex/core/react";
 import { Label, PhotoFrame } from "@apex/ui";
 import { useState } from "react";
-import { MeasurementHub, POSE_LABEL, ProgressHub, ProgressNotice, WeightTrend } from "../../app/ProgressParts";
+import { POSE_LABEL, ProgressNotice, ProgressSection } from "../../app/ProgressParts";
 import { useStore } from "../../data/StoreContext";
 
 /** The coach's view of one client's check-ins, measurements and photos, with a reply box on each check-in. */
@@ -12,40 +12,55 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
   const first = firstName(clientName);
   const checkIns = newestFirst(progress.checkIns);
   const due = checkInDue(checkIns[0]?.submittedAt ?? null, progress.checkInDay);
-  const toReview = checkIns.filter((c) => !c.reviewedAt).length;
 
   const setDay = (day: number) => {
     store.setCheckInDay(day).then(() => say(`${first} now checks in on ${WEEKDAY_NAMES[day]}s`), (e: unknown) => say(e instanceof Error ? e.message : "Couldn't change the day"));
   };
 
+  const waiting = checkIns.filter((c) => !c.reviewedAt);
+  const earlier = checkIns.filter((c) => c.reviewedAt);
+  const previousOf = (c: CheckIn) => checkIns[checkIns.indexOf(c) + 1];
+  const card = (c: CheckIn, open: boolean) => (
+    <CheckInCard key={c.id} checkIn={c} previous={previousOf(c)} photos={progress.photos.filter((p) => p.checkInId === c.id)} first={first} say={say} startOpen={open} />
+  );
+
   return (
     <>
       <ProgressNotice />
+
+      <section>
+        <div className="sect"><h2 className="h2">To review</h2><span className="tiny">{waiting.length ? `${waiting.length} waiting` : "All caught up"}</span></div>
+        <div className="stack">
+          {waiting.length === 0 && (
+            <div className="card small">
+              {checkIns.length === 0
+                ? `No check-ins yet. ${first} gets a prompt on their Today screen every ${WEEKDAY_NAMES[progress.checkInDay]}.`
+                : due.due ? `Nothing new. ${first}'s check-in ${due.daysLate > 0 ? `was due ${due.daysLate} day${due.daysLate === 1 ? "" : "s"} ago` : "is due today"}.` : `Nothing new. Next check-in is due ${WEEKDAY_NAMES[progress.checkInDay]}.`}
+            </div>
+          )}
+          {waiting.map((c) => card(c, true))}
+        </div>
+      </section>
+
+      <ProgressSection progress={progress} />
+
+      <section>
+        <div className="sect"><h2 className="h2">Earlier check-ins</h2><span className="tiny">{earlier.length} reviewed</span></div>
+        <div className="stack">
+          {earlier.length === 0 && <div className="card small">Reviewed check-ins move here.</div>}
+          {earlier.map((c) => card(c, false))}
+        </div>
+      </section>
+
       <div className="card row" style={{ flexWrap: "wrap" }}>
         <div className="grow">
           <div className="h3">Weekly check-in day</div>
-          <div className="small"><Label kind="data">Data</Label> {due.due ? (due.daysLate > 0 ? `Due ${due.daysLate} day${due.daysLate === 1 ? "" : "s"} ago, not sent yet` : "Due today, not sent yet") : `Up to date · ${toReview ? `${toReview} to review` : "all reviewed"}`}</div>
+          <div className="small">{first} is asked to check in every {WEEKDAY_NAMES[progress.checkInDay]}.</div>
         </div>
         <select className="field" style={{ width: "auto" }} aria-label="Check-in day" value={progress.checkInDay} onChange={(e) => setDay(Number(e.target.value))}>
           {WEEKDAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}
         </select>
       </div>
-
-      <section>
-        <div className="sect"><h2 className="h2">Check-ins</h2><span className="tiny">{checkIns.length} total</span></div>
-        <div className="stack">
-          {checkIns.length === 0 && <div className="card small">No check-ins yet. {first} gets a prompt on their Today screen every {WEEKDAY_NAMES[progress.checkInDay]}.</div>}
-          {checkIns.map((c, i) => (
-            <CheckInCard key={c.id} checkIn={c} previous={checkIns[i + 1]} photos={progress.photos.filter((p) => p.checkInId === c.id)} first={first} say={say} startOpen={i === 0 || !c.reviewedAt} />
-          ))}
-        </div>
-      </section>
-
-      <ProgressHub progress={progress} />
-
-      <WeightTrend measurements={progress.measurements} />
-      <MeasurementHub progress={progress} />
-
     </>
   );
 }

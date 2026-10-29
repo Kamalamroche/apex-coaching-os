@@ -309,77 +309,138 @@ export function ProgressHub({ progress, onDelete, extra }: { progress: Pick<Prog
 
 type MeasureView = "summary" | "blocks" | "each";
 
+type ProgressData = Pick<ProgressState, "checkIns" | "measurements" | "photos">;
+
 /**
- * Every body measurement, three ways: start → now, a table of all measurements by two-week block,
- * and one measurement at a time with its chart and every entry, grouped by block.
+ * One table, one row per two-week block: the front photo, then every measurement with its change since
+ * the block before, then how many check-ins came in.
  */
-export function MeasurementHub({ progress, extra }: { progress: Pick<ProgressState, "checkIns" | "measurements" | "photos">; extra?: ReactNode }) {
-  const blocks = useMemo(() => fortnights(progress).filter((b) => Object.keys(b.latest).length), [progress]);
-  const [view, setView] = useState<MeasureView>("summary");
+export function EveryTwoWeeks({ progress, photos = true }: { progress: ProgressData; photos?: boolean }) {
+  const blocks = useMemo(() => fortnights(progress).filter((b) => Object.keys(b.latest).length || (photos && b.photos.length)), [progress, photos]);
+  const taken = MEASURES.filter((m) => measurementSeries(progress.measurements, m.key).length);
+  if (!blocks.length) return <div className="card small">Nothing recorded yet.</div>;
+  return (
+    <div className="card flat" style={{ overflowX: "auto" }}>
+      <table className="mtable">
+        <thead>
+          <tr>
+            <th scope="col">Block</th>
+            {photos && <th scope="col" style={{ textAlign: "center" }}>Front</th>}
+            {taken.map((m) => <th key={m.key} scope="col">{m.label}<small>{m.unit}</small></th>)}
+            <th scope="col">Check-ins</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocks.map((b) => (
+            <tr key={b.index}>
+              <th scope="row">{b.label}<small>{blockDates(b)}</small></th>
+              {photos && (
+                <td style={{ textAlign: "center" }}>
+                  <div className="thumb" style={{ width: 40, margin: "0 auto", cursor: "default" }} aria-hidden="true">
+                    {b.byPose.front?.url ? <img src={b.byPose.front.url} alt="" loading="lazy" /> : <Icons.figure width={16} height={16} />}
+                  </div>
+                </td>
+              )}
+              {taken.map((m) => {
+                const v = b.latest[m.key];
+                const d = b.change[m.key];
+                return <td key={m.key}>{v === undefined ? <span className="tiny">–</span> : <><b>{v}</b>{d ? <small style={{ color: "var(--data)" }}>{signed(d)}</small> : null}</>}</td>;
+              })}
+              <td><b>{b.checkIns.length}</b>{b.avgSleep !== null && <small>sleep {b.avgSleep} h</small>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** One measurement at a time: its chart and every entry, grouped by two-week block. */
+export function MeasureOneByOne({ progress }: { progress: ProgressData }) {
   const taken = MEASURES.filter((m) => measurementSeries(progress.measurements, m.key).length);
   const [key, setKey] = useState<MeasureKey>("weightKg");
   const active = taken.find((m) => m.key === key) ?? taken[0];
-  const tabs: [MeasureView, string][] = [["summary", "Start → now"], ["blocks", "Every 2 weeks"], ["each", "One by one"]];
+  if (!active) return <div className="card small">No measurements yet.</div>;
+  const series = measurementSeries(progress.measurements, active.key);
+  return (
+    <div className="card stack" style={{ gap: 12 }}>
+      <div className="chips">{taken.map((m) => <button key={m.key} className={`chip ${active.key === m.key ? "on" : ""}`} onClick={() => setKey(m.key)}>{m.label}</button>)}</div>
+      {series.length > 1 ? <Spark data={series.map((p) => p.value)} unit={active.unit} /> : <div className="small">One entry so far. The trend starts with the next one.</div>}
+      <div className="list" style={{ margin: "0 -14px -14px" }}>
+        {fortnights(progress).filter((b) => b.latest[active.key] !== undefined).map((b) => {
+          const entries = series.filter((p) => { const t = Date.parse(p.at); return t >= b.from.getTime() && t < b.to.getTime() + 86400000; });
+          const d = b.change[active.key];
+          return (
+            <div key={b.index} className="li" style={{ alignItems: "flex-start" }}>
+              <div className="grow">
+                <div className="h3">{b.label}</div>
+                <div className="tiny num">{entries.map((p) => `${new Date(p.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${p.value}`).join(" · ")}</div>
+              </div>
+              <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{b.latest[active.key]}</b> {active.unit}</span>
+              <span className="num small" style={{ minWidth: 44, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{d ? signed(d) : ""}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
+/**
+ * Every body measurement, three ways: start → now, a table of all measurements by two-week block,
+ * and one measurement at a time.
+ */
+export function MeasurementHub({ progress, extra }: { progress: ProgressData; extra?: ReactNode }) {
+  const [view, setView] = useState<MeasureView>("summary");
+  const tabs: [MeasureView, string][] = [["summary", "Start → now"], ["blocks", "Every 2 weeks"], ["each", "One by one"]];
   return (
     <section className="stack" style={{ gap: 10 }}>
       <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Body measurements</h2>{extra ?? <Label kind="data">Data</Label>}</div>
       <div className="chips" role="tablist" aria-label="Measurements view">
         {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} className={`chip ${view === k ? "on" : ""}`} onClick={() => setView(k)}>{l}</button>)}
       </div>
-
       {view === "summary" && <div className="card flat list"><MeasurementTable measurements={progress.measurements} /></div>}
+      {view === "blocks" && <EveryTwoWeeks progress={progress} photos={false} />}
+      {view === "each" && <MeasureOneByOne progress={progress} />}
+    </section>
+  );
+}
 
-      {view === "blocks" && (
-        !blocks.length ? <div className="card small">No measurements yet.</div> : (
-          <div className="card flat" style={{ overflowX: "auto" }}>
-            <table className="mtable">
-              <thead>
-                <tr><th scope="col">Block</th>{taken.map((m) => <th key={m.key} scope="col">{m.label}<small>{m.unit}</small></th>)}</tr>
-              </thead>
-              <tbody>
-                {blocks.map((b) => (
-                  <tr key={b.index}>
-                    <th scope="row">{b.label}<small>{blockDates(b)}</small></th>
-                    {taken.map((m) => {
-                      const v = b.latest[m.key];
-                      const d = b.change[m.key];
-                      return <td key={m.key}>{v === undefined ? <span className="tiny">–</span> : <><b>{v}</b>{d ? <small style={{ color: "var(--data)" }}>{signed(d)}</small> : null}</>}</td>;
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
+type SectionView = "photos" | "measures" | "blocks";
 
-      {view === "each" && (
-        !active ? <div className="card small">No measurements yet.</div> : (
-          <div className="card stack" style={{ gap: 12 }}>
-            <div className="chips">{taken.map((m) => <button key={m.key} className={`chip ${active.key === m.key ? "on" : ""}`} onClick={() => setKey(m.key)}>{m.label}</button>)}</div>
-            {measurementSeries(progress.measurements, active.key).length > 1
-              ? <Spark data={measurementSeries(progress.measurements, active.key).map((p) => p.value)} unit={active.unit} />
-              : <div className="small">One entry so far. The trend starts with the next one.</div>}
-            <div className="list" style={{ margin: "0 -14px -14px" }}>
-              {fortnights(progress).filter((b) => b.latest[active.key] !== undefined).map((b) => {
-                const entries = measurementSeries(progress.measurements, active.key).filter((p) => { const t = Date.parse(p.at); return t >= b.from.getTime() && t < b.to.getTime() + 86400000; });
-                const d = b.change[active.key];
-                return (
-                  <div key={b.index} className="li" style={{ alignItems: "flex-start" }}>
-                    <div className="grow">
-                      <div className="h3">{b.label}</div>
-                      <div className="tiny num">{entries.map((p) => `${new Date(p.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${p.value}`).join(" · ")}</div>
-                    </div>
-                    <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{b.latest[active.key]}</b> {active.unit}</span>
-                    <span className="num small" style={{ minWidth: 44, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{d ? signed(d) : ""}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )
-      )}
+/**
+ * The coach's single Progress section: photos (before & after, library), measurements (start → now,
+ * one by one) and one "every 2 weeks" table with the photo and all measurements together.
+ */
+export function ProgressSection({ progress }: { progress: ProgressData }) {
+  const blocks = useMemo(() => fortnights(progress), [progress]);
+  const [view, setView] = useState<SectionView>("photos");
+  const [photoView, setPhotoView] = useState<"compare" | "library">("compare");
+  const [measureView, setMeasureView] = useState<"summary" | "each">("summary");
+  const [pick, setPick] = useState<{ pose: Pose; before?: number; after?: number }>({ pose: "front" });
+  const tabs: [SectionView, string][] = [["photos", "Photos"], ["measures", "Measurements"], ["blocks", "Every 2 weeks"]];
+  const sub = <T extends string>(value: T, set: (v: T) => void, items: [T, string][]) => (
+    <div className="chips">{items.map(([k, l]) => <button key={k} className={`chip ${value === k ? "on" : ""}`} onClick={() => set(k)}>{l}</button>)}</div>
+  );
+  return (
+    <section className="stack" style={{ gap: 10 }}>
+      <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Progress</h2><Label kind="data">Data</Label></div>
+      <div className="seg" role="tablist" aria-label="Progress view">
+        {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} className={view === k ? "on" : ""} onClick={() => setView(k)}>{l}</button>)}
+      </div>
+      {view === "photos" && <>
+        {sub(photoView, setPhotoView, [["compare", "Before & after"], ["library", "Library"]])}
+        <div className="card">
+          {photoView === "compare"
+            ? <BeforeAfter blocks={blocks} measurements={progress.measurements} pick={pick} onPick={setPick} />
+            : <PhotoLibrary blocks={blocks} onCompare={({ pose, side, index }) => { setPick((p) => ({ ...(p.pose === pose ? p : {}), pose, [side]: index })); setPhotoView("compare"); }} />}
+        </div>
+      </>}
+      {view === "measures" && <>
+        {sub(measureView, setMeasureView, [["summary", "Start → now"], ["each", "One by one"]])}
+        {measureView === "summary" ? <div className="card flat list"><MeasurementTable measurements={progress.measurements} /></div> : <MeasureOneByOne progress={progress} />}
+      </>}
+      {view === "blocks" && <EveryTwoWeeks progress={progress} />}
     </section>
   );
 }
