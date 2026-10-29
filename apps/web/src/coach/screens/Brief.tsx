@@ -5,6 +5,7 @@ import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
+import { CoachCardio, CoachRecovery } from "./CoachCardio";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 
 interface TriageItem {
@@ -149,6 +150,9 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
           {mode === "live" && !log && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
         </div>
       </section>
+
+      <CoachRecovery />
+      <CoachCardio />
 
       {draft && (
         <Sheet onClose={() => setDraft(null)} label="Draft message">

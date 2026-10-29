@@ -2,15 +2,16 @@ import { CLIENTS, FOODS, type Food } from "@apex/core";
 import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import { ConnectedApps } from "./ConnectedApps";
 
-type View = "food" | "habits" | "community";
+type View = "food" | "habits" | "community" | "apps";
 const MENU: [View, string, string][] = [
   ["food", "Nutrition", "1,432 of 1,900 kcal logged today"],
   ["habits", "Habits", "2 of 3 done today"],
   ["community", "Community", "Leaderboard and team feed"],
 ];
 
-export function More() {
+export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
   if (view) {
     return (
@@ -19,6 +20,7 @@ export function More() {
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
         {view === "community" && <Community />}
+        {view === "apps" && <ConnectedApps say={say} />}
       </>
     );
   }
@@ -30,7 +32,8 @@ export function More() {
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}
-        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units, notifications, connected apps"]].map(([t, s]) => (
+        <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
+        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
         ))}
       </div>

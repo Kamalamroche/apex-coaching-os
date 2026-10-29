@@ -1,13 +1,27 @@
-import { Bar, Icons, Label, Spark } from "@apex/ui";
+import { bestPerDay, formatSleep } from "@apex/core";
+import { BackLink, Icons, Spark } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import { useActivities } from "../../data/ActivityContext";
+import { ConnectedApps } from "./ConnectedApps";
+import { Recovery } from "./Recovery";
 
-const RECOVERY = [["Sleep", "7 h 24 m", 82, "var(--data)"], ["Resting HR", "58 bpm", 70, "var(--good)"], ["Steps", "8,412", 84, "var(--act)"]] as const;
-
-export function Progress() {
+export function Progress({ say }: { say: (m: string) => void }) {
   const [photos, setPhotos] = useState(false);
+  const [mode, setMode] = useState<"body" | "recovery" | "apps">("body");
+  const { recovery } = useActivities();
+  const last = bestPerDay(recovery)[0];
+  const modes = (
+    <div className="chips" role="tablist" aria-label="Progress view">
+      <button role="tab" aria-selected={mode === "body"} className={`chip ${mode === "body" ? "on" : ""}`} onClick={() => setMode("body")}>Body and strength</button>
+      <button role="tab" aria-selected={mode !== "body"} className={`chip ${mode !== "body" ? "on" : ""}`} onClick={() => setMode("recovery")}>Recovery</button>
+    </div>
+  );
+  if (mode === "apps") return <>{modes}<BackLink onClick={() => setMode("recovery")}>Recovery</BackLink><ConnectedApps say={say} /></>;
+  if (mode === "recovery") return <>{modes}<Recovery say={say} openApps={() => setMode("apps")} /></>;
   return (
     <>
+      {modes}
       <div><div className="eyebrow">Progress</div><h1 className="h1">8 weeks in</h1></div>
       <SampleNote />
       <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
@@ -32,19 +46,10 @@ export function Progress() {
           ))}
         </div>
       )}
-      <section>
-        <div className="sect"><h2 className="h2">Recovery</h2><Label kind="data">From Apple Health</Label></div>
-        <div className="card flat list">
-          {RECOVERY.map(([name, value, pct, color]) => (
-            <div key={name} className="li">
-              <div className="grow">
-                <div className="row" style={{ justifyContent: "space-between" }}><span className="h3">{name}</span><span className="num" style={{ fontWeight: 700 }}>{value}</span></div>
-                <div style={{ marginTop: 6 }}><Bar pct={pct} color={color} /></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setMode("recovery")}>
+        <div><div className="h3">Recovery</div><div className="small num">{last ? [last.sleepMinutes ? `${formatSleep(last.sleepMinutes)} sleep` : null, last.hrvMs ? `HRV ${Math.round(last.hrvMs)} ms` : null, last.restingHr ? `${last.restingHr} bpm resting` : null].filter(Boolean).join(" · ") : "Sleep, HRV and resting heart rate from your watch"}</div></div>
+        <span className="tiny">›</span>
+      </button>
     </>
   );
 }
