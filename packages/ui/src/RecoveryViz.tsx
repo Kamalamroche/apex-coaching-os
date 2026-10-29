@@ -1,5 +1,5 @@
 import {
-  clockLabel, formatSleep, hypnoRuns, type Baseline, type Contributor, type HypnoStage, type LoadDay, type RecoveryDay, type SleepSchedule, type SleepStages,
+  BALANCE_LABEL, clockLabel, formatSleep, hypnoRuns, type BalanceZone, type TrainingBalance, type Baseline, type Contributor, type HypnoStage, type LoadDay, type RecoveryDay, type SleepSchedule, type SleepStages,
 } from "@apex/core";
 import { niceTicks, smoothPath } from "./chartKit";
 import { useState, type CSSProperties, type PointerEvent } from "react";
@@ -188,6 +188,34 @@ export function BalanceRows({ items }: { items: Contributor[] }) {
           <span className="tiny" style={{ color: c.score < -0.5 ? "var(--text)" : undefined }}>{c.note}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * This week's training against the client's usual week, on a scale with the common coaching zones:
+ * lighter than usual, in balance, building fast, big jump. The needle sits at this week's ratio.
+ */
+export function BalanceScale({ balance }: { balance: TrainingBalance }) {
+  const lo = 0.4, hi = 2;
+  const pct = (v: number) => ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * 100;
+  const zones: [BalanceZone, number, number, string][] = [["under", lo, 0.8, "var(--text3)"], ["sweet", 0.8, 1.3, "var(--good)"], ["building", 1.3, 1.5, "var(--warn)"], ["spike", 1.5, hi, "var(--crit)"]];
+  const colour = zones.find((z) => z[0] === balance.zone)![3];
+  return (
+    <div className="rc-scale">
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
+        <span className="rc-scale-word" style={{ color: colour }}>{BALANCE_LABEL[balance.zone]}</span>
+        <b className="num" style={{ fontSize: 22 }}>{balance.ratio.toFixed(2)}<small className="tiny" style={{ fontWeight: 600 }}> × usual</small></b>
+      </div>
+      <div className="rc-scale-track" role="img" aria-label={`This week ${balance.ratio.toFixed(2)} times your usual week: ${BALANCE_LABEL[balance.zone]}`}>
+        {zones.map(([z, a, b, c]) => <i key={z} style={{ left: `${pct(a)}%`, width: `${pct(b) - pct(a)}%`, background: c, opacity: z === balance.zone ? 0.9 : 0.28 }} />)}
+        <u style={{ left: `${Math.min(98.5, Math.max(1.5, pct(balance.ratio)))}%` }} />
+      </div>
+      <div className="rc-scale-ticks tiny num">{[0.8, 1, 1.3, 1.5].map((v) => <span key={v} style={{ left: `${pct(v)}%` }}>{v.toFixed(1)}</span>)}</div>
+      <div className="rc-scale-foot">
+        <div><span className="tiny">Last 7 days</span><b className="num">{balance.week.toLocaleString("en-GB")}</b></div>
+        <div><span className="tiny">Usual week</span><b className="num">{balance.usualWeek.toLocaleString("en-GB")}</b></div>
+      </div>
     </div>
   );
 }

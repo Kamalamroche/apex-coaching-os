@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sampleRecovery } from "./data/recovery";
 import { fromOura, type RecoveryDay } from "./recovery";
 import {
-  clockLabel, clockMinutes, contributors, fitbitHypnogram, hypnoRuns, loadAndRecovery, loadByDay, loadEffect, morningLine, ouraHypnogram, shiftDate, sleepSchedule, stagesFromHypnogram,
+  clockLabel, clockMinutes, contributors, trainingBalance, fitbitHypnogram, hypnoRuns, loadAndRecovery, loadByDay, loadEffect, morningLine, ouraHypnogram, shiftDate, sleepSchedule, stagesFromHypnogram,
 } from "./recoveryTrends";
 
 const day = (date: string, extra: Partial<RecoveryDay> = {}): RecoveryDay => ({ date, source: "oura", ...extra });
@@ -118,5 +118,24 @@ describe("sample nights", () => {
       expect(stagesFromHypnogram(d.hypnogram!)).toEqual(d.stages);
       expect(d.sleepMinutes).toBe(d.stages!.deep + d.stages!.rem + d.stages!.light);
     }
+  });
+});
+
+describe("training balance", () => {
+  it("compares this week with the weekly average of the last four", () => {
+    const load = new Map<string, number>();
+    for (let w = 0; w < 4; w++) for (const d of [1, 3, 5]) load.set(shiftDate("2026-10-28", -(w * 7 + d)), 200);
+    const steady = trainingBalance(load, "2026-10-28")!;
+    expect(steady).toMatchObject({ ratio: 1, week: 600, usualWeek: 600, zone: "sweet" });
+    load.set("2026-10-28", 300);
+    const jump = trainingBalance(load, "2026-10-28")!;
+    expect(jump.zone).toBe("building");
+    expect(jump.ratio).toBeCloseTo(900 / 675, 2);
+    load.set("2026-10-27", 900);
+    expect(trainingBalance(load, "2026-10-28")!.zone).toBe("spike");
+  });
+
+  it("needs a few training days first", () => {
+    expect(trainingBalance(new Map([["2026-10-27", 300]]), "2026-10-28")).toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 import {
-  baseline, bestPerDay, contributors, formatSleep, loadAndRecovery, loadByDay, loadEffect, localDate, morningLine, RECOVERY_SOURCES, sleepSchedule, vsBaseline,
+  baseline, bestPerDay, contributors, formatSleep, loadAndRecovery, loadByDay, loadEffect, localDate, morningLine, RECOVERY_SOURCES, sleepSchedule, trainingBalance, vsBaseline,
   type Activity, type RecoveryDay,
 } from "@apex/core";
-import { BalanceRows, Gauge, Hypnogram, Label, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart } from "@apex/ui";
+import { BalanceRows, BalanceScale, Gauge, Hypnogram, Label, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart } from "@apex/ui";
 import { useMemo } from "react";
 
 /* Recovery for one client, the same for the client and the coach. Last night up top with one line on
@@ -12,6 +12,13 @@ import { useMemo } from "react";
 
 const scoreColour = (s: number) => (s >= 67 ? "var(--good)" : s >= 34 ? "var(--warn)" : "var(--crit)");
 const SCORE_NAME: Record<RecoveryDay["source"], string> = { whoop: "Recovery", oura: "Readiness", garmin: "Body Battery", polar: "Nightly Recharge", fitbit: "Recovery", manual: "Recovery" };
+
+const BALANCE_LINE = {
+  under: "A lighter week than usual. Fine for a recovery week; keep an eye on it if it runs for a few weeks.",
+  sweet: "This week's training is in line with the last four weeks: steady building.",
+  building: "Training is climbing faster than usual. Hold here for a week before adding more.",
+  spike: "A big jump on the usual week. Jumps like this are when niggles tend to start, so an easier day or two fits.",
+} as const;
 
 /** "▲ 8%" in green or "▼ 12%" in red, the right way round for the metric. */
 function Delta({ pct, lowerIsBetter = false }: { pct: number | null; lowerIsBetter?: boolean }) {
@@ -34,6 +41,7 @@ export function RecoveryView({ recovery, activities = [], compact = false }: { r
   const series = loadAndRecovery(recovery, load, today);
   const showLoad = series.some((d) => d.load > 0) && series.filter((d) => d.recoveryScore !== undefined).length >= 4;
   const effect = loadEffect(recovery, load);
+  const balance = trainingBalance(load, today);
   const schedule = sleepSchedule(recovery);
   // The provider's own score when there is one, else its sleep score.
   const score = last.recoveryScore ?? last.sleepScore ?? null;
@@ -64,6 +72,19 @@ export function RecoveryView({ recovery, activities = [], compact = false }: { r
         <section>
           <div className="sect"><h2 className="h2">What's behind it</h2><span className="tiny">Against your usual</span></div>
           <div className="card"><BalanceRows items={parts} /></div>
+        </section>
+      )}
+
+      {balance && (
+        <section>
+          <div className="sect"><h2 className="h2">Training balance</h2><span className="tiny">Load = minutes × effort</span></div>
+          <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <BalanceScale balance={balance} />
+            <div className="small" style={{ color: "var(--text)", display: "flex", flexDirection: "column", gap: 6 }}>
+              <span><Label kind="insight">Insight</Label></span>
+              {BALANCE_LINE[balance.zone]}
+            </div>
+          </div>
         </section>
       )}
 

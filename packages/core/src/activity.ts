@@ -472,3 +472,16 @@ export function mergeActivities(list: Activity[], incoming: Activity[]): Activit
   }
   return [...by.values()].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 }
+
+/** Session load: moving minutes × how hard it felt (five when not given), the common sRPE measure. */
+export const activityLoad = (a: Activity): number => Math.round((a.movingSeconds / 60) * (a.rpe ?? 5));
+
+/** This activity's load against the client's same-sport sessions in the eight weeks before it, in %. */
+export function loadVsUsual(a: Activity, all: Activity[]): { load: number; usual: number; pct: number } | null {
+  const t = new Date(a.startedAt).getTime();
+  const prior = all.filter((x) => x.id !== a.id && x.sport === a.sport && new Date(x.startedAt).getTime() < t && t - new Date(x.startedAt).getTime() < 56 * 864e5);
+  if (prior.length < 2) return null;
+  const usual = Math.round(prior.reduce((s, x) => s + activityLoad(x), 0) / prior.length);
+  const load = activityLoad(a);
+  return { load, usual, pct: usual ? Math.round(((load - usual) / usual) * 100) : 0 };
+}

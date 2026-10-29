@@ -75,9 +75,25 @@ const TILE_CREDIT = "© OpenStreetMap contributors © CARTO";
 const tileSrc = (t: TileRef, dark: boolean) =>
   TILE_URL.replace("{s}", "abcd"[(t.x + t.y) % 4]!).replace("{theme}", dark ? "dark_all" : "light_all").replace("{z}", String(t.z)).replace("{x}", String(t.x)).replace("{y}", String(t.y));
 
+type Metric = "pace" | "hr" | "ele";
+
+const MAP_MODES = ["pace", "hr", "ele"] as const;
+
+/** What the route is coloured by, per profile point. Pace becomes speed so that higher is always "more". */
+function mapSeries(profile: ProfilePoint[], mode: Metric): number[] {
+  if (mode === "pace") return paceSeries(profile).map((v) => (Number.isFinite(v) && v > 0 ? 1 / v : NaN));
+  return profile.map((p) => (mode === "hr" ? p.hr ?? NaN : p.ele ?? NaN));
+}
+
+/** The key's end labels in the client's units: "5:12" pace, "24.1" km/h, "148" bpm, "31 m". */
+function mapLabel(mode: Metric, v: number, a: Activity): string {
+  if (mode === "pace") return a.sport === "ride" ? `${(v * 3.6).toFixed(1)} km/h` : formatPace(1000, 1000 / v, a.sport);
+  return mode === "hr" ? `${Math.round(v)} bpm` : `${Math.round(v)} m`;
+}
+
 /**
- * The route on a real street map, coloured by pace (blue where it was easiest, orange where it was
- * quickest), with distance markers, start and finish. `at` (0–1 of the distance) shows a dot that
+ * The route on a real street map, coloured by pace, heart rate or height (blue low, orange high, with
+ * the real values on the key), with distance markers, start and finish. `at` (0–1 of the distance) shows a dot that
  * follows the charts below.
  */
 export function RouteMap({ activity, height = 260, at = null }: { activity: Activity; height?: number; at?: number | null }) {
@@ -86,18 +102,21 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
   const dark = useDarkTheme();
   const [box, width] = useWidth<HTMLDivElement>();
   const [failed, setFailed] = useState(0);
+  const modes = profile ? MAP_MODES.filter((m) => m === "pace" || (m === "hr" ? profile.filter((q) => q.hr).length > profile.length / 2 : activity.sport !== "swim" && profile.filter((q) => q.ele !== undefined).length > profile.length / 2)) : [];
+  const [mode, setMode] = useState<Metric>("pace");
   const drawn = useMemo(() => {
     if (!route || route.length < 2 || width < 40) return null;
     const view = fitView(route, width, height, 30);
     const pts = route.map(([la, ln]) => viewPx(view, la, ln));
-    // Pace for each route point: route and profile are both spread evenly by distance.
-    const pace = profile && profile.length > 2 ? paceSeries(profile) : null;
-    const fast = pace ? quantile(pace, 0.1) : 0;
-    const slow = pace ? quantile(pace, 0.9) : 0;
+    // The chosen measure for each route point: route and profile are both spread evenly by distance.
+    // Higher heat is quicker, a higher heart rate or higher ground.
+    const series = profile && profile.length > 2 ? mapSeries(profile, mode) : null;
+    const lo = series ? quantile(series, 0.08) : 0;
+    const hi = series ? quantile(series, 0.92) : 0;
     const heat = (i: number) => {
-      if (!pace || slow <= fast) return 70;
-      const v = pace[Math.round((i / (pts.length - 1)) * (pace.length - 1))]!;
-      return Math.round(Math.min(1, Math.max(0, (slow - v) / (slow - fast))) * 100);
+      if (!series || hi <= lo) return 50;
+      const v = series[Math.round((i / (pts.length - 1)) * (series.length - 1))]!;
+      return Number.isFinite(v) ? Math.round(Math.min(1, Math.max(0, (v - lo) / (hi - lo))) * 100) : 50;
     };
     // Group neighbouring points of a similar colour into one path, so a long route stays light to draw.
     const segs: { d: string; heat: number }[] = [];
@@ -121,8 +140,8 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
       return { x: p[0], y: p[1], label: String(((j + 1) * every) / 1000) };
     }).filter((_, j, all) => all.length <= 10 || (j + 1) % Math.ceil(all.length / 10) === 0);
     const loop = Math.hypot(pts[0]![0] - pts.at(-1)![0], pts[0]![1] - pts.at(-1)![1]) < 14;
-    return { view, pts, tiles: tilesFor(view), segs, full, start: pts[0]!, end: pts.at(-1)!, marks, loop, hasPace: !!pace };
-  }, [route, profile, activity.metres, activity.sport, width, height]);
+    return { view, pts, tiles: tilesFor(view), segs, full, start: pts[0]!, end: pts.at(-1)!, marks, loop, range: series && hi > lo ? ([lo, hi] as const) : null };
+  }, [route, profile, activity.metres, activity.sport, width, height, mode]);
 
   const dot = drawn && at !== null ? drawn.pts[Math.round(Math.min(1, Math.max(0, at)) * (drawn.pts.length - 1))] : null;
   const showTiles = drawn && failed < 3;
@@ -160,17 +179,25 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
           </svg>
         </>
       )}
+      {modes.length > 1 && (
+        <div className="cx-map-modes" role="group" aria-label="Colour the route by">
+          {modes.map((m) => <button key={m} className={mode === m ? "on" : ""} onClick={() => setMode(m)}>{m === "pace" ? (activity.sport === "ride" ? "Speed" : "Pace") : m === "hr" ? "Heart rate" : "Hills"}</button>)}
+        </div>
+      )}
       <div className="cx-map-key">
         <span><i style={{ background: "var(--good)" }} />Start{drawn?.loop ? " / finish" : ""}</span>
         {drawn && !drawn.loop && <span><i style={{ background: "var(--crit)" }} />Finish</span>}
-        {drawn?.hasPace && <span className="cx-heat"><i />Easier → quicker</span>}
+        {drawn?.range && (
+          <span className="cx-heat">
+            <b className="num">{mapLabel(mode, drawn.range[0], activity)}</b><i /><b className="num">{mapLabel(mode, drawn.range[1], activity)}</b>
+          </span>
+        )}
       </div>
       {showTiles && <span className="cx-credit">{TILE_CREDIT}</span>}
     </div>
   );
 }
 
-type Metric = "pace" | "hr" | "ele";
 
 /** Pace, heart rate or elevation against distance. Drag a finger or the mouse along it to read a point. */
 export function ProfileChart({ activity }: { activity: Activity }) {
@@ -371,6 +398,99 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
         ))}
         {p && <line x1={x(p.m)} x2={x(p.m)} y1={tops[0]! - 4} y2={H - axis} stroke="var(--text)" strokeWidth="1" opacity=".6" />}
       </svg>
+    </div>
+  );
+}
+
+/** This session's load beside the client's usual for the sport: two bars on one scale and the difference. */
+export function LoadCompare({ load, usual, pct, sportName }: { load: number; usual: number; pct: number; sportName: string }) {
+  const max = Math.max(load, usual) || 1;
+  const state = pct > 30 ? "var(--warn)" : pct < -30 ? "var(--text2)" : "var(--good)";
+  return (
+    <div className="card cx-load">
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
+        <div><div className="eyebrow">Session load</div><b className="num" style={{ fontSize: 26 }}>{load}</b></div>
+        <span className="cx-load-pct" style={{ color: state }}>{pct === 0 ? "Same as usual" : `${pct > 0 ? "+" : "−"}${Math.abs(pct)}% vs your usual ${sportName}`}</span>
+      </div>
+      <div className="cx-load-bars">
+        <span className="tiny">This one</span><div><i style={{ width: `${(load / max) * 100}%`, background: "var(--viz-2)" }} /></div><b className="num small">{load}</b>
+        <span className="tiny">Usual</span><div><i style={{ width: `${(usual / max) * 100}%`, background: "var(--viz-1)" }} /></div><b className="num small">{usual}</b>
+      </div>
+      <div className="tiny">Load is moving minutes × how hard it felt. Usual is the average of the last eight weeks.</div>
+    </div>
+  );
+}
+
+/**
+ * Splits as a chart: one bar per km (100 m in the pool, 5 km on a ride), taller the quicker it was, the
+ * quickest picked out, the average marked, and the climb or drop of each split in a strip underneath.
+ * Tap or drag to read a split.
+ */
+export function SplitsChart({ activity }: { activity: Activity }) {
+  const splits: Split[] = activity.detail?.splits ?? [];
+  const [at, setAt] = useState<number | null>(null);
+  if (splits.length < 2) return null;
+  const full = (sp: Split) => sp.metres >= (splits[0]?.metres ?? 0) * 0.9;
+  const speed = (sp: Split) => sp.metres / Math.max(1, sp.seconds);
+  const sp = splits.map(speed);
+  const fullSp = splits.filter(full).map(speed);
+  const top = Math.max(...sp), low = Math.min(...sp);
+  const floor = Math.max(0, low - (top - low) * 0.9 - top * 0.02);
+  const avg = activity.movingSeconds ? activity.metres / activity.movingSeconds : undefined;
+  const best = Math.max(...fullSp);
+  const ele = splits.some((x) => x.elevationM !== undefined);
+  const maxEle = Math.max(4, ...splits.map((x) => Math.abs(x.elevationM ?? 0)));
+  const W = 340, barH = 110, eleH = ele ? 34 : 0, labelH = 16, axis = 16, right = 2;
+  const H = labelH + barH + (ele ? 10 + eleH : 0) + axis;
+  const col = (W - right) / splits.length;
+  const bw = Math.min(26, col * 0.68);
+  const y = (v: number) => labelH + barH - ((v - floor) / (top - floor)) * barH;
+  const short = (x: Split) => formatPace(x.metres, x.seconds, activity.sport).replace(/ \/.*$/, "");
+  const fmtSpeed = (v: number) => (activity.sport === "ride" ? (v * 3.6).toFixed(1) : formatPace(1000, 1000 / v, activity.sport).replace(/ \/.*$/, ""));
+  const every = splits.length > 14 ? Math.ceil(splits.length / 10) : 1;
+  const shown = at !== null ? splits[at]! : null;
+  const unit = activity.sport === "swim" ? "100 m" : activity.sport === "row" ? "500 m" : activity.sport === "ride" ? "5 km" : "km";
+  const name = (x: Split) => (full(x) ? `${unit === "km" ? "Km" : unit} ${x.n}` : `Last ${activity.sport === "swim" || activity.sport === "row" ? `${x.metres} m` : `${(x.metres / 1000).toFixed(2)} km`}`);
+  const pick = (e: PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setAt(Math.max(0, Math.min(splits.length - 1, Math.floor((((e.clientX - r.left) / r.width) * W) / col))));
+  };
+  const eleMid = labelH + barH + 10 + eleH / 2;
+  return (
+    <div className="card cx-analysis">
+      <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
+        <span className="tiny">{shown ? name(shown) : `${splits.length} splits · tap one`}</span>
+        <span className="num small" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+          {shown ? `${formatPace(shown.metres, shown.seconds, activity.sport)}${shown.avgHr ? ` · ${shown.avgHr} bpm` : ""}${shown.elevationM !== undefined ? ` · ${shown.elevationM > 0 ? "+" : ""}${shown.elevationM} m` : ""}` : avg ? `avg ${formatPace(activity.metres, activity.movingSeconds, activity.sport)}` : ""}
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={pick} onPointerDown={pick} onPointerLeave={() => setAt(null)} role="img" aria-label={`Splits: ${splits.map(short).join(", ")}`}>
+        <line x1="0" x2={W} y1={labelH + barH} y2={labelH + barH} stroke="var(--line2)" />
+        {avg !== undefined && avg > floor && <line x1="0" x2={W} y1={y(avg)} y2={y(avg)} stroke="var(--text2)" strokeDasharray="4 4" />}
+        {splits.map((x, i) => {
+          const cx = i * col + col / 2;
+          const v = sp[i]!;
+          const quick = full(x) && v === best;
+          const dim = at !== null && at !== i;
+          return (
+            <g key={x.n} opacity={dim ? 0.45 : 1}>
+              <rect x={cx - bw / 2} y={y(v)} width={bw} height={labelH + barH - y(v)} rx="3" fill={quick ? "var(--viz-2)" : "var(--viz-1)"} fillOpacity={full(x) ? 1 : 0.5} />
+              {(i % every === 0 || quick) && <text x={cx} y={y(v) - 4} fontSize="9.5" fontWeight="700" fill="var(--text)" textAnchor="middle" fontFamily="var(--num)">{fmtSpeed(v)}</text>}
+              {ele && x.elevationM !== undefined && x.elevationM !== 0 && (
+                <rect x={cx - bw / 2} width={bw} y={x.elevationM > 0 ? eleMid - (x.elevationM / maxEle) * (eleH / 2) : eleMid} height={Math.max(1.5, (Math.abs(x.elevationM) / maxEle) * (eleH / 2))} rx="2" fill="var(--viz-3)" fillOpacity={x.elevationM > 0 ? 0.9 : 0.45} />
+              )}
+              {(i % every === 0) && <text x={cx} y={H - 3} fontSize="10" fill={at === i ? "var(--text)" : "var(--text3)"} textAnchor="middle" fontFamily="var(--num)">{full(x) ? x.n : "+"}</text>}
+            </g>
+          );
+        })}
+        {ele && <line x1="0" x2={W} y1={eleMid} y2={eleMid} stroke="var(--line)" />}
+      </svg>
+      <div className="rc-legend tiny">
+        <span><i style={{ background: "var(--viz-1)" }} />{activity.sport === "ride" ? "Speed" : "Pace"} per {unit}</span>
+        <span><i style={{ background: "var(--viz-2)" }} />Quickest</span>
+        {avg !== undefined && <span><i className="rc-dash-key" style={{ margin: 0 }} />Average</span>}
+        {ele && <span><i style={{ background: "var(--viz-3)" }} />Climb (up) / drop (down)</span>}
+      </div>
     </div>
   );
 }

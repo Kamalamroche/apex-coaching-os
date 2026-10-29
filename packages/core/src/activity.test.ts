@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  activityFromTrack, bestEfforts, cumulativeMetres, cumulativeMoving, defaultName, elevationGain, formatDistance, formatDuration, formatPace, haversine,
+  activityFromTrack, activityLoad, loadVsUsual, bestEfforts, cumulativeMetres, cumulativeMoving, defaultName, elevationGain, formatDistance, formatDuration, formatPace, haversine,
   hrZoneOf, manualActivity, mergeActivities, newBests, splitsFor, thin, weekStart, weekTotals, weeklyMetres, type Activity, type TrackPoint,
 } from "./activity";
 import { sampleActivities } from "./data/activities";
@@ -174,5 +174,24 @@ describe("sample data", () => {
     const ride = list.find((a) => a.id === "sample-ride-1")!;
     expect(ride.metres / ride.movingSeconds * 3.6).toBeGreaterThan(20);
     expect(ride.elevationGainM).toBeGreaterThan(50);
+  });
+});
+
+describe("session load", () => {
+  const base = { sport: "run" as const, name: "Run", metres: 5000, elapsedSeconds: 1800, source: "manual" as const };
+  it("is minutes × effort, five when not given", () => {
+    expect(activityLoad({ ...base, id: "a", startedAt: "2026-10-28T07:00:00Z", movingSeconds: 1800, rpe: 7 })).toBe(210);
+    expect(activityLoad({ ...base, id: "b", startedAt: "2026-10-28T07:00:00Z", movingSeconds: 1800 })).toBe(150);
+  });
+  it("compares with the same sport over the eight weeks before", () => {
+    const list = [
+      { ...base, id: "now", startedAt: "2026-10-28T07:00:00Z", movingSeconds: 2400, rpe: 6 },
+      { ...base, id: "p1", startedAt: "2026-10-21T07:00:00Z", movingSeconds: 1800, rpe: 6 },
+      { ...base, id: "p2", startedAt: "2026-10-14T07:00:00Z", movingSeconds: 1800, rpe: 6 },
+      { ...base, id: "old", startedAt: "2026-07-01T07:00:00Z", movingSeconds: 9000, rpe: 9 },
+      { ...base, id: "ride", sport: "ride" as const, startedAt: "2026-10-20T07:00:00Z", movingSeconds: 9000, rpe: 9 },
+    ];
+    expect(loadVsUsual(list[0]!, list)).toEqual({ load: 240, usual: 180, pct: 33 });
+    expect(loadVsUsual(list[1]!, list)).toBeNull();
   });
 });
