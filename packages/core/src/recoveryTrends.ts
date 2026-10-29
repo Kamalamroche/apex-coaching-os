@@ -240,3 +240,33 @@ export function morningLine(list: Contributor[]): string {
   if (best.score <= 0.25) return `Most numbers are below your usual: ${phrase(worst)}. An easier day fits.`;
   return `${phrase(best).replace(/^./, (c) => c.toUpperCase())}, but ${phrase(worst)}.`;
 }
+
+/* ---------- Training balance ---------- */
+
+export type BalanceZone = "under" | "sweet" | "building" | "spike";
+
+export interface TrainingBalance {
+  /** The last 7 days' load against the weekly average of the last 28 (the acute:chronic ratio). */
+  ratio: number;
+  week: number;
+  usualWeek: number;
+  zone: BalanceZone;
+}
+
+export const BALANCE_LABEL: Record<BalanceZone, string> = { under: "Lighter than usual", sweet: "In balance", building: "Building fast", spike: "Big jump" };
+
+/**
+ * This week's training against the client's last four weeks. Coaches commonly read 0.8–1.3 as steady
+ * building, above 1.5 as a jump worth easing off from, below 0.8 as backing off. Null until there are at
+ * least three training days in the four weeks.
+ */
+export function trainingBalance(load: Map<string, number>, today: string): TrainingBalance | null {
+  const days = [...Array(28)].map((_, i) => load.get(shiftDate(today, -i)) ?? 0);
+  if (days.filter((v) => v > 0).length < 3) return null;
+  const week = days.slice(0, 7).reduce((a, b) => a + b, 0);
+  const usualWeek = days.reduce((a, b) => a + b, 0) / 4;
+  if (!usualWeek) return null;
+  const ratio = Math.round((week / usualWeek) * 100) / 100;
+  const zone: BalanceZone = ratio < 0.8 ? "under" : ratio <= 1.3 ? "sweet" : ratio <= 1.5 ? "building" : "spike";
+  return { ratio, week: Math.round(week), usualWeek: Math.round(usualWeek), zone };
+}

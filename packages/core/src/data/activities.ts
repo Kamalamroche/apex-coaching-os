@@ -80,6 +80,11 @@ export function sampleActivities(now = new Date()): Activity[] {
     run("sample-run-4", 14, 1, 3.1),
     run("sample-run-5", 21, 1.2, 3.0),
     run("sample-run-6", 28, 1, 2.9),
+    run("sample-run-7", 12, 1.2, 3.0),
+    run("sample-run-8", 17, 1, 3.05),
+    run("sample-run-9", 19, 1.5, 2.95, "Long easy loop"),
+    run("sample-run-10", 24, 1.2, 3.1),
+    run("sample-run-11", 26, 1, 3.0),
     activityFromTrack(poolTrack(at(now, 16, 18), 64, 25, 124), { id: "sample-swim-2", sport: "swim", name: "Pool, 1.6 km", source: "file", poolLengthM: 25, maxHr: 186 }),
   ];
   return list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));

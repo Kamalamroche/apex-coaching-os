@@ -1,5 +1,6 @@
-import { formatDistance, formatDuration, formatPace, newBests, paceLabel, sportLabel, type Activity } from "@apex/core";
-import { HrZones, Label, ProfileChart, RouteMap, RouteThumb, SplitsTable, SportIcon } from "@apex/ui";
+import { formatDistance, formatDuration, formatPace, loadVsUsual, newBests, paceLabel, sportLabel, type Activity } from "@apex/core";
+import { useState } from "react";
+import { HrZones, Label, LoadCompare, RouteMap, RunAnalysis, SplitsChart, RouteThumb, SplitsTable, SportIcon } from "@apex/ui";
 
 /* One activity, the same for the client and the coach: big numbers, the route, the chart,
    splits, heart-rate zones and best efforts. Every number here is Data: measured, not guessed. */
@@ -39,7 +40,9 @@ export function ActivityRow({ activity, all, onOpen }: { activity: Activity; all
 /** `showNote` false when the note is being edited below instead. */
 export function ActivityView({ activity, all, showNote = true }: { activity: Activity; all: Activity[]; showNote?: boolean }) {
   const a = activity;
+  const [mapAt, setMapAt] = useState<number | null>(null);
   const pbs = newBests(a, all);
+  const vsUsual = loadVsUsual(a, all);
   const stats: [string, string, string?][] = [
     [formatDuration(a.movingSeconds), "Moving time"],
     a.metres ? [formatPace(a.metres, a.movingSeconds, a.sport).replace(/ .*$/, ""), paceLabel(a.sport), formatPace(a.metres, a.movingSeconds, a.sport).replace(/^\S+ /, "")] : ["–", "Pace"],
@@ -68,17 +71,21 @@ export function ActivityView({ activity, all, showNote = true }: { activity: Act
         <div className="big"><b className="num">{a.metres ? dist : formatDuration(a.movingSeconds)}<small>{a.metres ? unit : ""}</small></b><span>{a.metres ? "Distance" : "Time"}</span></div>
         {stats.map(([v, l, u]) => <div key={l}><b className="num">{v}{u && <small>{u}</small>}</b><span>{l}</span></div>)}
       </div>
-      <RouteMap activity={a} />
+      <RouteMap activity={a} at={mapAt} />
+      {vsUsual && <LoadCompare {...vsUsual} sportName={sportLabel(a.sport).toLowerCase()} />}
+      <RunAnalysis activity={a} onAt={setMapAt} />
       {extra.length > 0 && (
         <div className="kpis" style={{ gridTemplateColumns: `repeat(${Math.min(3, extra.length)},1fr)` }}>
           {extra.map(([v, l]) => <div key={l} className="kpi"><b style={{ fontSize: 17 }}>{v}</b><small>{l}</small></div>)}
         </div>
       )}
-      <ProfileChart activity={a} />
       {a.detail?.splits && (
         <section>
-          <div className="sect"><h2 className="h2">Splits</h2><span className="tiny">Quickest in orange</span></div>
-          <SplitsTable activity={a} />
+          <div className="sect"><h2 className="h2">Splits</h2><span className="tiny">Quickest highlighted</span></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <SplitsChart activity={a} />
+            <SplitsTable activity={a} />
+          </div>
         </section>
       )}
       {a.detail?.hrZones && (
