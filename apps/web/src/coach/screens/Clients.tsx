@@ -4,6 +4,7 @@ import { Avatar, BackLink, Bar, Label, Spark, riskColor } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
+import { Transfer } from "./Transfer";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
@@ -25,6 +26,8 @@ interface Props {
 export function Clients({ id, setId, say, goBuild }: Props) {
   const [q, setQ] = useState("");
   const [seg, setSeg] = useState<Segment>("All");
+  const [transfer, setTransfer] = useState(false);
+  if (transfer) return <Transfer say={say} onBack={() => setTransfer(false)} />;
   const c = CLIENTS.find((x) => x.id === id);
   if (c) return <ClientProfile clientId={c.id} onBack={() => setId(null)} say={say} goBuild={goBuild} />;
 
@@ -54,6 +57,7 @@ export function Clients({ id, setId, say, goBuild }: Props) {
         ))}
       </div>
       <button className="btn ghost block" onClick={() => say("Invite link copied")}>+ Invite a client</button>
+      <button className="btn ghost block" onClick={() => setTransfer(true)}>Import or export clients</button>
     </>
   );
 }

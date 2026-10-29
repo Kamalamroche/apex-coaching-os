@@ -83,7 +83,7 @@ export const MEASURES: { key: MeasureKey; label: string; unit: string }[] = [
   { key: "thighCm", label: "Thigh", unit: "cm" },
 ];
 
-export const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+export const WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const DAY_MS = 86400000;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -334,4 +334,105 @@ export function parseNumber(s: string): number | null {
   if (!t) return null;
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
+}
+
+// ───────────── two-week blocks ─────────────
+
+const FORTNIGHT_MS = 14 * DAY_MS;
+
+export interface Fortnight {
+  /** 0 for the first two weeks. */
+  index: number;
+  /** "Weeks 1–2". */
+  label: string;
+  from: Date;
+  /** Last day of the block (inclusive). */
+  to: Date;
+  /** Every photo taken in the block, oldest first. */
+  photos: ProgressPhoto[];
+  /** The latest photo of each pose in the block: the one the block is compared by. */
+  byPose: Partial<Record<Pose, ProgressPhoto>>;
+  checkIns: CheckIn[];
+  /** Latest value of each measurement taken in the block. */
+  latest: Partial<Record<MeasureKey, number>>;
+  /** Change in each measurement against the latest earlier value, to one decimal. */
+  change: Partial<Record<MeasureKey, number>>;
+  avgSleep: number | null;
+  avgEnergy: number | null;
+}
+
+/** The first day anything was recorded, at the start of that day. Null when there is nothing yet. */
+export function progressStart(p: Pick<ProgressState, "checkIns" | "measurements" | "photos">): Date | null {
+  const times = [...p.checkIns.map((c) => c.submittedAt), ...p.measurements.map((m) => m.measuredAt), ...p.photos.map((x) => x.takenAt)]
+    .map(Date.parse)
+    .filter(Number.isFinite);
+  return times.length ? startOfDay(new Date(Math.min(...times))) : null;
+}
+
+const avg = (xs: (number | null)[]): number | null => {
+  const v = xs.filter((x): x is number => x !== null);
+  return v.length ? round1(v.reduce((a, b) => a + b, 0) / v.length) : null;
+};
+
+/**
+ * Everything the client recorded, in two-week blocks counted from their first record, newest first.
+ * Blocks with nothing in them are left out. Each block carries its photos, check-ins and measurements,
+ * and how the measurements moved since the block before.
+ */
+export function fortnights(p: Pick<ProgressState, "checkIns" | "measurements" | "photos">): Fortnight[] {
+  const start = progressStart(p);
+  if (!start) return [];
+  const indexOf = (iso: string) => Math.max(0, Math.floor((Date.parse(iso) - start.getTime()) / FORTNIGHT_MS));
+  const blocks = new Map<number, Fortnight>();
+  const block = (i: number): Fortnight => {
+    let b = blocks.get(i);
+    if (!b) {
+      const from = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i * 14);
+      const to = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i * 14 + 13);
+      b = { index: i, label: `Weeks ${i * 2 + 1}–${i * 2 + 2}`, from, to, photos: [], byPose: {}, checkIns: [], latest: {}, change: {}, avgSleep: null, avgEnergy: null };
+      blocks.set(i, b);
+    }
+    return b;
+  };
+  for (const ph of [...p.photos].sort((a, b) => Date.parse(a.takenAt) - Date.parse(b.takenAt))) {
+    const b = block(indexOf(ph.takenAt));
+    b.photos.push(ph);
+    b.byPose[ph.pose] = ph;
+  }
+  for (const c of p.checkIns) block(indexOf(c.submittedAt)).checkIns.push(c);
+  for (const { key } of MEASURES) {
+    for (const pt of measurementSeries(p.measurements, key)) block(indexOf(pt.at)).latest[key] = pt.value;
+  }
+  const ordered = [...blocks.values()].sort((a, b) => a.index - b.index);
+  const lastSeen: Partial<Record<MeasureKey, number>> = {};
+  for (const b of ordered) {
+    b.checkIns.sort((x, y) => Date.parse(y.submittedAt) - Date.parse(x.submittedAt));
+    b.avgSleep = avg(b.checkIns.map((c) => c.sleepHours));
+    b.avgEnergy = avg(b.checkIns.map((c) => c.energy));
+    for (const { key } of MEASURES) {
+      const v = b.latest[key];
+      if (v === undefined) continue;
+      const before = lastSeen[key];
+      if (before !== undefined) b.change[key] = round1(v - before);
+      lastSeen[key] = v;
+    }
+  }
+  return ordered.reverse();
+}
+
+/** "12 Oct – 25 Oct". */
+export const blockDates = (b: Pick<Fortnight, "from" | "to">): string => {
+  const f = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return `${f(b.from)} – ${f(b.to)}`;
+};
+
+/**
+ * The default before/after pair for a pose: the first block that has that pose, and the latest one.
+ * Null when fewer than two blocks have it.
+ */
+export function defaultPair(blocks: Fortnight[], pose: Pose): { before: Fortnight; after: Fortnight } | null {
+  const withPose = blocks.filter((b) => b.byPose[pose]);
+  const after = withPose[0];
+  const before = withPose.at(-1);
+  return after && before && after !== before ? { before, after } : null;
 }

@@ -1,6 +1,6 @@
 import { useApexState } from "@apex/core/react";
 import { Shell, useToast, type TabDef } from "@apex/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppInfo } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
@@ -13,7 +13,8 @@ import { Train } from "./screens/Train";
 
 type Tab = "today" | "train" | "progress" | "chat" | "more";
 
-export function ClientApp() {
+/** `notice`: a one-off message to show on arrival, e.g. after coming back from Strava. */
+export function ClientApp({ notice }: { notice?: string | null }) {
   const store = useStore();
   const { coachName, signOut } = useAppInfo();
   const { messages } = useApexState(store);
@@ -31,18 +32,22 @@ export function ClientApp() {
   ];
   const start = () => setPlaying(true);
   const openCheckIn = () => { setCheckingIn(true); window.scrollTo(0, 0); };
+  useEffect(() => {
+    if (!notice) return;
+    say(notice);
+  }, [notice, say]);
 
   if (playing) {
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {checkingIn && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
       {!checkingIn && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} />}
-      {!checkingIn && tab === "train" && <Train start={start} />}
+      {!checkingIn && tab === "train" && <Train start={start} say={say} />}
       {!checkingIn && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
       {!checkingIn && tab === "chat" && <Chat />}
-      {!checkingIn && tab === "more" && <More />}
+      {!checkingIn && tab === "more" && <More say={say} />}
       {toast}
     </Shell>
   );

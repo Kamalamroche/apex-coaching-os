@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  blockDates, defaultPair, fortnights, progressStart,
   changeOver, checkInDue, checkInFlags, compareCheckIns, fitWithin, measurementSeries, parseNumber, photoPath, photoSets, signed,
   toCheckIn, toCheckInRow, toMeasurement, toMeasurementRow, weekday, type CheckIn, type CheckInRow, type ProgressPhoto,
 } from "./checkins";
@@ -44,8 +45,8 @@ describe("checkInDue", () => {
 describe("measurements", () => {
   it("builds a series oldest first and skips gaps", () => {
     const s = measurementSeries(INITIAL_PROGRESS.measurements, "waistCm");
-    expect(s.map((p) => p.value)).toEqual([74, 72.5]);
-    expect(changeOver(s)).toEqual({ first: 74, last: 72.5, delta: -1.5 });
+    expect(s.map((p) => p.value)).toEqual([76, 75, 74, 73.2, 72.5]);
+    expect(changeOver(s)).toEqual({ first: 76, last: 72.5, delta: -3.5 });
     expect(changeOver([])).toBeNull();
   });
 
@@ -139,7 +140,8 @@ describe("demo store progress", () => {
     expect(after.checkIns).toHaveLength(before.checkIns.length + 1);
     const added = after.checkIns[0]!;
     expect(after.measurements.at(-1)).toMatchObject({ waistCm: 71.5, checkInId: added.id });
-    expect(after.photos).toEqual([expect.objectContaining({ checkInId: added.id, pose: "front", url: "data:image/jpeg;base64,x" })]);
+    expect(after.photos.length).toBe(before.photos.length + 1);
+    expect(after.photos.at(-1)).toEqual(expect.objectContaining({ checkInId: added.id, pose: "front", url: "data:image/jpeg;base64,x" }));
 
     await store.reviewCheckIn(added.id, "Great week");
     expect(store.get().progress.checkIns[0]).toMatchObject({ coachReply: "Great week" });
@@ -151,5 +153,45 @@ describe("demo store progress", () => {
     const n = store.get().progress.measurements.length;
     await store.logMeasurements({ waistCm: null });
     expect(store.get().progress.measurements).toHaveLength(n);
+  });
+});
+
+describe("two-week blocks", () => {
+  const photo = (id: string, pose: ProgressPhoto["pose"], takenAt: string): ProgressPhoto => ({ id, pose, takenAt, checkInId: null, path: id, url: null });
+  const p = {
+    checkIns: [ci({ id: "a", submittedAt: "2026-09-29T09:00:00", sleepHours: 6, energy: 3 }), ci({ id: "b", submittedAt: "2026-10-06T09:00:00", sleepHours: 8, energy: 4 }), ci({ id: "c", submittedAt: "2026-10-20T09:00:00" })],
+    measurements: [
+      { id: "m1", measuredAt: "2026-09-28T09:00:00", checkInId: null, weightKg: 80, waistCm: 90 },
+      { id: "m2", measuredAt: "2026-10-06T09:00:00", checkInId: null, weightKg: 79.4 },
+      { id: "m3", measuredAt: "2026-10-20T09:00:00", checkInId: null, weightKg: 78.6, waistCm: 88.5 },
+    ],
+    photos: [photo("f1", "front", "2026-09-28T09:00:00"), photo("f1b", "front", "2026-10-05T09:00:00"), photo("s1", "side", "2026-09-28T09:00:00"), photo("f3", "front", "2026-10-20T09:00:00")],
+  };
+
+  it("counts from the first record and lists newest first", () => {
+    expect(progressStart(p)?.getDate()).toBe(28);
+    const blocks = fortnights(p);
+    expect(blocks.map((b) => b.label)).toEqual(["Weeks 3–4", "Weeks 1–2"]);
+    expect(blockDates(blocks[1]!)).toBe("28 Sept – 11 Oct");
+  });
+
+  it("keeps the latest photo of each pose and every photo in order", () => {
+    const first = fortnights(p).at(-1)!;
+    expect(first.photos.map((x) => x.id)).toEqual(["f1", "s1", "f1b"]);
+    expect(first.byPose.front?.id).toBe("f1b");
+    expect(first.byPose.side?.id).toBe("s1");
+  });
+
+  it("carries measurements, changes since the block before and averages", () => {
+    const [now, start] = fortnights(p);
+    expect(start).toMatchObject({ latest: { weightKg: 79.4, waistCm: 90 }, change: {}, avgSleep: 7, avgEnergy: 3.5 });
+    expect(now).toMatchObject({ latest: { weightKg: 78.6, waistCm: 88.5 }, change: { weightKg: -0.8, waistCm: -1.5 } });
+  });
+
+  it("pairs the first and latest block for a pose", () => {
+    const blocks = fortnights(p);
+    expect(defaultPair(blocks, "front")).toMatchObject({ before: { index: 0 }, after: { index: 1 } });
+    expect(defaultPair(blocks, "side")).toBeNull();
+    expect(fortnights({ checkIns: [], measurements: [], photos: [] })).toEqual([]);
   });
 });

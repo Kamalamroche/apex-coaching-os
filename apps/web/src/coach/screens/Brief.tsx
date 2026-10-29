@@ -1,9 +1,12 @@
 import { CLIENTS, firstName, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Label, Sheet } from "@apex/ui";
+import { Avatar, Icons, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
+import { CoachCardio, CoachRecovery } from "./CoachCardio";
+import { PlateauFixes, usePlateaus } from "./Plateaus";
 
 interface TriageItem {
   id: string;
@@ -43,6 +46,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
   const clientInitials = clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const { log, progress } = useApexState(store);
   const newCheckIn = mode === "live" ? newestFirst(progress.checkIns).find((c) => !c.reviewedAt) : undefined;
+  const plateaus = usePlateaus();
   const [handled, setHandled] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<TriageItem | null>(null);
   const [selected, setSelected] = useState<Record<number, boolean>>({ 2: true, 4: true, 5: true });
@@ -111,17 +115,33 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
         </div>
       </section>
 
+      {plateaus.length > 0 && (
+        <section>
+          <div className="sect"><h2 className="h2">Plateau watch</h2><Label kind="insight">Rule-based</Label></div>
+          <div className="card flat list">
+            {plateaus.map((p) => (
+              <div key={p.exercise.id} className="li" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                <div className="h3">{clientFirst} · {p.exercise.name} has stalled</div>
+                <PlateauFixes plateau={p} say={say} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section>
         <div className="sect"><h2 className="h2">Latest activity</h2></div>
         <div className="card flat list">
           {log && (
-            <div className="li">
+            <div className="li" style={{ flexWrap: "wrap" }}>
               <Avatar initials={clientInitials} size={34} tone="var(--good)" />
               <div className="grow">
                 <div className="h3">{clientFirst} finished {log.workoutName}</div>
-                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets · {log.volumeKg.toLocaleString()} kg · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}><Icons.note width={13} height={13} style={{ verticalAlign: -2, color: "var(--text3)" }} /> "{log.note}"</div>}
               </div>
-              <span className="tiny">Just now</span>
+              <span className="tiny">Today</span>
+              {log.summary && <div style={{ flexBasis: "100%", marginTop: 8 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
             </div>
           )}
           {newCheckIn && (
@@ -141,6 +161,9 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
           {mode === "live" && !log && !newCheckIn && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
         </div>
       </section>
+
+      <CoachRecovery />
+      <CoachCardio />
 
       {draft && (
         <Sheet onClose={() => setDraft(null)} label="Draft message">

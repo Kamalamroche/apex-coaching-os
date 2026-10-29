@@ -21,7 +21,7 @@ do $$ begin
   assert (select count(*) from program_versions) = 1, 'client must not see unpublished draft';
   assert (select count(*) from workouts) = 1, 'client sees only published workouts';
   assert (select count(*) from check_ins) = 1, 'client sees only own check-ins';
-  assert (select count(*) from exercises) = 15, 'client reads shared library';
+  assert (select count(*) from exercises) = 637, 'client reads shared library';
   assert (select count(*) from profiles) = 2, 'client sees self and own coach';
 end $$;
 insert into messages (coach_id, client_id, sender_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Hip felt fine');
@@ -85,6 +85,161 @@ do $$ begin
   exception when no_data_found then null; end;
 end $$;
 
+-- imports: a coach writes imported history for their own client only, and an invite links the waiting import
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into sessions (id, client_id, started_at, finished_at, source) values ('50000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', now() - interval '1 day', now() - interval '23 hours', 'import');
+insert into logged_sets (session_id, exercise_id, set_index, load_kg, reps) values ('50000000-0000-0000-0000-000000000001', 1, 0, 60, 8);
+insert into check_ins (client_id, weight_kg, source) values ('00000000-0000-0000-0000-0000000000c1', 62, 'import');
+insert into invites (token, coach_id) values ('40000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c');
+insert into imported_clients (coach_id, full_name, goal, mode, invite_token) values ('00000000-0000-0000-0000-00000000000c','Jo Import','Run 10k','hybrid','40000000-0000-0000-0000-000000000002');
+do $$ begin
+  begin
+    insert into sessions (client_id, source) values ('00000000-0000-0000-0000-0000000000c1', 'app');
+    raise exception 'coach logged a session as if the client did it';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into sessions (client_id, source) values ('00000000-0000-0000-0000-0000000000c2', 'import');
+    raise exception 'coach imported history for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into check_ins (client_id, source) values ('00000000-0000-0000-0000-0000000000c2', 'import');
+    raise exception 'coach imported a check-in for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from imported_clients) = 0, 'rival cannot see imported clients';
+  begin
+    insert into imported_clients (coach_id, full_name) values ('00000000-0000-0000-0000-00000000000c','planted');
+    raise exception 'rival added an import for another coach';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000c5');
+insert into profiles values ('00000000-0000-0000-0000-0000000000c5','client','Jo');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c5');
+select public.accept_invite('40000000-0000-0000-0000-000000000002');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select client_id from imported_clients where full_name = 'Jo Import') = '00000000-0000-0000-0000-0000000000c5', 'accepting links the import';
+  assert (select mode::text || goal from coach_clients where client_id = '00000000-0000-0000-0000-0000000000c5') = 'hybridRun 10k', 'goal and mode carried across';
+  insert into sessions (client_id, started_at, finished_at, source) values ('00000000-0000-0000-0000-0000000000c5', now(), now(), 'import');
+end $$;
+
+select 'RLS checks passed';
+
+-- program builder: templates are private to their coach; per-set targets and circuits save on items
+reset role;
+grant all on public.program_templates to authenticated;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into program_templates (name, weeks, days) values ('Upper / lower', 8, '[]');
+insert into workout_items (workout_id, position, group_label, exercise_id, sets, reps, set_plan, block_style)
+  values ('30000000-0000-0000-0000-000000000001', 50, 'Z1', 1, 3, '8', '[{"reps":"8","kg":60},{"reps":"6","kg":70},{"reps":"4","kg":80}]', 'circuit');
+do $$ begin
+  assert (select count(*) from program_templates) = 1, 'coach sees own template';
+  assert (select jsonb_array_length(set_plan) from workout_items where position = 50) = 3, 'per-set plan saved';
+  begin
+    insert into program_templates (coach_id, name) values ('00000000-0000-0000-0000-00000000000d', 'forged');
+    raise exception 'coach wrote a template for another coach';
+  exception when insufficient_privilege then null; end;
+  begin
+    update workout_items set block_style = 'chaos' where position = 50;
+    raise exception 'unknown block style accepted';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from program_templates) = 0, 'rival cannot see templates';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from program_templates) = 0, 'client cannot see templates';
+end $$;
+reset role;
+
+-- cardio: the client logs their own, their coach reads, nobody else sees; tokens stay server-side
+reset role;
+grant all on public.activities, public.device_connections, public.device_tokens, public.recovery_days to authenticated;
+insert into device_connections (client_id, provider, athlete_name) values ('00000000-0000-0000-0000-0000000000c1', 'strava', 'Priya S.');
+insert into device_tokens (client_id, provider, access_token, refresh_token, expires_at) values ('00000000-0000-0000-0000-0000000000c1', 'strava', 'secret', 'secret', now());
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into activities (sport, name, started_at, distance_m, moving_seconds, source, external_id, detail)
+  values ('run', 'Morning run', now(), 5012.3, 1500, 'strava', '123', '{"splits":[]}');
+do $$ begin
+  assert (select count(*) from activities) = 1, 'client sees own activity';
+  assert (select client_id from activities) = '00000000-0000-0000-0000-0000000000c1', 'client_id defaults to the signed-in client';
+  assert (select count(*) from device_connections) = 1, 'client sees own connection';
+  assert (select count(*) from device_tokens) = 0, 'client cannot read tokens';
+  begin
+    insert into activities (sport, name, started_at, source, external_id) values ('run', 'Twice', now(), 'strava', '123');
+    raise exception 'same Strava activity saved twice';
+  exception when unique_violation then null; end;
+  begin
+    insert into activities (client_id, sport, name, started_at) values ('00000000-0000-0000-0000-0000000000c2', 'run', 'forged', now());
+    raise exception 'client logged an activity for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into activities (sport, name, started_at) values ('parkour', 'x', now());
+    raise exception 'unknown sport accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into device_connections (client_id, provider) values ('00000000-0000-0000-0000-0000000000c1', 'strava');
+    raise exception 'client wrote a connection';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from activities) = 1, 'coach reads client activity';
+  assert (select count(*) from device_connections) = 1, 'coach sees client connection';
+  assert (select count(*) from device_tokens) = 0, 'coach cannot read tokens';
+  update activities set name = 'edited by coach';
+  assert (select name from activities) = 'Morning run', 'coach cannot edit client activity';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from activities) = 0, 'rival sees no activities';
+  assert (select count(*) from device_connections) = 0, 'rival sees no connections';
+end $$;
+reset role;
+
+-- recovery: same rules as cardio
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into recovery_days (day, source, sleep_minutes, hrv_ms, resting_hr) values (current_date, 'oura', 432, 61.5, 52);
+insert into recovery_days (day, source, sleep_minutes, hrv_ms) values (current_date, 'oura', 440, 63)
+  on conflict (client_id, day, source) do update set sleep_minutes = excluded.sleep_minutes, hrv_ms = excluded.hrv_ms;
+do $$ begin
+  assert (select count(*) from recovery_days) = 1, 'one row per morning per source';
+  assert (select sleep_minutes from recovery_days) = 440, 'a re-sync updates the morning';
+  begin
+    insert into recovery_days (client_id, day, source) values ('00000000-0000-0000-0000-0000000000c2', current_date, 'manual');
+    raise exception 'client wrote recovery for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into recovery_days (day, source, hrv_ms) values (current_date - 1, 'manual', 900);
+    raise exception 'impossible HRV accepted';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from recovery_days) = 1, 'coach reads client recovery';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from recovery_days) = 0, 'rival sees no recovery';
+end $$;
+reset role;
+insert into device_connections (client_id, provider) values ('00000000-0000-0000-0000-0000000000c1', 'whoop');
+do $$ begin
+  begin
+    insert into device_connections (client_id, provider) values ('00000000-0000-0000-0000-0000000000c1', 'myspace');
+    raise exception 'unknown provider accepted';
+  exception when check_violation then null; end;
+end $$;
+
 -- check-ins, measurements and photos
 reset role;
 insert into check_ins (id, client_id, weight_kg, energy) values ('50000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1',62.0,4);
@@ -130,4 +285,3 @@ do $$ begin
   assert (select coach_reply from check_ins where id = '50000000-0000-0000-0000-000000000001') = 'Great week', 'rival cannot reply';
 end $$;
 
-select 'RLS checks passed';

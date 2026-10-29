@@ -1,54 +1,56 @@
-import { changeOver, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
+import { bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Bar, Label, Sheet, Spark } from "@apex/ui";
+import { BackLink, Sheet, Spark } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
-import { MeasureInputs, MeasurementTable, PhotoCompare, PoseSlots, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
+import { MeasureInputs, MeasurementTable, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
+import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
+import { ConnectedApps } from "./ConnectedApps";
+import { Recovery } from "./Recovery";
 
-const RECOVERY = [["Sleep", "7 h 24 m", 82, "var(--data)"], ["Resting HR", "58 bpm", 70, "var(--good)"], ["Steps", "8,412", 84, "var(--act)"]] as const;
 const WEEK_MS = 7 * 86400000;
 
 export function Progress({ say, openCheckIn }: { say: (m: string) => void; openCheckIn: () => void }) {
   const store = useStore();
   const { coachName } = useAppInfo();
   const { progress } = useApexState(store);
-  const [photos, setPhotos] = useState(false);
   const [sheet, setSheet] = useState<"measure" | "photos" | null>(null);
+  const [mode, setMode] = useState<"body" | "recovery" | "apps">("body");
+  const { recovery } = useActivities();
+  const last = bestPerDay(recovery)[0];
   const { measurements } = progress;
   const checkIns = newestFirst(progress.checkIns);
-
-  const starts = [...measurements.map((m) => m.measuredAt), ...checkIns.map((c) => c.submittedAt)].map(Date.parse).filter(Number.isFinite);
+  const starts = [...measurements.map((m) => m.measuredAt), ...checkIns.map((c) => c.submittedAt), ...progress.photos.map((p) => p.takenAt)].map(Date.parse).filter(Number.isFinite);
   const weeks = starts.length ? Math.max(1, Math.round((Date.now() - Math.min(...starts)) / WEEK_MS)) : 0;
   const kpi = (key: MeasureKey) => changeOver(measurementSeries(measurements, key));
   const weight = kpi("weightKg");
   const waist = kpi("waistCm");
-
+  const modes = (
+    <div className="chips" role="tablist" aria-label="Progress view">
+      <button role="tab" aria-selected={mode === "body"} className={`chip ${mode === "body" ? "on" : ""}`} onClick={() => setMode("body")}>Body and strength</button>
+      <button role="tab" aria-selected={mode !== "body"} className={`chip ${mode !== "body" ? "on" : ""}`} onClick={() => setMode("recovery")}>Recovery</button>
+    </div>
+  );
+  if (mode === "apps") return <>{modes}<BackLink onClick={() => setMode("recovery")}>Recovery</BackLink><ConnectedApps say={say} /></>;
+  if (mode === "recovery") return <>{modes}<Recovery say={say} openApps={() => setMode("apps")} /></>;
   return (
     <>
+      {modes}
       <div><div className="eyebrow">Progress</div><h1 className="h1">{weeks ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your starting point"}</h1></div>
       <ProgressNotice />
       <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
         <div className="kpi"><b>{weight ? weight.last : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(weight.delta)} since start</i>}</div>
         <div className="kpi"><b>{waist ? waist.last : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(waist.delta)} since start</i>}</div>
       </div>
-      <WeightTrend measurements={measurements} />
 
+      <ProgressHub progress={progress} onDelete={(id) => void store.deletePhoto(id).catch((e: unknown) => say(e instanceof Error ? e.message : "Couldn't delete"))} extra={<button className="link" onClick={() => setSheet("photos")}>+ Add photos</button>} />
+
+      <WeightTrend measurements={measurements} />
       <section>
         <div className="sect"><h2 className="h2">Measurements</h2><button className="link" onClick={() => setSheet("measure")}>+ Log</button></div>
         <div className="card flat list"><MeasurementTable measurements={measurements} /></div>
       </section>
-
-      <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setPhotos(!photos)} aria-expanded={photos}>
-        <div><div className="h3">Progress photos</div><div className="small">{progress.photos.length ? `${progress.photos.length} photos · compare any two dates` : "Front, side and back, side by side over time"}</div></div>
-        <span className="h2">{photos ? "–" : "+"}</span>
-      </button>
-      {photos && (
-        <div className="card stack">
-          <PhotoCompare photos={progress.photos} onDelete={(id) => void store.deletePhoto(id).catch((e: unknown) => say(e instanceof Error ? e.message : "Couldn't delete"))} />
-          <button className="btn ghost block" onClick={() => setSheet("photos")}>+ Add photos</button>
-        </div>
-      )}
 
       <section>
         <div className="sect"><h2 className="h2">Check-ins</h2><button className="link" onClick={openCheckIn}>+ New check-in</button></div>
@@ -75,22 +77,12 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
         <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Trap bar deadlift, top set</h3></div>
         <Spark data={[55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70]} unit="kg" />
       </div>
-      <section>
-        <div className="sect"><h2 className="h2">Recovery</h2><Label kind="data">From Apple Health</Label></div>
-        <div className="card flat list">
-          {RECOVERY.map(([name, value, pct, color]) => (
-            <div key={name} className="li">
-              <div className="grow">
-                <div className="row" style={{ justifyContent: "space-between" }}><span className="h3">{name}</span><span className="num" style={{ fontWeight: 700 }}>{value}</span></div>
-                <div style={{ marginTop: 6 }}><Bar pct={pct} color={color} /></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
+      <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setMode("recovery")}>
+        <div><div className="h3">Recovery</div><div className="small num">{last ? [last.sleepMinutes ? `${formatSleep(last.sleepMinutes)} sleep` : null, last.hrvMs ? `HRV ${Math.round(last.hrvMs)} ms` : null, last.restingHr ? `${last.restingHr} bpm resting` : null].filter(Boolean).join(" · ") : "Sleep, HRV and resting heart rate from your watch"}</div></div>
+        <span className="tiny">›</span>
+      </button>
       {sheet === "measure" && <MeasureSheet onClose={() => setSheet(null)} onSaved={() => { setSheet(null); say("Measurements saved"); }} />}
-      {sheet === "photos" && <PhotoSheet onClose={() => setSheet(null)} onSaved={() => { setSheet(null); setPhotos(true); say("Photos saved"); }} />}
+      {sheet === "photos" && <PhotoSheet onClose={() => setSheet(null)} onSaved={() => { setSheet(null); say("Photos saved"); }} />}
     </>
   );
 }

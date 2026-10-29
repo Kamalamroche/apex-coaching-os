@@ -1,8 +1,9 @@
-import { DAY_NAMES, checkInDue, exerciseFor, newestFirst, shortDate } from "@apex/core";
+import { WEEKDAY_NAMES, checkInDue, exerciseFor, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
+import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
@@ -46,13 +47,14 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () 
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
-          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR 🎉` : ""}</div>
+          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
+          {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}
 
       {due.due ? (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--blue) 45%,var(--line))", background: "var(--blue-soft)" }}>
-          <div className="eyebrow" style={{ color: "var(--blue)" }}>Weekly check-in · {due.daysLate === 0 ? "due today" : due.daysLate === 1 ? "due yesterday" : `due ${DAY_NAMES[progress.checkInDay]}`}</div>
+          <div className="eyebrow" style={{ color: "var(--blue)" }}>Weekly check-in · {due.daysLate === 0 ? "due today" : due.daysLate === 1 ? "due yesterday" : `due ${WEEKDAY_NAMES[progress.checkInDay]}`}</div>
           <h2 className="h2" style={{ marginTop: 6 }}>Tell {coachName} how your week went</h2>
           <div className="small" style={{ marginTop: 4 }}>Weight, photos, sleep, energy and a few words. About two minutes.</div>
           <button className="btn sec block" style={{ marginTop: 12 }} onClick={openCheckIn}>Start check-in</button>
@@ -63,7 +65,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () 
           <div className="small" style={{ color: "var(--text)" }}>{freshReply.coachReply}</div>
         </div>
       ) : latest ? (
-        <div className="card"><div className="small">Check-in sent {shortDate(latest.submittedAt)}. Next one is due {DAY_NAMES[progress.checkInDay]}.</div></div>
+        <div className="card"><div className="small">Check-in sent {shortDate(latest.submittedAt)}. Next one is due {WEEKDAY_NAMES[progress.checkInDay]}.</div></div>
       ) : null}
 
       {!checkedIn && (
@@ -79,14 +81,14 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () 
       <div className="card">
         <div className="sect" style={{ marginBottom: 8 }}>
           <h3 className="h3">This week</h3>
-          <span className="tiny num">{WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0)} of 4 done · 🔥 19 days</span>
+          <span className="tiny num">{WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0)} of 4 done · <Icons.flame width={13} height={13} style={{ verticalAlign: -2, color: "var(--act)" }} /> 19 days</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
           {WEEK.map(([d, s], i) => {
             const st = i === TODAY_INDEX && log ? 1 : s;
             return (
               <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ height: 34, borderRadius: 6, background: st === 1 ? "var(--good)" : st === 2 ? "var(--act-soft)" : "var(--bg2)", border: st === 2 ? "1.5px dashed var(--act)" : "1px solid var(--line)", display: "grid", placeItems: "center", color: "#04130A", fontWeight: 800 }}>{st === 1 ? "✓" : ""}</div>
+                <div style={{ height: 34, borderRadius: 6, background: st === 1 ? "var(--good-soft)" : st === 2 ? "var(--act-soft)" : "var(--bg2)", border: st === 1 ? "1px solid color-mix(in srgb,var(--good) 45%,transparent)" : st === 2 ? "1.5px dashed var(--act)" : "1px solid var(--line)", display: "grid", placeItems: "center", color: "var(--good)", fontWeight: 800 }}>{st === 1 ? <Icons.check width={16} height={16} strokeWidth={2.5} /> : null}</div>
                 <div className="tiny" style={{ marginTop: 4, fontWeight: i === TODAY_INDEX ? 800 : 500, color: i === TODAY_INDEX ? "var(--text)" : undefined }}>{d}</div>
               </div>
             );

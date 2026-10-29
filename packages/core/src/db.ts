@@ -2,7 +2,7 @@
    Kept here (no Supabase client) so they can be unit tested. */
 
 import type { SessionSets } from "./session";
-import type { Message, SessionLog, Workout, WorkoutItem } from "./types";
+import type { BlockStyle, Message, PreviousSession, SetTarget, SessionLog, Workout, WorkoutItem, WorkoutSummary } from "./types";
 
 export interface WorkoutRow {
   id: string;
@@ -22,6 +22,9 @@ export interface WorkoutItemRow {
   load_kg: number | null;
   target_rpe: number | null;
   rest_seconds: number;
+  /** Per-set targets. Missing until the program-builder migration has run. */
+  set_plan?: SetTarget[] | null;
+  block_style?: BlockStyle | null;
 }
 
 export interface LoggedSetRow {
@@ -43,6 +46,17 @@ export interface SessionRow {
   volume_kg: number | null;
   prs: number;
   started_at: string;
+  note?: string | null;
+  /** Added in 20261026000000_session_summary.sql; missing until that has run. */
+  summary?: WorkoutSummary | null;
+}
+
+export interface PreviousSessionRow {
+  started_at: string;
+  finished_at: string;
+  sets_completed: number | null;
+  volume_kg: number | null;
+  workouts: { name: string } | null;
 }
 
 export interface MessageRow {
@@ -90,6 +104,8 @@ export function toWorkout(
         rpe: Number(r.target_rpe ?? 7),
         restSeconds: r.rest_seconds,
         lastTime: formatLastTime(lastSets.get(Number(r.exercise_id))),
+        ...(r.set_plan?.length ? { setPlan: r.set_plan } : {}),
+        ...(r.block_style ? { blockStyle: r.block_style } : {}),
       })),
   };
 }
@@ -106,9 +122,12 @@ export const toItemRows = (workout: Workout, workoutId: string): WorkoutItemRow[
     load_kg: it.kg || null,
     target_rpe: it.rpe || null,
     rest_seconds: it.restSeconds,
+    set_plan: it.setPlan ?? null,
+    block_style: it.blockStyle ?? null,
   }));
 
-/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`. */
+/** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`.
+    A distance ("1000m") has no column of its own yet, so its metres go to `reps`. */
 export function toLoggedSetRows(sets: SessionSets, workout: Workout, sessionId: string): LoggedSetRow[] {
   return workout.items.flatMap((it) =>
     (sets[it.key] ?? []).flatMap((s, i) => {
@@ -139,7 +158,27 @@ export function toSessionLog(row: SessionRow, workoutName: string): SessionLog |
     minutes,
     rpe: Number(row.session_rpe ?? 0),
     prs: row.prs,
+    ...(row.note ? { note: row.note } : {}),
+    ...(row.summary ? { summary: row.summary } : {}),
   };
+}
+
+export const toPreviousSession = (row: PreviousSessionRow): PreviousSession => ({
+  workoutName: row.workouts?.name ?? "Last session",
+  sets: row.sets_completed ?? 0,
+  volumeKg: Number(row.volume_kg ?? 0),
+  minutes: Math.max(1, Math.round((Date.parse(row.finished_at) - Date.parse(row.started_at)) / 60000)),
+});
+
+/** Heaviest logged load per exercise. */
+export function bestKgByExercise(rows: Pick<LoggedSetRow, "exercise_id" | "load_kg">[]): Record<number, number> {
+  const best: Record<number, number> = {};
+  for (const r of rows) {
+    const kg = Number(r.load_kg ?? 0);
+    const id = Number(r.exercise_id);
+    if (kg > 0 && kg > (best[id] ?? 0)) best[id] = kg;
+  }
+  return best;
 }
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });

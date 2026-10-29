@@ -1,9 +1,9 @@
 import {
-  MEASURES, POSES, changeOver, measurementSeries, parseNumber, photoSets, shortDate, signed,
-  type MeasureKey, type Measurement, type MeasurementInput, type PhotoUpload, type Pose, type ProgressPhoto,
+  MEASURES, POSES, blockDates, changeOver, defaultPair, fortnights, measurementSeries, parseNumber, shortDate, signed,
+  type Fortnight, type MeasureKey, type Measurement, type MeasurementInput, type PhotoUpload, type Pose, type ProgressState,
 } from "@apex/core";
-import { Label, PhotoFrame, Spark } from "@apex/ui";
-import { useEffect, useRef, useState } from "react";
+import { Icons, Label, PhotoFrame, Sheet, Spark } from "@apex/ui";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { preparePhoto } from "../data/photos";
 import { useProgressError } from "./AppContext";
 
@@ -121,33 +121,188 @@ export function PoseSlots({ value, onChange }: { value: PhotoUpload[]; onChange:
   );
 }
 
-/** Two dates side by side for one pose. Defaults to the first and the latest set. */
-export function PhotoCompare({ photos, onDelete }: { photos: ProgressPhoto[]; onDelete?: (id: string) => void }) {
-  const sets = photoSets(photos);
-  const [pose, setPose] = useState<Pose>("front");
-  const [fromKey, setFromKey] = useState<string | null>(null);
-  const [toKey, setToKey] = useState<string | null>(null);
-  const keys = sets.map((s) => s.key).join(",");
-  useEffect(() => { setFromKey(null); setToKey(null); }, [keys]);
-  if (!sets.length) return <div className="small">No photos yet.</div>;
-  const from = sets.find((s) => s.key === fromKey) ?? sets[0]!;
-  const to = sets.find((s) => s.key === toKey) ?? sets.at(-1)!;
-  const options = sets.map((s) => <option key={s.key} value={s.key}>{shortDate(s.takenAt)}</option>);
-  const side = (set: typeof from, which: "from" | "to") => {
-    const photo = set.byPose[pose];
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <select className="field" style={{ padding: "8px 10px", fontSize: 13 }} aria-label={which === "from" ? "Compare from" : "Compare to"} value={set.key} onChange={(e) => (which === "from" ? setFromKey : setToKey)(e.target.value)}>{options}</select>
-        <PhotoFrame url={photo?.url} label={photo ? shortDate(photo.takenAt) : `No ${pose} photo`} highlight={which === "to" && !!photo} />
-        {onDelete && photo && <button type="button" className="link" style={{ fontSize: 12, color: "var(--text3)" }} onClick={() => { if (confirm("Delete this photo? This can't be undone.")) onDelete(photo.id); }}>Delete</button>}
-      </div>
-    );
+type Side = "before" | "after";
+
+const blockLine = (b: Fortnight) => {
+  const w = b.latest.weightKg;
+  const dw = b.change.weightKg;
+  return [w !== undefined ? `${w} kg${dw ? ` (${signed(dw)})` : ""}` : null, blockDates(b)].filter(Boolean).join(" · ");
+};
+
+/**
+ * Before and after for one pose, by two-week block. Side by side, or one photo over the other with a
+ * slider to wipe between them. Starts on the first block and the latest one.
+ */
+export function BeforeAfter({ blocks, measurements, pick, onPick }: { blocks: Fortnight[]; measurements: Measurement[]; pick: { pose: Pose; before?: number; after?: number }; onPick: (p: { pose: Pose; before?: number; after?: number }) => void }) {
+  const [view, setView] = useState<"side" | "slider">("side");
+  const [wipe, setWipe] = useState(50);
+  const pose = pick.pose;
+  const withPose = blocks.filter((b) => b.byPose[pose]);
+  const pair = defaultPair(blocks, pose);
+  const before = withPose.find((b) => b.index === pick.before) ?? pair?.before;
+  const after = withPose.find((b) => b.index === pick.after) ?? pair?.after;
+  const options = withPose.map((b) => <option key={b.index} value={b.index}>{b.label} · {blockDates(b)}</option>);
+  const choose = (side: Side, index: number) => onPick({ ...pick, [side]: index });
+  const weeksApart = before && after ? Math.abs(after.index - before.index) * 2 : 0;
+  // The last value on or before each photo, so a block without a weigh-in still compares.
+  const valueAt = (k: MeasureKey, iso: string | undefined) => (iso ? measurementSeries(measurements, k).filter((p) => p.at.slice(0, 10) <= iso.slice(0, 10)).at(-1)?.value : undefined);
+  const delta = (k: MeasureKey, unit: string) => {
+    const a = valueAt(k, before?.byPose[pose]?.takenAt);
+    const b = valueAt(k, after?.byPose[pose]?.takenAt);
+    return a !== undefined && b !== undefined ? `${MEASURES.find((m) => m.key === k)!.label} ${signed(b - a)} ${unit}` : null;
   };
+
   return (
     <div className="stack" style={{ gap: 10 }}>
-      <div className="chips">{POSES.map((p) => <button key={p} className={`chip ${pose === p ? "on" : ""}`} onClick={() => setPose(p)}>{POSE_LABEL[p]}</button>)}</div>
-      <div className="compare">{side(from, "from")}{side(to, "to")}</div>
-      <div className="tiny">{sets.length} photo {sets.length === 1 ? "day" : "days"} · links to the photos expire after an hour, reopen to refresh</div>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div className="chips">{POSES.map((p) => <button key={p} className={`chip ${pose === p ? "on" : ""}`} onClick={() => onPick({ pose: p })}>{POSE_LABEL[p]}</button>)}</div>
+        <div className="chips" role="tablist" aria-label="Comparison view">
+          <button role="tab" aria-selected={view === "side"} className={`chip ${view === "side" ? "on" : ""}`} onClick={() => setView("side")}>Side by side</button>
+          <button role="tab" aria-selected={view === "slider"} className={`chip ${view === "slider" ? "on" : ""}`} onClick={() => setView("slider")}>Slider</button>
+        </div>
+      </div>
+      {!before || !after ? (
+        <div className="small">{withPose.length ? `One ${pose} photo so far. The comparison starts with the next one, two weeks from now.` : `No ${pose} photos yet.`}</div>
+      ) : (
+        <>
+          <div className="compare">
+            {(["before", "after"] as const).map((side) => (
+              <label key={side} className="tiny" style={{ display: "flex", flexDirection: "column", gap: 4, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" }}>
+                {side === "before" ? "Before" : "After"}
+                <select className="field" style={{ padding: "8px 10px", fontSize: 13, textTransform: "none", letterSpacing: 0, fontWeight: 500 }} value={(side === "before" ? before : after).index} onChange={(e) => choose(side, Number(e.target.value))}>{options}</select>
+              </label>
+            ))}
+          </div>
+          {view === "side" ? (
+            <div className="compare">
+              <PhotoFrame url={before.byPose[pose]?.url} label={blockLine(before)} />
+              <PhotoFrame url={after.byPose[pose]?.url} label={blockLine(after)} highlight />
+            </div>
+          ) : (
+            <figure style={{ margin: 0 }}>
+              <div className="video photo wipe" style={{ maxWidth: 360, margin: "0 auto" }}>
+                <img src={before.byPose[pose]?.url ?? ""} alt={`Before, ${before.label}`} />
+                <img src={after.byPose[pose]?.url ?? ""} alt={`After, ${after.label}`} style={{ position: "absolute", inset: 0, clipPath: `inset(0 0 0 ${wipe}%)` }} />
+                <div className="wipe-line" style={{ left: `${wipe}%` }} />
+                <span className="tag label l-data" style={{ left: 8 }}>Before</span>
+                <span className="tag label l-dec" style={{ left: "auto", right: 8 }}>After</span>
+              </div>
+              <input type="range" min={0} max={100} value={wipe} onChange={(e) => setWipe(Number(e.target.value))} aria-label="Slide between before and after" style={{ width: "100%", maxWidth: 360, display: "block", margin: "8px auto 0", accentColor: "var(--act)" }} />
+              <figcaption className="tiny" style={{ textAlign: "center" }}>{before.label} → {after.label}</figcaption>
+            </figure>
+          )}
+          <div className="small"><Label kind="data">Data</Label> {[`${weeksApart} weeks apart`, delta("weightKg", "kg"), delta("waistCm", "cm"), delta("hipsCm", "cm")].filter(Boolean).join(" · ")}</div>
+        </>
+      )}
     </div>
+  );
+}
+
+/**
+ * Every photo, grouped in two-week blocks, newest first. Filter by pose; tap a photo to see it large,
+ * step through the rest, or send it to the before/after view.
+ */
+export function PhotoLibrary({ blocks, onCompare, onDelete }: { blocks: Fortnight[]; onCompare: (p: { pose: Pose; side: Side; index: number }) => void; onDelete?: (id: string) => void }) {
+  const [pose, setPose] = useState<Pose | "all">("all");
+  const [open, setOpen] = useState<string | null>(null);
+  const shown = blocks.map((b) => ({ b, photos: b.photos.filter((p) => pose === "all" || p.pose === pose) })).filter((x) => x.photos.length);
+  const flat = shown.flatMap((x) => x.photos.map((p) => ({ p, b: x.b })));
+  const at = flat.findIndex((x) => x.p.id === open);
+  const current = flat[at];
+  const total = blocks.reduce((n, b) => n + b.photos.length, 0);
+
+  if (!total) return <div className="small">No photos yet. Add front, side and back every two weeks to build your library.</div>;
+  return (
+    <div className="stack" style={{ gap: 12 }}>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div className="chips">{(["all", ...POSES] as const).map((p) => <button key={p} className={`chip ${pose === p ? "on" : ""}`} onClick={() => setPose(p)}>{p === "all" ? "All poses" : POSE_LABEL[p]}</button>)}</div>
+        <span className="tiny num">{total} photos · {blocks.filter((b) => b.photos.length).length} blocks</span>
+      </div>
+      {shown.map(({ b, photos }) => (
+        <section key={b.index}>
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{b.label}</h3><span className="tiny num">{blockLine(b)}</span></div>
+          <div className="library">
+            {photos.map((p) => (
+              <button key={p.id} className="thumb" onClick={() => setOpen(p.id)} aria-label={`${POSE_LABEL[p.pose]} photo, ${shortDate(p.takenAt)}`}>
+                {p.url ? <img src={p.url} alt="" loading="lazy" /> : <span className="tiny">No preview</span>}
+                <span className="cap">{POSE_LABEL[p.pose]} · {new Date(p.takenAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+      {current && (
+        <Sheet onClose={() => setOpen(null)} label="Progress photo">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <div><div className="h3">{POSE_LABEL[current.p.pose]} · {shortDate(current.p.takenAt)}</div><div className="tiny">{current.b.label} · {at + 1} of {flat.length}</div></div>
+            <button className="iconbtn" onClick={() => setOpen(null)} aria-label="Close"><Icons.close width={16} height={16} /></button>
+          </div>
+          <div className="video photo" style={{ maxWidth: 380, width: "100%", margin: "0 auto" }}>{current.p.url ? <img src={current.p.url} alt={`${POSE_LABEL[current.p.pose]} photo`} /> : null}</div>
+          <div className="row">
+            <button className="btn ghost" style={{ flex: 1 }} disabled={at <= 0} onClick={() => setOpen(flat[at - 1]!.p.id)}>‹ Newer</button>
+            <button className="btn ghost" style={{ flex: 1 }} disabled={at >= flat.length - 1} onClick={() => setOpen(flat[at + 1]!.p.id)}>Older ›</button>
+          </div>
+          <div className="row">
+            <button className="btn sec sm" style={{ flex: 1 }} onClick={() => { onCompare({ pose: current.p.pose, side: "before", index: current.b.index }); setOpen(null); }}>Use as before</button>
+            <button className="btn act sm" style={{ flex: 1 }} onClick={() => { onCompare({ pose: current.p.pose, side: "after", index: current.b.index }); setOpen(null); }}>Use as after</button>
+          </div>
+          {onDelete && <button className="link" style={{ alignSelf: "center", color: "var(--text3)" }} onClick={() => { if (confirm("Delete this photo? This can't be undone.")) { onDelete(current.p.id); setOpen(null); } }}>Delete photo</button>}
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/** One row per two-week block: front photo, weight, waist and how the weeks felt. */
+export function FortnightTable({ blocks }: { blocks: Fortnight[] }) {
+  if (!blocks.length) return <div className="small">Nothing recorded yet.</div>;
+  const cell = (b: Fortnight, k: MeasureKey, unit: string) => {
+    const v = b.latest[k];
+    const d = b.change[k];
+    return v === undefined ? <span className="tiny">–</span> : <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{v}</b> {unit}{d ? <span style={{ color: "var(--data)", marginLeft: 4 }}>{signed(d)}</span> : null}</span>;
+  };
+  return (
+    <div className="list" style={{ margin: "-14px" }}>
+      {blocks.map((b) => (
+        <div key={b.index} className="li" style={{ alignItems: "flex-start" }}>
+          <div className="thumb" style={{ width: 52, flexShrink: 0, cursor: "default" }} aria-hidden="true">
+            {b.byPose.front?.url ? <img src={b.byPose.front.url} alt="" loading="lazy" /> : <Icons.figure width={22} height={22} />}
+          </div>
+          <div className="grow">
+            <div className="h3">{b.label}</div>
+            <div className="tiny">{blockDates(b)} · {b.checkIns.length} check-in{b.checkIns.length === 1 ? "" : "s"} · {b.photos.length} photo{b.photos.length === 1 ? "" : "s"}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 12px", marginTop: 6 }}>
+              <span className="tiny">Weight {cell(b, "weightKg", "kg")}</span>
+              <span className="tiny">Waist {cell(b, "waistCm", "cm")}</span>
+              {b.avgSleep !== null && <span className="tiny">Sleep <span className="num small">{b.avgSleep} h</span></span>}
+              {b.avgEnergy !== null && <span className="tiny">Energy <span className="num small">{b.avgEnergy}/5</span></span>}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type HubView = "compare" | "library" | "blocks";
+
+/** Before/after, the photo library and the two-week summary, behind one set of tabs. Client and coach both use it. */
+export function ProgressHub({ progress, onDelete, extra }: { progress: Pick<ProgressState, "checkIns" | "measurements" | "photos">; onDelete?: (id: string) => void; extra?: ReactNode }) {
+  const blocks = useMemo(() => fortnights(progress), [progress]);
+  const [view, setView] = useState<HubView>("compare");
+  const [pick, setPick] = useState<{ pose: Pose; before?: number; after?: number }>({ pose: "front" });
+  const tabs: [HubView, string][] = [["compare", "Before & after"], ["library", "Photo library"], ["blocks", "Every 2 weeks"]];
+  return (
+    <section className="stack" style={{ gap: 10 }}>
+      <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Progress photos</h2>{extra}</div>
+      <div className="chips" role="tablist" aria-label="Progress photos view">
+        {tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} className={`chip ${view === k ? "on" : ""}`} onClick={() => setView(k)}>{l}</button>)}
+      </div>
+      <div className="card">
+        {view === "compare" && <BeforeAfter blocks={blocks} measurements={progress.measurements} pick={pick} onPick={setPick} />}
+        {view === "library" && <PhotoLibrary blocks={blocks} onDelete={onDelete} onCompare={({ pose, side, index }) => { setPick((p) => ({ ...(p.pose === pose ? p : {}), pose, [side]: index })); setView("compare"); }} />}
+        {view === "blocks" && <FortnightTable blocks={blocks} />}
+      </div>
+    </section>
   );
 }

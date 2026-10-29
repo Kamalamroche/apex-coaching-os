@@ -1,0 +1,61 @@
+import type { ProgramTemplate, TemplateDay } from "../types";
+
+/* APEX starter templates: original programs a new coach can assign on day one and edit.
+   Week 1 is planned; applying a template repeats it for every week (see fromTemplate). */
+
+type Row = [group: string, exerciseId: number, sets: number, reps: string, rpe: number, rest: number];
+
+const day = (dayIndex: number, name: string, minutes: number, rows: Row[], circuit = false): TemplateDay => ({
+  week: 1, dayIndex, name, minutes,
+  items: rows.map(([group, exerciseId, sets, reps, rpe, restSeconds]) => ({
+    group, exerciseId, sets, reps, kg: 0, rpe, restSeconds, ...(circuit && group.length > 1 ? { blockStyle: "circuit" as const } : {}),
+  })),
+});
+
+/* A hybrid race runs 1 km before each of eight stations. Half distances for weekly practice. */
+const STATIONS: [exerciseId: number, target: string][] = [[627, "500m"], [164, "25m"], [165, "25m"], [630, "40m"], [626, "500m"], [631, "100m"], [629, "50m"], [628, "50"]];
+const simulation: Row[] = STATIONS.flatMap(([id, target], i): Row[] => [
+  [String.fromCharCode(65 + i * 2), 625, 1, "500m", 7, 0],
+  [String.fromCharCode(66 + i * 2), id, 1, target, 8, 0],
+]);
+
+export const STARTER_TEMPLATES: ProgramTemplate[] = [
+  {
+    id: "starter-foundations", starter: true, name: "Foundations · full body", weeks: 6,
+    note: "New lifters: three full-body days, one main lift each, simple supersets.",
+    days: [
+      day(0, "Full body A", 45, [["A", 9, 3, "10", 7, 90], ["B1", 11, 3, "10", 7, 0], ["B2", 12, 3, "12", 7, 75], ["C1", 8, 3, "12", 7, 0], ["C2", 14, 3, "30s", 7, 60]]),
+      day(2, "Full body B", 45, [["A", 2, 3, "10", 7, 90], ["B1", 5, 3, "10", 7, 0], ["B2", 132, 3, "10", 7, 75], ["C1", 109, 3, "8", 7, 0], ["C2", 426, 3, "10", 7, 60]]),
+      day(4, "Full body C", 45, [["A", 10, 3, "12", 7, 90], ["B1", 3, 3, "10", 7, 0], ["B2", 6, 3, "10", 7, 75], ["C1", 7, 3, "15", 7, 0], ["C2", 13, 3, "15", 7, 60]]),
+    ],
+  },
+  {
+    id: "starter-upper-lower", starter: true, name: "Upper / lower · strength", weeks: 8,
+    note: "Intermediate: four days, heavy compound first, accessories as supersets.",
+    days: [
+      day(0, "Lower A · strength", 60, [["A", 1, 4, "5", 8, 180], ["B", 2, 3, "8", 8, 120], ["C1", 109, 3, "8", 8, 0], ["C2", 74, 3, "10", 8, 75], ["D", 54, 3, "12", 8, 60]]),
+      day(1, "Upper A · strength", 60, [["A", 120, 4, "5", 8, 180], ["B", 6, 4, "6", 8, 120], ["C1", 5, 3, "8", 8, 0], ["C2", 12, 3, "10", 8, 75], ["D1", 28, 3, "12", 8, 0], ["D2", 16, 3, "12", 8, 60]]),
+      day(3, "Lower B · volume", 55, [["A", 15, 4, "6", 8, 150], ["B", 10, 3, "10-12", 8, 90], ["C1", 8, 3, "10", 8, 0], ["C2", 73, 3, "12", 8, 60], ["D", 14, 3, "40s", 7, 60]]),
+      day(4, "Upper B · volume", 55, [["A", 123, 4, "8-10", 8, 120], ["B", 127, 4, "6-8", 8, 120], ["C1", 7, 3, "15", 8, 0], ["C2", 13, 3, "15", 8, 60], ["D1", 26, 3, "12", 8, 0], ["D2", 18, 3, "12", 8, 60]]),
+    ],
+  },
+  {
+    id: "starter-conditioning", starter: true, name: "Conditioning circuits", weeks: 4,
+    note: "Fat loss and fitness: two timed circuits and one strength day.",
+    days: [
+      day(0, "Circuit A · 40 on / 20 off", 35, [["A1", 140, 4, "40s", 8, 0], ["A2", 209, 4, "40s", 8, 0], ["A3", 9, 4, "40s", 8, 0], ["A4", 431, 4, "40s", 8, 0], ["A5", 159, 4, "40s", 8, 90]], true),
+      day(2, "Strength", 45, [["A", 15, 4, "6", 8, 150], ["B1", 11, 3, "10", 8, 0], ["B2", 132, 3, "10", 8, 75], ["C", 46, 3, "40s", 8, 60]]),
+      day(4, "Circuit B · giant set", 35, [["A1", 139, 4, "12", 8, 0], ["A2", 184, 4, "8", 8, 0], ["A3", 164, 4, "30s", 8, 0], ["A4", 14, 4, "40s", 8, 90]], true),
+    ],
+  },
+  {
+    id: "starter-hybrid-race", starter: true, name: "Hybrid race prep", weeks: 8,
+    note: "Hybrid fitness racing: running between eight functional stations. A strength day, two race circuits and a half-distance race simulation.",
+    days: [
+      day(0, "Stations · strength", 50, [["A", 164, 4, "20m", 8, 120], ["B", 165, 4, "20m", 8, 120], ["C1", 629, 3, "20m", 8, 0], ["C2", 631, 3, "40m", 8, 90], ["D", 628, 3, "20", 8, 90]]),
+      day(2, "Race circuit A", 45, [["A1", 625, 4, "1000m", 7, 0], ["A2", 627, 4, "500m", 8, 0], ["A3", 164, 4, "20m", 8, 0], ["A4", 630, 4, "20m", 8, 120]], true),
+      day(4, "Race circuit B", 45, [["A1", 625, 3, "1000m", 7, 0], ["A2", 626, 3, "500m", 8, 0], ["A3", 629, 3, "40m", 8, 0], ["A4", 628, 3, "25", 8, 120]], true),
+      day(5, "Race simulation · half", 60, simulation),
+    ],
+  },
+];
