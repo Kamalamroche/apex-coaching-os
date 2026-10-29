@@ -1,3 +1,5 @@
+import { signed } from "@apex/core";
+
 export function Spark({ data, unit }: { data: number[]; unit: string }) {
   const w = 300;
   const h = 70;
@@ -17,7 +19,7 @@ export function Spark({ data, unit }: { data: number[]; unit: string }) {
       </svg>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <span className="tiny num">{first} {unit}</span>
-        <span className="num" style={{ fontWeight: 700, color: "var(--act)" }}>{last} {unit} (+{last - first})</span>
+        <span className="num" style={{ fontWeight: 700, color: "var(--act)" }}>{last} {unit} ({signed(last - first)})</span>
       </div>
     </div>
   );

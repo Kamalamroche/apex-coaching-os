@@ -1,4 +1,4 @@
-import { exerciseFor } from "@apex/core";
+import { WEEKDAY_NAMES, checkInDue, exerciseFor, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons } from "@apex/ui";
 import { useState } from "react";
@@ -11,12 +11,15 @@ const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 const WEEK: [string, 0 | 1 | 2][] = [["M", 1], ["T", 1], ["W", 0], ["T", 1], ["F", 0], ["S", 2], ["S", 0]];
 const TODAY_INDEX = 5;
 
-export function Today({ start, checkedIn, onCheckIn }: { start: () => void; checkedIn: boolean; onCheckIn: () => void }) {
+export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void }) {
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const { status } = useStoreStatus();
-  const { workout: w, log } = useApexState(store);
+  const { workout: w, log, progress } = useApexState(store);
   const [mood, setMood] = useState<number | null>(null);
+  const latest = newestFirst(progress.checkIns)[0];
+  const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
+  const freshReply = latest?.coachReply && latest.reviewedAt && Date.now() - Date.parse(latest.reviewedAt) < 7 * 86400000 ? latest : null;
   return (
     <>
       <div><div className="eyebrow">Saturday 25 October</div><h1 className="h1">Hi {clientName.split(" ")[0]}.</h1></div>
@@ -48,6 +51,22 @@ export function Today({ start, checkedIn, onCheckIn }: { start: () => void; chec
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}
+
+      {due.due ? (
+        <div className="card" style={{ borderColor: "color-mix(in srgb,var(--blue) 45%,var(--line))", background: "var(--blue-soft)" }}>
+          <div className="eyebrow" style={{ color: "var(--blue)" }}>Weekly check-in · {due.daysLate === 0 ? "due today" : due.daysLate === 1 ? "due yesterday" : `due ${WEEKDAY_NAMES[progress.checkInDay]}`}</div>
+          <h2 className="h2" style={{ marginTop: 6 }}>Tell {coachName} how your week went</h2>
+          <div className="small" style={{ marginTop: 4 }}>Weight, photos, sleep, energy and a few words. About two minutes.</div>
+          <button className="btn sec block" style={{ marginTop: 12 }} onClick={openCheckIn}>Start check-in</button>
+        </div>
+      ) : freshReply ? (
+        <div className="card">
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{coachName} replied to your check-in</h3><span className="tiny">{shortDate(freshReply.submittedAt)}</span></div>
+          <div className="small" style={{ color: "var(--text)" }}>{freshReply.coachReply}</div>
+        </div>
+      ) : latest ? (
+        <div className="card"><div className="small">Check-in sent {shortDate(latest.submittedAt)}. Next one is due {WEEKDAY_NAMES[progress.checkInDay]}.</div></div>
+      ) : null}
 
       {!checkedIn && (
         <div className="card">
