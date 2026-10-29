@@ -1,6 +1,7 @@
 import {
   clockLabel, formatSleep, hypnoRuns, type Baseline, type Contributor, type HypnoStage, type LoadDay, type RecoveryDay, type SleepSchedule, type SleepStages,
 } from "@apex/core";
+import { niceTicks, smoothPath } from "./chartKit";
 import { useState, type CSSProperties, type PointerEvent } from "react";
 
 /* Recovery visuals, plain SVG and tokens only. Calm by design: hairlines, flat fills, the four
@@ -209,7 +210,6 @@ export function LoadRecoveryChart({ days }: { days: LoadDay[] }) {
   const floor = Math.max(0, Math.floor((Math.min(100, ...pts.map((p) => p.v)) - 10) / 10) * 10);
   const ry = (v: number) => loadH + gap + 14 + (1 - (v - floor) / (100 - floor)) * (recH - 14);
   const cx = (i: number) => i * col + col / 2;
-  const line = pts.map((p, k) => `${k ? "L" : "M"}${cx(p.i).toFixed(1)} ${ry(p.v).toFixed(1)}`).join("");
   const band = (v: number) => (v >= 67 ? "var(--good)" : v >= 34 ? "var(--warn)" : "var(--crit)");
   const move = (e: PointerEvent<SVGSVGElement>) => setAt(scrubIndex(e, n));
   return (
@@ -231,7 +231,7 @@ export function LoadRecoveryChart({ days }: { days: LoadDay[] }) {
         <text x="0" y={loadH + gap + 10} fontSize="11" fill="var(--text3)">Recovery</text>
         {[34, 67].filter((v) => v > floor).map((v) => <line key={v} x1="0" x2={W} y1={ry(v)} y2={ry(v)} stroke="var(--line)" strokeDasharray="2 4" />)}
         <line x1="0" x2={W} y1={ry(floor)} y2={ry(floor)} stroke="var(--line)" />
-        <path d={line} fill="none" stroke="var(--viz-1)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={smoothPath(pts.map((p) => [cx(p.i), ry(p.v)] as const))} fill="none" stroke="var(--viz-1)" strokeWidth="2" strokeLinecap="round" />
         {pts.map((p) => <circle key={p.i} cx={cx(p.i)} cy={ry(p.v)} r={p.i === shownI ? 5.5 : 3} fill={band(p.v)} stroke="var(--card)" strokeWidth="2" />)}
         <line x1={cx(shownI)} x2={cx(shownI)} y1="14" y2={H - axis} stroke="var(--text2)" strokeWidth="1" opacity={at === null ? 0 : 1} />
         {days.map((d, i) => (i === n - 1 || (new Date(`${d.date}T12:00:00`).getDay() === 1 && i < n - 4)) && (
@@ -279,7 +279,11 @@ export function RecoveryCalendar({ days, today }: { days: RecoveryDay[]; today: 
   );
 }
 
-/** A metric over the last weeks with the client's usual range (mean ± 1 sd) shaded. Drag to read a day. */
+/**
+ * A metric over the last weeks: each morning as a dot, the 7-day average as a smooth line, the client's
+ * usual range (mean ± 1 sd) shaded, real values on the axis and dates along the bottom. Mornings outside
+ * the usual range are picked out. Drag to read a day.
+ */
 export function TrendChart({ days, value, colour, unit, usual, lowerIsBetter = false, label }: {
   days: RecoveryDay[];
   value: (d: RecoveryDay) => number | undefined;
@@ -292,35 +296,68 @@ export function TrendChart({ days, value, colour, unit, usual, lowerIsBetter = f
   const [at, setAt] = useState<number | null>(null);
   const pts = [...days].reverse().map((d) => ({ d, v: value(d) })).filter((p): p is { d: RecoveryDay; v: number } => typeof p.v === "number");
   if (pts.length < 2) return null;
-  const W = 340, H = 140, top = 12, bottom = 20;
+  const W = 340, H = 150, top = 10, bottom = 20, right = 30;
   const vals = pts.map((p) => p.v);
   const lo0 = Math.min(...vals, usual ? usual.mean - usual.sd : Infinity);
   const hi0 = Math.max(...vals, usual ? usual.mean + usual.sd : -Infinity);
-  const pad = Math.max(1, (hi0 - lo0) * 0.15);
+  const pad = Math.max(1, (hi0 - lo0) * 0.12);
   const lo = lo0 - pad, hi = hi0 + pad;
-  const x = (i: number) => (i / (pts.length - 1)) * (W - 12) + 6;
+  // Spaced by date, so a missed morning leaves a gap rather than squeezing the line.
+  const t0 = new Date(`${pts[0]!.d.date}T12:00:00`).getTime();
+  const span = Math.max(1, (new Date(`${pts.at(-1)!.d.date}T12:00:00`).getTime() - t0) / 864e5);
+  const dayN = (p: { d: RecoveryDay }) => Math.round((new Date(`${p.d.date}T12:00:00`).getTime() - t0) / 864e5);
+  const x = (n: number) => 4 + (n / span) * (W - right - 8);
   const y = (v: number) => top + (1 - (v - lo) / (hi - lo)) * (H - top - bottom);
-  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join("");
+  // 7-day average ending each morning.
+  const avg = pts.map((p, i) => {
+    const w = pts.slice(0, i + 1).filter((q) => dayN(p) - dayN(q) < 7);
+    return [x(dayN(p)), y(w.reduce((a, q) => a + q.v, 0) / w.length)] as const;
+  });
   const shown = at ?? pts.length - 1;
   const p = pts[shown]!;
   const off = (v: number) => (usual ? (lowerIsBetter ? v > usual.mean + usual.sd : v < usual.mean - usual.sd) : false);
-  const onMove = (e: PointerEvent<SVGSVGElement>) => setAt(scrubIndex(e, pts.length));
+  const onMove = (e: PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const fx = ((e.clientX - r.left) / r.width) * W;
+    let best = 0;
+    pts.forEach((q, i) => { if (Math.abs(x(dayN(q)) - fx) < Math.abs(x(dayN(pts[best]!)) - fx)) best = i; });
+    setAt(best);
+  };
+  const ticks = niceTicks(lo, hi, 3);
+  const weeks = pts.filter((q) => new Date(`${q.d.date}T12:00:00`).getDay() === 1 && dayN(q) > 2 && dayN(q) < span - 3);
+  const avgNow = Math.round((hi - lo) * (1 - (avg[shown]![1] - top) / (H - top - bottom)) + lo);
   return (
     <div>
-      <div className="row" style={{ justifyContent: "space-between", marginBottom: 4 }}>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
         <span className="tiny">{at === null ? "Last night" : dayLabel(p.d.date)}</span>
-        <span className="num small" style={{ fontWeight: 700 }}>{Math.round(p.v * 10) / 10} {unit}{usual ? <span className="tiny" style={{ fontWeight: 600 }}> · usual {Math.round(usual.mean)}</span> : null}</span>
+        <span className="num small" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{Math.round(p.v * 10) / 10} {unit}<span className="tiny" style={{ fontWeight: 600 }}> · 7-day {avgNow}{usual ? ` · usual ${Math.round(usual.mean)}` : ""}</span></span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setAt(null)} role="img" aria-label={label}>
-        {usual && <rect x="0" width={W} y={y(usual.mean + usual.sd)} height={Math.max(2, y(usual.mean - usual.sd) - y(usual.mean + usual.sd))} fill="var(--bg2)" rx="4" />}
-        {usual && <line x1="0" x2={W} y1={y(usual.mean)} y2={y(usual.mean)} stroke="var(--text3)" strokeDasharray="4 5" />}
-        <path d={line} fill="none" stroke={colour} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((q, i) => <circle key={q.d.date} cx={x(i)} cy={y(q.v)} r={i === shown ? 5.5 : off(q.v) ? 3.5 : 2.5} fill={off(q.v) ? "var(--crit)" : colour} stroke="var(--card)" strokeWidth={i === shown || off(q.v) ? 2 : 0} />)}
-        {at !== null && <line x1={x(shown)} x2={x(shown)} y1={top - 8} y2={H - bottom} stroke="var(--text2)" strokeWidth="1" />}
-        <text x="6" y={H - 4} fontSize="11" fill="var(--text3)" fontFamily="var(--num)">{pts.length} days ago</text>
-        <text x={W - 6} y={H - 4} fontSize="11" fill="var(--text3)" textAnchor="end" fontFamily="var(--num)">Today</text>
+        {ticks.map((v) => (
+          <g key={v}>
+            <line x1="0" x2={W - right} y1={y(v)} y2={y(v)} stroke="var(--line)" />
+            <text x={W - right + 4} y={y(v) + 3.5} fontSize="10" fill="var(--text3)" fontFamily="var(--num)">{Math.round(v)}</text>
+          </g>
+        ))}
+        {usual && <rect x="0" width={W - right} y={y(usual.mean + usual.sd)} height={Math.max(2, y(usual.mean - usual.sd) - y(usual.mean + usual.sd))} fill="var(--text3)" opacity=".1" />}
+        {usual && <line x1="0" x2={W - right} y1={y(usual.mean)} y2={y(usual.mean)} stroke="var(--text3)" strokeDasharray="4 4" />}
+        {pts.map((q, i) => i > 0 && dayN(q) - dayN(pts[i - 1]!) === 1 && (
+          <line key={`l${i}`} x1={x(dayN(pts[i - 1]!))} y1={y(pts[i - 1]!.v)} x2={x(dayN(q))} y2={y(q.v)} stroke={colour} strokeOpacity=".3" strokeWidth="1" />
+        ))}
+        <path d={smoothPath(avg)} fill="none" stroke={colour} strokeWidth="2.25" strokeLinecap="round" />
+        {pts.map((q, i) => (
+          <circle key={q.d.date} cx={x(dayN(q))} cy={y(q.v)} r={i === shown ? 5 : 2.75} fill={off(q.v) ? "var(--crit)" : i === shown ? colour : "var(--card)"} stroke={off(q.v) ? "var(--card)" : colour} strokeWidth={i === shown ? 2 : 1.5} />
+        ))}
+        {at !== null && <line x1={x(dayN(p))} x2={x(dayN(p))} y1={top - 6} y2={H - bottom} stroke="var(--text2)" strokeWidth="1" />}
+        {weeks.map((q) => <text key={q.d.date} x={x(dayN(q))} y={H - 5} fontSize="10" fill="var(--text3)" textAnchor="middle" fontFamily="var(--num)">{dayLabel(q.d.date, { day: "numeric", month: "short" })}</text>)}
+        <text x={W - right} y={H - 5} fontSize="10" fill="var(--text3)" textAnchor="end" fontFamily="var(--num)">Today</text>
       </svg>
-      {usual && <div className="tiny" style={{ marginTop: 4 }}><i className="rc-usual-key" /> Your usual range, last {usual.n} days · <i className="rc-off-key" /> outside it</div>}
+      <div className="rc-legend tiny" style={{ marginTop: 4 }}>
+        <span><i style={{ background: colour, height: 2.5, width: 14 }} />7-day average</span>
+        <span><i style={{ background: "var(--card)", border: `1.5px solid ${colour}`, borderRadius: "50%", width: 7, height: 7 }} />Each morning</span>
+        {usual && <span><i className="rc-usual-key" style={{ margin: 0 }} />Your usual</span>}
+        {usual && <span><i style={{ background: "var(--crit)", borderRadius: "50%", width: 7, height: 7 }} />Outside it</span>}
+      </div>
     </div>
   );
 }

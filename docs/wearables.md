@@ -54,3 +54,7 @@ For each one: create a developer app, set its redirect address to `https://apex-
 Then deploy once: `npx supabase functions deploy wearables --project-ref ptxtshirthnzovfbdyav`, and redeploy on Vercel.
 
 Code: `packages/core/src/recovery.ts` (mappers, baselines, readiness pre-fill), `packages/core/src/wearables.ts` (sign-in links), `supabase/functions/wearables` (tokens and API calls), `apps/web/src/app/RecoveryView.tsx`.
+
+## Street maps under routes
+
+Routes are drawn on CARTO's OpenStreetMap basemaps (light and dark), credited on the map. CARTO's free tier is meant for light, non-commercial use. Before APEX has paying clients in volume, create a free key with a map tile provider (MapTiler, Stadia Maps or similar) and set it in Vercel as `VITE_MAP_TILES`, a tile address template using `{z}`, `{x}`, `{y}` (and optionally `{s}` and `{theme}`, which becomes `light_all` or `dark_all`). If tiles cannot load, the route still shows on a plain background.

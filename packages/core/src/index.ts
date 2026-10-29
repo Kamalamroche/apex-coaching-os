@@ -33,3 +33,4 @@ export * from "./strava";
 export * from "./recovery";
 export * from "./recoveryTrends";
 export * from "./wearables";
+export * from "./mapView";
