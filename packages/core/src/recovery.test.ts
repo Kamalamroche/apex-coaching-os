@@ -9,7 +9,7 @@ describe("Whoop", () => {
   it("puts the night, recovery and strain on the morning they belong to", () => {
     const days = fromWhoop({
       sleep: [
-        { end: "2026-10-28T06:40:00Z", score_state: "SCORED", score: { stage_summary: { total_in_bed_time_milli: 8 * H, total_awake_time_milli: 0.5 * H, total_light_sleep_time_milli: 3.5 * H, total_slow_wave_sleep_time_milli: 1.5 * H, total_rem_sleep_time_milli: 2 * H }, sleep_performance_percentage: 88, respiratory_rate: 15.234 } },
+        { start: "2026-10-27T22:40:00Z", end: "2026-10-28T06:40:00Z", score_state: "SCORED", score: { stage_summary: { total_in_bed_time_milli: 8 * H, total_awake_time_milli: 0.5 * H, total_light_sleep_time_milli: 3.5 * H, total_slow_wave_sleep_time_milli: 1.5 * H, total_rem_sleep_time_milli: 2 * H }, sleep_performance_percentage: 88, respiratory_rate: 15.234 } },
         { end: "2026-10-28T14:00:00Z", nap: true, score_state: "SCORED", score: { stage_summary: { total_light_sleep_time_milli: H } } },
       ],
       recovery: [{ created_at: "2026-10-28T06:45:00Z", score_state: "SCORED", score: { recovery_score: 71, resting_heart_rate: 52, hrv_rmssd_milli: 64.27 } }],
@@ -17,7 +17,7 @@ describe("Whoop", () => {
     }, (iso) => iso.slice(0, 10));
     expect(days).toEqual([{
       date: "2026-10-28", source: "whoop", sleepMinutes: 420, stages: { deep: 90, rem: 120, light: 210, awake: 30 }, sleepScore: 88, respiratoryRate: 15.2,
-      recoveryScore: 71, restingHr: 52, hrvMs: 64.3, strain: 13.4,
+      recoveryScore: 71, restingHr: 52, hrvMs: 64.3, strain: 13.4, bedtime: "2026-10-27T22:40:00Z", wakeTime: "2026-10-28T06:40:00Z",
     }]);
   });
 

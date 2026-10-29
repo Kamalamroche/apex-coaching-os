@@ -91,13 +91,11 @@ export function RouteMap({ activity, height = 240 }: { activity: Activity; heigh
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Route of ${activity.name}`}>
         <defs>
           <pattern id={`g${id}`} width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="var(--line)" strokeWidth="1" /></pattern>
-          <filter id={`f${id}`} x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" /></filter>
         </defs>
         <rect width={W} height={H} fill={`url(#g${id})`} />
-        <path d={full} fill="none" stroke="var(--act)" strokeOpacity=".35" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" filter={`url(#f${id})`} />
         <path d={full} fill="none" stroke="var(--bg)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
         {segs.map((s, i) => (
-          <path key={i} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--act) ${s.heat}%, var(--data))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path key={i} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--viz-2) ${s.heat}%, var(--viz-1))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
         ))}
         {marks.map((m) => (
           <g key={m.label} transform={`translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})`}>
@@ -130,7 +128,6 @@ export function ProfileChart({ activity }: { activity: Activity }) {
   const options = (["pace", "hr", "ele"] as Metric[]).filter((m) => has[m]);
   const [metric, setMetric] = useState<Metric>(options[0] ?? "pace");
   const [at, setAt] = useState<number | null>(null);
-  const id = useId().replace(/:/g, "");
   const series = useMemo(() => {
     if (metric === "pace") {
       const spm = paceSeries(profile);
@@ -152,7 +149,7 @@ export function ProfileChart({ activity }: { activity: Activity }) {
   const pts = profile.map((p, i) => (Number.isFinite(series[i]!) ? [x(p.m), y(series[i]!)] as const : null)).filter((p): p is readonly [number, number] => !!p);
   const line = pts.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`).join("");
   const area = pts.length ? `${line}L${pts.at(-1)![0].toFixed(1)} ${H - bottom}L${pts[0]![0].toFixed(1)} ${H - bottom}Z` : "";
-  const colour = metric === "pace" ? "var(--act)" : metric === "hr" ? "var(--crit)" : "var(--data)";
+  const colour = metric === "pace" ? "var(--viz-1)" : metric === "hr" ? "var(--viz-2)" : "var(--viz-3)";
   const ticks = Array.from({ length: 5 }, (_, k) => (total * k) / 4);
   const p = at !== null ? profile[at] : null;
   const fmt = (i: number) => {
@@ -173,14 +170,11 @@ export function ProfileChart({ activity }: { activity: Activity }) {
         <div className="chips">
           {options.map((m) => <button key={m} className={`chip ${metric === m ? "on" : ""}`} onClick={() => setMetric(m)}>{m === "pace" ? (activity.sport === "ride" ? "Speed" : "Pace") : m === "hr" ? "Heart rate" : "Elevation"}</button>)}
         </div>
-        <span className="num small" style={{ color: colour, fontWeight: 700 }}>{p ? `${fmt(at!)} · ${(p.m / 1000).toFixed(2)} km` : avgLabel}</span>
+        <span className="num small" style={{ fontWeight: 700 }}>{p ? `${fmt(at!)} · ${(p.m / 1000).toFixed(2)} km` : avgLabel}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setAt(null)} role="img" aria-label={`${metric === "pace" ? "Pace" : metric === "hr" ? "Heart rate" : "Elevation"} over the distance`}>
-        <defs>
-          <linearGradient id={`a${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={colour} stopOpacity=".35" /><stop offset="1" stopColor={colour} stopOpacity="0" /></linearGradient>
-        </defs>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={W} y1={top + f * (H - top - bottom)} y2={top + f * (H - top - bottom)} stroke="var(--line)" strokeDasharray="3 5" />)}
-        <path d={area} fill={`url(#a${id})`} />
+        <path d={area} fill={colour} fillOpacity=".1" />
         <path d={line} fill="none" stroke={colour} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         {ticks.map((m, k) => <text key={k} x={Math.min(W - 2, Math.max(2, x(m)))} y={H - 6} fontSize="11" fill="var(--text3)" textAnchor={k === 0 ? "start" : k === 4 ? "end" : "middle"} fontFamily="var(--num)">{(m / 1000).toFixed(m < 10000 ? 1 : 0)} km</text>)}
         {p && Number.isFinite(series[at!]!) && (
@@ -224,7 +218,8 @@ export function SplitsTable({ activity }: { activity: Activity }) {
   );
 }
 
-export const ZONE_COLOURS = ["var(--text3)", "var(--data)", "var(--good)", "var(--warn)", "var(--crit)"];
+/** Easy to max: a single-hue light-to-dark ramp, since zones are ordered intensity, not categories. */
+export const ZONE_COLOURS = ["color-mix(in srgb, var(--viz-2) 25%, var(--bg2))", "color-mix(in srgb, var(--viz-2) 45%, var(--bg2))", "color-mix(in srgb, var(--viz-2) 65%, var(--bg2))", "color-mix(in srgb, var(--viz-2) 85%, var(--bg2))", "var(--viz-2)"];
 
 export function HrZones({ activity }: { activity: Activity }) {
   const z = activity.detail?.hrZones;

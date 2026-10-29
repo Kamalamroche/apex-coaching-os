@@ -87,9 +87,16 @@ create table if not exists public.recovery_days (
   strain            numeric(4, 1) check (strain between 0 and 21),
   steps             int check (steps >= 0),
   respiratory_rate  numeric(4, 1),
+  bed_start         timestamptz,
+  bed_end           timestamptz,
+  hypnogram         text check (hypnogram ~ '^[dlra]{0,288}$'),
   updated_at        timestamptz not null default now(),
   primary key (client_id, day, source)
 );
+-- Bed and wake times and the stage timeline (added after the first draft of this file; safe to re-run).
+alter table public.recovery_days add column if not exists bed_start timestamptz;
+alter table public.recovery_days add column if not exists bed_end timestamptz;
+alter table public.recovery_days add column if not exists hypnogram text check (hypnogram ~ '^[dlra]{0,288}$');
 alter table public.recovery_days enable row level security;
 drop policy if exists "client manages own recovery" on public.recovery_days;
 create policy "client manages own recovery" on public.recovery_days for all

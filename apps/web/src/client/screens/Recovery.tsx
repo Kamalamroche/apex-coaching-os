@@ -11,7 +11,7 @@ const STALE_MS = 30 * 60 * 1000;
 /** The client's recovery: what their watch or ring measured, or what they typed in. */
 export function Recovery({ say, openApps }: { say: (m: string) => void; openApps: () => void }) {
   const { store, wearables } = useActivityContext();
-  const { recovery, connections, status } = useActivities();
+  const { recovery, activities, connections, status } = useActivities();
   const { coachName } = useAppInfo();
   const [adding, setAdding] = useState(false);
   const linked = connections.filter((c): c is typeof c & { provider: WearableProvider } => c.provider in WEARABLES);
@@ -32,7 +32,7 @@ export function Recovery({ say, openApps }: { say: (m: string) => void; openApps
         <button className="btn ghost sm" onClick={() => setAdding(true)}>Add numbers</button>
       </div>
       {status === "needs-update" && <div className="card small" style={{ borderColor: "var(--warn)" }}>Recovery needs a one-off database update before it can save. Ask {coachName} to run it.</div>}
-      {recovery.length ? <RecoveryView recovery={recovery} /> : (
+      {recovery.length ? <RecoveryView recovery={recovery} activities={activities} /> : (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div className="h3">No recovery data yet</div>
           <div className="small">Connect your watch or ring and your sleep, HRV and resting heart rate arrive each morning. They also fill in your readiness check before a session.</div>

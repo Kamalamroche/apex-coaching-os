@@ -4,6 +4,7 @@
    morning's numbers into suggested answers for the readiness check (the client can still change them). */
 
 import type { ReadinessAnswers } from "./readiness";
+import { fitbitHypnogram, ouraHypnogram } from "./recoveryTrends";
 
 export type RecoverySource = "whoop" | "oura" | "garmin" | "polar" | "fitbit" | "manual";
 
@@ -37,6 +38,11 @@ export interface RecoveryDay {
   strain?: number;
   steps?: number;
   respiratoryRate?: number;
+  /** ISO times the client got into and out of bed. */
+  bedtime?: string;
+  wakeTime?: string;
+  /** The night in five-minute steps from bedtime (d deep, l light, r REM, a awake), when the provider sends it. */
+  hypnogram?: string;
 }
 
 export type RecoveryMetric = "sleepMinutes" | "hrvMs" | "restingHr" | "recoveryScore" | "stress" | "sleepScore" | "steps";
@@ -159,7 +165,7 @@ const clean = (d: RecoveryDay): RecoveryDay => Object.fromEntries(Object.entries
 /** Whoop API v2: /recovery, /activity/sleep and /cycle records. A night belongs to the morning it ended. */
 export interface WhoopData {
   recovery?: { sleep_id?: string; created_at: string; score_state: string; score?: { recovery_score?: number; resting_heart_rate?: number; hrv_rmssd_milli?: number } }[];
-  sleep?: { id?: string; end: string; nap?: boolean; score_state: string; score?: { stage_summary?: { total_in_bed_time_milli?: number; total_awake_time_milli?: number; total_light_sleep_time_milli?: number; total_slow_wave_sleep_time_milli?: number; total_rem_sleep_time_milli?: number }; sleep_performance_percentage?: number; respiratory_rate?: number } }[];
+  sleep?: { id?: string; start?: string; end: string; nap?: boolean; score_state: string; score?: { stage_summary?: { total_in_bed_time_milli?: number; total_awake_time_milli?: number; total_light_sleep_time_milli?: number; total_slow_wave_sleep_time_milli?: number; total_rem_sleep_time_milli?: number }; sleep_performance_percentage?: number; respiratory_rate?: number } }[];
   cycle?: { start: string; end?: string | null; score_state: string; score?: { strain?: number } }[];
 }
 
@@ -175,6 +181,7 @@ export function fromWhoop(data: WhoopData, tzDate: (iso: string) => string = (is
     Object.assign(day(tzDate(s.end)), {
       sleepMinutes: deep + rem + light, stages: { deep, rem, light, awake: msToMin(st.total_awake_time_milli) ?? 0 },
       sleepScore: s.score.sleep_performance_percentage, respiratoryRate: r1(s.score.respiratory_rate),
+      bedtime: s.start, wakeTime: s.end,
     });
   }
   for (const r of data.recovery ?? []) {
@@ -192,7 +199,7 @@ export function fromWhoop(data: WhoopData, tzDate: (iso: string) => string = (is
 /** Oura API v2 usercollection: daily_sleep, sleep, daily_readiness, daily_activity, daily_stress. */
 export interface OuraData {
   daily_sleep?: { day: string; score?: number | null }[];
-  sleep?: { day: string; type?: string; total_sleep_duration?: number | null; deep_sleep_duration?: number | null; rem_sleep_duration?: number | null; light_sleep_duration?: number | null; awake_time?: number | null; average_hrv?: number | null; lowest_heart_rate?: number | null; average_breath?: number | null }[];
+  sleep?: { day: string; type?: string; total_sleep_duration?: number | null; deep_sleep_duration?: number | null; rem_sleep_duration?: number | null; light_sleep_duration?: number | null; awake_time?: number | null; average_hrv?: number | null; lowest_heart_rate?: number | null; average_breath?: number | null; bedtime_start?: string; bedtime_end?: string; sleep_phase_5_min?: string | null }[];
   daily_readiness?: { day: string; score?: number | null }[];
   daily_activity?: { day: string; steps?: number | null }[];
   /** Seconds of high stress and of high recovery in the day. */
@@ -209,6 +216,7 @@ export function fromOura(data: OuraData): RecoveryDay[] {
       sleepMinutes: sToMin(s.total_sleep_duration ?? undefined),
       stages: { deep: sToMin(s.deep_sleep_duration ?? 0) ?? 0, rem: sToMin(s.rem_sleep_duration ?? 0) ?? 0, light: sToMin(s.light_sleep_duration ?? 0) ?? 0, awake: sToMin(s.awake_time ?? 0) ?? 0 },
       hrvMs: s.average_hrv ?? undefined, restingHr: s.lowest_heart_rate ?? undefined, respiratoryRate: r1(s.average_breath),
+      bedtime: s.bedtime_start, wakeTime: s.bedtime_end, hypnogram: s.sleep_phase_5_min ? ouraHypnogram(s.sleep_phase_5_min) || undefined : undefined,
     });
   }
   for (const r of data.daily_readiness ?? []) if (r.score != null) day(r.day).recoveryScore = r.score;
@@ -225,7 +233,7 @@ export function fromOura(data: OuraData): RecoveryDay[] {
 /** Garmin Health API summaries: dailies, sleeps and hrv. */
 export interface GarminData {
   dailies?: { calendarDate: string; restingHeartRateInBeatsPerMinute?: number; averageStressLevel?: number; steps?: number; bodyBatteryHighestValue?: number }[];
-  sleeps?: { calendarDate: string; durationInSeconds?: number; deepSleepDurationInSeconds?: number; lightSleepDurationInSeconds?: number; remSleepInSeconds?: number; awakeDurationInSeconds?: number; overallSleepScore?: { value?: number } }[];
+  sleeps?: { calendarDate: string; startTimeInSeconds?: number; durationInSeconds?: number; deepSleepDurationInSeconds?: number; lightSleepDurationInSeconds?: number; remSleepInSeconds?: number; awakeDurationInSeconds?: number; overallSleepScore?: { value?: number } }[];
   hrv?: { calendarDate: string; lastNightAvg?: number }[];
 }
 
@@ -241,7 +249,11 @@ export function fromGarmin(data: GarminData): RecoveryDay[] {
     const light = sToMin(s.lightSleepDurationInSeconds) ?? 0;
     const rem = sToMin(s.remSleepInSeconds) ?? 0;
     const awake = sToMin(s.awakeDurationInSeconds) ?? 0;
-    Object.assign(day(s.calendarDate), { sleepMinutes: deep + light + rem || sToMin(s.durationInSeconds), stages: { deep, rem, light, awake }, sleepScore: s.overallSleepScore?.value });
+    const bed = s.startTimeInSeconds !== undefined ? s.startTimeInSeconds * 1000 : undefined;
+    Object.assign(day(s.calendarDate), {
+      sleepMinutes: deep + light + rem || sToMin(s.durationInSeconds), stages: { deep, rem, light, awake }, sleepScore: s.overallSleepScore?.value,
+      ...(bed !== undefined && s.durationInSeconds ? { bedtime: new Date(bed).toISOString(), wakeTime: new Date(bed + s.durationInSeconds * 1000).toISOString() } : {}),
+    });
   }
   for (const h of data.hrv ?? []) day(h.calendarDate).hrvMs = h.lastNightAvg;
   return [...by.values()].map(clean);
@@ -249,7 +261,7 @@ export function fromGarmin(data: GarminData): RecoveryDay[] {
 
 /** Fitbit Web API: sleep (v1.2), hrv, activities/heart and activities/steps date ranges. */
 export interface FitbitData {
-  sleep?: { dateOfSleep: string; isMainSleep?: boolean; minutesAsleep?: number; efficiency?: number; levels?: { summary?: { deep?: { minutes: number }; rem?: { minutes: number }; light?: { minutes: number }; wake?: { minutes: number } } } }[];
+  sleep?: { dateOfSleep: string; isMainSleep?: boolean; minutesAsleep?: number; efficiency?: number; startTime?: string; endTime?: string; levels?: { data?: { dateTime: string; level: string; seconds: number }[]; summary?: { deep?: { minutes: number }; rem?: { minutes: number }; light?: { minutes: number }; wake?: { minutes: number } } } }[];
   hrv?: { dateTime: string; value?: { dailyRmssd?: number } }[];
   "activities-heart"?: { dateTime: string; value?: { restingHeartRate?: number } }[];
   "activities-steps"?: { dateTime: string; value: string | number }[];
@@ -264,6 +276,9 @@ export function fromFitbit(data: FitbitData): RecoveryDay[] {
     Object.assign(day(s.dateOfSleep), {
       sleepMinutes: s.minutesAsleep,
       ...(l?.deep ? { stages: { deep: l.deep.minutes, rem: l.rem?.minutes ?? 0, light: l.light?.minutes ?? 0, awake: l.wake?.minutes ?? 0 } } : {}),
+      // Fitbit sends local times with no zone; this runs in the client's browser, so they read as local.
+      bedtime: s.startTime ? new Date(s.startTime).toISOString() : undefined, wakeTime: s.endTime ? new Date(s.endTime).toISOString() : undefined,
+      hypnogram: l?.deep && s.levels?.data?.length && s.startTime ? fitbitHypnogram(s.levels.data, s.startTime) : undefined,
     });
   }
   for (const h of data.hrv ?? []) if (h.value?.dailyRmssd) day(h.dateTime).hrvMs = r1(h.value.dailyRmssd);
@@ -278,7 +293,7 @@ export function fromFitbit(data: FitbitData): RecoveryDay[] {
 
 /** Polar AccessLink: /users/sleep nights and /users/nightly-recharge. */
 export interface PolarData {
-  nights?: { date: string; light_sleep?: number; deep_sleep?: number; rem_sleep?: number; total_interruption_duration?: number; sleep_score?: number }[];
+  nights?: { date: string; sleep_start_time?: string; sleep_end_time?: string; light_sleep?: number; deep_sleep?: number; rem_sleep?: number; total_interruption_duration?: number; sleep_score?: number }[];
   recharges?: { date: string; heart_rate_avg?: number; heart_rate_variability_avg?: number; nightly_recharge_status?: number }[];
 }
 
@@ -289,7 +304,7 @@ export function fromPolar(data: PolarData): RecoveryDay[] {
     const deep = sToMin(n.deep_sleep) ?? 0;
     const light = sToMin(n.light_sleep) ?? 0;
     const rem = sToMin(n.rem_sleep) ?? 0;
-    Object.assign(day(n.date), { sleepMinutes: deep + light + rem, stages: { deep, rem, light, awake: sToMin(n.total_interruption_duration) ?? 0 }, sleepScore: n.sleep_score });
+    Object.assign(day(n.date), { sleepMinutes: deep + light + rem, stages: { deep, rem, light, awake: sToMin(n.total_interruption_duration) ?? 0 }, sleepScore: n.sleep_score, bedtime: n.sleep_start_time, wakeTime: n.sleep_end_time });
   }
   // Nightly Recharge status runs from 1 (very poor) to 6 (very good); as 0–100.
   for (const r of data.recharges ?? []) {

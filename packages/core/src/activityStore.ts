@@ -80,6 +80,9 @@ export interface RecoveryRow {
   strain: number | null;
   steps: number | null;
   respiratory_rate: number | null;
+  bed_start: string | null;
+  bed_end: string | null;
+  hypnogram: string | null;
 }
 
 export function toRecoveryRow(d: RecoveryDay, clientId: string): RecoveryRow {
@@ -88,6 +91,7 @@ export function toRecoveryRow(d: RecoveryDay, clientId: string): RecoveryRow {
     deep_minutes: d.stages?.deep ?? null, rem_minutes: d.stages?.rem ?? null, light_minutes: d.stages?.light ?? null, awake_minutes: d.stages?.awake ?? null,
     sleep_score: d.sleepScore ?? null, hrv_ms: d.hrvMs ?? null, resting_hr: d.restingHr ?? null, recovery_score: d.recoveryScore ?? null,
     stress: d.stress ?? null, strain: d.strain ?? null, steps: d.steps ?? null, respiratory_rate: d.respiratoryRate ?? null,
+    bed_start: d.bedtime ?? null, bed_end: d.wakeTime ?? null, hypnogram: d.hypnogram?.slice(0, 288) ?? null,
   };
 }
 
@@ -96,6 +100,7 @@ export function fromRecoveryRow(r: RecoveryRow): RecoveryDay {
   const d: RecoveryDay = {
     date: r.day.slice(0, 10), source: r.source, sleepMinutes: n(r.sleep_minutes), sleepScore: n(r.sleep_score), hrvMs: n(r.hrv_ms), restingHr: n(r.resting_hr),
     recoveryScore: n(r.recovery_score), stress: n(r.stress), strain: n(r.strain), steps: n(r.steps), respiratoryRate: n(r.respiratory_rate),
+    bedtime: r.bed_start ?? undefined, wakeTime: r.bed_end ?? undefined, hypnogram: r.hypnogram ?? undefined,
     ...(r.deep_minutes !== null ? { stages: { deep: Number(r.deep_minutes), rem: Number(r.rem_minutes ?? 0), light: Number(r.light_minutes ?? 0), awake: Number(r.awake_minutes ?? 0) } } : {}),
   };
   return Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)) as unknown as RecoveryDay;
