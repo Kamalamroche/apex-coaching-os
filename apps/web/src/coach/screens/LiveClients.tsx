@@ -8,6 +8,9 @@ import { useStore } from "../../data/StoreContext";
 import type { CoachLiveProps } from "../CoachApp";
 import { ClientCheckIns } from "./CheckIns";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
+import { ClientFormChecks } from "./FormChecks";
+import { useFormChecks } from "../../data/FormCheckContext";
+import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { Transfer } from "./Transfer";
 
@@ -75,9 +78,10 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Program" | "Check-ins" | "Habits" | "Nutrition" | "About">("Program");
+  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Habits" | "Nutrition" | "About">("Program");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
+  const newVideos = awaitingReview(useFormChecks().checks).length;
   const flags = life.intake ? Object.values(life.intake.answers.health).filter(Boolean).length : 0;
   return (
     <>
@@ -86,10 +90,11 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
         <Avatar initials={initials(name)} size={56} tone="var(--act)" />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
-      <div className="chips">
-        {(["Program", "Check-ins", "Habits", "Nutrition", "About"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}</button>)}
+      <div className="chips" style={{ flexWrap: "wrap" }}>
+        {(["Program", "Check-ins", "Form checks", "Habits", "Nutrition", "About"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
+      {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}
       {tab === "Habits" && <CoachHabits clientName={name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={name} say={say} />}
       {tab === "About" && <IntakeView clientName={name} />}

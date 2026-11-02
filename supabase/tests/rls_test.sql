@@ -391,3 +391,40 @@ do $$ begin
   assert (select count(*) from coach_automations) = 0, 'client cannot read coach settings';
 end $$;
 reset role;
+
+-- video form checks
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into form_checks (id, client_id, exercise_id, exercise_name, note, storage_path, coach_reply)
+values ('70000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1',1,'Trap Bar Deadlift','Back flat?','00000000-0000-0000-0000-0000000000c1/a.mp4','self-praise');
+insert into storage.objects (bucket_id, name) values ('form-videos','00000000-0000-0000-0000-0000000000c1/a.mp4');
+do $$ begin
+  assert (select coach_reply from form_checks) is null, 'client cannot write a coach reply';
+  begin
+    insert into form_checks (client_id, exercise_name, storage_path) values ('00000000-0000-0000-0000-0000000000c1','x','00000000-0000-0000-0000-0000000000c2/x.mp4');
+    raise exception 'client registered a video in someone else''s folder';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('form-videos','00000000-0000-0000-0000-0000000000c2/x.mp4');
+    raise exception 'client uploaded into someone else''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+update form_checks set coach_reply = 'Flat back, nice. Push the floor away.', reviewed_at = now(), note = 'changed';
+do $$ begin
+  assert (select coach_reply from form_checks) like 'Flat back%', 'coach replies';
+  assert (select note from form_checks) = 'Back flat?', 'coach cannot change what the client sent';
+  assert (select count(*) from storage.objects where bucket_id = 'form-videos') = 1, 'coach can watch the video';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update form_checks set coach_reply = 'poach';
+do $$ begin
+  assert (select count(*) from form_checks) = 0, 'rival sees no form checks';
+  assert (select count(*) from storage.objects where bucket_id = 'form-videos') = 0, 'rival cannot watch the video';
+end $$;
+reset role;
+do $$ begin
+  assert (select coach_reply from form_checks) like 'Flat back%', 'rival cannot reply';
+end $$;
