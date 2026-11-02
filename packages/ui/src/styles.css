@@ -85,6 +85,28 @@ input,select{font-family:inherit}
 .video.clip{aspect-ratio:9/16;height:min(62vh,560px);width:auto;margin-inline:auto;background:var(--card2)}
 .video video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .video video+.tag{z-index:1}
+/* ---------- exercise card ---------- */
+.exc{padding:0;overflow:hidden}
+.ex-stage{position:relative;display:grid;place-items:center;padding:14px 14px 0;background:linear-gradient(180deg,var(--card2),var(--card))}
+.ex-stage .video{border:0;box-shadow:0 18px 40px -22px rgba(0,0,0,.45)}
+.ex-stage .video.clip{height:min(58vh,520px)}
+.ex-stage .video:not(.clip){width:100%}
+.ex-stage .target{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:1;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;padding:7px 12px;border-radius:999px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line);font:700 12px/1 var(--ui)}
+.ex-stage .target i{width:7px;height:7px;border-radius:50%;background:var(--act);box-shadow:0 0 0 3px var(--act-soft)}
+.ex-body{padding:18px 16px 20px;display:flex;flex-direction:column}
+.ex-over{font:600 10.5px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.ex-sect{border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
+.ex-sect>.ex-over{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ex-sect>.ex-over b{font:500 10.5px/1 var(--num);color:var(--act);letter-spacing:0}
+.ex-anat{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:center;padding:14px;border-radius:var(--r);background:var(--bg2)}
+.ex-dot{width:6px;height:6px;border-radius:50%;flex:none;background:color-mix(in srgb,var(--blue) 50%,transparent)}
+.ex-steps{margin:0;padding:0;list-style:none}
+.ex-steps li{display:grid;grid-template-columns:30px 1fr;gap:10px;padding:10px 0;line-height:1.5}
+.ex-steps li+li{border-top:1px solid var(--line)}
+.ex-steps li span:first-child{font:500 13px/1.5 var(--num);color:var(--act)}
+.ex-cues{border-left:2px solid var(--act);padding-left:14px;display:flex;flex-direction:column;gap:8px;line-height:1.5}
+.ex-warn{margin-top:16px;padding:12px 14px;border-radius:var(--r);background:var(--crit-soft);line-height:1.5}
+.ex-warn .ex-over{color:var(--crit);margin-bottom:6px}
 .sets{display:grid;grid-template-columns:34px 1fr 1fr 1fr 44px;gap:8px;align-items:center}
 .tick{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line2);background:none;font-size:18px;display:grid;place-items:center}
 .tick.on{background:var(--good);border-color:var(--good);color:#04130A}
