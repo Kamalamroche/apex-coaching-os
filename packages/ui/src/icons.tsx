@@ -1,5 +1,5 @@
 import {
-  Activity, Bike, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
+  Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
   MessageSquare, Moon, NotebookPen, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, type LucideIcon,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
@@ -42,6 +42,7 @@ export const Icons = {
   pulse: lucide(HeartPulse),
   link: lucide(Link),
   upload: lucide(Upload),
+  camera: lucide(Camera),
   figure: (p) => <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" {...p}><circle cx="32" cy="12" r="5" /><path d="M32 18v18M32 24l-12 6M32 24l12 6M32 36l-8 18M32 36l8 18" /></svg>,
   sleep: lucide(Moon),
   energy: lucide(Zap),
