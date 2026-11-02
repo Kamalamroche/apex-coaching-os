@@ -3,14 +3,16 @@ import { useApexState } from "@apex/core/react";
 import { BackLink, Icons } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useStore } from "../../data/StoreContext";
+import { Cardio } from "./Cardio";
 import { ExerciseCard } from "./ExerciseCard";
 
 const AREAS: ("All" | BodyArea)[] = ["All", "Legs", "Chest", "Back", "Shoulders", "Arms", "Core", "Full body"];
 const TYPES: ("All" | TrainingType)[] = ["All", "Strength", "Accessory", "Power", "Plyometric", "Isometric", "Balance", "Core", "Mobility", "Stretching", "Yoga"];
 const PAGE = 40;
 
-export function Train({ start }: { start: () => void }) {
+export function Train({ start, say }: { start: () => void; say: (m: string) => void }) {
   const store = useStore();
+  const [mode, setMode] = useState<"strength" | "cardio">("strength");
   const { workout, log } = useApexState(store);
   const [area, setArea] = useState<(typeof AREAS)[number]>("All");
   const [type, setType] = useState<(typeof TYPES)[number]>("All");
@@ -20,6 +22,13 @@ export function Train({ start }: { start: () => void }) {
   const list = useMemo(() => filterLibrary({ query, area, type }), [query, area, type]);
   const refilter = (fn: () => void) => { fn(); setShown(PAGE); };
 
+  const modes = (
+    <div className="chips" role="tablist" aria-label="Training type">
+      <button role="tab" aria-selected={mode === "strength"} className={`chip ${mode === "strength" ? "on" : ""}`} onClick={() => setMode("strength")}>Strength</button>
+      <button role="tab" aria-selected={mode === "cardio"} className={`chip ${mode === "cardio" ? "on" : ""}`} onClick={() => setMode("cardio")}>Cardio</button>
+    </div>
+  );
+  if (mode === "cardio") return <>{modes}<Cardio say={say} /></>;
   if (selected) {
     return (
       <>
@@ -36,6 +45,7 @@ export function Train({ start }: { start: () => void }) {
   ];
   return (
     <>
+      {modes}
       <div><div className="eyebrow">Program · week {workout.week} of {workout.ofWeeks}</div><h1 className="h1">Foundations</h1></div>
       <div className="card flat list">
         {schedule.map((r) => (

@@ -219,7 +219,7 @@ function crownCard(c: Ctx, d: ShareCanvasData, crown: CrownPlacement) {
 
   font(c, `700 39px ${T.num}`);
   c.fillStyle = T.warn;
-  c.fillText(`⚡ +${d.reward.xp} XP`, cx, 1788);
+  c.fillText(`+${d.reward.xp} XP`, cx, 1788);
 
   font(c, `400 28px ${T.head}`);
   c.fillStyle = T.text3;
@@ -313,7 +313,7 @@ function sticker(c: Ctx, d: ShareCanvasData, photo: ShareDraw["photo"], site: st
 
   if (hasBest) {
     cy += 26;
-    const t = `🏆 ${d.reward.reason}`;
+    const t = d.reward.reason;
     fit(c, t, 28, w - 120, (s) => font(c, `700 ${s}px ${T.head}`));
     const tw = c.measureText(t).width + 36;
     c.fillStyle = "rgba(255,106,26,.18)";
