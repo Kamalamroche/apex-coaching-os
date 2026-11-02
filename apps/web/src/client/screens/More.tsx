@@ -3,16 +3,18 @@ import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { ConnectedApps } from "./ConnectedApps";
+import { Membership } from "./Membership";
 
-type View = "food" | "habits" | "community" | "apps";
+export type MoreView = "food" | "habits" | "community" | "apps" | "membership";
+type View = MoreView;
 const MENU: [View, string, string][] = [
   ["food", "Nutrition", "1,432 of 1,900 kcal logged today"],
   ["habits", "Habits", "2 of 3 done today"],
   ["community", "Community", "Leaderboard and team feed"],
 ];
 
-export function More({ say }: { say: (m: string) => void }) {
-  const [view, setView] = useState<View | null>(null);
+export function More({ say, startOn = null }: { say: (m: string) => void; startOn?: View | null }) {
+  const [view, setView] = useState<View | null>(startOn);
   if (view) {
     return (
       <>
@@ -21,6 +23,7 @@ export function More({ say }: { say: (m: string) => void }) {
         {view === "habits" && <Habits />}
         {view === "community" && <Community />}
         {view === "apps" && <ConnectedApps say={say} />}
+        {view === "membership" && <Membership say={say} />}
       </>
     );
   }
@@ -29,6 +32,7 @@ export function More({ say }: { say: (m: string) => void }) {
       <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
       <SampleNote />
       <div className="card flat list">
+        <button className="li" onClick={() => setView("membership")}><div className="grow"><div className="h3">Membership</div><div className="small">Your coaching plan and payments</div></div><span className="tiny">›</span></button>
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}

@@ -45,7 +45,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
       {tab === "chat" && <Messages live={live} />}
       {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {tab === "food" && <CoachNutrition />}
-      {tab === "money" && <Business />}
+      {tab === "money" && <Business live={live} say={say} />}
       {toast}
     </Shell>
   );
