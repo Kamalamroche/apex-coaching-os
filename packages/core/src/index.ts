@@ -17,6 +17,7 @@ export * from "./store";
 export * from "./db";
 export * from "./checkins";
 export * from "./lifestyle";
+export * from "./automations";
 export { EXERCISES } from "./data/exercises";
 export { CLIENTS, DEMO_CLIENT_ID } from "./data/clients";
 export { INITIAL_WORKOUT, INITIAL_MESSAGES, INITIAL_HISTORY, PREVIOUS_BEST_KG } from "./data/workout";

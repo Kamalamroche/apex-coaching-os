@@ -340,3 +340,54 @@ do $$ begin
   assert (select count(*) from nutrition_targets) = 0, 'rival sees no targets';
 end $$;
 reset role;
+
+-- automatic messages
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+insert into coach_automations (coach_id, welcome_on, welcome_body, missed_on, missed_body, checkin_on, checkin_body, send_hour, timezone)
+values ('00000000-0000-0000-0000-00000000000c', true, 'Welcome {first_name}! {coach}', true, 'Hi {first_name}, {days} days since your last session', true, 'Check-in today, {first_name}', 9, 'Europe/London');
+do $$ begin
+  begin
+    insert into coach_automations (coach_id) values ('00000000-0000-0000-0000-00000000000d');
+    raise exception 'coach wrote another coach''s automations';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.run_automations();
+    raise exception 'a signed-in user ran the automations';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Priya joined today with no coach message yet, check-in day Monday, no workouts. Monday 2026-11-09 10:00 London.
+delete from messages where coach_id = '00000000-0000-0000-0000-00000000000c' and sender_id = '00000000-0000-0000-0000-00000000000c';
+update coach_clients set started_at = '2026-11-08 09:00+00', check_in_day = 0 where client_id = '00000000-0000-0000-0000-0000000000c1';
+delete from check_ins where client_id = '00000000-0000-0000-0000-0000000000c1';
+delete from sessions where client_id = '00000000-0000-0000-0000-0000000000c1';
+-- Other clients of this coach get their own reminders; these checks count Priya's sends only.
+create function pg_temp.priya_sends() returns bigint language sql as $$ select count(*) from automation_sends where client_id = '00000000-0000-0000-0000-0000000000c1' $$;
+do $$ begin
+  perform public.run_automations('2026-11-09 10:00+00');
+  assert pg_temp.priya_sends() = 2, format('welcome and check-in reminder go, got %s', pg_temp.priya_sends());
+  assert (select count(*) from messages where body = 'Welcome Priya! Kamal') = 1, 'welcome filled in';
+  assert (select count(*) from messages where body = 'Check-in today, Priya') = 1, 'reminder filled in';
+  perform public.run_automations('2026-11-09 11:00+00');
+  assert pg_temp.priya_sends() = 2, 'nothing goes twice';
+  -- Six days later, still no workout: the missed nudge goes once, and not the welcome again.
+  perform public.run_automations('2026-11-14 10:00+00');
+  assert pg_temp.priya_sends() = 3, 'missed nudge goes';
+  assert (select count(*) from messages where body like 'Hi Priya, 6 days since%') = 1, 'missed nudge counts days';
+  perform public.run_automations('2026-11-15 10:00+00');
+  assert pg_temp.priya_sends() = 3, 'one nudge per gap';
+  -- Next Monday before the send hour: the reminder waits.
+  perform public.run_automations('2026-11-16 07:00+00');
+  assert pg_temp.priya_sends() = 3, 'reminder waits for the send hour';
+  perform public.run_automations('2026-11-16 09:30+00');
+  assert pg_temp.priya_sends() = 4, 'next week''s reminder goes at the send hour';
+  assert (select count(*) from messages where client_id = '00000000-0000-0000-0000-0000000000c2' and sender_id = '00000000-0000-0000-0000-00000000000d') = 0, 'rival client untouched';
+end $$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from automation_sends) = 0, 'client cannot see the send log';
+  assert (select count(*) from coach_automations) = 0, 'client cannot read coach settings';
+end $$;
+reset role;
