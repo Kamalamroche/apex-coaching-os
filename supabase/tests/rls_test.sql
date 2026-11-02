@@ -285,3 +285,58 @@ do $$ begin
   assert (select coach_reply from check_ins where id = '50000000-0000-0000-0000-000000000001') = 'Great week', 'rival cannot reply';
 end $$;
 
+
+-- habits, nutrition and the questionnaire
+reset role;
+insert into client_habits (id, client_id, title) values ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2','Rival client habit');
+set role authenticated;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into client_habits (id, client_id, kind, title) values ('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1','water','Drink 2.5 L of water');
+insert into nutrition_targets (client_id, kcal, protein_g, carbs_g, fat_g) values ('00000000-0000-0000-0000-0000000000c1',1900,120,210,60);
+do $$ begin
+  assert (select count(*) from client_habits) = 1, 'coach sees own client habits only';
+  begin
+    insert into client_habits (client_id, title) values ('00000000-0000-0000-0000-0000000000c2','poach');
+    raise exception 'coach set a habit for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into habit_ticks (habit_id, client_id, day) values ('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1','2026-11-02');
+insert into food_entries (client_id, day, meal, name, kcal, protein_g) values ('00000000-0000-0000-0000-0000000000c1','2026-11-02','lunch','Chicken and rice',600,45);
+insert into intake_forms (client_id, answers, health_flags) values ('00000000-0000-0000-0000-0000000000c1','{"goal":"Lose 5 kg"}',1);
+do $$ begin
+  assert (select count(*) from client_habits) = 1, 'client reads own habits';
+  assert (select kcal from nutrition_targets) = 1900, 'client reads own targets';
+  begin
+    insert into habit_ticks (habit_id, client_id, day) values ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1','2026-11-02');
+    raise exception 'client ticked someone else''s habit';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into client_habits (client_id, title) values ('00000000-0000-0000-0000-0000000000c1','self-made');
+    raise exception 'client created a habit';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into nutrition_targets (client_id, kcal, protein_g, carbs_g, fat_g) values ('00000000-0000-0000-0000-0000000000c1',5000,1,1,1);
+    raise exception 'client set own targets';
+  exception when insufficient_privilege or unique_violation then null; end;
+end $$;
+update nutrition_targets set kcal = 5000;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from habit_ticks) = 1, 'coach sees client ticks';
+  assert (select count(*) from food_entries) = 1, 'coach sees client food log';
+  assert (select health_flags from intake_forms) = 1, 'coach reads the questionnaire';
+  assert (select kcal from nutrition_targets) = 1900, 'client cannot change targets';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from habit_ticks) = 0, 'rival sees no ticks';
+  assert (select count(*) from food_entries) = 0, 'rival sees no food log';
+  assert (select count(*) from intake_forms) = 0, 'rival sees no questionnaire';
+  assert (select count(*) from nutrition_targets) = 0, 'rival sees no targets';
+end $$;
+reset role;

@@ -10,6 +10,8 @@ import { StoreProvider } from "../data/StoreContext";
 import { finishStravaConnect, liveStravaLink } from "../data/strava";
 import { finishWearableConnect, liveWearableLink } from "../data/wearables";
 import { createSupabaseActivities } from "../data/supabaseActivities";
+import { LifestyleProvider } from "../data/LifestyleContext";
+import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 
@@ -35,6 +37,8 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const activities = useMemo(() => createSupabaseActivities(db, profile.id), [db, profile.id]);
   const strava = useMemo(() => liveStravaLink(db, activities), [db, activities]);
   useEffect(() => () => activities.close(), [activities]);
+  const lifestyle = useMemo(() => createSupabaseLifestyle(db, profile.id), [db, profile.id]);
+  useEffect(() => () => lifestyle.close(), [lifestyle]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
   const notice = useConnectReturn(db, activities, strava, wearables);
 
@@ -52,7 +56,9 @@ export function ClientLive({ db, profile, signOut }: Live) {
     <AppInfoProvider info={{ mode: "live", coachName: coach.name.split(" ")[0] ?? coach.name, clientName: profile.full_name, signOut }}>
       <StoreProvider store={store}>
         <ActivityProvider store={activities} strava={strava} wearables={wearables}>
-          <ClientApp notice={notice} />
+          <LifestyleProvider store={lifestyle}>
+            <ClientApp notice={notice} />
+          </LifestyleProvider>
         </ActivityProvider>
       </StoreProvider>
     </AppInfoProvider>

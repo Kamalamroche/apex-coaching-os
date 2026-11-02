@@ -4,11 +4,12 @@ import { Avatar, BackLink, Bar, Label, Spark, riskColor } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
+import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { Transfer } from "./Transfer";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Program" | "Check-ins";
+type ProfileTab = "Overview" | "Program" | "Check-ins" | "Habits" | "Nutrition" | "About";
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
@@ -75,7 +76,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips">{(["Overview", "Program", "Check-ins"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips">{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Check-ins", "Habits", "Nutrition", "About"] as const) : (["Overview", "Program", "Check-ins"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
@@ -108,6 +109,9 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
       )}
 
       {tab === "Check-ins" && c.id === DEMO_CLIENT_ID && <ClientCheckIns clientName={c.name} say={say} />}
+      {tab === "Habits" && <CoachHabits clientName={c.name} say={say} />}
+      {tab === "Nutrition" && <CoachNutritionPanel clientName={c.name} say={say} />}
+      {tab === "About" && <IntakeView clientName={c.name} />}
       {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
         <div className="card flat list">
           {CHECK_INS.map((r) => (

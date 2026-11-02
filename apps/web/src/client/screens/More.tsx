@@ -1,25 +1,37 @@
-import { CLIENTS, FOODS, type Food } from "@apex/core";
-import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
+import { CLIENTS, dayTotals, habitsOn, isDone, localDate } from "@apex/core";
+import { Avatar, BackLink, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import { useAppInfo } from "../../app/AppContext";
+import { useLifestyle } from "../../data/LifestyleContext";
 import { ConnectedApps } from "./ConnectedApps";
+import { Habits } from "./Habits";
+import { Intake } from "./Intake";
+import { ClientNutrition } from "./Nutrition";
 
-type View = "food" | "habits" | "community" | "apps";
-const MENU: [View, string, string][] = [
-  ["food", "Nutrition", "1,432 of 1,900 kcal logged today"],
-  ["habits", "Habits", "2 of 3 done today"],
-  ["community", "Community", "Leaderboard and team feed"],
-];
+type View = "food" | "habits" | "community" | "apps" | "intake";
 
 export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
+  const { coachName } = useAppInfo();
+  const life = useLifestyle();
+  const today = localDate(new Date());
+  const due = habitsOn(life.habits, today);
+  const kcal = Math.round(dayTotals(life.food, today).kcal);
+  const MENU: [View, string, string][] = [
+    ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
+    ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
+    ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
+    ["community", "Community", "Leaderboard and team feed"],
+  ];
+  if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
   if (view) {
     return (
       <>
         <BackLink onClick={() => setView(null)}>More</BackLink>
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
-        {view === "community" && <Community />}
+        {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
       </>
     );
@@ -27,7 +39,6 @@ export function More({ say }: { say: (m: string) => void }) {
   return (
     <>
       <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
-      <SampleNote />
       <div className="card flat list">
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
@@ -35,71 +46,6 @@ export function More({ say }: { say: (m: string) => void }) {
         <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
         {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-const TARGET = { kcal: 1900, protein: 120, carbs: 210, fat: 60 };
-
-function ClientNutrition() {
-  const [log, setLog] = useState<Food[]>(() => [4, 3, 0, 1].map((i) => FOODS[i]).filter((f): f is Food => !!f));
-  const [q, setQ] = useState("");
-  const tot = log.reduce((a, f) => ({ kcal: a.kcal + f.kcal, protein: a.protein + f.protein, carbs: a.carbs + f.carbs, fat: a.fat + f.fat }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
-  const hits = FOODS.filter((f) => f.name.toLowerCase().includes(q.toLowerCase()));
-  const macros = [["Protein", tot.protein, TARGET.protein, "var(--crit)"], ["Carbs", tot.carbs, TARGET.carbs, "var(--data)"], ["Fat", tot.fat, TARGET.fat, "var(--warn)"]] as const;
-  return (
-    <>
-      <div><div className="eyebrow">Nutrition</div><h1 className="h1"><span className="num">{tot.kcal.toLocaleString()}</span> / {TARGET.kcal.toLocaleString()} kcal</h1></div>
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {macros.map(([l, v, t, c]) => (
-          <div key={l}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 4 }}><span className="small">{l}</span><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{v} / {t} g</span></div>
-            <Bar pct={(v / t) * 100} color={c} />
-          </div>
-        ))}
-      </div>
-      <div className="card flat list">
-        {log.map((f, i) => (
-          <div key={f.id} className="li">
-            <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">P {f.protein} · C {f.carbs} · F {f.fat}</div></div>
-            <span className="num small">{f.kcal}</span>
-            <button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={() => setLog((l) => l.filter((_, j) => j !== i))}>×</button>
-          </div>
-        ))}
-      </div>
-      <input id="foodsearch" className="field" placeholder="Search foods or scan a barcode" value={q} onChange={(e) => setQ(e.target.value)} />
-      {q && (
-        <div className="card flat list">
-          {hits.length === 0 ? <div className="li small">No match in the sample list.</div> : hits.map((f) => {
-            const added = log.some((l) => l.id === f.id);
-            return (
-              <div key={f.id} className="li">
-                <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal</div></div>
-                <button className={`btn sm ${added ? "ghost" : "act"}`} disabled={added} onClick={() => setLog((l) => [...l, f])}>{added ? "Added" : "Add"}</button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
-const HABITS = [["water", "Drink 2.5 L water"], ["steps", "8,000 steps"], ["sleep", "In bed by 10:30 pm"]] as const;
-
-function Habits() {
-  const [done, setDone] = useState<Record<string, boolean>>({ water: true, steps: true, sleep: false });
-  return (
-    <>
-      <div><div className="eyebrow">Habits</div><h1 className="h1">{Object.values(done).filter(Boolean).length} of {HABITS.length} today</h1></div>
-      <div className="card flat list">
-        {HABITS.map(([k, t]) => (
-          <label key={k} className="li" style={{ cursor: "pointer" }}>
-            <input type="checkbox" checked={!!done[k]} onChange={(e) => setDone((s) => ({ ...s, [k]: e.target.checked }))} style={{ width: 22, height: 22, accentColor: "var(--good)" }} />
-            <span className="h3">{t}</span>
-          </label>
         ))}
       </div>
     </>

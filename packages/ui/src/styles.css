@@ -490,3 +490,22 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .cx-load-bars div{height:8px;border-radius:4px;background:var(--bg2);overflow:hidden}
 .cx-load-bars i{display:block;height:100%;border-radius:4px}
 .cx-load-bars b{text-align:right}
+
+/* habits */
+.hb-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.hb-day{display:flex;flex-direction:column;align-items:center;gap:4px}
+.hb-sq{width:100%;height:12px;border-radius:3px;border:1px solid var(--line);background:var(--bg2)}
+.hb-sq.all{background:var(--good);border-color:var(--good)}
+.hb-sq{overflow:hidden;display:flex}
+.hb-sq.some{background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.hb-sq.some i{display:block;height:100%;background:var(--good)}
+.hb-sq.miss{background:none;border-color:var(--line2)}
+.hb-sq.open{background:none;border:1.5px dashed var(--line2)}
+.hb-sq.none{opacity:.45}
+.hb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px}
+.hb-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--bg2);color:var(--text2);flex:none}
+.hb-ico svg{width:18px;height:18px}
+.yn{display:flex;gap:6px;flex:none}
+.yn button{min-width:52px;min-height:36px;border-radius:var(--r-sm);border:1px solid var(--line2);background:none;font-weight:700;font-size:13px}
+.yn button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.yn button.on.yes{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
