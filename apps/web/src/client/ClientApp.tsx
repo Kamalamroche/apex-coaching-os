@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAppInfo } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
+import { CheckIn } from "./screens/CheckIn";
 import { More } from "./screens/More";
 import { Player } from "./screens/Player";
 import { Progress } from "./screens/Progress";
@@ -20,6 +21,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   const [tab, setTab] = useState<Tab>("today");
   const [playing, setPlaying] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [toast, say] = useToast();
   const tabs: TabDef<Tab>[] = [
     { id: "today", icon: "today", label: "Today" },
@@ -29,6 +31,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     { id: "more", icon: "more", label: "More" },
   ];
   const start = () => setPlaying(true);
+  const openCheckIn = () => { setCheckingIn(true); window.scrollTo(0, 0); };
   useEffect(() => {
     if (!notice) return;
     say(notice);
@@ -38,12 +41,13 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={setTab} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
-      {tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} />}
-      {tab === "train" && <Train start={start} say={say} />}
-      {tab === "progress" && <Progress say={say} />}
-      {tab === "chat" && <Chat />}
-      {tab === "more" && <More say={say} />}
+    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+      {checkingIn && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
+      {!checkingIn && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} />}
+      {!checkingIn && tab === "train" && <Train start={start} say={say} />}
+      {!checkingIn && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
+      {!checkingIn && tab === "chat" && <Chat />}
+      {!checkingIn && tab === "more" && <More say={say} />}
       {toast}
     </Shell>
   );

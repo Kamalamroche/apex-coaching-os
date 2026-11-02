@@ -5,6 +5,7 @@ export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
+export { RatingPicker, PhotoFrame } from "./progress";
 export { MuscleMap } from "./MuscleMap";
 export { RouteMap, RunAnalysis, SplitsChart, LoadCompare, useDarkTheme, ProfileChart, SplitsTable, HrZones, WeekBars, RouteThumb, SportIcon, ZONE_COLOURS } from "./ActivityViz";
 export { Gauge, MiniRing } from "./Gauge";

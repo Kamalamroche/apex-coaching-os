@@ -1,3 +1,5 @@
+import { emptyProgress, hasMeasurements, type CheckInInput, type MeasurementInput, type PhotoUpload, type ProgressState } from "./checkins";
+import { INITIAL_PROGRESS } from "./data/progress";
 import { INITIAL_HISTORY, INITIAL_MESSAGES, INITIAL_WORKOUT } from "./data/workout";
 import { dayWorkout, programFromWorkout, sortDays, withDayWorkout } from "./program";
 import { nextHistory } from "./summary";
@@ -21,6 +23,8 @@ export interface ApexState {
   messages: Message[];
   /** Personal bests and the previous session, for the post-workout summary. */
   history: TrainingHistory;
+  /** Check-ins, measurements and photos of the client being coached. */
+  progress: ProgressState;
 }
 
 export interface ApexStore {
@@ -37,6 +41,17 @@ export interface ApexStore {
   /** Client finished a session. `sets` is every set as logged. */
   finishSession(log: SessionLog, sets: SessionSets): void;
   sendMessage(from: Message["from"], text: string): void;
+  /** Client sends the weekly check-in, with any measurements and photos taken for it. */
+  submitCheckIn(checkIn: CheckInInput, measurements: MeasurementInput, photos: PhotoUpload[]): Promise<void>;
+  /** Client logs measurements on their own, outside a check-in. */
+  logMeasurements(measurements: MeasurementInput): Promise<void>;
+  /** Client adds progress photos outside a check-in. */
+  addPhotos(photos: PhotoUpload[]): Promise<void>;
+  deletePhoto(id: string): Promise<void>;
+  /** Coach replies to a check-in and marks it reviewed. */
+  reviewCheckIn(id: string, reply: string): Promise<void>;
+  /** Coach sets the client's check-in day, 0 = Monday … 6 = Sunday. */
+  setCheckInDay(day: number): Promise<void>;
   /** Demo only: back to the sample data. */
   reset(): void;
 }
@@ -51,13 +66,13 @@ export function withProgram<S extends ApexState>(state: S, program: Program, act
   return { ...state, program: { ...program, days }, activeDay: day?.key ?? "", workout };
 }
 
-/** A state around a single workout (sample data, older saved state). */
-export const stateForWorkout = (workout: Workout, rest: Omit<ApexState, "workout" | "program" | "activeDay">): ApexState => {
+/** A state around a single workout (sample data, older saved state). No progress given means none yet. */
+export const stateForWorkout = (workout: Workout, rest: Omit<ApexState, "workout" | "program" | "activeDay" | "progress"> & { progress?: ProgressState }): ApexState => {
   const program = programFromWorkout(workout, "day-1", "Strength block");
-  return { ...rest, workout, program, activeDay: "day-1" };
+  return { ...rest, progress: rest.progress ?? emptyProgress(), workout, program, activeDay: "day-1" };
 };
 
-export const initialState = (): ApexState => stateForWorkout(INITIAL_WORKOUT, { log: null, messages: INITIAL_MESSAGES, history: INITIAL_HISTORY });
+export const initialState = (): ApexState => stateForWorkout(INITIAL_WORKOUT, { log: null, messages: INITIAL_MESSAGES, history: INITIAL_HISTORY, progress: INITIAL_PROGRESS });
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -109,6 +124,12 @@ export function createDemoStore(
     emit();
   };
 
+  const now = () => new Date().toISOString();
+  const withProgress = (fn: (p: ProgressState) => ProgressState) => update((s) => ({ ...s, progress: fn(s.progress) }));
+  // Demo photos keep only the small preview, so a few check-ins fit in localStorage.
+  const demoPhotos = (photos: PhotoUpload[], checkInId: string | null) =>
+    photos.map((p) => ({ id: crypto.randomUUID(), checkInId, pose: p.pose, path: `demo/${p.pose}`, takenAt: now(), url: p.preview }));
+
   return {
     get: () => state,
     saveWorkout: (workout) => update((s) => ({ ...s, workout, program: withDayWorkout(s.program, s.activeDay, workout) })),
@@ -117,6 +138,32 @@ export function createDemoStore(
     startProgram: (program) => update((s) => withProgram({ ...s, log: null }, program, "")),
     finishSession: (log, sets) => update((s) => ({ ...s, log, history: nextHistory(s.history, log, s.workout, sets) })),
     sendMessage: (from, text) => update((s) => ({ ...s, messages: [...s.messages, { from, text, time: "Now" }] })),
+    async submitCheckIn(checkIn, measurements, photos) {
+      const id = crypto.randomUUID();
+      const at = now();
+      withProgress((p) => ({
+        ...p,
+        checkIns: [{ ...checkIn, id, submittedAt: at, coachReply: null, reviewedAt: null }, ...p.checkIns],
+        measurements: hasMeasurements(measurements) ? [...p.measurements, { ...measurements, id: crypto.randomUUID(), measuredAt: at, checkInId: id }] : p.measurements,
+        photos: [...p.photos, ...demoPhotos(photos, id)],
+      }));
+    },
+    async logMeasurements(measurements) {
+      if (!hasMeasurements(measurements)) return;
+      withProgress((p) => ({ ...p, measurements: [...p.measurements, { ...measurements, id: crypto.randomUUID(), measuredAt: now(), checkInId: null }] }));
+    },
+    async addPhotos(photos) {
+      withProgress((p) => ({ ...p, photos: [...p.photos, ...demoPhotos(photos, null)] }));
+    },
+    async deletePhoto(id) {
+      withProgress((p) => ({ ...p, photos: p.photos.filter((x) => x.id !== id) }));
+    },
+    async reviewCheckIn(id, reply) {
+      withProgress((p) => ({ ...p, checkIns: p.checkIns.map((c) => (c.id === id ? { ...c, coachReply: reply.trim() || null, reviewedAt: now() } : c)) }));
+    },
+    async setCheckInDay(day) {
+      withProgress((p) => ({ ...p, checkInDay: day }));
+    },
     subscribe(listener) {
       if (listeners.size === 0) events?.addEventListener("storage", onStorage);
       listeners.add(listener);

@@ -1,15 +1,21 @@
 import {
-  INITIAL_WORKOUT, bestKgByExercise, latestSetByExercise, newKey, nextDayKey, nextHistory, programFromWorkout, stateForWorkout, toItemRows, toLoggedSetRows, toMessages,
-  toPreviousSession, toSessionLog, toWorkout, trendFromSets, withDayWorkout, withProgram,
-  type ApexState, type ApexStore, type LoggedSetRow, type MessageRow, type PreviousSessionRow, type Program, type ProgramDay, type ReadinessPoint, type SessionRow, type Workout,
-  type WorkoutItemRow, type WorkoutRow,
+  INITIAL_WORKOUT, bestKgByExercise, emptyProgress, hasMeasurements, latestSetByExercise, newKey, nextDayKey, nextHistory, photoPath, programFromWorkout, stateForWorkout,
+  toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
+  withDayWorkout, withProgram,
+  type ApexState, type ApexStore, type CheckInRow, type LoggedSetRow, type MeasurementInput, type MeasurementRow, type MessageRow, type PhotoRow, type PhotoUpload,
+  type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
+export const PHOTO_BUCKET = "progress-photos";
+/** Signed photo links last an hour; every progress reload makes fresh ones. */
+const PHOTO_URL_SECONDS = 3600;
 
 export interface LiveStore extends ApexStore {
   status(): "loading" | "ready" | "no-program" | "error";
   error(): string | null;
+  /** Check-ins, measurements or photos failed to load (e.g. the database update hasn't been run yet). The rest still works. */
+  progressError(): string | null;
   /** Coach only: create the client's first program from the starter template. */
   createProgram(): Promise<void>;
   /** True once the program-builder migration (per-set targets, circuits) is in the database. */
@@ -41,6 +47,9 @@ const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_
 /** Postgres "undefined column" (select) and PostgREST "column not in schema cache" (insert). */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
 
+const message = (e: unknown): string =>
+  e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : String(e);
+
 /** ApexStore backed by Supabase. Loads the client's latest published program and keeps it live. */
 export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let state = empty();
@@ -62,10 +71,14 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let hasSummaryColumn = true;
   let reloadTimer: ReturnType<typeof setTimeout> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
+  let progressTimer: ReturnType<typeof setTimeout> | undefined;
+  let progressError: string | null = null;
+  let progressSeq = 0;
+  let channelWorkoutId: string | null = null;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
   const fail = (e: unknown) => {
-    error = e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : String(e);
+    error = message(e);
     status = "error";
     emit();
   };
@@ -77,12 +90,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     try {
       const { data: program, error: pErr } = await db.from("programs").select("id, name, weeks").eq("client_id", ids.clientId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (pErr) throw pErr;
-      const messages = await loadMessages();
+      const [messages, progress] = await Promise.all([loadMessages(), loadProgress()]);
       if (stale()) return;
       if (!program) {
         status = "no-program";
-        state = { ...empty(), messages };
+        state = { ...empty(), messages, progress };
         emit();
+        if (listeners.size) openChannel();
         return;
       }
       programId = program.id;
@@ -138,7 +152,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const next = withProgram({ ...state, messages, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness } }, plan, active ?? undefined);
+      const next = withProgram({ ...state, messages, progress, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
       savedDays = new Set(dayIds);
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };
@@ -157,20 +171,89 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     return toMessages(data ?? [], ids.coachId);
   }
 
+  /** Never throws: progress is extra, so a failure here must not take the program and messages down with it. */
+  async function loadProgress(): Promise<ProgressState> {
+    try {
+      const [ci, ms, ph, rel] = await Promise.all([
+        db.from("check_ins").select("*").eq("client_id", ids.clientId).order("submitted_at", { ascending: false }).limit(104).returns<CheckInRow[]>(),
+        db.from("body_measurements").select("*").eq("client_id", ids.clientId).order("measured_at").limit(500).returns<MeasurementRow[]>(),
+        db.from("progress_photos").select("*").eq("client_id", ids.clientId).order("taken_at").limit(300).returns<PhotoRow[]>(),
+        db.from("coach_clients").select("check_in_day").eq("coach_id", ids.coachId).eq("client_id", ids.clientId).maybeSingle<{ check_in_day: number }>(),
+      ]);
+      for (const r of [ci, ms, ph, rel]) if (r.error) throw r.error;
+      const photos = ph.data ?? [];
+      const urls = new Map<string, string>();
+      if (photos.length) {
+        const { data, error: uErr } = await db.storage.from(PHOTO_BUCKET).createSignedUrls(photos.map((r) => r.storage_path), PHOTO_URL_SECONDS);
+        if (uErr) throw uErr;
+        for (const u of data ?? []) if (u.path && u.signedUrl) urls.set(u.path, u.signedUrl);
+      }
+      progressError = null;
+      return {
+        checkIns: (ci.data ?? []).map(toCheckIn),
+        measurements: (ms.data ?? []).map(toMeasurement),
+        photos: photos.map((r) => toPhoto(r, urls.get(r.storage_path) ?? null)),
+        checkInDay: rel.data?.check_in_day ?? 0,
+      };
+    } catch (e) {
+      progressError = message(e);
+      return state.progress ?? emptyProgress();
+    }
+  }
+
+  async function reloadProgress() {
+    const seq = ++progressSeq;
+    const progress = await loadProgress();
+    if (seq !== progressSeq) return;
+    state = { ...state, progress };
+    emit();
+  }
+
+  async function uploadPhotos(photos: PhotoUpload[], checkInId: string | null) {
+    for (const p of photos) {
+      const id = crypto.randomUUID();
+      const path = photoPath(ids.clientId, p.pose, id);
+      const { error: upErr } = await db.storage.from(PHOTO_BUCKET).upload(path, p.file, { contentType: p.file.type || "image/jpeg", upsert: false });
+      if (upErr) throw upErr;
+      const { error: rowErr } = await db.from("progress_photos").insert({ id, client_id: ids.clientId, check_in_id: checkInId, pose: p.pose, storage_path: path });
+      if (rowErr) {
+        await db.storage.from(PHOTO_BUCKET).remove([path]);
+        throw rowErr;
+      }
+    }
+  }
+
+  async function insertMeasurements(m: MeasurementInput, checkInId: string | null) {
+    if (!hasMeasurements(m)) return;
+    const { error: mErr } = await db.from("body_measurements").insert(toMeasurementRow(m, ids.clientId, crypto.randomUUID(), checkInId));
+    if (mErr) throw mErr;
+  }
+
   // The realtime channel lives while someone is listening. Tying it to listeners (rather than to
   // React effects) keeps it alive through StrictMode's mount/unmount/mount in development.
   function openChannel() {
     clearTimeout(closeTimer);
-    if (channel || !workoutId) return;
+    // Wait for the first load, then (re)open once we know which workout to follow.
+    if (status === "loading") return;
+    if (channel && channelWorkoutId === `${workoutId}|${versionId}`) return;
+    closeChannel();
+    channelWorkoutId = `${workoutId}|${versionId}`;
     const reload = () => {
       if (Date.now() - lastLocalEdit < ECHO_GUARD_MS) return;
       clearTimeout(reloadTimer);
       reloadTimer = setTimeout(() => void load(), 250);
     };
-    channel = db
-      .channel(`apex-${ids.clientId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "workout_items", filter: `workout_id=eq.${workoutId}` }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "workouts", filter: `program_version_id=eq.${versionId}` }, reload)
+    const progressChanged = () => {
+      clearTimeout(progressTimer);
+      progressTimer = setTimeout(() => void reloadProgress(), 250);
+    };
+    let ch = db.channel(`apex-${ids.clientId}-${Math.random().toString(36).slice(2)}`);
+    if (workoutId) ch = ch.on("postgres_changes", { event: "*", schema: "public", table: "workout_items", filter: `workout_id=eq.${workoutId}` }, reload);
+    if (versionId) ch = ch.on("postgres_changes", { event: "*", schema: "public", table: "workouts", filter: `program_version_id=eq.${versionId}` }, reload);
+    for (const table of ["check_ins", "body_measurements", "progress_photos"]) {
+      ch = ch.on("postgres_changes", { event: "*", schema: "public", table, filter: `client_id=eq.${ids.clientId}` }, progressChanged);
+    }
+    channel = ch
       .on("postgres_changes", { event: "*", schema: "public", table: "sessions", filter: `client_id=eq.${ids.clientId}` }, reload)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `client_id=eq.${ids.clientId}` }, async () => {
         try { state = { ...state, messages: await loadMessages() }; emit(); } catch (e) { fail(e); }
@@ -250,6 +333,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     get: () => state,
     status: () => status,
     error: () => error,
+    progressError: () => progressError,
     hasPlanColumns: () => hasPlanColumns,
     subscribe(listener) {
       listeners.add(listener);
@@ -329,6 +413,50 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       emit();
       void db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: text }).then(({ error: e }) => { if (e) fail(e); });
     },
+    async submitCheckIn(checkIn, measurements, photos) {
+      const id = crypto.randomUUID();
+      const { error: e1 } = await db.from("check_ins").insert(toCheckInRow(checkIn, ids.clientId, id));
+      if (e1) throw e1;
+      try {
+        await insertMeasurements(measurements, id);
+        await uploadPhotos(photos, id);
+      } catch (e) {
+        // The check-in itself is in, so sending again would duplicate it. Say what's missing instead.
+        throw Object.assign(new Error(`Your check-in was sent, but some measurements or photos didn't save (${message(e)}). You can add them from Progress.`), { sent: true });
+      } finally {
+        await reloadProgress();
+      }
+    },
+    async logMeasurements(measurements) {
+      await insertMeasurements(measurements, null);
+      await reloadProgress();
+    },
+    async addPhotos(photos) {
+      try {
+        await uploadPhotos(photos, null);
+      } finally {
+        await reloadProgress();
+      }
+    },
+    async deletePhoto(id) {
+      const photo = state.progress.photos.find((p) => p.id === id);
+      const { error: e1 } = await db.from("progress_photos").delete().eq("id", id);
+      if (e1) throw e1;
+      if (photo) await db.storage.from(PHOTO_BUCKET).remove([photo.path]);
+      await reloadProgress();
+    },
+    async reviewCheckIn(id, reply) {
+      const { data, error: e1 } = await db.from("check_ins").update({ coach_reply: reply.trim() || null, reviewed_at: new Date().toISOString() }).eq("id", id).select("id");
+      if (e1) throw e1;
+      if (!data?.length) throw new Error("Couldn't save the reply. Check the database update has been run.");
+      await reloadProgress();
+    },
+    async setCheckInDay(day) {
+      const { data, error: e1 } = await db.from("coach_clients").update({ check_in_day: day }).eq("coach_id", ids.coachId).eq("client_id", ids.clientId).select("check_in_day");
+      if (e1) throw e1;
+      if (!data?.length) throw new Error("Couldn't change the check-in day");
+      await reloadProgress();
+    },
     async createProgram() {
       try {
         const day = { ...INITIAL_WORKOUT, items: INITIAL_WORKOUT.items.map((i) => ({ ...i, key: newKey() })) };
@@ -344,6 +472,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     close() {
       clearTimeout(saveTimer);
       clearTimeout(reloadTimer);
+      clearTimeout(progressTimer);
       closeChannel();
     },
   };
