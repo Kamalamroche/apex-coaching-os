@@ -44,7 +44,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
       {tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {tab === "chat" && <Messages live={live} />}
       {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
-      {tab === "food" && <CoachNutrition />}
+      {tab === "food" && <CoachNutrition live={live} say={say} />}
       {tab === "money" && <Business />}
       {toast}
     </Shell>

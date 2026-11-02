@@ -4,6 +4,8 @@ import { Icons } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
+import { useLifestyle } from "../../data/LifestyleContext";
+import { HabitList } from "./Habits";
 import { useStore } from "../../data/StoreContext";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
@@ -11,12 +13,13 @@ const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 const WEEK: [string, 0 | 1 | 2][] = [["M", 1], ["T", 1], ["W", 0], ["T", 1], ["F", 0], ["S", 2], ["S", 0]];
 const TODAY_INDEX = 5;
 
-export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void }) {
+export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void }) {
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const { status } = useStoreStatus();
   const { workout: w, log, progress } = useApexState(store);
   const [mood, setMood] = useState<number | null>(null);
+  const life = useLifestyle();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
   const freshReply = latest?.coachReply && latest.reviewedAt && Date.now() - Date.parse(latest.reviewedAt) < 7 * 86400000 ? latest : null;
@@ -50,6 +53,22 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn }: { start: () 
           <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
+      )}
+
+      {life.status === "ready" && !life.intake && (
+        <div className="card" style={{ borderColor: "color-mix(in srgb,var(--act) 40%,var(--line))" }}>
+          <div className="eyebrow" style={{ color: "var(--act)" }}>Before you start</div>
+          <h2 className="h2" style={{ marginTop: 6 }}>Tell {coachName} about you</h2>
+          <div className="small" style={{ marginTop: 4 }}>A short health check, your goals and your training so far. About five minutes.</div>
+          <button className="btn sec block" style={{ marginTop: 12 }} onClick={openIntake}>Start</button>
+        </div>
+      )}
+
+      {life.habits.length > 0 && (
+        <section>
+          <div className="sect"><h2 className="h2">Today's habits</h2></div>
+          <HabitList compact />
+        </section>
       )}
 
       {due.due ? (
