@@ -509,3 +509,9 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .yn button{min-width:52px;min-height:36px;border-radius:var(--r-sm);border:1px solid var(--line2);background:none;font-weight:700;font-size:13px}
 .yn button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .yn button.on.yes{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+
+/* video form checks */
+.fc-video{display:block;width:100%;max-height:70vh;border-radius:var(--r-sm);background:#000;border:1px solid var(--line)}
+.fc-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fc-pick label{cursor:pointer}
+.fc-reply{border-left:2px solid var(--blue);padding:2px 0 2px 10px}

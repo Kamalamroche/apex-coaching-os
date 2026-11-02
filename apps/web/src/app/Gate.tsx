@@ -1,4 +1,4 @@
-import { createDemoActivityStore, createDemoLifestyleStore, createDemoStore, type ActivityStore, type ApexStore, type LifestyleStore } from "@apex/core";
+import { createDemoActivityStore, createDemoFormCheckStore, createDemoLifestyleStore, createDemoStore, type ActivityStore, type ApexStore, type FormCheckStore, type LifestyleStore } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type ReactNode } from "react";
@@ -6,6 +6,7 @@ import { Onboarding } from "../auth/Onboarding";
 import { SignIn } from "../auth/SignIn";
 import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
+import { FormCheckProvider } from "../data/FormCheckContext";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
 import { demoStravaLink } from "../data/strava";
@@ -16,6 +17,7 @@ import { AppInfoProvider } from "./AppContext";
 const demoStore: { current: ApexStore | null } = { current: null };
 const demoActivities: { current: ActivityStore | null } = { current: null };
 const demoLifestyle: { current: LifestyleStore | null } = { current: null };
+const demoFormChecks: { current: FormCheckStore | null } = { current: null };
 
 export interface Live {
   db: SupabaseClient;
@@ -32,10 +34,11 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoStore.current ??= createDemoStore();
     demoActivities.current ??= createDemoActivityStore();
     demoLifestyle.current ??= createDemoLifestyleStore();
+    demoFormChecks.current ??= createDemoFormCheckStore((b) => URL.createObjectURL(b));
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}>{demo()}</LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}>{demo()}</FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

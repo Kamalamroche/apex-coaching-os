@@ -8,13 +8,17 @@ import { ConnectedApps } from "./ConnectedApps";
 import { Habits } from "./Habits";
 import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
+import { FormCheckList } from "./FormCheck";
+import { useFormChecks } from "../../data/FormCheckContext";
 
-type View = "food" | "habits" | "community" | "apps" | "intake";
+type View = "food" | "habits" | "community" | "apps" | "intake" | "form";
 
 export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
   const { coachName } = useAppInfo();
   const life = useLifestyle();
+  const form = useFormChecks();
+  const replied = form.checks.filter((c) => c.coachReply).length;
   const today = localDate(new Date());
   const due = habitsOn(life.habits, today);
   const kcal = Math.round(dayTotals(life.food, today).kcal);
@@ -22,6 +26,7 @@ export function More({ say }: { say: (m: string) => void }) {
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
     ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
     ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
+    ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
     ["community", "Community", "Leaderboard and team feed"],
   ];
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -31,6 +36,7 @@ export function More({ say }: { say: (m: string) => void }) {
         <BackLink onClick={() => setView(null)}>More</BackLink>
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
+        {view === "form" && <FormCheckList say={say} />}
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
       </>

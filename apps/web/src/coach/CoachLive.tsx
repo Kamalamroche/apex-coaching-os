@@ -1,4 +1,4 @@
-import { createDemoStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
+import { createDemoStore, emptyFormCheckStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
@@ -9,6 +9,8 @@ import { StoreProvider } from "../data/StoreContext";
 import { createSupabaseActivities } from "../data/supabaseActivities";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
+import { FormCheckProvider } from "../data/FormCheckContext";
+import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -42,6 +44,8 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (activities as { close?: () => void }).close?.(), [activities]);
   const lifestyle = useMemo(() => (activeId ? createSupabaseLifestyle(db, activeId) : emptyLifestyleStore()), [db, activeId]);
   useEffect(() => () => (lifestyle as { close?: () => void }).close?.(), [lifestyle]);
+  const formChecks = useMemo(() => (activeId ? createSupabaseFormChecks(db, activeId) : emptyFormCheckStore()), [db, activeId]);
+  useEffect(() => () => (formChecks as { close?: () => void }).close?.(), [formChecks]);
 
   const active = clients?.find((c) => c.id === activeId);
   return (
@@ -49,7 +53,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
       <StoreProvider store={store}>
         <ActivityProvider store={activities} editable={false}>
           <LifestyleProvider store={lifestyle}>
-            <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+            <FormCheckProvider store={formChecks}>
+              <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+            </FormCheckProvider>
           </LifestyleProvider>
         </ActivityProvider>
       </StoreProvider>
