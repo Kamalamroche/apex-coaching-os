@@ -42,7 +42,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
     <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} />}
       {tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
-      {tab === "chat" && <Messages live={live} />}
+      {tab === "chat" && <Messages live={live} say={say} />}
       {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {tab === "food" && <CoachNutrition live={live} say={say} />}
       {tab === "money" && <Business />}

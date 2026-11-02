@@ -1,27 +1,47 @@
-import { firstName } from "@apex/core";
-import { Avatar } from "@apex/ui";
+import { countOn, firstName, type AutomationSettings } from "@apex/core";
+import { Avatar, Icons } from "@apex/ui";
+import { useEffect, useMemo, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { Thread } from "../../app/Thread";
+import { demoAutomations, liveAutomations } from "../../data/automations";
 import type { CoachLiveProps } from "../CoachApp";
+import { Automations } from "./Automations";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's side of the chat: pick a client, read their thread (workout summaries included) and reply. */
-export function Messages({ live }: { live?: CoachLiveProps }) {
+export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string) => void }) {
   const { clientName } = useAppInfo();
   const { status } = useStoreStatus();
   const clients = live?.clients;
+  const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
+  const [auto, setAuto] = useState(false);
+  const [on, setOn] = useState<number | null>(null);
+  useEffect(() => {
+    if (auto) return;
+    api.load().then((r: { settings: AutomationSettings }) => setOn(countOn(r.settings)), () => setOn(null));
+  }, [api, auto]);
+  if (auto) return <Automations api={api} clientNames={Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]))} onBack={() => setAuto(false)} say={say} />;
+  const autoButton = (
+    <div className="card flat list"><button className="li" onClick={() => setAuto(true)}>
+      <Icons.energy width={18} height={18} style={{ color: "var(--act)" }} />
+      <div className="grow"><div className="h3">Automatic messages</div><div className="tiny">{on ? `${on} on · welcome, missed workouts, check-in reminders` : "Welcome, missed workouts, check-in reminders"}</div></div>
+      <span className="tiny">›</span>
+    </button></div>
+  );
   if (live && clients?.length === 0) {
     return (
       <>
         <div><div className="eyebrow">Messages</div><h1 className="h1">No clients yet</h1></div>
         <div className="card small">Invite a client from the Clients tab and your conversation with them will appear here.</div>
+        {autoButton}
       </>
     );
   }
   return (
     <>
       <div><div className="eyebrow">Messages</div><h1 className="h1" style={{ fontSize: 22 }}>{clientName || "Loading…"}</h1></div>
+      {autoButton}
       {live && clients && clients.length > 1 && (
         <div className="chips" role="tablist" aria-label="Client">
           {clients.map((c) => (
