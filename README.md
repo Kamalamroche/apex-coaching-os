@@ -11,7 +11,8 @@ npm install
 npm run dev        # http://localhost:5173, demo mode
 ```
 
-- `/` launcher
+- `/` landing page (marketing)
+- `/start/` launcher: sign in or open a demo
 - `/coach/` Coach OS: Brief, Clients, Builder, Nutrition, Business
 - `/client/` Client app: Today, Train (guided player), Progress, Messages, More
 
@@ -57,6 +58,7 @@ apps/web            Vite app. One origin, three pages, each with its own bundle
   src/app           Demo/live gate, app context
   src/auth          Email-link sign-in and first-time onboarding
   src/data          Supabase client, live store, coach queries
+  src/landing       Marketing landing page
   src/launcher      App picker
   src/coach         Coach OS screens
   src/client        Client app screens, including the workout player

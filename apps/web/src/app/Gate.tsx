@@ -1,15 +1,19 @@
-import { createDemoStore, type ApexStore } from "@apex/core";
+import { createDemoActivityStore, createDemoStore, type ActivityStore, type ApexStore } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
 import { SignIn } from "../auth/SignIn";
 import { useAuth, type Profile } from "../auth/useAuth";
+import { ActivityProvider } from "../data/ActivityContext";
 import { StoreProvider } from "../data/StoreContext";
+import { demoStravaLink } from "../data/strava";
+import { demoWearableLink } from "../data/wearables";
 import { isDemo, supabase } from "../data/supabase";
 import { AppInfoProvider } from "./AppContext";
 
 const demoStore: { current: ApexStore | null } = { current: null };
+const demoActivities: { current: ActivityStore | null } = { current: null };
 
 export interface Live {
   db: SupabaseClient;
@@ -24,9 +28,12 @@ export interface Live {
 export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () => ReactNode; live: (l: Live) => ReactNode }) {
   if (isDemo() || !supabase) {
     demoStore.current ??= createDemoStore();
+    demoActivities.current ??= createDemoActivityStore();
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
-        <StoreProvider store={demoStore.current}>{demo()}</StoreProvider>
+        <StoreProvider store={demoStore.current}>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}>{demo()}</ActivityProvider>
+        </StoreProvider>
       </AppInfoProvider>
     );
   }

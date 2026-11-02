@@ -1,0 +1,621 @@
+no,category,name,equipment,focus,video_status
+1,Minor / Accessory,Barbell Curl,Barbell,Isolation / Accessory Muscle,Pending
+2,Minor / Accessory,Dumbbell Curl,Dumbbell,Isolation / Accessory Muscle,Pending
+3,Minor / Accessory,Hammer Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+4,Minor / Accessory,Concentration Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+5,Minor / Accessory,Preacher Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+6,Minor / Accessory,Cable Curl,Cable,Isolation / Accessory Muscle,Pending
+7,Minor / Accessory,Incline Dumbbell Curl,Dumbbell,Isolation / Accessory Muscle,Pending
+8,Minor / Accessory,Zottman Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+9,Minor / Accessory,Cross-Body Hammer Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+10,Minor / Accessory,Reverse Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+11,Minor / Accessory,Triceps Pushdown,Bodyweight,Isolation / Accessory Muscle,Pending
+12,Minor / Accessory,Overhead Triceps Extension,Bodyweight,Isolation / Accessory Muscle,Pending
+13,Minor / Accessory,Skull Crusher,Bodyweight,Isolation / Accessory Muscle,Pending
+14,Minor / Accessory,Close-Grip Bench Press,Bodyweight,Isolation / Accessory Muscle,Pending
+15,Minor / Accessory,Dumbbell Kickback,Dumbbell,Isolation / Accessory Muscle,Pending
+16,Minor / Accessory,Cable Overhead Extension,Cable,Isolation / Accessory Muscle,Pending
+17,Minor / Accessory,Diamond Push-Up,Bodyweight,Isolation / Accessory Muscle,Pending
+18,Minor / Accessory,Bench Dip,Bodyweight,Isolation / Accessory Muscle,Pending
+19,Minor / Accessory,Triceps Rope Pushdown,Bodyweight,Isolation / Accessory Muscle,Pending
+20,Minor / Accessory,JM Press,Bodyweight,Isolation / Accessory Muscle,Pending
+21,Minor / Accessory,Lateral Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+22,Minor / Accessory,Front Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+23,Minor / Accessory,Rear Delt Fly,Bodyweight,Isolation / Accessory Muscle,Pending
+24,Minor / Accessory,Cable Lateral Raise,Cable,Isolation / Accessory Muscle,Pending
+25,Minor / Accessory,Upright Row,Bodyweight,Isolation / Accessory Muscle,Pending
+26,Minor / Accessory,Face Pull,Bodyweight,Isolation / Accessory Muscle,Pending
+27,Minor / Accessory,Arnold Press,Bodyweight,Isolation / Accessory Muscle,Pending
+28,Minor / Accessory,Cuban Press,Bodyweight,Isolation / Accessory Muscle,Pending
+29,Minor / Accessory,Bradford Press,Bodyweight,Isolation / Accessory Muscle,Pending
+30,Minor / Accessory,Scarecrow Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+31,Minor / Accessory,Wrist Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+32,Minor / Accessory,Reverse Wrist Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+33,Minor / Accessory,Farmer's Carry Grip Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+34,Minor / Accessory,Plate Pinch Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+35,Minor / Accessory,Dead Hang,Bodyweight,Isolation / Accessory Muscle,Pending
+36,Minor / Accessory,Wrist Roller,Bodyweight,Isolation / Accessory Muscle,Pending
+37,Minor / Accessory,Reverse Grip Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+38,Minor / Accessory,Fat Grip Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+39,Minor / Accessory,Towel Pull-Up Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+40,Minor / Accessory,Grip Crush Hold,Bodyweight,Isolation / Accessory Muscle,Pending
+41,Minor / Accessory,Standing Calf Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+42,Minor / Accessory,Seated Calf Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+43,Minor / Accessory,Donkey Calf Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+44,Minor / Accessory,Single-Leg Calf Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+45,Minor / Accessory,Calf Press on Leg Sled,Bodyweight,Isolation / Accessory Muscle,Pending
+46,Minor / Accessory,Tibialis Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+47,Minor / Accessory,Jump Rope Calf Pump,Bodyweight,Isolation / Accessory Muscle,Pending
+48,Minor / Accessory,Eccentric Calf Lowering,Bodyweight,Isolation / Accessory Muscle,Pending
+49,Minor / Accessory,Cable Fly,Cable,Isolation / Accessory Muscle,Pending
+50,Minor / Accessory,Pec Deck Fly,Machine,Isolation / Accessory Muscle,Pending
+51,Minor / Accessory,Dumbbell Fly,Dumbbell,Isolation / Accessory Muscle,Pending
+52,Minor / Accessory,Incline Cable Fly,Cable,Isolation / Accessory Muscle,Pending
+53,Minor / Accessory,Low-to-High Cable Fly,Cable,Isolation / Accessory Muscle,Pending
+54,Minor / Accessory,Svend Press,Bodyweight,Isolation / Accessory Muscle,Pending
+55,Minor / Accessory,Straight-Arm Pulldown,Machine,Isolation / Accessory Muscle,Pending
+56,Minor / Accessory,Cable Pullover,Cable,Isolation / Accessory Muscle,Pending
+57,Minor / Accessory,Dumbbell Pullover,Dumbbell,Isolation / Accessory Muscle,Pending
+58,Minor / Accessory,Reverse Fly Machine,Machine,Isolation / Accessory Muscle,Pending
+59,Minor / Accessory,Band Pull-Apart,Resistance Band,Isolation / Accessory Muscle,Pending
+60,Minor / Accessory,Leg Extension,Bodyweight,Isolation / Accessory Muscle,Pending
+61,Minor / Accessory,Lying Leg Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+62,Minor / Accessory,Seated Leg Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+63,Minor / Accessory,Hip Adductor Machine,Machine,Isolation / Accessory Muscle,Pending
+64,Minor / Accessory,Hip Abductor Machine,Machine,Isolation / Accessory Muscle,Pending
+65,Minor / Accessory,Glute Kickback Machine,Machine,Isolation / Accessory Muscle,Pending
+66,Minor / Accessory,Cable Glute Kickback,Cable,Isolation / Accessory Muscle,Pending
+67,Minor / Accessory,Standing Hip Extension,Bodyweight,Isolation / Accessory Muscle,Pending
+68,Minor / Accessory,Sissy Squat,Bodyweight,Isolation / Accessory Muscle,Pending
+69,Minor / Accessory,Nordic Hamstring Curl,Bodyweight,Isolation / Accessory Muscle,Pending
+70,Minor / Accessory,Glute Bridge,Bodyweight,Isolation / Accessory Muscle,Pending
+71,Minor / Accessory,Single-Leg Glute Bridge,Bodyweight,Isolation / Accessory Muscle,Pending
+72,Minor / Accessory,Banded Glute Bridge,Resistance Band,Isolation / Accessory Muscle,Pending
+73,Minor / Accessory,Cable Pull-Through,Cable,Isolation / Accessory Muscle,Pending
+74,Minor / Accessory,Frog Pump,Bodyweight,Isolation / Accessory Muscle,Pending
+75,Minor / Accessory,Fire Hydrant,Bodyweight,Isolation / Accessory Muscle,Pending
+76,Minor / Accessory,Clamshell,Bodyweight,Isolation / Accessory Muscle,Pending
+77,Minor / Accessory,Neck Flexion,Bodyweight,Isolation / Accessory Muscle,Pending
+78,Minor / Accessory,Neck Extension,Bodyweight,Isolation / Accessory Muscle,Pending
+79,Minor / Accessory,Neck Lateral Flexion,Bodyweight,Isolation / Accessory Muscle,Pending
+80,Minor / Accessory,Neck Harness Extension,Bodyweight,Isolation / Accessory Muscle,Pending
+81,Minor / Accessory,Cable External Rotation,Cable,Isolation / Accessory Muscle,Pending
+82,Minor / Accessory,Cable Internal Rotation,Cable,Isolation / Accessory Muscle,Pending
+83,Minor / Accessory,Band External Rotation,Resistance Band,Isolation / Accessory Muscle,Pending
+84,Minor / Accessory,Y-Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+85,Minor / Accessory,T-Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+86,Minor / Accessory,W-Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+87,Minor / Accessory,Barbell Shrug,Barbell,Isolation / Accessory Muscle,Pending
+88,Minor / Accessory,Dumbbell Shrug,Dumbbell,Isolation / Accessory Muscle,Pending
+89,Minor / Accessory,Trap 3 Raise,Bodyweight,Isolation / Accessory Muscle,Pending
+90,Minor / Accessory,Serratus Punch,Bodyweight,Isolation / Accessory Muscle,Pending
+91,Major Compound,Barbell Back Squat,Barbell,Full-Body Compound Strength,Pending
+92,Major Compound,Barbell Front Squat,Barbell,Full-Body Compound Strength,Pending
+93,Major Compound,Overhead Squat,Bodyweight,Full-Body Compound Strength,Pending
+94,Major Compound,Box Squat,Bodyweight,Full-Body Compound Strength,Pending
+95,Major Compound,Zercher Squat,Bodyweight,Full-Body Compound Strength,Pending
+96,Major Compound,Hack Squat,Bodyweight,Full-Body Compound Strength,Pending
+97,Major Compound,Bulgarian Split Squat,Bodyweight,Full-Body Compound Strength,Pending
+98,Major Compound,Goblet Squat,Bodyweight,Full-Body Compound Strength,Pending
+99,Major Compound,Sumo Squat,Bodyweight,Full-Body Compound Strength,Pending
+100,Major Compound,Pause Squat,Bodyweight,Full-Body Compound Strength,Pending
+101,Major Compound,Conventional Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+102,Major Compound,Sumo Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+103,Major Compound,Romanian Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+104,Major Compound,Stiff-Leg Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+105,Major Compound,Trap Bar Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+106,Major Compound,Deficit Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+107,Major Compound,Rack Pull,Bodyweight,Full-Body Compound Strength,Pending
+108,Major Compound,Single-Leg Romanian Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+109,Major Compound,Snatch-Grip Deadlift,Bodyweight,Full-Body Compound Strength,Pending
+110,Major Compound,Block Pull,Bodyweight,Full-Body Compound Strength,Pending
+111,Major Compound,Barbell Bench Press,Barbell,Full-Body Compound Strength,Pending
+112,Major Compound,Incline Barbell Bench Press,Barbell,Full-Body Compound Strength,Pending
+113,Major Compound,Decline Bench Press,Bodyweight,Full-Body Compound Strength,Pending
+114,Major Compound,Barbell Overhead Press,Barbell,Full-Body Compound Strength,Pending
+115,Major Compound,Push Press,Bodyweight,Full-Body Compound Strength,Pending
+116,Major Compound,Dumbbell Bench Press,Dumbbell,Full-Body Compound Strength,Pending
+117,Major Compound,Incline Dumbbell Press,Dumbbell,Full-Body Compound Strength,Pending
+118,Major Compound,Floor Press,Bodyweight,Full-Body Compound Strength,Pending
+119,Major Compound,Landmine Press,Landmine,Full-Body Compound Strength,Pending
+120,Major Compound,Push Jerk,Bodyweight,Full-Body Compound Strength,Pending
+121,Major Compound,Pull-Up,Bodyweight,Full-Body Compound Strength,Pending
+122,Major Compound,Chin-Up,Bodyweight,Full-Body Compound Strength,Pending
+123,Major Compound,Barbell Row,Barbell,Full-Body Compound Strength,Pending
+124,Major Compound,Pendlay Row,Bodyweight,Full-Body Compound Strength,Pending
+125,Major Compound,T-Bar Row,Bodyweight,Full-Body Compound Strength,Pending
+126,Major Compound,Seal Row,Bodyweight,Full-Body Compound Strength,Pending
+127,Major Compound,Weighted Pull-Up,Bodyweight,Full-Body Compound Strength,Pending
+128,Major Compound,Lat Pulldown,Machine,Full-Body Compound Strength,Pending
+129,Major Compound,Single-Arm Dumbbell Row,Dumbbell,Full-Body Compound Strength,Pending
+130,Major Compound,Meadows Row,Bodyweight,Full-Body Compound Strength,Pending
+131,Major Compound,Power Clean,Bodyweight,Full-Body Compound Strength,Pending
+132,Major Compound,Hang Clean,Bodyweight,Full-Body Compound Strength,Pending
+133,Major Compound,Clean and Jerk,Bodyweight,Full-Body Compound Strength,Pending
+134,Major Compound,Snatch,Bodyweight,Full-Body Compound Strength,Pending
+135,Major Compound,Split Jerk,Bodyweight,Full-Body Compound Strength,Pending
+136,Major Compound,Thruster,Bodyweight,Full-Body Compound Strength,Pending
+137,Major Compound,Kettlebell Swing,Kettlebell,Full-Body Compound Strength,Pending
+138,Major Compound,Clean Pull,Bodyweight,Full-Body Compound Strength,Pending
+139,Major Compound,Snatch Pull,Bodyweight,Full-Body Compound Strength,Pending
+140,Major Compound,Muscle Snatch,Bodyweight,Full-Body Compound Strength,Pending
+141,Power,Hang Power Clean,Bodyweight,Explosive Power / Rate of Force Development,Pending
+142,Power,Power Snatch,Bodyweight,Explosive Power / Rate of Force Development,Pending
+143,Power,Clean High Pull,Bodyweight,Explosive Power / Rate of Force Development,Pending
+144,Power,Snatch High Pull,Bodyweight,Explosive Power / Rate of Force Development,Pending
+145,Power,Push Press from Blocks,Bodyweight,Explosive Power / Rate of Force Development,Pending
+146,Power,Explosive Trap Bar Jump,Bodyweight,Explosive Power / Rate of Force Development,Pending
+147,Power,Kettlebell Clean,Kettlebell,Explosive Power / Rate of Force Development,Pending
+148,Power,Kettlebell Snatch,Kettlebell,Explosive Power / Rate of Force Development,Pending
+149,Power,Dumbbell Snatch,Dumbbell,Explosive Power / Rate of Force Development,Pending
+150,Power,Dumbbell Power Clean,Dumbbell,Explosive Power / Rate of Force Development,Pending
+151,Power,Barbell Jump Shrug,Barbell,Explosive Power / Rate of Force Development,Pending
+152,Power,Medicine Ball Chest Pass,Medicine Ball,Explosive Power / Rate of Force Development,Pending
+153,Power,Medicine Ball Overhead Throw,Medicine Ball,Explosive Power / Rate of Force Development,Pending
+154,Power,Medicine Ball Slam,Medicine Ball,Explosive Power / Rate of Force Development,Pending
+155,Power,Standing Rotational Power Throw,Bodyweight,Explosive Power / Rate of Force Development,Pending
+156,Power,Battle Rope Double Wave,Bodyweight,Explosive Power / Rate of Force Development,Pending
+157,Power,Explosive Push-Up,Bodyweight,Explosive Power / Rate of Force Development,Pending
+158,Power,Depth Drop to Vertical Jump,Bodyweight,Explosive Power / Rate of Force Development,Pending
+159,Power,Broad Jump to Sprint,Bodyweight,Explosive Power / Rate of Force Development,Pending
+160,Power,Resisted Sprint Start,Bodyweight,Explosive Power / Rate of Force Development,Pending
+161,Power,Sled Push,Bodyweight,Explosive Power / Rate of Force Development,Pending
+162,Power,Sled Pull,Bodyweight,Explosive Power / Rate of Force Development,Pending
+163,Power,Speed Deadlift,Bodyweight,Explosive Power / Rate of Force Development,Pending
+164,Power,Speed Bench Press,Bodyweight,Explosive Power / Rate of Force Development,Pending
+165,Power,Band-Resisted Squat Jump,Resistance Band,Explosive Power / Rate of Force Development,Pending
+166,Power,Explosive Step-Up,Bodyweight,Explosive Power / Rate of Force Development,Pending
+167,Power,Alternating Kettlebell Snatch,Kettlebell,Explosive Power / Rate of Force Development,Pending
+168,Power,Barbell Push Jerk from Rack,Barbell,Explosive Power / Rate of Force Development,Pending
+169,Power,Trap Bar Jump Shrug,Bodyweight,Explosive Power / Rate of Force Development,Pending
+170,Power,Explosive Box Step-Up,Bodyweight,Explosive Power / Rate of Force Development,Pending
+171,Power,Weighted Jump Squat,Bodyweight,Explosive Power / Rate of Force Development,Pending
+172,Power,Medicine Ball Rotational Scoop Toss,Medicine Ball,Explosive Power / Rate of Force Development,Pending
+173,Power,Explosive Pull-Up,Bodyweight,Explosive Power / Rate of Force Development,Pending
+174,Power,Plyo Push-Up to Box,Bodyweight,Explosive Power / Rate of Force Development,Pending
+175,Power,Hex Bar Jump,Bodyweight,Explosive Power / Rate of Force Development,Pending
+176,Power,Explosive Kettlebell Swing,Kettlebell,Explosive Power / Rate of Force Development,Pending
+177,Power,Explosive Barbell Hip Thrust,Barbell,Explosive Power / Rate of Force Development,Pending
+178,Power,Standing Broad Jump Test,Bodyweight,Explosive Power / Rate of Force Development,Pending
+179,Power,Vertical Jump Test,Bodyweight,Explosive Power / Rate of Force Development,Pending
+180,Power,Single-Arm Kettlebell Clean and Press,Kettlebell,Explosive Power / Rate of Force Development,Pending
+181,Plyometric,Box Jump,Bodyweight,Reactive / Plyometric Power,Pending
+182,Plyometric,Depth Jump,Bodyweight,Reactive / Plyometric Power,Pending
+183,Plyometric,Broad Jump,Bodyweight,Reactive / Plyometric Power,Pending
+184,Plyometric,Squat Jump,Bodyweight,Reactive / Plyometric Power,Pending
+185,Plyometric,Tuck Jump,Bodyweight,Reactive / Plyometric Power,Pending
+186,Plyometric,Split Lunge Jump,Bodyweight,Reactive / Plyometric Power,Pending
+187,Plyometric,Lateral Bound,Bodyweight,Reactive / Plyometric Power,Pending
+188,Plyometric,Single-Leg Box Jump,Bodyweight,Reactive / Plyometric Power,Pending
+189,Plyometric,Skater Jump,Bodyweight,Reactive / Plyometric Power,Pending
+190,Plyometric,Bounding Run,Bodyweight,Reactive / Plyometric Power,Pending
+191,Plyometric,Clap Push-Up,Bodyweight,Reactive / Plyometric Power,Pending
+192,Plyometric,Plyo Push-Up,Bodyweight,Reactive / Plyometric Power,Pending
+193,Plyometric,Depth Drop,Bodyweight,Reactive / Plyometric Power,Pending
+194,Plyometric,Continuous Broad Jumps,Bodyweight,Reactive / Plyometric Power,Pending
+195,Plyometric,Lateral Skater Bound,Bodyweight,Reactive / Plyometric Power,Pending
+196,Plyometric,Box Jump Step-Down,Bodyweight,Reactive / Plyometric Power,Pending
+197,Plyometric,Single-Leg Hop,Bodyweight,Reactive / Plyometric Power,Pending
+198,Plyometric,Ankle Hop,Bodyweight,Reactive / Plyometric Power,Pending
+199,Plyometric,Squat Jump to Box,Bodyweight,Reactive / Plyometric Power,Pending
+200,Plyometric,Reactive Broad Jump,Bodyweight,Reactive / Plyometric Power,Pending
+201,Plyometric,Split Squat Jump,Bodyweight,Reactive / Plyometric Power,Pending
+202,Plyometric,Depth Jump to Broad Jump,Bodyweight,Reactive / Plyometric Power,Pending
+203,Plyometric,Box-to-Box Jump,Bodyweight,Reactive / Plyometric Power,Pending
+204,Plyometric,Frog Jump,Bodyweight,Reactive / Plyometric Power,Pending
+205,Plyometric,Star Jump,Bodyweight,Reactive / Plyometric Power,Pending
+206,Plyometric,Burpee Jump,Bodyweight,Reactive / Plyometric Power,Pending
+207,Plyometric,Jump Rope Double Under,Bodyweight,Reactive / Plyometric Power,Pending
+208,Plyometric,Lateral Box Jump,Bodyweight,Reactive / Plyometric Power,Pending
+209,Plyometric,Single-Leg Bound,Bodyweight,Reactive / Plyometric Power,Pending
+210,Plyometric,180-Degree Jump Turn,Bodyweight,Reactive / Plyometric Power,Pending
+211,Plyometric,Cone Hop,Bodyweight,Reactive / Plyometric Power,Pending
+212,Plyometric,Hurdle Hop,Bodyweight,Reactive / Plyometric Power,Pending
+213,Plyometric,Consecutive Vertical Jumps,Bodyweight,Reactive / Plyometric Power,Pending
+214,Plyometric,Plyo Lunge Jump,Bodyweight,Reactive / Plyometric Power,Pending
+215,Plyometric,Squat Jump with Rotation,Bodyweight,Reactive / Plyometric Power,Pending
+216,Plyometric,Explosive Step Jump,Bodyweight,Reactive / Plyometric Power,Pending
+217,Plyometric,Bounding Skips,Bodyweight,Reactive / Plyometric Power,Pending
+218,Plyometric,Depth Jump to Sprint,Bodyweight,Reactive / Plyometric Power,Pending
+219,Plyometric,Kneeling Jump to Stand,Bodyweight,Reactive / Plyometric Power,Pending
+220,Plyometric,Medicine Ball Jump Throw,Medicine Ball,Reactive / Plyometric Power,Pending
+221,Isometric Strength,Isometric Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+222,Isometric Strength,Isometric Wall Sit,Bodyweight,Static Strength / Time Under Tension,Pending
+223,Isometric Strength,Isometric Deadlift Pull Against Pins,Bodyweight,Static Strength / Time Under Tension,Pending
+224,Isometric Strength,Isometric Push-Up Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+225,Isometric Strength,Isometric Bench Press Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+226,Isometric Strength,Isometric Lunge Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+227,Isometric Strength,Isometric Row Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+228,Isometric Strength,Isometric Overhead Press Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+229,Isometric Strength,Isometric Chin-Up Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+230,Isometric Strength,Isometric Plank Row Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+231,Isometric Strength,Isometric Bridge Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+232,Isometric Strength,Isometric Split Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+233,Isometric Strength,Isometric Calf Raise Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+234,Isometric Strength,Isometric Shoulder Press Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+235,Isometric Strength,Isometric Bicep Curl Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+236,Isometric Strength,Isometric Triceps Extension Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+237,Isometric Strength,Isometric Leg Extension Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+238,Isometric Strength,Isometric Leg Curl Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+239,Isometric Strength,Isometric Farmer Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+240,Isometric Strength,Isometric Front Rack Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+241,Isometric Strength,Isometric Overhead Carry Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+242,Isometric Strength,Isometric Goblet Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+243,Isometric Strength,Isometric Pull-Up Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+244,Isometric Strength,Isometric Face Pull Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+245,Isometric Strength,Isometric Glute Bridge Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+246,Isometric Strength,Isometric Nordic Curl Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+247,Isometric Strength,Isometric Box Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+248,Isometric Strength,Isometric Deadlift Lockout Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+249,Isometric Strength,Isometric Bear Crawl Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+250,Isometric Strength,Isometric Pistol Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+251,Isometric Strength,Isometric Single-Leg RDL Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+252,Isometric Strength,Isometric Cossack Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+253,Isometric Strength,Isometric Handstand Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+254,Isometric Strength,Isometric Wall Push Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+255,Isometric Strength,Isometric Landmine Press Hold,Landmine,Static Strength / Time Under Tension,Pending
+256,Isometric Strength,Isometric Bent-Over Row Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+257,Isometric Strength,Isometric Hip Thrust Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+258,Isometric Strength,Isometric Y-Raise Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+259,Isometric Strength,Isometric Overhead Squat Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+260,Isometric Strength,Isometric Deadlift Mid-Shin Hold,Bodyweight,Static Strength / Time Under Tension,Pending
+261,Stability & Balance,Single-Leg Stand,Bodyweight,Balance / Proprioception,Pending
+262,Stability & Balance,Single-Leg RDL Reach,Bodyweight,Balance / Proprioception,Pending
+263,Stability & Balance,Bosu Ball Squat,Bosu Ball,Balance / Proprioception,Pending
+264,Stability & Balance,Single-Leg Box Step-Down,Bodyweight,Balance / Proprioception,Pending
+265,Stability & Balance,Stability Ball Plank,Stability Ball,Balance / Proprioception,Pending
+266,Stability & Balance,Single-Arm Farmer Carry,Bodyweight,Balance / Proprioception,Pending
+267,Stability & Balance,Suitcase Carry,Bodyweight,Balance / Proprioception,Pending
+268,Stability & Balance,Overhead Carry,Bodyweight,Balance / Proprioception,Pending
+269,Stability & Balance,Waiter's Carry,Bodyweight,Balance / Proprioception,Pending
+270,Stability & Balance,Single-Leg Deadlift Balance,Bodyweight,Balance / Proprioception,Pending
+271,Stability & Balance,Bosu Push-Up,Bosu Ball,Balance / Proprioception,Pending
+272,Stability & Balance,Single-Leg Hip Thrust,Bodyweight,Balance / Proprioception,Pending
+273,Stability & Balance,Slackline Balance Hold,Balance Equipment,Balance / Proprioception,Pending
+274,Stability & Balance,Balance Beam Walk,Bodyweight,Balance / Proprioception,Pending
+275,Stability & Balance,Single-Leg Box Jump Landing,Bodyweight,Balance / Proprioception,Pending
+276,Stability & Balance,Stability Ball Hamstring Curl,Stability Ball,Balance / Proprioception,Pending
+277,Stability & Balance,Bird Dog,Bodyweight,Balance / Proprioception,Pending
+278,Stability & Balance,Single-Arm Overhead Carry,Bodyweight,Balance / Proprioception,Pending
+279,Stability & Balance,TRX Single-Leg Squat,TRX / Suspension Trainer,Balance / Proprioception,Pending
+280,Stability & Balance,Airplane Balance,Bodyweight,Balance / Proprioception,Pending
+281,Stability & Balance,Warrior III Balance Reach,Bodyweight,Balance / Proprioception,Pending
+282,Stability & Balance,Single-Leg Deadlift to Row,Bodyweight,Balance / Proprioception,Pending
+283,Stability & Balance,Bosu Lateral Step,Bosu Ball,Balance / Proprioception,Pending
+284,Stability & Balance,Wobble Board Stand,Balance Equipment,Balance / Proprioception,Pending
+285,Stability & Balance,Single-Leg Calf Raise Balance,Bodyweight,Balance / Proprioception,Pending
+286,Stability & Balance,Bosu Ball Plank,Bosu Ball,Balance / Proprioception,Pending
+287,Stability & Balance,Half-Kneeling Pallof Press,Bodyweight,Balance / Proprioception,Pending
+288,Stability & Balance,Single-Arm Kettlebell Carry,Kettlebell,Balance / Proprioception,Pending
+289,Stability & Balance,Single-Leg Wall Sit,Bodyweight,Balance / Proprioception,Pending
+290,Stability & Balance,Single-Leg Squat to Bench,Bodyweight,Balance / Proprioception,Pending
+291,Stability & Balance,Standing Y-Balance Reach,Bodyweight,Balance / Proprioception,Pending
+292,Stability & Balance,Bosu Ball Mountain Climber,Bosu Ball,Balance / Proprioception,Pending
+293,Stability & Balance,Single-Leg Glute Bridge Balance,Bodyweight,Balance / Proprioception,Pending
+294,Stability & Balance,Cross-Body Balance Reach,Bodyweight,Balance / Proprioception,Pending
+295,Stability & Balance,Tandem Stance Hold,Bodyweight,Balance / Proprioception,Pending
+296,Stability & Balance,Single-Leg RDL to Balance,Bodyweight,Balance / Proprioception,Pending
+297,Stability & Balance,Stability Ball Rollout,Stability Ball,Balance / Proprioception,Pending
+298,Stability & Balance,Kettlebell Bottoms-Up Press,Kettlebell,Balance / Proprioception,Pending
+299,Stability & Balance,Single-Leg Box Squat,Bodyweight,Balance / Proprioception,Pending
+300,Stability & Balance,Balance Pad Squat Hold,Balance Equipment,Balance / Proprioception,Pending
+301,Mobility,Cat-Cow Flow,Bodyweight,Joint Mobility / Movement Prep,Pending
+302,Mobility,World's Greatest Stretch,Bodyweight,Joint Mobility / Movement Prep,Pending
+303,Mobility,Hip 90/90 Rotation,Bodyweight,Joint Mobility / Movement Prep,Pending
+304,Mobility,Leg Swings Front-Back,Bodyweight,Joint Mobility / Movement Prep,Pending
+305,Mobility,Leg Swings Lateral,Bodyweight,Joint Mobility / Movement Prep,Pending
+306,Mobility,Arm Circles,Bodyweight,Joint Mobility / Movement Prep,Pending
+307,Mobility,Band Shoulder Dislocates,Resistance Band,Joint Mobility / Movement Prep,Pending
+308,Mobility,Thoracic Spine Rotation,Bodyweight,Joint Mobility / Movement Prep,Pending
+309,Mobility,Walking Lunge with Twist,Bodyweight,Joint Mobility / Movement Prep,Pending
+310,Mobility,Inchworm Walkout,Bodyweight,Joint Mobility / Movement Prep,Pending
+311,Mobility,Hip Circles,Bodyweight,Joint Mobility / Movement Prep,Pending
+312,Mobility,Ankle Circles,Bodyweight,Joint Mobility / Movement Prep,Pending
+313,Mobility,Deep Squat Hold,Bodyweight,Joint Mobility / Movement Prep,Pending
+314,Mobility,Cossack Squat Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+315,Mobility,Spiderman Lunge with Reach,Bodyweight,Joint Mobility / Movement Prep,Pending
+316,Mobility,Scorpion Stretch Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+317,Mobility,Standing Windmill,Bodyweight,Joint Mobility / Movement Prep,Pending
+318,Mobility,Standing Quad Pull Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+319,Mobility,Hip Flexor Lunge Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+320,Mobility,Thoracic Extension over Foam Roller,Foam Roller,Joint Mobility / Movement Prep,Pending
+321,Mobility,Band Shoulder Pass-Through,Resistance Band,Joint Mobility / Movement Prep,Pending
+322,Mobility,Wrist Mobility Circles,Bodyweight,Joint Mobility / Movement Prep,Pending
+323,Mobility,Neck Rolls,Bodyweight,Joint Mobility / Movement Prep,Pending
+324,Mobility,Lateral Lunge Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+325,Mobility,Frog Stretch Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+326,Mobility,Bear Crawl,Bodyweight,Joint Mobility / Movement Prep,Pending
+327,Mobility,Crab Walk,Bodyweight,Joint Mobility / Movement Prep,Pending
+328,Mobility,Duck Walk,Bodyweight,Joint Mobility / Movement Prep,Pending
+329,Mobility,Lizard Pose Reach Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+330,Mobility,90/90 Hip Switch,Bodyweight,Joint Mobility / Movement Prep,Pending
+331,Mobility,Knee Hug Walk,Bodyweight,Joint Mobility / Movement Prep,Pending
+332,Mobility,Butt Kicks,Bodyweight,Joint Mobility / Movement Prep,Pending
+333,Mobility,High Knees,Bodyweight,Joint Mobility / Movement Prep,Pending
+334,Mobility,Carioca Step,Bodyweight,Joint Mobility / Movement Prep,Pending
+335,Mobility,A-Skip,Bodyweight,Joint Mobility / Movement Prep,Pending
+336,Mobility,Standing Figure-4 Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+337,Mobility,Prone Press-Up,Bodyweight,Joint Mobility / Movement Prep,Pending
+338,Mobility,Open Book Rotation,Bodyweight,Joint Mobility / Movement Prep,Pending
+339,Mobility,Side-Lying Windmill,Bodyweight,Joint Mobility / Movement Prep,Pending
+340,Mobility,Banded Ankle Dorsiflexion Mobilization,Resistance Band,Joint Mobility / Movement Prep,Pending
+341,Mobility,Hip Airplane Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+342,Mobility,Kneeling Hip Flexor Rock,Bodyweight,Joint Mobility / Movement Prep,Pending
+343,Mobility,Thread the Needle Mobility,Bodyweight,Joint Mobility / Movement Prep,Pending
+344,Mobility,Standing Hip Circles,Bodyweight,Joint Mobility / Movement Prep,Pending
+345,Mobility,Foam Roll IT Band,Resistance Band,Joint Mobility / Movement Prep,Pending
+346,Mobility,Foam Roll Quads,Foam Roller,Joint Mobility / Movement Prep,Pending
+347,Mobility,Foam Roll Upper Back,Foam Roller,Joint Mobility / Movement Prep,Pending
+348,Mobility,Cat-Camel Flow,Bodyweight,Joint Mobility / Movement Prep,Pending
+349,Mobility,Deep Lunge Rotation,Bodyweight,Joint Mobility / Movement Prep,Pending
+350,Mobility,Ankle Dorsiflexion Rock,Bodyweight,Joint Mobility / Movement Prep,Pending
+351,Stretching,Standing Hamstring Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+352,Stretching,Seated Hamstring Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+353,Stretching,Standing Quad Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+354,Stretching,Couch Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+355,Stretching,Butterfly Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+356,Stretching,Pigeon Pose Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+357,Stretching,Figure-4 Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+358,Stretching,Wall Calf Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+359,Stretching,Seated Forward Fold Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+360,Stretching,Standing Forward Fold Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+361,Stretching,Chest Doorway Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+362,Stretching,Cross-Body Shoulder Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+363,Stretching,Overhead Triceps Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+364,Stretching,Child's Pose Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+365,Stretching,Cobra Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+366,Stretching,Cat Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+367,Stretching,Seated Spinal Twist Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+368,Stretching,Lying Spinal Twist Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+369,Stretching,Standing Side Bend Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+370,Stretching,Kneeling Hip Flexor Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+371,Stretching,IT Band Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+372,Stretching,Seated Adductor Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+373,Stretching,Standing Adductor Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+374,Stretching,Neck Side Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+375,Stretching,Neck Flexion Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+376,Stretching,Forearm Stretch Palm Up,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+377,Stretching,Forearm Stretch Palm Down,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+378,Stretching,Overhead Lat Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+379,Stretching,Standing Quad Stretch Wall,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+380,Stretching,Seated Figure-4 Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+381,Stretching,Frog Stretch Static,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+382,Stretching,Wall Calf Stretch Bent Knee,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+383,Stretching,Seated Butterfly Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+384,Stretching,Standing Toe Touch Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+385,Stretching,Kneeling Hip Flexor Stretch with Reach,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+386,Stretching,Reclined Pigeon Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+387,Stretching,Reclined Hamstring Strap Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+388,Stretching,Doorway Pec Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+389,Stretching,Cross-Leg Glute Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+390,Stretching,Standing IT Band Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+391,Stretching,Kneeling Ankle Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+392,Stretching,Kneeling Shin Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+393,Stretching,Wrist Flexor Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+394,Stretching,Wrist Extensor Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+395,Stretching,Bicep Wall Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+396,Stretching,Levator Scapulae Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+397,Stretching,Upper Trap Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+398,Stretching,Scalene Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+399,Stretching,Standing Piriformis Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+400,Stretching,Seated Piriformis Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+401,Stretching,Lying Quad Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+402,Stretching,Standing Split Stretch Prep,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+403,Stretching,Half-Split Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+404,Stretching,Seated Straddle Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+405,Stretching,Standing Calf Stretch Straight Knee,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+406,Stretching,Kneeling Lat Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+407,Stretching,Cross-Body Rear Delt Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+408,Stretching,Standing Chest Opener Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+409,Stretching,Reclined Spinal Twist Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+410,Stretching,Extended Puppy Stretch,Bodyweight / Mat,Flexibility / Static Stretch,Pending
+411,Core - Front,Plank,Bodyweight,Front Core (Rectus Abdominis),Pending
+412,Core - Front,Long-Lever Plank,Bodyweight,Front Core (Rectus Abdominis),Pending
+413,Core - Front,Weighted Plank,Bodyweight,Front Core (Rectus Abdominis),Pending
+414,Core - Front,Ab Wheel Rollout,Bodyweight,Front Core (Rectus Abdominis),Pending
+415,Core - Front,Hanging Leg Raise,Bodyweight,Front Core (Rectus Abdominis),Pending
+416,Core - Front,Hanging Knee Raise,Bodyweight,Front Core (Rectus Abdominis),Pending
+417,Core - Front,Reverse Crunch,Bodyweight,Front Core (Rectus Abdominis),Pending
+418,Core - Front,Cable Crunch,Cable,Front Core (Rectus Abdominis),Pending
+419,Core - Front,Sit-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+420,Core - Front,V-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+421,Core - Front,Hollow Body Hold,Bodyweight,Front Core (Rectus Abdominis),Pending
+422,Core - Front,Toes-to-Bar,Bodyweight,Front Core (Rectus Abdominis),Pending
+423,Core - Front,Decline Sit-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+424,Core - Front,Dead Bug,Bodyweight,Front Core (Rectus Abdominis),Pending
+425,Core - Front,Stability Ball Crunch,Stability Ball,Front Core (Rectus Abdominis),Pending
+426,Core - Front,Weighted Sit-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+427,Core - Front,Flutter Kicks,Bodyweight,Front Core (Rectus Abdominis),Pending
+428,Core - Front,Leg Lowering,Bodyweight,Front Core (Rectus Abdominis),Pending
+429,Core - Front,Mountain Climbers,Bodyweight,Front Core (Rectus Abdominis),Pending
+430,Core - Front,TRX Fallout,TRX / Suspension Trainer,Front Core (Rectus Abdominis),Pending
+431,Core - Front,Stir the Pot,Bodyweight,Front Core (Rectus Abdominis),Pending
+432,Core - Front,Plank Shoulder Tap,Bodyweight,Front Core (Rectus Abdominis),Pending
+433,Core - Front,Plank to Push-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+434,Core - Front,Knee Tuck on Slider,Bodyweight,Front Core (Rectus Abdominis),Pending
+435,Core - Front,Jackknife Sit-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+436,Core - Front,Hanging Straight Leg Raise,Bodyweight,Front Core (Rectus Abdominis),Pending
+437,Core - Front,Candlestick Roll-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+438,Core - Front,Toe Touch Crunch,Bodyweight,Front Core (Rectus Abdominis),Pending
+439,Core - Front,L-Sit Hold,Bodyweight,Front Core (Rectus Abdominis),Pending
+440,Core - Front,Dragon Flag,Bodyweight,Front Core (Rectus Abdominis),Pending
+441,Core - Front,Sliding Plank Knee Tuck,Bodyweight,Front Core (Rectus Abdominis),Pending
+442,Core - Front,Reverse Plank,Bodyweight,Front Core (Rectus Abdominis),Pending
+443,Core - Front,Weighted Hanging Leg Raise,Bodyweight,Front Core (Rectus Abdominis),Pending
+444,Core - Front,Cable Rope Crunch,Cable,Front Core (Rectus Abdominis),Pending
+445,Core - Front,Machine Crunch,Machine,Front Core (Rectus Abdominis),Pending
+446,Core - Front,Bench Leg Raise,Bodyweight,Front Core (Rectus Abdominis),Pending
+447,Core - Front,Incline Sit-Up,Bodyweight,Front Core (Rectus Abdominis),Pending
+448,Core - Front,Swiss Ball Pike,Stability Ball,Front Core (Rectus Abdominis),Pending
+449,Core - Front,Plank Reach-Through,Bodyweight,Front Core (Rectus Abdominis),Pending
+450,Core - Front,Suspended Ab Fallout,Bodyweight,Front Core (Rectus Abdominis),Pending
+451,Core - Lateral,Side Plank,Bodyweight,Lateral Core (Obliques),Pending
+452,Core - Lateral,Side Plank with Reach,Bodyweight,Lateral Core (Obliques),Pending
+453,Core - Lateral,Side Plank Hip Dip,Bodyweight,Lateral Core (Obliques),Pending
+454,Core - Lateral,Copenhagen Plank,Bodyweight,Lateral Core (Obliques),Pending
+455,Core - Lateral,Single-Arm Suitcase Hold,Bodyweight,Lateral Core (Obliques),Pending
+456,Core - Lateral,Dumbbell Side Bend,Dumbbell,Lateral Core (Obliques),Pending
+457,Core - Lateral,Oblique Cable Crunch,Cable,Lateral Core (Obliques),Pending
+458,Core - Lateral,Standing Oblique Crunch,Bodyweight,Lateral Core (Obliques),Pending
+459,Core - Lateral,Side Plank with Leg Lift,Bodyweight,Lateral Core (Obliques),Pending
+460,Core - Lateral,Star Plank,Bodyweight,Lateral Core (Obliques),Pending
+461,Core - Lateral,Side Plank Row,Bodyweight,Lateral Core (Obliques),Pending
+462,Core - Lateral,Lateral Plank Walk,Bodyweight,Lateral Core (Obliques),Pending
+463,Core - Lateral,Side Plank Crunch,Bodyweight,Lateral Core (Obliques),Pending
+464,Core - Lateral,Landmine Lateral Core Raise,Landmine,Lateral Core (Obliques),Pending
+465,Core - Lateral,Side Plank Twist,Bodyweight,Lateral Core (Obliques),Pending
+466,Core - Lateral,Lateral Windshield Wiper,Bodyweight,Lateral Core (Obliques),Pending
+467,Core - Lateral,Bosu Side Plank,Bosu Ball,Lateral Core (Obliques),Pending
+468,Core - Lateral,Banded Side Bend,Resistance Band,Lateral Core (Obliques),Pending
+469,Core - Lateral,Lateral Medicine Ball Slam,Medicine Ball,Lateral Core (Obliques),Pending
+470,Core - Lateral,Side-Lying Leg Raise,Bodyweight,Lateral Core (Obliques),Pending
+471,Core - Lateral,Side Plank with Dumbbell,Dumbbell,Lateral Core (Obliques),Pending
+472,Core - Lateral,Kettlebell Side Bend,Kettlebell,Lateral Core (Obliques),Pending
+473,Core - Lateral,Lateral Step Oblique Crunch,Bodyweight,Lateral Core (Obliques),Pending
+474,Core - Lateral,Side Plank Elevated Feet,Bodyweight,Lateral Core (Obliques),Pending
+475,Core - Lateral,Standing Side Crunch,Bodyweight,Lateral Core (Obliques),Pending
+476,Core - Lateral,Cable Woodchopper Lateral,Cable,Lateral Core (Obliques),Pending
+477,Core - Lateral,Oblique V-Up,Bodyweight,Lateral Core (Obliques),Pending
+478,Core - Lateral,Side Plank Clamshell,Bodyweight,Lateral Core (Obliques),Pending
+479,Core - Lateral,Side Plank Star Reach,Bodyweight,Lateral Core (Obliques),Pending
+480,Core - Lateral,Lateral Flexion Machine,Machine,Lateral Core (Obliques),Pending
+481,Core - Lateral,Side Plank Pulse,Bodyweight,Lateral Core (Obliques),Pending
+482,Core - Lateral,Standing Dumbbell Side Bend,Dumbbell,Lateral Core (Obliques),Pending
+483,Core - Lateral,Side Plank with Band Pull,Resistance Band,Lateral Core (Obliques),Pending
+484,Core - Lateral,Half-Kneeling Cable Side Bend,Cable,Lateral Core (Obliques),Pending
+485,Core - Lateral,Side Plank Knee-to-Elbow,Bodyweight,Lateral Core (Obliques),Pending
+486,Core - Lateral,Oblique Sit-Up,Bodyweight,Lateral Core (Obliques),Pending
+487,Core - Lateral,Side Plank Hold with March,Bodyweight,Lateral Core (Obliques),Pending
+488,Core - Lateral,Lateral Bridge Walkout,Bodyweight,Lateral Core (Obliques),Pending
+489,Core - Lateral,Side Plank Reach Under,Bodyweight,Lateral Core (Obliques),Pending
+490,Core - Lateral,Resistance Band Side Step Core,Resistance Band,Lateral Core (Obliques),Pending
+491,Core - Rotational / Twisting,Russian Twist,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+492,Core - Rotational / Twisting,Cable Woodchopper High-to-Low,Cable,Rotational Core (Obliques / Transverse),Pending
+493,Core - Rotational / Twisting,Cable Woodchopper Low-to-High,Cable,Rotational Core (Obliques / Transverse),Pending
+494,Core - Rotational / Twisting,Medicine Ball Rotational Throw,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+495,Core - Rotational / Twisting,Landmine Rotation,Landmine,Rotational Core (Obliques / Transverse),Pending
+496,Core - Rotational / Twisting,Standing Trunk Rotation,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+497,Core - Rotational / Twisting,Standing Pallof Press,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+498,Core - Rotational / Twisting,Kneeling Pallof Press,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+499,Core - Rotational / Twisting,Seated Twist,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+500,Core - Rotational / Twisting,Bicycle Crunch,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+501,Core - Rotational / Twisting,Rotational Med Ball Slam,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+502,Core - Rotational / Twisting,Battle Rope Rotational Slam,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+503,Core - Rotational / Twisting,Cable Rotation Chop,Cable,Rotational Core (Obliques / Transverse),Pending
+504,Core - Rotational / Twisting,Standing Cable Rotation,Cable,Rotational Core (Obliques / Transverse),Pending
+505,Core - Rotational / Twisting,Windmill Rotation Core,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+506,Core - Rotational / Twisting,Twisting Sit-Up,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+507,Core - Rotational / Twisting,Barbell Landmine Twist,Barbell,Rotational Core (Obliques / Transverse),Pending
+508,Core - Rotational / Twisting,Rotational Lunge,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+509,Core - Rotational / Twisting,Med Ball Rotational Pass,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+510,Core - Rotational / Twisting,Standing Rotational Row,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+511,Core - Rotational / Twisting,Torso Twist Machine,Machine,Rotational Core (Obliques / Transverse),Pending
+512,Core - Rotational / Twisting,Rotational Plank,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+513,Core - Rotational / Twisting,Cable Half-Kneeling Chop,Cable,Rotational Core (Obliques / Transverse),Pending
+514,Core - Rotational / Twisting,Kneeling Rotational Chop,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+515,Core - Rotational / Twisting,Standing Med Ball Rotational Throw,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+516,Core - Rotational / Twisting,Rotational Push-Up,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+517,Core - Rotational / Twisting,Twisting Mountain Climber,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+518,Core - Rotational / Twisting,Rotational Step-Up,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+519,Core - Rotational / Twisting,Cable Rotational Punch,Cable,Rotational Core (Obliques / Transverse),Pending
+520,Core - Rotational / Twisting,Standing Rotational Med Ball Slam,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+521,Core - Rotational / Twisting,Rotational Dead Bug,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+522,Core - Rotational / Twisting,Twisting Plank Reach,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+523,Core - Rotational / Twisting,Rotational Cable Row,Cable,Rotational Core (Obliques / Transverse),Pending
+524,Core - Rotational / Twisting,Standing Trunk Rotation with Band,Resistance Band,Rotational Core (Obliques / Transverse),Pending
+525,Core - Rotational / Twisting,Windshield Wipers,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+526,Core - Rotational / Twisting,Rotational Bench Press,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+527,Core - Rotational / Twisting,Twisting Knee Raise,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+528,Core - Rotational / Twisting,Cable Rotation with Squat,Cable,Rotational Core (Obliques / Transverse),Pending
+529,Core - Rotational / Twisting,Med Ball Seated Rotational Pass,Medicine Ball,Rotational Core (Obliques / Transverse),Pending
+530,Core - Rotational / Twisting,Standing Rotational Chop with Lunge,Bodyweight,Rotational Core (Obliques / Transverse),Pending
+531,Yoga,Mountain Pose,Yoga Mat,Yoga / Mind-Body,Pending
+532,Yoga,Downward Dog,Yoga Mat,Yoga / Mind-Body,Pending
+533,Yoga,Upward Dog,Yoga Mat,Yoga / Mind-Body,Pending
+534,Yoga,Child's Pose,Yoga Mat,Yoga / Mind-Body,Pending
+535,Yoga,Cobra Pose,Yoga Mat,Yoga / Mind-Body,Pending
+536,Yoga,Cat Pose,Yoga Mat,Yoga / Mind-Body,Pending
+537,Yoga,Cow Pose,Yoga Mat,Yoga / Mind-Body,Pending
+538,Yoga,Warrior I,Yoga Mat,Yoga / Mind-Body,Pending
+539,Yoga,Warrior II,Yoga Mat,Yoga / Mind-Body,Pending
+540,Yoga,Warrior III,Yoga Mat,Yoga / Mind-Body,Pending
+541,Yoga,Triangle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+542,Yoga,Extended Side Angle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+543,Yoga,Tree Pose,Yoga Mat,Yoga / Mind-Body,Pending
+544,Yoga,Chair Pose,Yoga Mat,Yoga / Mind-Body,Pending
+545,Yoga,Standing Forward Fold Pose,Yoga Mat,Yoga / Mind-Body,Pending
+546,Yoga,Half Forward Fold Pose,Yoga Mat,Yoga / Mind-Body,Pending
+547,Yoga,Plank Pose,Yoga Mat,Yoga / Mind-Body,Pending
+548,Yoga,Side Plank Pose,Yoga Mat,Yoga / Mind-Body,Pending
+549,Yoga,Bridge Pose,Yoga Mat,Yoga / Mind-Body,Pending
+550,Yoga,Wheel Pose,Yoga Mat,Yoga / Mind-Body,Pending
+551,Yoga,Camel Pose,Yoga Mat,Yoga / Mind-Body,Pending
+552,Yoga,Pigeon Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending
+553,Yoga,Reclined Pigeon Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending
+554,Yoga,Seated Forward Fold Pose,Yoga Mat,Yoga / Mind-Body,Pending
+555,Yoga,Bound Angle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+556,Yoga,Wide-Legged Forward Fold Pose,Yoga Mat,Yoga / Mind-Body,Pending
+557,Yoga,Eagle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+558,Yoga,Crow Pose,Yoga Mat,Yoga / Mind-Body,Pending
+559,Yoga,Half Moon Pose,Yoga Mat,Yoga / Mind-Body,Pending
+560,Yoga,Revolved Triangle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+561,Yoga,Revolved Half Moon Pose,Yoga Mat,Yoga / Mind-Body,Pending
+562,Yoga,Boat Pose,Yoga Mat,Yoga / Mind-Body,Pending
+563,Yoga,Fish Pose,Yoga Mat,Yoga / Mind-Body,Pending
+564,Yoga,Locust Pose,Yoga Mat,Yoga / Mind-Body,Pending
+565,Yoga,Bow Pose,Yoga Mat,Yoga / Mind-Body,Pending
+566,Yoga,Sphinx Pose,Yoga Mat,Yoga / Mind-Body,Pending
+567,Yoga,Corpse Pose,Yoga Mat,Yoga / Mind-Body,Pending
+568,Yoga,Legs-Up-The-Wall Pose,Yoga Mat,Yoga / Mind-Body,Pending
+569,Yoga,Happy Baby Pose,Yoga Mat,Yoga / Mind-Body,Pending
+570,Yoga,Reclined Spinal Twist Pose,Yoga Mat,Yoga / Mind-Body,Pending
+571,Yoga,Seated Spinal Twist Pose,Yoga Mat,Yoga / Mind-Body,Pending
+572,Yoga,Cow Face Pose,Yoga Mat,Yoga / Mind-Body,Pending
+573,Yoga,Lizard Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending
+574,Yoga,Frog Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending
+575,Yoga,Dolphin Pose,Yoga Mat,Yoga / Mind-Body,Pending
+576,Yoga,Dolphin Plank Pose,Yoga Mat,Yoga / Mind-Body,Pending
+577,Yoga,Low Lunge Pose,Yoga Mat,Yoga / Mind-Body,Pending
+578,Yoga,High Lunge Pose,Yoga Mat,Yoga / Mind-Body,Pending
+579,Yoga,Crescent Lunge Pose,Yoga Mat,Yoga / Mind-Body,Pending
+580,Yoga,Gate Pose,Yoga Mat,Yoga / Mind-Body,Pending
+581,Yoga,Garland Pose,Yoga Mat,Yoga / Mind-Body,Pending
+582,Yoga,Standing Split Pose,Yoga Mat,Yoga / Mind-Body,Pending
+583,Yoga,Firefly Pose,Yoga Mat,Yoga / Mind-Body,Pending
+584,Yoga,Peacock Pose,Yoga Mat,Yoga / Mind-Body,Pending
+585,Yoga,Scorpion Pose,Yoga Mat,Yoga / Mind-Body,Pending
+586,Yoga,King Pigeon Pose,Yoga Mat,Yoga / Mind-Body,Pending
+587,Yoga,Wild Thing Pose,Yoga Mat,Yoga / Mind-Body,Pending
+588,Yoga,Half Lord of the Fishes Pose,Yoga Mat,Yoga / Mind-Body,Pending
+589,Yoga,Supported Shoulderstand,Yoga Mat,Yoga / Mind-Body,Pending
+590,Yoga,Plow Pose,Yoga Mat,Yoga / Mind-Body,Pending
+591,Yoga,Rabbit Pose,Yoga Mat,Yoga / Mind-Body,Pending
+592,Yoga,Hero Pose,Yoga Mat,Yoga / Mind-Body,Pending
+593,Yoga,Reclined Hero Pose,Yoga Mat,Yoga / Mind-Body,Pending
+594,Yoga,Easy Pose,Yoga Mat,Yoga / Mind-Body,Pending
+595,Yoga,Lotus Pose,Yoga Mat,Yoga / Mind-Body,Pending
+596,Yoga,Half Lotus Pose,Yoga Mat,Yoga / Mind-Body,Pending
+597,Yoga,Standing Big Toe Pose,Yoga Mat,Yoga / Mind-Body,Pending
+598,Yoga,Extended Hand-to-Big-Toe Pose,Yoga Mat,Yoga / Mind-Body,Pending
+599,Yoga,Revolved Head-to-Knee Pose,Yoga Mat,Yoga / Mind-Body,Pending
+600,Yoga,Head-to-Knee Pose,Yoga Mat,Yoga / Mind-Body,Pending
+601,Yoga,Seated Wide-Angle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+602,Yoga,Marichi's Pose,Yoga Mat,Yoga / Mind-Body,Pending
+603,Yoga,Chakravakasana Flow,Yoga Mat,Yoga / Mind-Body,Pending
+604,Yoga,Sun Salutation A Flow,Yoga Mat,Yoga / Mind-Body,Pending
+605,Yoga,Sun Salutation B Flow,Yoga Mat,Yoga / Mind-Body,Pending
+606,Yoga,Standing Forward Bend with Twist,Yoga Mat,Yoga / Mind-Body,Pending
+607,Yoga,Puppy Pose,Yoga Mat,Yoga / Mind-Body,Pending
+608,Yoga,Thread the Needle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+609,Yoga,Reverse Warrior Pose,Yoga Mat,Yoga / Mind-Body,Pending
+610,Yoga,Humble Warrior Pose,Yoga Mat,Yoga / Mind-Body,Pending
+611,Yoga,Goddess Pose,Yoga Mat,Yoga / Mind-Body,Pending
+612,Yoga,Camel Pose Variation,Yoga Mat,Yoga / Mind-Body,Pending
+613,Yoga,Standing Backbend Pose,Yoga Mat,Yoga / Mind-Body,Pending
+614,Yoga,Supported Bridge Pose,Yoga Mat,Yoga / Mind-Body,Pending
+615,Yoga,Reclining Bound Angle Pose,Yoga Mat,Yoga / Mind-Body,Pending
+616,Yoga,Sphinx-to-Cobra Flow,Yoga Mat,Yoga / Mind-Body,Pending
+617,Yoga,Half Camel Pose,Yoga Mat,Yoga / Mind-Body,Pending
+618,Yoga,Star Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending
+619,Yoga,Standing Cat-Cow Pose,Yoga Mat,Yoga / Mind-Body,Pending
+620,Yoga,Windmill Pose Yoga,Yoga Mat,Yoga / Mind-Body,Pending

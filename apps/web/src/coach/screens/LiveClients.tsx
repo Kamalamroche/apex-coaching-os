@@ -6,6 +6,7 @@ import { useStoreStatus } from "../../app/AppContext";
 import { createInviteLink } from "../../data/coach";
 import { useStore } from "../../data/StoreContext";
 import type { CoachLiveProps } from "../CoachApp";
+import { Transfer } from "./Transfer";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {
@@ -19,6 +20,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   const [open, setOpen] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [transfer, setTransfer] = useState(false);
   const clients = live.clients;
 
   const invite = async () => {
@@ -31,6 +33,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
     }
   };
 
+  if (transfer) return <Transfer live={live} say={say} onBack={() => setTransfer(false)} />;
   const selected = clients?.find((c) => c.id === open);
   if (selected) {
     return <LiveProfile name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => setOpen(null)} goBuild={goBuild} />;
@@ -42,7 +45,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
       <div><div className="eyebrow">Clients</div><h1 className="h1">{clients ? `${clients.length} active` : "Loading…"}</h1></div>
       {clients && clients.length > 0 && <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={(e) => setQ(e.target.value)} />}
       <div className="card flat list">
-        {clients?.length === 0 && <div className="li"><div className="small">No clients yet. Create an invite link and send it to your first client.</div></div>}
+        {clients?.length === 0 && <div className="li"><div className="small">No clients yet. Create an invite link and send it to your first client, or import the clients you already coach.</div></div>}
         {list.map((c) => (
           <button key={c.id} className="li" onClick={() => { live.setActiveClientId(c.id); setOpen(c.id); }}>
             <Avatar initials={initials(c.name)} tone={c.id === live.activeClientId ? "var(--act)" : undefined} />
@@ -52,6 +55,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
         ))}
       </div>
       <button className="btn act block" onClick={() => void invite()}>+ Invite a client</button>
+      <button className="btn ghost block" onClick={() => setTransfer(true)}>Import or export clients</button>
       {link && (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="h3">Send this link to your client</div>

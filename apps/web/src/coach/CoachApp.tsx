@@ -39,11 +39,11 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const goBuild = () => setTab("build");
   const changeTab = (t: Tab) => { setTab(t); if (t !== "clients") setClientId(null); };
   return (
-    <Shell side="Coach" switchHref="/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
       {tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} />}
       {tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {tab === "chat" && <Messages live={live} />}
-      {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} />}
+      {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {tab === "food" && <CoachNutrition />}
       {tab === "money" && <Business />}
       {toast}
@@ -66,7 +66,7 @@ function useFinishedAlert(say: (m: string) => void) {
       seen.current = { store, key };
       return;
     }
-    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR 🏆` : ""}`);
+    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
     seen.current.key = key;
   }, [store, status, log, clientName, say]);
 }
