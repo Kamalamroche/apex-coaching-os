@@ -1,16 +1,17 @@
 import { CLIENTS, FOODS, type Food } from "@apex/core";
-import { Avatar, BackLink, Bar } from "@apex/ui";
+import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import { ConnectedApps } from "./ConnectedApps";
 
-type View = "food" | "habits" | "community";
+type View = "food" | "habits" | "community" | "apps";
 const MENU: [View, string, string][] = [
   ["food", "Nutrition", "1,432 of 1,900 kcal logged today"],
   ["habits", "Habits", "2 of 3 done today"],
   ["community", "Community", "Leaderboard and team feed"],
 ];
 
-export function More() {
+export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
   if (view) {
     return (
@@ -19,6 +20,7 @@ export function More() {
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
         {view === "community" && <Community />}
+        {view === "apps" && <ConnectedApps say={say} />}
       </>
     );
   }
@@ -30,7 +32,8 @@ export function More() {
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}
-        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units, notifications, connected apps"]].map(([t, s]) => (
+        <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
+        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
         ))}
       </div>
@@ -121,7 +124,7 @@ function Community() {
             <div key={c.id} className="li">
               <span className="num" style={{ width: 20, fontWeight: 800, color: i === 0 ? "var(--act)" : "var(--text3)" }}>{i + 1}</span>
               <Avatar initials={c.initials} size={32} />
-              <div className="grow"><div className="h3">{first} {last[0]}.</div><div className="tiny">🔥 {c.streak} days</div></div>
+              <div className="grow"><div className="h3">{first} {last[0]}.</div><div className="tiny"><Icons.flame width={12} height={12} style={{ verticalAlign: -2, color: "var(--act)" }} /> {c.streak} days</div></div>
               <span className="num" style={{ fontWeight: 700 }}>{c.adherence}%</span>
             </div>
           );
@@ -131,7 +134,7 @@ function Community() {
         <div key={p.user} className="card">
           <div className="h3">{p.user}</div>
           <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{p.text}</p>
-          <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}>♥ {p.likes + (liked[i] ? 1 : 0)}</button>
+          <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}><Icons.heart width={13} height={13} fill={liked[i] ? "currentColor" : "none"} /> {p.likes + (liked[i] ? 1 : 0)}</button>
         </div>
       ))}
     </>

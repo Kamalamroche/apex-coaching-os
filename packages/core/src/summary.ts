@@ -1,4 +1,7 @@
 import { exerciseById } from "./library";
+import { addSessionToTrend } from "./plateau";
+import { estimatedOneRepMax } from "./progression";
+import { addReadinessPoint, readinessReason } from "./readiness";
 import type { SessionSets } from "./session";
 import { completedSets, sessionVolume } from "./session";
 import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
@@ -44,11 +47,13 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
     const done = (sets[it.key] ?? []).filter((s) => s.done);
     if (!done.length) continue;
     const isHold = it.reps.trim().endsWith("s");
+    const isDistance = /\d\s*m$/i.test(it.reps.trim());
     const t = totals.get(it.exerciseId) ?? { exerciseId: it.exerciseId, exercise: exerciseById(it.exerciseId).name, sets: 0, reps: 0, seconds: 0, topKg: 0, volumeKg: 0 };
     for (const s of done) {
       const n = Number(s.reps) || 0;
       t.sets += 1;
       if (isHold) t.seconds += n;
+      else if (isDistance) t.metres = (t.metres ?? 0) + n;
       else {
         t.reps += n;
         t.volumeKg = (t.volumeKg ?? 0) + (Number(s.kg) || 0) * n;
@@ -60,9 +65,9 @@ export function exerciseTotals(workout: Workout, sets: SessionSets): ExerciseTot
   return [...totals.values()];
 }
 
-/** "4 sets · 20 reps · top 72.5 kg · 1,405 kg lifted", or "3 sets · 120 s" for a hold. */
+/** "4 sets · 20 reps · top 72.5 kg · 1,405 kg lifted", "3 sets · 120 s" for a hold, "4 sets · 4,000 m" for a distance. */
 export const describeExerciseTotal = (t: ExerciseTotal): string =>
-  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.topKg ? `top ${t.topKg} kg` : null, t.volumeKg ? `${t.volumeKg.toLocaleString("en-GB")} kg lifted` : null]
+  [`${t.sets} set${t.sets === 1 ? "" : "s"}`, t.reps ? `${t.reps} reps` : null, t.seconds ? `${t.seconds} s` : null, t.metres ? `${t.metres.toLocaleString("en-GB")} m` : null, t.topKg ? `top ${t.topKg} kg` : null, t.volumeKg ? `${t.volumeKg.toLocaleString("en-GB")} kg lifted` : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -120,7 +125,20 @@ export function nextHistory(history: TrainingHistory, log: SessionLog, workout: 
       if (s.done && kg > (bestKg[it.exerciseId] ?? 0)) bestKg[it.exerciseId] = kg;
     }
   }
-  return { bestKg, previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes } };
+  const e1rms: Record<number, number> = {};
+  for (const it of workout.items) {
+    for (const s of sets[it.key] ?? []) {
+      const e1rm = s.done ? estimatedOneRepMax({ kg: Number(s.kg) || 0, reps: Number(s.reps) || 0, seconds: 0, rpe: null }) : null;
+      if (e1rm && e1rm > (e1rms[it.exerciseId] ?? 0)) e1rms[it.exerciseId] = e1rm;
+    }
+  }
+  return {
+    bestKg,
+    previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes },
+    // A lighter day isn't a fair test of strength, so it doesn't count towards a plateau.
+    trend: log.summary?.readiness?.adjusted ? (history.trend ?? {}) : addSessionToTrend(history.trend ?? {}, e1rms),
+    ...(log.summary?.readiness ? { readiness: addReadinessPoint(history.readiness, { at: new Date().toISOString(), score: log.summary.readiness.score }) } : history.readiness ? { readiness: history.readiness } : {}),
+  };
 }
 
 const signed = (n: number, unit: string) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}${unit}`;
@@ -136,6 +154,7 @@ export function summaryMessage(log: SessionLog): string {
   if (s?.muscles.length) lines.push(`💪 Worked: ${s.muscles.map((m) => m.muscle).join(", ")}`);
   for (const b of s?.bests ?? []) lines.push(`🏆 New best: ${b.exercise} ${b.kg} kg (was ${b.previousKg} kg)`);
   if (s?.vsLast) lines.push(`📈 vs last time: ${signed(s.vsLast.volumeKg, " kg")} · ${signed(s.vsLast.sets, " sets")}`);
+  if (s?.readiness) lines.push(`🔋 ${readinessReason(s.readiness)}${s.readiness.adjusted ? " Chose the lighter session." : ""}`);
   if (s?.fun) lines.push(s.fun);
   if (log.note?.trim()) lines.push(`📝 "${log.note.trim()}"`);
   return lines.join("\n");
