@@ -2,6 +2,7 @@
 -- Run by CI against plain Postgres after auth_stub.sql, the migrations and seed.sql.
 \set ON_ERROR_STOP 1
 grant usage on schema public to authenticated;
+grant usage on schema public to service_role;
 grant all on all tables in schema public to authenticated;
 insert into auth.users values ('00000000-0000-0000-0000-00000000000c'),('00000000-0000-0000-0000-0000000000c1'),('00000000-0000-0000-0000-0000000000c2'),('00000000-0000-0000-0000-00000000000d');
 insert into profiles values ('00000000-0000-0000-0000-00000000000c','coach','Kamal'),('00000000-0000-0000-0000-0000000000c1','client','Priya'),('00000000-0000-0000-0000-0000000000c2','client','Other'),('00000000-0000-0000-0000-00000000000d','coach','Rival');
@@ -726,5 +727,64 @@ end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
 do $$ begin
   assert (select count(*) from twin_decisions) = 0, 'rival sees no twin decisions';
+end $$;
+reset role;
+
+-- Email alerts: only the edge function sees who to email; people switch their own emails off
+reset role;
+update auth.users set email = 'twin.client@example.com' where id = '00000000-0000-0000-0000-0000000000e2';
+update auth.users set email = 'twin.coach@example.com' where id = '00000000-0000-0000-0000-0000000000e1';
+insert into messages (coach_id, client_id, sender_id, body, created_at) values
+  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000e1','Old news', now() - interval '2 days'),
+  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000e1','First', now() - interval '40 minutes'),
+  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000e1','Great work today', now() - interval '30 minutes'),
+  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000e2','Too fresh', now() - interval '2 minutes');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  begin
+    perform public.pending_email_alerts();
+    raise exception 'a signed-in user listed email alerts';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.mark_email_alerts_sent(array[]::uuid[]);
+    raise exception 'a signed-in user marked email alerts';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform 1 from email_alert_sends;
+    assert (select count(*) from email_alert_sends) = 0, 'people cannot see email sends';
+  end;
+end $$;
+set role service_role;
+do $$ declare r record; begin
+  select * into r from public.pending_email_alerts();
+  assert r.user_id = '00000000-0000-0000-0000-0000000000e2', 'the client is due an email';
+  assert r.email = 'twin.client@example.com' and r.first_name = 'Twin', 'email and first name';
+  assert r.unread = 2 and r.latest = 'Great work today', 'two waiting messages, newest first';
+  assert (select count(*) from public.pending_email_alerts()) = 1, 'coach has nothing old enough yet';
+  perform public.mark_email_alerts_sent(r.message_ids);
+  assert (select count(*) from public.pending_email_alerts()) = 0, 'nothing twice';
+end $$;
+reset role;
+insert into messages (coach_id, client_id, sender_id, body, created_at) values
+  ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-0000000000e1','Another', now() - interval '20 minutes');
+set role service_role;
+do $$ begin
+  assert (select count(*) from public.pending_email_alerts()) = 0, 'at most one email an hour';
+  assert (select count(*) from public.pending_email_alerts(now() + interval '2 hours', interval '15 minutes') where user_id = '00000000-0000-0000-0000-0000000000e2') = 1, 'next hour it goes';
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+insert into email_prefs (user_id, messages_on) values ('00000000-0000-0000-0000-0000000000e2', false);
+do $$ begin
+  begin
+    insert into email_prefs (user_id) values ('00000000-0000-0000-0000-0000000000e1');
+    raise exception 'set someone else''s email prefs';
+  exception when insufficient_privilege then null; end;
+end $$;
+set role service_role;
+do $$ begin
+  assert (select count(*) from public.pending_email_alerts(now() + interval '2 hours', interval '15 minutes') where user_id = '00000000-0000-0000-0000-0000000000e2') = 0, 'switched off means no email';
 end $$;
 reset role;

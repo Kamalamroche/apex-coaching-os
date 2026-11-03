@@ -121,6 +121,51 @@ function download(name: string, text: string) {
 }
 
 /** Privacy and account: what you agreed to, a copy of your data, and deleting your account. */
+/** Email when a message waits unread: on by default, the person can switch it off. */
+function EmailAlerts({ api }: { api: PrivacyApi }) {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "needs-update" | "error">("loading");
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.emailAlerts().then(
+      (v) => { if (live) { setOn(v); setState("ready"); } },
+      (e: unknown) => {
+        if (!live) return;
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg === PRIVACY_NEEDS_UPDATE) setState("needs-update");
+        else { setError(msg); setState("error"); }
+      },
+    );
+    return () => { live = false; };
+  }, [api]);
+  if (state === "needs-update" || state === "loading") return null;
+  const change = async (v: boolean) => {
+    const before = on;
+    setOn(v);
+    setError(null);
+    try {
+      await api.setEmailAlerts(v);
+    } catch (e) {
+      setOn(before);
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <section className="card stack full">
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Emails</h3></div>
+      <label className="row" style={{ gap: 12, alignItems: "flex-start", cursor: "pointer" }}>
+        <div className="grow">
+          <div className="h3">New message emails</div>
+          <div className="small">If a message from {api.role === "coach" ? "a client" : "your coach"} waits unread for 15 minutes, APEX emails you once, at most once an hour.</div>
+        </div>
+        <input type="checkbox" role="switch" aria-label="New message emails" checked={!!on} disabled={state !== "ready"} onChange={(e) => void change(e.target.checked)} style={{ width: 22, height: 22, accentColor: "var(--act)", flex: "none", marginTop: 4 }} />
+      </label>
+      {error && <div className="small" role="alert">{error}</div>}
+    </section>
+  );
+}
+
 export function AccountScreen({ say }: { say: (m: string) => void }) {
   const api = usePrivacyApi();
   const { coachName } = useAppInfo();
@@ -198,6 +243,8 @@ export function AccountScreen({ say }: { say: (m: string) => void }) {
           <a className="link" href={LEGAL.terms} target="_blank" rel="noopener">Terms of use</a>
         </div>
       </section>
+
+      <EmailAlerts api={api} />
 
       <section className="card stack full">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Your data</h3></div>

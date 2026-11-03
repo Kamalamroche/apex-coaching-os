@@ -14,6 +14,9 @@ export interface PrivacyApi {
   exportData(): Promise<unknown>;
   /** Deletes the account and everything that belongs to it. Signs out afterwards. */
   deleteAccount(): Promise<void>;
+  /** Whether to email this person when a message waits unread (on unless they switched it off). */
+  emailAlerts(): Promise<boolean>;
+  setEmailAlerts(on: boolean): Promise<void>;
 }
 
 const isMissing = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202" || e?.code === "42883";
@@ -67,6 +70,15 @@ export function livePrivacy(db: SupabaseClient, me: { id: string; role: PrivacyR
       const { error } = await db.rpc("delete_my_account");
       if (error) throw err(error);
       await db.auth.signOut();
+    },
+    async emailAlerts() {
+      const { data, error } = await db.from("email_prefs").select("messages_on").eq("user_id", me.id).maybeSingle();
+      if (error) throw err(error);
+      return (data?.messages_on as boolean | undefined) ?? true;
+    },
+    async setEmailAlerts(on) {
+      const { error } = await db.from("email_prefs").upsert({ user_id: me.id, messages_on: on, updated_at: new Date().toISOString() });
+      if (error) throw err(error);
     },
   };
 }
@@ -122,6 +134,12 @@ export function demoPrivacy(role: PrivacyRole, name: string): PrivacyApi {
         }
         for (const k of keys) localStorage.removeItem(k);
       } catch { /* nothing stored */ }
+    },
+    async emailAlerts() {
+      try { return localStorage.getItem(`${key}-email`) !== "off"; } catch { return true; }
+    },
+    async setEmailAlerts(on) {
+      try { localStorage.setItem(`${key}-email`, on ? "on" : "off"); } catch { /* this visit only */ }
     },
   };
 }
