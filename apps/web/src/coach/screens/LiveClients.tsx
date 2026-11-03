@@ -9,6 +9,7 @@ import type { CoachLiveProps } from "../CoachApp";
 import { ClientCheckIns } from "./CheckIns";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
+import { ClientGoals } from "./Goals";
 import { useFormChecks } from "../../data/FormCheckContext";
 import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
@@ -78,7 +79,7 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Habits" | "Nutrition" | "About">("Program");
+  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About">("Program");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -91,10 +92,11 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Program", "Check-ins", "Form checks", "Habits", "Nutrition", "About"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}
+      {tab === "Goals" && <ClientGoals clientName={name} say={say} />}
       {tab === "Habits" && <CoachHabits clientName={name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={name} say={say} />}
       {tab === "About" && <IntakeView clientName={name} />}

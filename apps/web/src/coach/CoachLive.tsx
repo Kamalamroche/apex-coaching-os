@@ -1,4 +1,4 @@
-import { createDemoStore, emptyFormCheckStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
+import { createDemoStore, emptyFormCheckStore, emptyGoalStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
@@ -11,6 +11,8 @@ import { LifestyleProvider } from "../data/LifestyleContext";
 import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
+import { GoalProvider } from "../data/GoalContext";
+import { createSupabaseGoals } from "../data/supabaseGoals";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -46,6 +48,8 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (lifestyle as { close?: () => void }).close?.(), [lifestyle]);
   const formChecks = useMemo(() => (activeId ? createSupabaseFormChecks(db, activeId) : emptyFormCheckStore()), [db, activeId]);
   useEffect(() => () => (formChecks as { close?: () => void }).close?.(), [formChecks]);
+  const goals = useMemo(() => (activeId ? createSupabaseGoals(db, activeId) : emptyGoalStore()), [db, activeId]);
+  useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
 
   const active = clients?.find((c) => c.id === activeId);
   return (
@@ -54,7 +58,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
         <ActivityProvider store={activities} editable={false}>
           <LifestyleProvider store={lifestyle}>
             <FormCheckProvider store={formChecks}>
-              <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+              <GoalProvider store={goals}>
+                <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+              </GoalProvider>
             </FormCheckProvider>
           </LifestyleProvider>
         </ActivityProvider>
