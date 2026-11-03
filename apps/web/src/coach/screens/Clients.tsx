@@ -7,11 +7,13 @@ import { ClientCheckIns } from "./CheckIns";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
 import { ClientGoals } from "./Goals";
+import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
+import { hasTag } from "@apex/core";
 import { Transfer } from "./Transfer";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About";
+type ProfileTab = "Overview" | "Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes";
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
@@ -30,18 +32,21 @@ export function Clients({ id, setId, say, goBuild }: Props) {
   const [q, setQ] = useState("");
   const [seg, setSeg] = useState<Segment>("All");
   const [transfer, setTransfer] = useState(false);
+  const [tag, setTag] = useState<string | null>(null);
+  const { tags, reload: reloadTags } = useClientTags();
   if (transfer) return <Transfer say={say} onBack={() => setTransfer(false)} />;
   const c = CLIENTS.find((x) => x.id === id);
-  if (c) return <ClientProfile clientId={c.id} onBack={() => setId(null)} say={say} goBuild={goBuild} />;
+  if (c) return <ClientProfile clientId={c.id} onBack={() => { setId(null); void reloadTags(); }} say={say} goBuild={goBuild} />;
 
   const list = CLIENTS.filter(
-    (x) => (seg === "All" || (seg === "Needs attention" ? x.risk !== "low" : x.mode === seg)) && x.name.toLowerCase().includes(q.toLowerCase()),
+    (x) => (seg === "All" || (seg === "Needs attention" ? x.risk !== "low" : x.mode === seg)) && x.name.toLowerCase().includes(q.toLowerCase()) && (!tag || hasTag(tags[String(x.id)], tag)),
   );
   return (
     <>
       <div><div className="eyebrow">Clients</div><h1 className="h1">{CLIENTS.length} active</h1></div>
       <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="chips">{SEGMENTS.map((s) => <button key={s} className={`chip ${seg === s ? "on" : ""}`} onClick={() => setSeg(s)}>{s}</button>)}</div>
+      <TagFilter tags={tags} value={tag} onChange={setTag} />
       <div className="card flat list">
         {list.length === 0 && <div className="li"><div className="small">No clients match. Clear the search or pick another segment.</div></div>}
         {list.map((x) => (
@@ -50,6 +55,7 @@ export function Clients({ id, setId, say, goBuild }: Props) {
             <div className="grow">
               <div className="h3">{x.name}</div>
               <div className="small">{x.plan} · {x.mode}</div>
+              <TagList tags={tags[String(x.id)]} />
               <div style={{ marginTop: 6 }}><Bar pct={x.adherence} color={riskColor(x.risk)} /></div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -78,7 +84,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About"] as const) : (["Overview", "Program", "Check-ins"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const) : (["Overview", "Program", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
@@ -116,6 +122,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
       {tab === "Habits" && <CoachHabits clientName={c.name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={c.name} say={say} />}
       {tab === "About" && <IntakeView clientName={c.name} />}
+      {tab === "Notes" && <ClientNotes clientId={String(c.id)} clientName={c.name} say={say} />}
       {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
         <div className="card flat list">
           {CHECK_INS.map((r) => (

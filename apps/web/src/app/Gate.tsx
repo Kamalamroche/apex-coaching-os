@@ -10,6 +10,8 @@ import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
 import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
 import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/challenges";
+import { ResourceProvider, demoResources } from "../data/resources";
+import { NotesProvider, demoNotes } from "../data/clientNotes";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
 import { demoStravaLink } from "../data/strava";
@@ -24,6 +26,8 @@ const demoFormChecks: { current: FormCheckStore | null } = { current: null };
 const demoGoals: { current: GoalStore | null } = { current: null };
 const demoBookingApi: { current: BookingApi | null } = { current: null };
 const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
+const demoResourceApi = demoResources();
+const demoNotesApi = demoNotes();
 
 export interface Live {
   db: SupabaseClient;
@@ -47,7 +51,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}>{demo()}</ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}>{demo()}</NotesProvider></ResourceProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );
