@@ -569,3 +569,50 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+-- resource library, private notes and tags
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into coach_resources (coach_id, title, body) values ('00000000-0000-0000-0000-00000000000c','Protein made simple','A palm of protein at each meal.');
+insert into coach_resources (coach_id, client_id, title, url) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','Your knee plan','https://example.com/knee.pdf');
+insert into coach_client_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','Old knee injury');
+insert into coach_client_tags (coach_id, client_id, tags) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','{VIP,Injury}');
+do $$ begin
+  begin
+    insert into coach_resources (coach_id, title, url) values ('00000000-0000-0000-0000-00000000000c','Bad','javascript:alert(1)');
+    raise exception 'script link accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into coach_client_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2','Poach');
+    raise exception 'coach noted a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_resources (coach_id, client_id, title, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2','x','y');
+    raise exception 'coach shared with a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from coach_resources) = 2, 'client sees shared and own resources';
+  assert (select count(*) from coach_client_notes) = 0, 'client never sees coach notes';
+  assert (select count(*) from coach_client_tags) = 0, 'client never sees coach tags';
+  begin
+    insert into coach_resources (coach_id, title, body) values ('00000000-0000-0000-0000-00000000000c','Mine','x');
+    raise exception 'client added a resource';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from coach_resources) = 0, 'rival sees no resources';
+  assert (select count(*) from coach_client_notes) = 0, 'rival sees no notes';
+end $$;
+reset role;
+-- Another coach's client sees neither the shared nor the personal resource.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from coach_resources) = 0, 'other client sees no resources';
+end $$;
+reset role;

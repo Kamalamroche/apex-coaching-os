@@ -22,6 +22,8 @@ export * from "./formChecks";
 export * from "./goals";
 export * from "./booking";
 export * from "./challenges";
+export * from "./resources";
+export * from "./clientNotes";
 export { EXERCISES } from "./data/exercises";
 export { CLIENTS, DEMO_CLIENT_ID } from "./data/clients";
 export { INITIAL_WORKOUT, INITIAL_MESSAGES, INITIAL_HISTORY, PREVIOUS_BEST_KG } from "./data/workout";

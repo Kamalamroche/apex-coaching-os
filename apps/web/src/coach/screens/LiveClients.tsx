@@ -10,6 +10,8 @@ import { ClientCheckIns } from "./CheckIns";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
 import { ClientGoals } from "./Goals";
+import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
+import { hasTag } from "@apex/core";
 import { useFormChecks } from "../../data/FormCheckContext";
 import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
@@ -28,6 +30,8 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   const [link, setLink] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [transfer, setTransfer] = useState(false);
+  const [tag, setTag] = useState<string | null>(null);
+  const { tags, reload: reloadTags } = useClientTags();
   const clients = live.clients;
 
   const invite = async () => {
@@ -43,20 +47,21 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   if (transfer) return <Transfer live={live} say={say} onBack={() => setTransfer(false)} />;
   const selected = clients?.find((c) => c.id === open);
   if (selected) {
-    return <LiveProfile name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => setOpen(null)} goBuild={goBuild} say={say} />;
+    return <LiveProfile clientId={selected.id} name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => { setOpen(null); void reloadTags(); }} goBuild={goBuild} say={say} />;
   }
 
-  const list = (clients ?? []).filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
+  const list = (clients ?? []).filter((c) => c.name.toLowerCase().includes(q.toLowerCase()) && (!tag || hasTag(tags[c.id], tag)));
   return (
     <>
       <div><div className="eyebrow">Clients</div><h1 className="h1">{clients ? `${clients.length} active` : "Loading…"}</h1></div>
       {clients && clients.length > 0 && <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={(e) => setQ(e.target.value)} />}
+      <TagFilter tags={tags} value={tag} onChange={setTag} />
       <div className="card flat list">
         {clients?.length === 0 && <div className="li"><div className="small">No clients yet. Create an invite link and send it to your first client, or import the clients you already coach.</div></div>}
         {list.map((c) => (
           <button key={c.id} className="li" onClick={() => { live.setActiveClientId(c.id); setOpen(c.id); }}>
             <Avatar initials={initials(c.name)} tone={c.id === live.activeClientId ? "var(--act)" : undefined} />
-            <div className="grow"><div className="h3">{c.name}</div><div className="small">{c.mode} · {ago(c.lastSession)}</div></div>
+            <div className="grow"><div className="h3">{c.name}</div><div className="small">{c.mode} · {ago(c.lastSession)}</div><TagList tags={tags[c.id]} /></div>
             <span className="tiny">›</span>
           </button>
         ))}
@@ -75,11 +80,11 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   );
 }
 
-function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
+function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }: { clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About">("Program");
+  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Program");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -92,7 +97,7 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}
@@ -100,6 +105,7 @@ function LiveProfile({ name, mode, lastSession, onBack, goBuild, say }: { name: 
       {tab === "Habits" && <CoachHabits clientName={name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={name} say={say} />}
       {tab === "About" && <IntakeView clientName={name} />}
+      {tab === "Notes" && <ClientNotes clientId={clientId} clientName={name} say={say} />}
       {tab === "Program" && <>
       <section>
         <div className="sect"><h2 className="h2">Program</h2></div>

@@ -15,6 +15,8 @@ import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
+import { ResourceProvider, liveResources } from "../data/resources";
+import { NotesProvider, liveNotes } from "../data/clientNotes";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -53,6 +55,8 @@ export function CoachLive({ db, profile, signOut }: Live) {
   const goals = useMemo(() => (activeId ? createSupabaseGoals(db, activeId) : emptyGoalStore()), [db, activeId]);
   useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
   const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
+  const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
+  const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -65,7 +69,11 @@ export function CoachLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                    <ResourceProvider value={resources}>
+                      <NotesProvider value={notes}>
+                        <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                      </NotesProvider>
+                    </ResourceProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>
