@@ -6,6 +6,8 @@ import { Thread } from "../../app/Thread";
 import { demoAutomations, liveAutomations } from "../../data/automations";
 import type { CoachLiveProps } from "../CoachApp";
 import { Automations } from "./Automations";
+import { CoachChallenges } from "./CoachChallenges";
+import { GroupMessage } from "./GroupMessage";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -16,18 +18,33 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
+  const [extra, setExtra] = useState<"group" | "challenges" | null>(null);
   const [on, setOn] = useState<number | null>(null);
   useEffect(() => {
     if (auto) return;
     api.load().then((r: { settings: AutomationSettings }) => setOn(countOn(r.settings)), () => setOn(null));
   }, [api, auto]);
   if (auto) return <Automations api={api} clientNames={Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]))} onBack={() => setAuto(false)} say={say} />;
+  if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
+  if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
   const autoButton = (
-    <div className="card flat list"><button className="li" onClick={() => setAuto(true)}>
-      <Icons.energy width={18} height={18} style={{ color: "var(--act)" }} />
-      <div className="grow"><div className="h3">Automatic messages</div><div className="tiny">{on ? `${on} on · welcome, missed workouts, check-in reminders` : "Welcome, missed workouts, check-in reminders"}</div></div>
-      <span className="tiny">›</span>
-    </button></div>
+    <div className="card flat list">
+      <button className="li" onClick={() => setAuto(true)}>
+        <Icons.energy width={18} height={18} style={{ color: "var(--act)" }} />
+        <div className="grow"><div className="h3">Automatic messages</div><div className="tiny">{on ? `${on} on · welcome, missed workouts, check-in reminders` : "Welcome, missed workouts, check-in reminders"}</div></div>
+        <span className="tiny">›</span>
+      </button>
+      <button className="li" onClick={() => setExtra("group")}>
+        <Icons.clients width={18} height={18} style={{ color: "var(--act)" }} />
+        <div className="grow"><div className="h3">Message everyone</div><div className="tiny">One message to all your clients, each in their own chat</div></div>
+        <span className="tiny">›</span>
+      </button>
+      <button className="li" onClick={() => setExtra("challenges")}>
+        <Icons.trophy width={18} height={18} style={{ color: "var(--act)" }} />
+        <div className="grow"><div className="h3">Challenges</div><div className="tiny">Group challenges with a leaderboard</div></div>
+        <span className="tiny">›</span>
+      </button>
+    </div>
   );
   if (live && clients?.length === 0) {
     return (

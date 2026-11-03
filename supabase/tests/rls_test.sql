@@ -519,3 +519,53 @@ do $$ begin
   assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000000c', now(), now() + interval '14 days')) = 0, 'rival sees no taken slots';
 end $$;
 reset role;
+
+-- challenges
+reset role;
+update profiles set full_name = 'Priya Sharma' where id = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into challenges (id, coach_id, title, metric, unit, starts_on, ends_on) values
+  ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','Step it up','logged','steps', current_date - 2, current_date + 10),
+  ('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c','Most sessions','sessions','sessions', current_date - 2, current_date + 10);
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into challenge_members (challenge_id, client_id) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1'),('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1');
+insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date, 8000),('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date - 1, 9500);
+insert into sessions (client_id, started_at, finished_at) values ('00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour', now());
+do $$ begin
+  assert (select count(*) from challenges) = 2, 'client sees coach challenges';
+  assert (select total from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 17500, 'logged numbers add up';
+  assert (select name from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 'Priya S.', 'first name and initial only';
+  assert (select is_me from public.challenge_board('a0000000-0000-0000-0000-000000000001')), 'client sees which line is theirs';
+  assert (select total from public.challenge_board('a0000000-0000-0000-0000-000000000002')) >= 1, 'finished sessions count';
+  begin
+    insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date + 30, 5);
+    raise exception 'logged a day outside the challenge';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1', current_date, 5);
+    raise exception 'logged by hand on a session challenge';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into challenges (coach_id, title, metric, unit, starts_on, ends_on) values ('00000000-0000-0000-0000-0000000000c1','Mine','logged','km', current_date, current_date);
+    raise exception 'client created a challenge';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from challenge_members) = 2, 'coach sees who joined';
+  assert (select count(*) from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 1, 'coach sees the board';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from challenges) = 0, 'another coach''s client sees no challenges';
+  assert (select count(*) from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 0, 'and no board';
+  begin
+    insert into challenge_members (challenge_id, client_id) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2');
+    raise exception 'joined another coach''s challenge';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

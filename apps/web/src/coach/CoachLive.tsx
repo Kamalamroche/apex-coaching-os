@@ -14,6 +14,7 @@ import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
+import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -51,6 +52,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (formChecks as { close?: () => void }).close?.(), [formChecks]);
   const goals = useMemo(() => (activeId ? createSupabaseGoals(db, activeId) : emptyGoalStore()), [db, activeId]);
   useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
+  const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -62,7 +64,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
             <FormCheckProvider store={formChecks}>
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
-                  <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                  <ChallengeProvider value={challenges}>
+                    <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                  </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>
             </FormCheckProvider>

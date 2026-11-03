@@ -534,3 +534,11 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .bk-hours{display:grid;grid-template-columns:44px 1fr;gap:8px 10px;align-items:start}
 .bk-win{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .bk-win select{width:auto;padding:7px 8px;font-size:14px}
+/* Challenges */
+.ch-board{display:flex;flex-direction:column;gap:2px}
+.ch-line{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:var(--r-sm)}
+.ch-line.me{background:var(--act-soft)}
+.ch-rank{width:18px;font-weight:800;color:var(--text3);font-size:13px}
+.ch-bar{flex:0 0 28%;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.ch-bar>span{display:block;height:100%;background:var(--viz-1);border-radius:4px}
+.gm-preview{background:var(--blue);color:#fff;border-radius:12px;padding:10px 12px;max-width:88%;margin-left:auto;white-space:pre-line;font-size:14px}
