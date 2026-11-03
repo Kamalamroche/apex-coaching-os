@@ -8,6 +8,7 @@ import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
+import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
 import { demoStravaLink } from "../data/strava";
@@ -20,6 +21,7 @@ const demoActivities: { current: ActivityStore | null } = { current: null };
 const demoLifestyle: { current: LifestyleStore | null } = { current: null };
 const demoFormChecks: { current: FormCheckStore | null } = { current: null };
 const demoGoals: { current: GoalStore | null } = { current: null };
+const demoBookingApi: { current: BookingApi | null } = { current: null };
 
 export interface Live {
   db: SupabaseClient;
@@ -38,10 +40,11 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoLifestyle.current ??= createDemoLifestyleStore();
     demoFormChecks.current ??= createDemoFormCheckStore((b) => URL.createObjectURL(b));
     demoGoals.current ??= createDemoGoalStore();
+    demoBookingApi.current ??= demoBookings();
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}>{demo()}</GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}>{demo()}</BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

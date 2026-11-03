@@ -13,8 +13,12 @@ import { useFormChecks } from "../../data/FormCheckContext";
 import { useGoals } from "../../data/GoalContext";
 import { useGoalInputs } from "../../app/GoalParts";
 import { Goals } from "./Goals";
+import { Book } from "./Book";
+import { useBookingApi } from "../../data/bookings";
+import { useBookings } from "../../app/BookingParts";
+import { upcomingBookings, whenLabel } from "@apex/core";
 
-type View = "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
+type View = "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
 
 export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
@@ -24,11 +28,15 @@ export function More({ say }: { say: (m: string) => void }) {
   const replied = form.checks.filter((c) => c.coachReply).length;
   const goals = useGoals();
   const inputs = useGoalInputs();
+  const bookingApi = useBookingApi();
+  const bookingData = useBookings(bookingApi);
+  const nextBooking = bookingApi ? upcomingBookings(bookingData.bookings.filter((b) => b.clientId === bookingApi.me), new Date())[0] : undefined;
   const reached = goals.goals.filter((g) => goalProgress(g, inputs).achieved).length;
   const today = localDate(new Date());
   const due = habitsOn(life.habits, today);
   const kcal = Math.round(dayTotals(life.food, today).kcal);
   const MENU: [View, string, string][] = [
+    ...(bookingApi ? [["book", `Book with ${coachName}`, nextBooking ? `Next: ${whenLabel(nextBooking.startsAt)}` : "A call or a training session"] as [View, string, string]] : []),
     ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
     ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
@@ -41,6 +49,7 @@ export function More({ say }: { say: (m: string) => void }) {
     return (
       <>
         <BackLink onClick={() => setView(null)}>More</BackLink>
+        {view === "book" && <Book say={say} />}
         {view === "goals" && <Goals say={say} />}
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
