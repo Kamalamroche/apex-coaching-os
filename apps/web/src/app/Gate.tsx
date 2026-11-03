@@ -1,7 +1,7 @@
 import { createDemoActivityStore, createDemoFormCheckStore, createDemoGoalStore, createDemoLifestyleStore, createDemoStore, type ActivityStore, type ApexStore, type FormCheckStore, type GoalStore, type LifestyleStore } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
 import { SignIn } from "../auth/SignIn";
 import { useAuth, type Profile } from "../auth/useAuth";
@@ -18,6 +18,8 @@ import { demoStravaLink } from "../data/strava";
 import { demoWearableLink } from "../data/wearables";
 import { isDemo, supabase } from "../data/supabase";
 import { AppInfoProvider } from "./AppContext";
+import { PrivacyProvider, demoPrivacy, livePrivacy, type PrivacyApi } from "../data/privacy";
+import { PrivacyGate } from "./Privacy";
 
 const demoStore: { current: ApexStore | null } = { current: null };
 const demoActivities: { current: ActivityStore | null } = { current: null };
@@ -28,6 +30,7 @@ const demoBookingApi: { current: BookingApi | null } = { current: null };
 const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
 const demoResourceApi = demoResources();
 const demoNotesApi = demoNotes();
+const demoPrivacyApis: Partial<Record<"coach" | "client", PrivacyApi>> = {};
 
 export interface Live {
   db: SupabaseClient;
@@ -48,10 +51,11 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoGoals.current ??= createDemoGoalStore();
     demoBookingApi.current ??= demoBookings();
     demoChallengeApis[side] ??= demoChallenges(side);
+    demoPrivacyApis[side] ??= demoPrivacy(side, side === "coach" ? "Kamal" : "Priya Sharma");
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}>{demo()}</NotesProvider></ResourceProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate>{demo()}</PrivacyGate></PrivacyProvider></NotesProvider></ResourceProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );
@@ -77,7 +81,19 @@ function LiveGate({ db, side, live }: { db: SupabaseClient; side: "coach" | "cli
       </Splash>
     );
   }
-  return <>{live({ db, profile: auth.profile, signOut })}</>;
+  return <LiveReady db={db} profile={auth.profile} email={auth.session.user.email ?? ""} signOut={signOut} live={live} />;
+}
+
+/** Signed in with the right kind of account: check the person's agreements, then open the app. */
+function LiveReady({ db, profile, email, signOut, live }: { db: SupabaseClient; profile: Profile; email: string; signOut: () => void; live: (l: Live) => ReactNode }) {
+  const privacy = useMemo(() => livePrivacy(db, { id: profile.id, role: profile.role, name: profile.full_name, email }), [db, profile.id, profile.role, profile.full_name, email]);
+  return (
+    <AppInfoProvider info={{ mode: "live", coachName: "", clientName: "", signOut }}>
+      <PrivacyProvider value={privacy}>
+        <PrivacyGate>{live({ db, profile, signOut })}</PrivacyGate>
+      </PrivacyProvider>
+    </AppInfoProvider>
+  );
 }
 
 /** An existing client opening a new coach's invite link: accept it, then drop it from the URL. */

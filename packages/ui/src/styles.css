@@ -548,3 +548,18 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .note p{margin:0;white-space:pre-line;font-size:14px;line-height:1.5;color:var(--text)}
 .note.pinned{background:var(--bg2)}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--bg2);color:var(--text2);border:1px solid var(--line)}
+
+/* Privacy: agreements and account deletion */
+.consent{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line2);border-radius:var(--r);cursor:pointer;line-height:1.45}
+.consent.on{border-color:var(--act)}
+.consent input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--act)}
+.consent>span{display:flex;flex-direction:column;gap:3px}
+.pv-warn{padding:12px 14px;border-radius:var(--r);background:var(--crit-soft);line-height:1.5}
+.pv-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
+.btn.pv-crit{background:var(--crit);color:#fff}
+.btn.pv-crit:disabled{opacity:.45}
+.btn.pv-crit-ghost{background:none;border:1px solid var(--crit);color:var(--crit)}
+.legal{max-width:720px;margin:0 auto;padding:32px 16px 64px;line-height:1.6}
+.legal h2{margin:28px 0 8px}
+.legal p{margin:0 0 10px;color:var(--text2)}
+.legal-draft{padding:12px 14px;border-radius:var(--r);border:1px dashed var(--line2);margin:16px 0}

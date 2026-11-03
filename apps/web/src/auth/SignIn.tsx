@@ -30,6 +30,7 @@ export function SignIn({ db, side }: { db: SupabaseClient; side: "coach" | "clie
             <input id="email" className="field" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             <button className={`btn ${side === "coach" ? "act" : "sec"} block`} disabled={state === "sending" || !email.includes("@")}>{state === "sending" ? "Sending…" : "Email me a sign-in link"}</button>
             {state === "error" && <p className="small" role="alert" style={{ color: "var(--crit)", margin: 0 }}>{error}</p>}
+            <p className="tiny" style={{ margin: 0 }}>By signing in you agree to the <a className="link" href="/legal/#terms" target="_blank" rel="noopener">terms</a> and confirm you've read the <a className="link" href="/legal/#privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
           </form>
         )}
       </div>

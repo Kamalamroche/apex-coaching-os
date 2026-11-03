@@ -82,6 +82,8 @@ export function Landing() {
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             <a href="#pricing">Pricing</a>
+            <a href="/legal/#privacy">Privacy</a>
+            <a href="/legal/#terms">Terms</a>
             <a href="#faq">FAQ</a>
           </nav>
           <div className="lp-bar-acts">
