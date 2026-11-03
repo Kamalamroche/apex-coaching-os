@@ -13,6 +13,8 @@ import { Clients } from "./screens/Clients";
 import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
+import { AccountScreen } from "../app/Privacy";
+import { BackLink } from "@apex/ui";
 
 type Tab = "brief" | "clients" | "chat" | "build" | "food" | "money";
 const TABS: TabDef<Tab>[] = [
@@ -33,19 +35,21 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const tabs = TABS.map((t) => (t.id === "chat" ? { ...t, dot: messages.at(-1)?.from === "client" } : t));
   const [tab, setTab] = useState<Tab>("brief");
   const [clientId, setClientId] = useState<number | null>(null);
+  const [account, setAccount] = useState(false);
   const [toast, say] = useToast();
   useFinishedAlert(say);
   const openClient = (id: number) => { setClientId(id); setTab("clients"); };
   const goBuild = () => setTab("build");
-  const changeTab = (t: Tab) => { setTab(t); if (t !== "clients") setClientId(null); };
+  const changeTab = (t: Tab) => { setAccount(false); setTab(t); if (t !== "clients") setClientId(null); };
   return (
-    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
-      {tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} />}
-      {tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
-      {tab === "chat" && <Messages live={live} say={say} />}
-      {tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
-      {tab === "food" && <CoachNutrition live={live} say={say} />}
-      {tab === "money" && <Business />}
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>Account</button>{signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}</>}>
+      {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>Back</BackLink></div><AccountScreen say={say} /></>}
+      {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} />}
+      {!account && tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
+      {!account && tab === "chat" && <Messages live={live} say={say} />}
+      {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
+      {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
+      {!account && tab === "money" && <Business />}
       {toast}
     </Shell>
   );

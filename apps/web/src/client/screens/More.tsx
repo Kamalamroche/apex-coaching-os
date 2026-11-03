@@ -21,8 +21,9 @@ import { useChallengeApi } from "../../data/challenges";
 import { useBookingApi } from "../../data/bookings";
 import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
+import { AccountScreen } from "../../app/Privacy";
 
-type View = "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
+type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
 
 export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
@@ -66,6 +67,7 @@ export function More({ say }: { say: (m: string) => void }) {
         {view === "form" && <FormCheckList say={say} />}
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
+        {view === "account" && <AccountScreen say={say} />}
       </>
     );
   }
@@ -77,6 +79,7 @@ export function More({ say }: { say: (m: string) => void }) {
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}
         <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
+        <button className="li" onClick={() => setView("account")}><div className="grow"><div className="h3">Privacy and account</div><div className="small">Your agreements, download your data, delete your account</div></div><span className="tiny">›</span></button>
         {[["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
         ))}

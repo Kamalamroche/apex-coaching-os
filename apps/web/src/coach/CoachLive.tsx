@@ -1,5 +1,5 @@
 import { createDemoStore, emptyFormCheckStore, emptyGoalStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
 import { listClients, type LiveClient } from "../data/coach";
@@ -17,6 +17,7 @@ import { BookingProvider, liveBookings } from "../data/bookings";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { ResourceProvider, liveResources } from "../data/resources";
 import { NotesProvider, liveNotes } from "../data/clientNotes";
+import { TwinProvider, liveTwin } from "../data/twin";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -57,6 +58,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
   const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
   const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
+  const clientsRef = useRef<LiveClient[]>([]);
+  clientsRef.current = clients ?? [];
+  const twin = useMemo(() => liveTwin(db, profile.id, () => clientsRef.current), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -71,7 +75,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
                   <ChallengeProvider value={challenges}>
                     <ResourceProvider value={resources}>
                       <NotesProvider value={notes}>
+                        <TwinProvider value={clients ? twin : null}>
                         <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                        </TwinProvider>
                       </NotesProvider>
                     </ResourceProvider>
                   </ChallengeProvider>

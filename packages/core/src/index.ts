@@ -45,3 +45,5 @@ export * from "./recovery";
 export * from "./recoveryTrends";
 export * from "./wearables";
 export * from "./mapView";
+export * from "./privacy";
+export * from "./twin";

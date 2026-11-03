@@ -616,3 +616,115 @@ do $$ begin
   assert (select count(*) from coach_resources) = 0, 'other client sees no resources';
 end $$;
 reset role;
+
+-- privacy: consents, a copy of my data, deleting my account
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into user_consents (user_id, kind, version) values ('00000000-0000-0000-0000-0000000000c1','terms','v1'),('00000000-0000-0000-0000-0000000000c1','health','v1');
+update user_consents set given_at = now() - interval '1 year';
+do $$
+declare d jsonb := public.export_my_data();
+begin
+  assert (select count(*) from user_consents) = 2, 'client sees own consents';
+  assert (select count(*) from user_consents where given_at < now() - interval '1 day') = 0, 'client cannot rewrite a consent';
+  assert d->'profile'->>'full_name' = 'Priya Sharma', 'export has my profile';
+  assert jsonb_array_length(d->'data'->'sessions') = 1, 'export has my sessions';
+  assert d->'data' ? 'messages', 'export has my messages';
+  assert d->'data' ? 'user_consents', 'export has my consents';
+  assert not (d->'data' ? 'coach_client_notes'), 'export leaves out the coach''s private notes';
+  assert not (d->'data' ? 'coach_client_tags'), 'export leaves out the coach''s private tags';
+  begin
+    insert into user_consents (user_id, kind, version) values ('00000000-0000-0000-0000-0000000000c2','health','v1');
+    raise exception 'client consented for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into user_consents (user_id, kind, version, withdrawn_at) values ('00000000-0000-0000-0000-0000000000c1','adult','v1', now());
+    raise exception 'client inserted a withdrawn consent';
+  exception when insufficient_privilege then null; end;
+end $$;
+select public.withdraw_consent('health');
+do $$ begin
+  assert (select withdrawn_at is not null from user_consents where kind = 'health'), 'client withdrew health consent';
+end $$;
+insert into user_consents (user_id, kind, version) values ('00000000-0000-0000-0000-0000000000c1','health','v1');
+do $$ begin
+  assert (select count(*) from user_consents where kind = 'health') = 2, 'agreeing again keeps the withdrawn record';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$
+declare d jsonb := public.export_my_data();
+begin
+  assert (select count(*) from user_consents) = 3, 'coach sees own client''s consents';
+  assert d->'data' ? 'coach_client_notes', 'coach export has the coach''s own notes';
+  assert not (d->'data' ? 'sessions'), 'coach export has no client sessions';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from user_consents) = 0, 'rival sees no consents';
+end $$;
+select pg_temp.as_user('');
+do $$ begin
+  begin
+    perform public.delete_my_account();
+    raise exception 'signed-out caller deleted something';
+  exception when raise_exception then
+    if sqlerrm <> 'Sign in first.' then raise; end if;
+  end;
+end $$;
+reset role;
+update program_versions set published_by = '00000000-0000-0000-0000-00000000000c';
+
+-- Each account type deletes cleanly: the rival's client, then Kamal (with programs, messages, notes),
+-- then Priya, whose own history survives her coach leaving.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+select public.delete_my_account();
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select public.delete_my_account();
+reset role;
+do $$ begin
+  assert (select count(*) from auth.users where id in ('00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-00000000000c')) = 0, 'both sign-ins gone';
+  assert (select count(*) from profiles where id in ('00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-00000000000c')) = 0, 'both profiles gone';
+  assert (select count(*) from check_ins where client_id = '00000000-0000-0000-0000-0000000000c2') = 0, 'deleted client''s check-ins gone';
+  assert (select count(*) from programs) = 0 and (select count(*) from coach_client_notes) = 0, 'coach''s programs and notes gone';
+  assert (select count(*) from sessions where client_id = '00000000-0000-0000-0000-0000000000c1') = 1, 'client keeps own sessions when the coach leaves';
+end $$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+select public.delete_my_account();
+reset role;
+do $$ begin
+  assert (select count(*) from profiles where id = '00000000-0000-0000-0000-0000000000c1') = 0, 'client deleted';
+  assert (select count(*) from user_consents) = 0, 'consents go with the account';
+end $$;
+
+-- APEX Twin: voice and decisions are the coach's own; clients never see them
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000e1'),('00000000-0000-0000-0000-0000000000e2'),('00000000-0000-0000-0000-0000000000e3');
+insert into profiles values ('00000000-0000-0000-0000-0000000000e1','coach','Twin Coach'),('00000000-0000-0000-0000-0000000000e2','client','Twin Client'),('00000000-0000-0000-0000-0000000000e3','client','Not Mine');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e1');
+insert into twin_voice (coach_id, sign_off, phrases) values ('00000000-0000-0000-0000-0000000000e1','Kamal','{"missed":"{first}, let''s go {coach}"}');
+insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status, drafted, sent) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','2026-11-02','progress','progress','approved','Hi','Hi');
+do $$ begin
+  begin
+    insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e3','2026-11-02','steady','hold','approved');
+    raise exception 'coach decided for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','2026-11-02','steady','hold','approved');
+    raise exception 'two decisions for one client in one week';
+  exception when unique_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  assert (select count(*) from twin_decisions) = 0, 'client never sees twin decisions';
+  assert (select count(*) from twin_voice) = 0, 'client never sees the coach''s voice';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from twin_decisions) = 0, 'rival sees no twin decisions';
+end $$;
+reset role;

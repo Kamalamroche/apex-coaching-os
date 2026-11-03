@@ -21,6 +21,8 @@ export interface LiveStore extends ApexStore {
   /** True once the program-builder migration (per-set targets, circuits) is in the database. */
   hasPlanColumns(): boolean;
   close(): void;
+  /** Resolves once the last program change has been written (or failed: see error()). */
+  flush(): Promise<void>;
 }
 
 interface Ids {
@@ -71,6 +73,8 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let hasSummaryColumn = true;
   let reloadTimer: ReturnType<typeof setTimeout> | undefined;
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The last program write, so callers that change a program and leave can wait for it. */
+  let writes: Promise<void> = Promise.resolve();
   let progressTimer: ReturnType<typeof setTimeout> | undefined;
   let progressError: string | null = null;
   let progressSeq = 0;
@@ -297,7 +301,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   }
 
 
-  /** Adds, removes and re-dates days. Items of days that already exist are saved by persistWorkout. */
+  /** Adds, removes and re-dates days, and saves items changed by a whole-program edit. Typing in the open day goes through persistWorkout. */
   async function persistProgram(before: Program, after: Program) {
     if (!versionId || !programId) return;
     const removed = before.days.filter((d) => !after.days.some((a) => a.key === d.key)).map((d) => d.key).filter((k) => savedDays.has(k));
@@ -319,6 +323,23 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     for (const d of moved) {
       const { error: e } = await db.from("workouts").update({ name: d.name, week: d.week, day_index: d.dayIndex, est_minutes: d.minutes }).eq("id", d.key);
       if (e) throw e;
+    }
+    // Items changed inside days that already exist (Copilot, plateau fixes, APEX Twin): park, prune, then write.
+    const changed = after.days.filter((d) => {
+      const b = before.days.find((x) => x.key === d.key);
+      return b && savedDays.has(d.key) && !moved.includes(d) && JSON.stringify(b.items) !== JSON.stringify(d.items);
+    }).concat(moved.filter((d) => JSON.stringify(before.days.find((x) => x.key === d.key)?.items) !== JSON.stringify(d.items)));
+    if (changed.length) {
+      const rows = changed.flatMap((d) => toItemRows(d, d.key));
+      if (rows.length) await upsertItems(rows.map((r) => ({ ...r, position: r.position + 1000 })));
+      const kept = new Set(after.days.flatMap((d) => d.items.map((i) => i.key)));
+      const gone = changed.flatMap((d) => before.days.find((x) => x.key === d.key)?.items.map((i) => i.key) ?? []).filter((k) => !kept.has(k));
+      if (gone.length) {
+        const { error: e } = await db.from("workout_items").delete().in("id", gone);
+        if (e) throw e;
+      }
+      if (rows.length) await upsertItems(rows);
+      if (changed.some((d) => d.key === workoutId)) savedKeys = new Set((after.days.find((d) => d.key === workoutId)?.items ?? []).map((i) => i.key));
     }
     if (before.weeks !== after.weeks || before.name !== after.name) {
       const { error: e } = await db.from("programs").update({ weeks: after.weeks, name: after.name }).eq("id", programId);
@@ -376,7 +397,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (switching) savedKeys = new Set(before.days.find((d) => d.key === state.activeDay)?.items.map((i) => i.key) ?? []);
       lastLocalEdit = Date.now();
       emit();
-      void persistProgram(before, state.program).then(() => { if (switching) { closeChannel(); return load(); } }).catch(fail);
+      writes = persistProgram(before, state.program).then(() => { if (switching) { closeChannel(); return load(); } }).catch(fail);
     },
     startProgram(program) {
       status = "loading";
@@ -468,6 +489,9 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     },
     reset() {
       /* live data is never reset from the app */
+    },
+    flush() {
+      return writes;
     },
     close() {
       clearTimeout(saveTimer);
