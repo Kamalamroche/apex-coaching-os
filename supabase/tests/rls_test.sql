@@ -428,3 +428,44 @@ reset role;
 do $$ begin
   assert (select coach_reply from form_checks) like 'Flat back%', 'rival cannot reply';
 end $$;
+
+-- goals
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into client_goals (id, client_id, kind, title, exercise_id, target, start_value) values ('80000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1','lift','Trap bar 80 kg',1,80,60);
+do $$ begin
+  begin
+    insert into client_goals (client_id, kind, target) values ('00000000-0000-0000-0000-0000000000c2','bodyweight',60);
+    raise exception 'coach set a goal for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into client_goals (client_id, kind, target, title) values ('00000000-0000-0000-0000-0000000000c1','custom',10,' ');
+    raise exception 'custom goal saved without a name';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into client_goals (client_id, kind, title, target, unit, start_value, current_value) values ('00000000-0000-0000-0000-0000000000c1','custom','Strict pull-ups',5,'reps',0,2);
+update client_goals set current_value = 3 where kind = 'custom';
+do $$ begin
+  assert (select count(*) from client_goals) = 2, 'client sees own goals, coach-set and own';
+  begin
+    insert into client_goals (client_id, kind, target) values ('00000000-0000-0000-0000-0000000000c2','bodyweight',60);
+    raise exception 'client set a goal for someone else';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select current_value from client_goals where kind = 'custom') = 3, 'coach sees the client''s update';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+delete from client_goals;
+do $$ begin
+  assert (select count(*) from client_goals) = 0, 'rival sees no goals';
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from client_goals) = 2, 'rival cannot delete goals';
+end $$;

@@ -1,4 +1,4 @@
-import { CLIENTS, dayTotals, habitsOn, isDone, localDate } from "@apex/core";
+import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
 import { Avatar, BackLink, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
@@ -10,8 +10,11 @@ import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
 import { FormCheckList } from "./FormCheck";
 import { useFormChecks } from "../../data/FormCheckContext";
+import { useGoals } from "../../data/GoalContext";
+import { useGoalInputs } from "../../app/GoalParts";
+import { Goals } from "./Goals";
 
-type View = "food" | "habits" | "community" | "apps" | "intake" | "form";
+type View = "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
 
 export function More({ say }: { say: (m: string) => void }) {
   const [view, setView] = useState<View | null>(null);
@@ -19,10 +22,14 @@ export function More({ say }: { say: (m: string) => void }) {
   const life = useLifestyle();
   const form = useFormChecks();
   const replied = form.checks.filter((c) => c.coachReply).length;
+  const goals = useGoals();
+  const inputs = useGoalInputs();
+  const reached = goals.goals.filter((g) => goalProgress(g, inputs).achieved).length;
   const today = localDate(new Date());
   const due = habitsOn(life.habits, today);
   const kcal = Math.round(dayTotals(life.food, today).kcal);
   const MENU: [View, string, string][] = [
+    ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
     ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
     ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
@@ -34,6 +41,7 @@ export function More({ say }: { say: (m: string) => void }) {
     return (
       <>
         <BackLink onClick={() => setView(null)}>More</BackLink>
+        {view === "goals" && <Goals say={say} />}
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
         {view === "form" && <FormCheckList say={say} />}
@@ -50,7 +58,7 @@ export function More({ say }: { say: (m: string) => void }) {
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}
         <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
-        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units and notifications"]].map(([t, s]) => (
+        {[["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
         ))}
       </div>
