@@ -698,3 +698,33 @@ do $$ begin
   assert (select count(*) from profiles where id = '00000000-0000-0000-0000-0000000000c1') = 0, 'client deleted';
   assert (select count(*) from user_consents) = 0, 'consents go with the account';
 end $$;
+
+-- APEX Twin: voice and decisions are the coach's own; clients never see them
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000e1'),('00000000-0000-0000-0000-0000000000e2'),('00000000-0000-0000-0000-0000000000e3');
+insert into profiles values ('00000000-0000-0000-0000-0000000000e1','coach','Twin Coach'),('00000000-0000-0000-0000-0000000000e2','client','Twin Client'),('00000000-0000-0000-0000-0000000000e3','client','Not Mine');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e1');
+insert into twin_voice (coach_id, sign_off, phrases) values ('00000000-0000-0000-0000-0000000000e1','Kamal','{"missed":"{first}, let''s go {coach}"}');
+insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status, drafted, sent) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','2026-11-02','progress','progress','approved','Hi','Hi');
+do $$ begin
+  begin
+    insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e3','2026-11-02','steady','hold','approved');
+    raise exception 'coach decided for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into twin_decisions (coach_id, client_id, week_of, situation, adjust, status) values ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000e2','2026-11-02','steady','hold','approved');
+    raise exception 'two decisions for one client in one week';
+  exception when unique_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  assert (select count(*) from twin_decisions) = 0, 'client never sees twin decisions';
+  assert (select count(*) from twin_voice) = 0, 'client never sees the coach''s voice';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from twin_decisions) = 0, 'rival sees no twin decisions';
+end $$;
+reset role;
