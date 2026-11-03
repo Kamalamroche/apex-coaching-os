@@ -469,3 +469,53 @@ reset role;
 do $$ begin
   assert (select count(*) from client_goals) = 2, 'rival cannot delete goals';
 end $$;
+
+-- booking calendar
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into coach_booking_settings (coach_id, windows) values ('00000000-0000-0000-0000-00000000000c','[{"weekday":0,"start_min":540,"end_min":600}]');
+insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', now() + interval '2 days', now() + interval '2 days 30 minutes');
+do $$ begin
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2', now() + interval '3 days', now() + interval '3 days 30 minutes');
+    raise exception 'coach booked a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into bookings (id, coach_id, client_id, starts_at, ends_at, kind, note)
+values ('90000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 30 minutes', 'session', 'Leg day together');
+do $$ begin
+  assert (select count(*) from coach_booking_settings) = 1, 'client reads coach hours';
+  assert (select count(*) from bookings) = 2, 'client sees own bookings';
+  assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000000c', now(), now() + interval '14 days')) = 2, 'client sees taken slots';
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 30 minutes');
+    raise exception 'double booking accepted';
+  exception when unique_violation then null; end;
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000c1', now() + interval '1 day', now() + interval '1 day 30 minutes');
+    raise exception 'client booked a coach that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', now() - interval '1 day', now() - interval '23 hours');
+    raise exception 'client booked in the past';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_booking_settings (coach_id) values ('00000000-0000-0000-0000-0000000000c1');
+    raise exception 'client set booking hours';
+  exception when insufficient_privilege then null; end;
+end $$;
+update bookings set status = 'cancelled', starts_at = starts_at - interval '1 day', note = 'moved' where kind = 'session';
+do $$ begin
+  assert (select status from bookings where kind = 'session') = 'cancelled', 'client cancels';
+  assert (select note from bookings where kind = 'session') = 'Leg day together', 'client can only cancel, not change';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from bookings) = 0, 'rival sees no bookings';
+  assert (select count(*) from coach_booking_settings) = 0, 'rival sees no hours';
+  assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000000c', now(), now() + interval '14 days')) = 0, 'rival sees no taken slots';
+end $$;
+reset role;

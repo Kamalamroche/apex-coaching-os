@@ -16,6 +16,7 @@ import { FormCheckProvider } from "../data/FormCheckContext";
 import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
+import { BookingProvider, liveBookings } from "../data/bookings";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 
@@ -47,6 +48,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
   useEffect(() => () => formChecks.close(), [formChecks]);
   const goals = useMemo(() => createSupabaseGoals(db, profile.id), [db, profile.id]);
   useEffect(() => () => goals.close(), [goals]);
+  const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
   const notice = useConnectReturn(db, activities, strava, wearables);
 
@@ -67,7 +69,9 @@ export function ClientLive({ db, profile, signOut }: Live) {
           <LifestyleProvider store={lifestyle}>
             <FormCheckProvider store={formChecks}>
               <GoalProvider store={goals}>
-                <ClientApp notice={notice} />
+                <BookingProvider value={bookings}>
+                  <ClientApp notice={notice} />
+                </BookingProvider>
               </GoalProvider>
             </FormCheckProvider>
           </LifestyleProvider>
