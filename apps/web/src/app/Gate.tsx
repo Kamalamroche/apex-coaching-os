@@ -1,4 +1,4 @@
-import { createDemoActivityStore, createDemoStore, type ActivityStore, type ApexStore } from "@apex/core";
+import { createDemoActivityStore, createDemoFormCheckStore, createDemoGoalStore, createDemoLifestyleStore, createDemoStore, type ActivityStore, type ApexStore, type FormCheckStore, type GoalStore, type LifestyleStore } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type ReactNode } from "react";
@@ -6,6 +6,13 @@ import { Onboarding } from "../auth/Onboarding";
 import { SignIn } from "../auth/SignIn";
 import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
+import { FormCheckProvider } from "../data/FormCheckContext";
+import { GoalProvider } from "../data/GoalContext";
+import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
+import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/challenges";
+import { ResourceProvider, demoResources } from "../data/resources";
+import { NotesProvider, demoNotes } from "../data/clientNotes";
+import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
 import { demoStravaLink } from "../data/strava";
 import { demoWearableLink } from "../data/wearables";
@@ -14,6 +21,13 @@ import { AppInfoProvider } from "./AppContext";
 
 const demoStore: { current: ApexStore | null } = { current: null };
 const demoActivities: { current: ActivityStore | null } = { current: null };
+const demoLifestyle: { current: LifestyleStore | null } = { current: null };
+const demoFormChecks: { current: FormCheckStore | null } = { current: null };
+const demoGoals: { current: GoalStore | null } = { current: null };
+const demoBookingApi: { current: BookingApi | null } = { current: null };
+const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
+const demoResourceApi = demoResources();
+const demoNotesApi = demoNotes();
 
 export interface Live {
   db: SupabaseClient;
@@ -29,10 +43,15 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
   if (isDemo() || !supabase) {
     demoStore.current ??= createDemoStore();
     demoActivities.current ??= createDemoActivityStore();
+    demoLifestyle.current ??= createDemoLifestyleStore();
+    demoFormChecks.current ??= createDemoFormCheckStore((b) => URL.createObjectURL(b));
+    demoGoals.current ??= createDemoGoalStore();
+    demoBookingApi.current ??= demoBookings();
+    demoChallengeApis[side] ??= demoChallenges(side);
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}>{demo()}</ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}>{demo()}</NotesProvider></ResourceProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

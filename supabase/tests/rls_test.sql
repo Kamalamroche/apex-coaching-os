@@ -286,6 +286,337 @@ do $$ begin
 end $$;
 
 
+-- habits, nutrition and the questionnaire
+reset role;
+insert into client_habits (id, client_id, title) values ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2','Rival client habit');
+set role authenticated;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into client_habits (id, client_id, kind, title) values ('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1','water','Drink 2.5 L of water');
+insert into nutrition_targets (client_id, kcal, protein_g, carbs_g, fat_g) values ('00000000-0000-0000-0000-0000000000c1',1900,120,210,60);
+do $$ begin
+  assert (select count(*) from client_habits) = 1, 'coach sees own client habits only';
+  begin
+    insert into client_habits (client_id, title) values ('00000000-0000-0000-0000-0000000000c2','poach');
+    raise exception 'coach set a habit for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into habit_ticks (habit_id, client_id, day) values ('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1','2026-11-02');
+insert into food_entries (client_id, day, meal, name, kcal, protein_g) values ('00000000-0000-0000-0000-0000000000c1','2026-11-02','lunch','Chicken and rice',600,45);
+insert into intake_forms (client_id, answers, health_flags) values ('00000000-0000-0000-0000-0000000000c1','{"goal":"Lose 5 kg"}',1);
+do $$ begin
+  assert (select count(*) from client_habits) = 1, 'client reads own habits';
+  assert (select kcal from nutrition_targets) = 1900, 'client reads own targets';
+  begin
+    insert into habit_ticks (habit_id, client_id, day) values ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1','2026-11-02');
+    raise exception 'client ticked someone else''s habit';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into client_habits (client_id, title) values ('00000000-0000-0000-0000-0000000000c1','self-made');
+    raise exception 'client created a habit';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into nutrition_targets (client_id, kcal, protein_g, carbs_g, fat_g) values ('00000000-0000-0000-0000-0000000000c1',5000,1,1,1);
+    raise exception 'client set own targets';
+  exception when insufficient_privilege or unique_violation then null; end;
+end $$;
+update nutrition_targets set kcal = 5000;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from habit_ticks) = 1, 'coach sees client ticks';
+  assert (select count(*) from food_entries) = 1, 'coach sees client food log';
+  assert (select health_flags from intake_forms) = 1, 'coach reads the questionnaire';
+  assert (select kcal from nutrition_targets) = 1900, 'client cannot change targets';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from habit_ticks) = 0, 'rival sees no ticks';
+  assert (select count(*) from food_entries) = 0, 'rival sees no food log';
+  assert (select count(*) from intake_forms) = 0, 'rival sees no questionnaire';
+  assert (select count(*) from nutrition_targets) = 0, 'rival sees no targets';
+end $$;
+reset role;
+
+-- automatic messages
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+insert into coach_automations (coach_id, welcome_on, welcome_body, missed_on, missed_body, checkin_on, checkin_body, send_hour, timezone)
+values ('00000000-0000-0000-0000-00000000000c', true, 'Welcome {first_name}! {coach}', true, 'Hi {first_name}, {days} days since your last session', true, 'Check-in today, {first_name}', 9, 'Europe/London');
+do $$ begin
+  begin
+    insert into coach_automations (coach_id) values ('00000000-0000-0000-0000-00000000000d');
+    raise exception 'coach wrote another coach''s automations';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.run_automations();
+    raise exception 'a signed-in user ran the automations';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Priya joined today with no coach message yet, check-in day Monday, no workouts. Monday 2026-11-09 10:00 London.
+delete from messages where coach_id = '00000000-0000-0000-0000-00000000000c' and sender_id = '00000000-0000-0000-0000-00000000000c';
+update coach_clients set started_at = '2026-11-08 09:00+00', check_in_day = 0 where client_id = '00000000-0000-0000-0000-0000000000c1';
+delete from check_ins where client_id = '00000000-0000-0000-0000-0000000000c1';
+delete from sessions where client_id = '00000000-0000-0000-0000-0000000000c1';
+-- Other clients of this coach get their own reminders; these checks count Priya's sends only.
+create function pg_temp.priya_sends() returns bigint language sql as $$ select count(*) from automation_sends where client_id = '00000000-0000-0000-0000-0000000000c1' $$;
+do $$ begin
+  perform public.run_automations('2026-11-09 10:00+00');
+  assert pg_temp.priya_sends() = 2, format('welcome and check-in reminder go, got %s', pg_temp.priya_sends());
+  assert (select count(*) from messages where body = 'Welcome Priya! Kamal') = 1, 'welcome filled in';
+  assert (select count(*) from messages where body = 'Check-in today, Priya') = 1, 'reminder filled in';
+  perform public.run_automations('2026-11-09 11:00+00');
+  assert pg_temp.priya_sends() = 2, 'nothing goes twice';
+  -- Six days later, still no workout: the missed nudge goes once, and not the welcome again.
+  perform public.run_automations('2026-11-14 10:00+00');
+  assert pg_temp.priya_sends() = 3, 'missed nudge goes';
+  assert (select count(*) from messages where body like 'Hi Priya, 6 days since%') = 1, 'missed nudge counts days';
+  perform public.run_automations('2026-11-15 10:00+00');
+  assert pg_temp.priya_sends() = 3, 'one nudge per gap';
+  -- Next Monday before the send hour: the reminder waits.
+  perform public.run_automations('2026-11-16 07:00+00');
+  assert pg_temp.priya_sends() = 3, 'reminder waits for the send hour';
+  perform public.run_automations('2026-11-16 09:30+00');
+  assert pg_temp.priya_sends() = 4, 'next week''s reminder goes at the send hour';
+  assert (select count(*) from messages where client_id = '00000000-0000-0000-0000-0000000000c2' and sender_id = '00000000-0000-0000-0000-00000000000d') = 0, 'rival client untouched';
+end $$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from automation_sends) = 0, 'client cannot see the send log';
+  assert (select count(*) from coach_automations) = 0, 'client cannot read coach settings';
+end $$;
+reset role;
+
+-- video form checks
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into form_checks (id, client_id, exercise_id, exercise_name, note, storage_path, coach_reply)
+values ('70000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1',1,'Trap Bar Deadlift','Back flat?','00000000-0000-0000-0000-0000000000c1/a.mp4','self-praise');
+insert into storage.objects (bucket_id, name) values ('form-videos','00000000-0000-0000-0000-0000000000c1/a.mp4');
+do $$ begin
+  assert (select coach_reply from form_checks) is null, 'client cannot write a coach reply';
+  begin
+    insert into form_checks (client_id, exercise_name, storage_path) values ('00000000-0000-0000-0000-0000000000c1','x','00000000-0000-0000-0000-0000000000c2/x.mp4');
+    raise exception 'client registered a video in someone else''s folder';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('form-videos','00000000-0000-0000-0000-0000000000c2/x.mp4');
+    raise exception 'client uploaded into someone else''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+update form_checks set coach_reply = 'Flat back, nice. Push the floor away.', reviewed_at = now(), note = 'changed';
+do $$ begin
+  assert (select coach_reply from form_checks) like 'Flat back%', 'coach replies';
+  assert (select note from form_checks) = 'Back flat?', 'coach cannot change what the client sent';
+  assert (select count(*) from storage.objects where bucket_id = 'form-videos') = 1, 'coach can watch the video';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update form_checks set coach_reply = 'poach';
+do $$ begin
+  assert (select count(*) from form_checks) = 0, 'rival sees no form checks';
+  assert (select count(*) from storage.objects where bucket_id = 'form-videos') = 0, 'rival cannot watch the video';
+end $$;
+reset role;
+do $$ begin
+  assert (select coach_reply from form_checks) like 'Flat back%', 'rival cannot reply';
+end $$;
+
+-- goals
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into client_goals (id, client_id, kind, title, exercise_id, target, start_value) values ('80000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1','lift','Trap bar 80 kg',1,80,60);
+do $$ begin
+  begin
+    insert into client_goals (client_id, kind, target) values ('00000000-0000-0000-0000-0000000000c2','bodyweight',60);
+    raise exception 'coach set a goal for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into client_goals (client_id, kind, target, title) values ('00000000-0000-0000-0000-0000000000c1','custom',10,' ');
+    raise exception 'custom goal saved without a name';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into client_goals (client_id, kind, title, target, unit, start_value, current_value) values ('00000000-0000-0000-0000-0000000000c1','custom','Strict pull-ups',5,'reps',0,2);
+update client_goals set current_value = 3 where kind = 'custom';
+do $$ begin
+  assert (select count(*) from client_goals) = 2, 'client sees own goals, coach-set and own';
+  begin
+    insert into client_goals (client_id, kind, target) values ('00000000-0000-0000-0000-0000000000c2','bodyweight',60);
+    raise exception 'client set a goal for someone else';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select current_value from client_goals where kind = 'custom') = 3, 'coach sees the client''s update';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+delete from client_goals;
+do $$ begin
+  assert (select count(*) from client_goals) = 0, 'rival sees no goals';
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from client_goals) = 2, 'rival cannot delete goals';
+end $$;
+
+-- booking calendar
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into coach_booking_settings (coach_id, windows) values ('00000000-0000-0000-0000-00000000000c','[{"weekday":0,"start_min":540,"end_min":600}]');
+insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', now() + interval '2 days', now() + interval '2 days 30 minutes');
+do $$ begin
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2', now() + interval '3 days', now() + interval '3 days 30 minutes');
+    raise exception 'coach booked a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into bookings (id, coach_id, client_id, starts_at, ends_at, kind, note)
+values ('90000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 30 minutes', 'session', 'Leg day together');
+do $$ begin
+  assert (select count(*) from coach_booking_settings) = 1, 'client reads coach hours';
+  assert (select count(*) from bookings) = 2, 'client sees own bookings';
+  assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000000c', now(), now() + interval '14 days')) = 2, 'client sees taken slots';
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 30 minutes');
+    raise exception 'double booking accepted';
+  exception when unique_violation then null; end;
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000c1', now() + interval '1 day', now() + interval '1 day 30 minutes');
+    raise exception 'client booked a coach that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', now() - interval '1 day', now() - interval '23 hours');
+    raise exception 'client booked in the past';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_booking_settings (coach_id) values ('00000000-0000-0000-0000-0000000000c1');
+    raise exception 'client set booking hours';
+  exception when insufficient_privilege then null; end;
+end $$;
+update bookings set status = 'cancelled', starts_at = starts_at - interval '1 day', note = 'moved' where kind = 'session';
+do $$ begin
+  assert (select status from bookings where kind = 'session') = 'cancelled', 'client cancels';
+  assert (select note from bookings where kind = 'session') = 'Leg day together', 'client can only cancel, not change';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from bookings) = 0, 'rival sees no bookings';
+  assert (select count(*) from coach_booking_settings) = 0, 'rival sees no hours';
+  assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000000c', now(), now() + interval '14 days')) = 0, 'rival sees no taken slots';
+end $$;
+reset role;
+
+-- challenges
+reset role;
+update profiles set full_name = 'Priya Sharma' where id = '00000000-0000-0000-0000-0000000000c1';
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into challenges (id, coach_id, title, metric, unit, starts_on, ends_on) values
+  ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','Step it up','logged','steps', current_date - 2, current_date + 10),
+  ('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c','Most sessions','sessions','sessions', current_date - 2, current_date + 10);
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into challenge_members (challenge_id, client_id) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1'),('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1');
+insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date, 8000),('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date - 1, 9500);
+insert into sessions (client_id, started_at, finished_at) values ('00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour', now());
+do $$ begin
+  assert (select count(*) from challenges) = 2, 'client sees coach challenges';
+  assert (select total from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 17500, 'logged numbers add up';
+  assert (select name from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 'Priya S.', 'first name and initial only';
+  assert (select is_me from public.challenge_board('a0000000-0000-0000-0000-000000000001')), 'client sees which line is theirs';
+  assert (select total from public.challenge_board('a0000000-0000-0000-0000-000000000002')) >= 1, 'finished sessions count';
+  begin
+    insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1', current_date + 30, 5);
+    raise exception 'logged a day outside the challenge';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into challenge_logs (challenge_id, client_id, day, value) values ('a0000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000c1', current_date, 5);
+    raise exception 'logged by hand on a session challenge';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into challenges (coach_id, title, metric, unit, starts_on, ends_on) values ('00000000-0000-0000-0000-0000000000c1','Mine','logged','km', current_date, current_date);
+    raise exception 'client created a challenge';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from challenge_members) = 2, 'coach sees who joined';
+  assert (select count(*) from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 1, 'coach sees the board';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from challenges) = 0, 'another coach''s client sees no challenges';
+  assert (select count(*) from public.challenge_board('a0000000-0000-0000-0000-000000000001')) = 0, 'and no board';
+  begin
+    insert into challenge_members (challenge_id, client_id) values ('a0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2');
+    raise exception 'joined another coach''s challenge';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- resource library, private notes and tags
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into coach_resources (coach_id, title, body) values ('00000000-0000-0000-0000-00000000000c','Protein made simple','A palm of protein at each meal.');
+insert into coach_resources (coach_id, client_id, title, url) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','Your knee plan','https://example.com/knee.pdf');
+insert into coach_client_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','Old knee injury');
+insert into coach_client_tags (coach_id, client_id, tags) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','{VIP,Injury}');
+do $$ begin
+  begin
+    insert into coach_resources (coach_id, title, url) values ('00000000-0000-0000-0000-00000000000c','Bad','javascript:alert(1)');
+    raise exception 'script link accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into coach_client_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2','Poach');
+    raise exception 'coach noted a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_resources (coach_id, client_id, title, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2','x','y');
+    raise exception 'coach shared with a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from coach_resources) = 2, 'client sees shared and own resources';
+  assert (select count(*) from coach_client_notes) = 0, 'client never sees coach notes';
+  assert (select count(*) from coach_client_tags) = 0, 'client never sees coach tags';
+  begin
+    insert into coach_resources (coach_id, title, body) values ('00000000-0000-0000-0000-00000000000c','Mine','x');
+    raise exception 'client added a resource';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from coach_resources) = 0, 'rival sees no resources';
+  assert (select count(*) from coach_client_notes) = 0, 'rival sees no notes';
+end $$;
+reset role;
+-- Another coach's client sees neither the shared nor the personal resource.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from coach_resources) = 0, 'other client sees no resources';
+end $$;
+reset role;
+
 -- payments: everyone reads only their own; nobody but the server writes
 reset role;
 grant all on public.coaching_plans, public.billing_customers, public.client_subscriptions, public.payments, public.stripe_events to authenticated;

@@ -7,6 +7,8 @@ import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { CoachCardio, CoachRecovery } from "./CoachCardio";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
+import { Calendar, CalendarCard } from "./Calendar";
+import type { LiveClient } from "../../data/coach";
 
 interface TriageItem {
   id: string;
@@ -39,7 +41,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, say, clientCount }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number }) {
+export function Brief({ openClient, say, clientCount, clients }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null }) {
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
   const clientFirst = firstName(clientName);
@@ -53,6 +55,8 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
   const pending = TRIAGE.filter((i) => !handled[i.id]);
   const selectedCount = Object.values(selected).filter(Boolean).length;
   const handle = (id: string) => setHandled((d) => ({ ...d, [id]: true }));
+  const [calendar, setCalendar] = useState(false);
+  if (calendar) return <Calendar clients={clients} onBack={() => setCalendar(false)} say={say} />;
 
   return (
     <>
@@ -66,6 +70,7 @@ export function Brief({ openClient, say, clientCount }: { openClient: (id: numbe
         <div className="kpi"><b>74%</b><small>Sessions done, 7 days</small><i style={{ color: "var(--good)" }}>+4 pts</i></div>
         <div className="kpi"><b style={{ color: "var(--act)" }}>{pending.length}</b><small>Need you today</small><i style={{ color: "var(--text3)" }}>{TRIAGE.length - pending.length} handled</i></div>
       </div>
+      <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
 
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>

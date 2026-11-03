@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
+import { FormCheckSheet } from "./FormCheck";
 import { PlateCalculator } from "./PlateCalculator";
 import { ReadinessCheck } from "./Readiness";
 import { ShareWorkout } from "./ShareWorkout";
@@ -32,6 +33,9 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const [showCues, setShowCues] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [plates, setPlates] = useState(false);
+  const [filming, setFilming] = useState(false);
+  /** Exercises a form check video was sent for in this session. */
+  const [filmed, setFilmed] = useState<Record<number, boolean>>({});
   /** Bar chosen in the plate calculator, per exercise, for this session. */
   const [barKg, setBarKg] = useState<Record<number, number>>({});
   const startedAt = useRef(Date.now());
@@ -142,6 +146,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           <div className="row" style={{ gap: 14, marginTop: 6 }}>
             <button className="link" onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
             {usesPlates(ex) && it.kg > 0 && <button className="link" onClick={() => setPlates(true)}>Plate calculator</button>}
+            <button className="link" onClick={() => setFilming(true)}>{filmed[ex.id] ? "Video sent · film another" : "Film my form"}</button>
           </div>
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
@@ -181,6 +186,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
         )}
       </main>
+      {filming && <FormCheckSheet exerciseId={ex.id} exercise={ex.name} onClose={() => setFilming(false)} onSent={() => { setFilming(false); setFilmed((f) => ({ ...f, [ex.id]: true })); }} />}
       {plates && (
         <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
       )}

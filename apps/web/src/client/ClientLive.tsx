@@ -10,6 +10,15 @@ import { StoreProvider } from "../data/StoreContext";
 import { finishStravaConnect, liveStravaLink } from "../data/strava";
 import { finishWearableConnect, liveWearableLink } from "../data/wearables";
 import { createSupabaseActivities } from "../data/supabaseActivities";
+import { LifestyleProvider } from "../data/LifestyleContext";
+import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
+import { FormCheckProvider } from "../data/FormCheckContext";
+import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
+import { GoalProvider } from "../data/GoalContext";
+import { createSupabaseGoals } from "../data/supabaseGoals";
+import { BookingProvider, liveBookings } from "../data/bookings";
+import { ChallengeProvider, liveChallenges } from "../data/challenges";
+import { ResourceProvider, liveResources } from "../data/resources";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 import { takeBillingReturn } from "../data/billing";
@@ -39,6 +48,15 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const activities = useMemo(() => createSupabaseActivities(db, profile.id), [db, profile.id]);
   const strava = useMemo(() => liveStravaLink(db, activities), [db, activities]);
   useEffect(() => () => activities.close(), [activities]);
+  const lifestyle = useMemo(() => createSupabaseLifestyle(db, profile.id), [db, profile.id]);
+  useEffect(() => () => lifestyle.close(), [lifestyle]);
+  const formChecks = useMemo(() => createSupabaseFormChecks(db, profile.id), [db, profile.id]);
+  useEffect(() => () => formChecks.close(), [formChecks]);
+  const goals = useMemo(() => createSupabaseGoals(db, profile.id), [db, profile.id]);
+  useEffect(() => () => goals.close(), [goals]);
+  const challenges = useMemo(() => (coach ? liveChallenges(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
+  const resources = useMemo(() => (coach ? liveResources(db, coach.id) : null), [db, coach]);
+  const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
   const connectNotice = useConnectReturn(db, activities, strava, wearables);
   // Read once: back from Stripe Checkout or Stripe's billing page.
@@ -60,9 +78,21 @@ export function ClientLive({ db, profile, signOut }: Live) {
     <AppInfoProvider info={{ mode: "live", coachName: coach.name.split(" ")[0] ?? coach.name, clientName: profile.full_name, signOut }}>
       <StoreProvider store={store}>
         <ActivityProvider store={activities} strava={strava} wearables={wearables}>
-          <ClientBillingProvider link={billing}>
-            <ClientApp notice={notice} startOn={billingReturn ? "membership" : null} />
-          </ClientBillingProvider>
+          <LifestyleProvider store={lifestyle}>
+            <FormCheckProvider store={formChecks}>
+              <GoalProvider store={goals}>
+                <BookingProvider value={bookings}>
+                  <ChallengeProvider value={challenges}>
+                    <ResourceProvider value={resources}>
+                      <ClientBillingProvider link={billing}>
+                        <ClientApp notice={notice} startOn={billingReturn ? "membership" : null} />
+                      </ClientBillingProvider>
+                    </ResourceProvider>
+                  </ChallengeProvider>
+                </BookingProvider>
+              </GoalProvider>
+            </FormCheckProvider>
+          </LifestyleProvider>
         </ActivityProvider>
       </StoreProvider>
     </AppInfoProvider>

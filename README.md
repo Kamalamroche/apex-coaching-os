@@ -30,7 +30,7 @@ With Supabase settings the apps sign people in by email link:
 4. The coach creates the client's program in the Builder. Edits save as they type and appear in the client's app live.
 5. The client trains in the guided player. The finished session, every logged set, and messages land in the database and on the coach's Brief.
 
-Sections not yet connected to real data (triage, progressions, nutrition, business, progress, habits, community) are marked "Sample data" in live mode.
+Sections not yet connected to real data (triage, progressions, supplements, business, community) are marked "Sample data" in live mode.
 
 Local live development:
 

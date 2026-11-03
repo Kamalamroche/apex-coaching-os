@@ -6,7 +6,7 @@ How it fits together:
 
 - `supabase/functions/billing`: makes plans in Stripe, opens checkout and the billing page. Holds the secret key, so the browser never sees it.
 - `supabase/functions/stripe-webhook`: Stripe tells APEX when a membership starts, renews, fails or ends. Checks Stripe's signature on every call and ignores repeats.
-- `supabase/migrations/20261102120000_billing.sql`: `coaching_plans`, `client_subscriptions`, `payments`, plus server-only `billing_customers` and `stripe_events`. Browsers can only read their own rows; only the two functions write.
+- `supabase/migrations/20261104120000_billing.sql`: `coaching_plans`, `client_subscriptions`, `payments`, plus server-only `billing_customers` and `stripe_events`. Browsers can only read their own rows; only the two functions write.
 - `packages/core/src/billing.ts`: prices, monthly recurring revenue, revenue per month, status wording.
 
 All money goes into one Stripe account (Kamal's). Only coach emails listed in `BILLING_COACH_EMAILS` can make plans or be paid. Before other coaches take payments, each needs their own account through Stripe Connect.
@@ -15,7 +15,7 @@ All money goes into one Stripe account (Kamal's). Only coach emails listed in `B
 
 1. **Stripe account.** Sign up free at stripe.com. Keep the **Test mode** switch on (top right) for every step below.
 2. **Secret key.** Developers → API keys → reveal the **Secret key** (`sk_test_…`). Keep it private.
-3. **Database.** Supabase → SQL Editor → paste `supabase/migrations/20261102120000_billing.sql` → Run.
+3. **Database.** Supabase → SQL Editor → paste `supabase/migrations/20261104120000_billing.sql` → Run.
 4. **Deploy the two functions** from the repo folder (once, `npx supabase login` first):
    ```
    npx supabase functions deploy billing --project-ref ptxtshirthnzovfbdyav

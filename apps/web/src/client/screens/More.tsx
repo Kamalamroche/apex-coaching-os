@@ -1,27 +1,72 @@
-import { CLIENTS, FOODS, type Food } from "@apex/core";
-import { Avatar, BackLink, Bar, Icons } from "@apex/ui";
+import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
+import { Avatar, BackLink, Icons } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import { useAppInfo } from "../../app/AppContext";
+import { useLifestyle } from "../../data/LifestyleContext";
 import { ConnectedApps } from "./ConnectedApps";
+import { Habits } from "./Habits";
 import { Membership } from "./Membership";
+import { Intake } from "./Intake";
+import { ClientNutrition } from "./Nutrition";
+import { FormCheckList } from "./FormCheck";
+import { useFormChecks } from "../../data/FormCheckContext";
+import { useGoals } from "../../data/GoalContext";
+import { useGoalInputs } from "../../app/GoalParts";
+import { Goals } from "./Goals";
+import { Book } from "./Book";
+import { Challenges } from "./Challenges";
+import { Resources } from "./Resources";
+import { useResourceApi } from "../../data/resources";
+import { useChallengeApi } from "../../data/challenges";
+import { useBookingApi } from "../../data/bookings";
+import { useBookings } from "../../app/BookingParts";
+import { upcomingBookings, whenLabel } from "@apex/core";
 
-export type MoreView = "food" | "habits" | "community" | "apps" | "membership";
+export type MoreView = "membership" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
 type View = MoreView;
-const MENU: [View, string, string][] = [
-  ["food", "Nutrition", "1,432 of 1,900 kcal logged today"],
-  ["habits", "Habits", "2 of 3 done today"],
-  ["community", "Community", "Leaderboard and team feed"],
-];
 
 export function More({ say, startOn = null }: { say: (m: string) => void; startOn?: View | null }) {
   const [view, setView] = useState<View | null>(startOn);
+  const { coachName } = useAppInfo();
+  const life = useLifestyle();
+  const form = useFormChecks();
+  const replied = form.checks.filter((c) => c.coachReply).length;
+  const goals = useGoals();
+  const inputs = useGoalInputs();
+  const bookingApi = useBookingApi();
+  const challengeApi = useChallengeApi();
+  const resourceApi = useResourceApi();
+  const bookingData = useBookings(bookingApi);
+  const nextBooking = bookingApi ? upcomingBookings(bookingData.bookings.filter((b) => b.clientId === bookingApi.me), new Date())[0] : undefined;
+  const reached = goals.goals.filter((g) => goalProgress(g, inputs).achieved).length;
+  const today = localDate(new Date());
+  const due = habitsOn(life.habits, today);
+  const kcal = Math.round(dayTotals(life.food, today).kcal);
+  const MENU: [View, string, string][] = [
+    ...(bookingApi ? [["book", `Book with ${coachName}`, nextBooking ? `Next: ${whenLabel(nextBooking.startsAt)}` : "A call or a training session"] as [View, string, string]] : []),
+    ...(challengeApi ? [["challenges", "Challenges", `Join ${coachName}'s challenges and climb the leaderboard`] as [View, string, string]] : []),
+    ...(resourceApi ? [["resources", "Resources", `Guides, videos and links from ${coachName}`] as [View, string, string]] : []),
+    ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
+    ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
+    ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
+    ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
+    ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
+    ["community", "Community", "Leaderboard and team feed"],
+  ];
+  if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
   if (view) {
     return (
       <>
         <BackLink onClick={() => setView(null)}>More</BackLink>
+        {view === "book" && <Book say={say} />}
+        {view === "challenges" && <Challenges say={say} />}
+        {view === "resources" && <Resources />}
+        {view === "goals" && <Goals say={say} />}
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
-        {view === "community" && <Community />}
+        {view === "form" && <FormCheckList say={say} />}
+        {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "membership" && <Membership say={say} />}
       </>
@@ -30,80 +75,14 @@ export function More({ say, startOn = null }: { say: (m: string) => void; startO
   return (
     <>
       <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
-      <SampleNote />
       <div className="card flat list">
         <button className="li" onClick={() => setView("membership")}><div className="grow"><div className="h3">Membership</div><div className="small">Your coaching plan and payments</div></div><span className="tiny">›</span></button>
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}
         <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
-        {[["Goals", "Trap bar 80 kg × 5 by 20 December"], ["Settings", "Units and notifications"]].map(([t, s]) => (
+        {[["Settings", "Units and notifications"]].map(([t, s]) => (
           <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-const TARGET = { kcal: 1900, protein: 120, carbs: 210, fat: 60 };
-
-function ClientNutrition() {
-  const [log, setLog] = useState<Food[]>(() => [4, 3, 0, 1].map((i) => FOODS[i]).filter((f): f is Food => !!f));
-  const [q, setQ] = useState("");
-  const tot = log.reduce((a, f) => ({ kcal: a.kcal + f.kcal, protein: a.protein + f.protein, carbs: a.carbs + f.carbs, fat: a.fat + f.fat }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
-  const hits = FOODS.filter((f) => f.name.toLowerCase().includes(q.toLowerCase()));
-  const macros = [["Protein", tot.protein, TARGET.protein, "var(--crit)"], ["Carbs", tot.carbs, TARGET.carbs, "var(--data)"], ["Fat", tot.fat, TARGET.fat, "var(--warn)"]] as const;
-  return (
-    <>
-      <div><div className="eyebrow">Nutrition</div><h1 className="h1"><span className="num">{tot.kcal.toLocaleString()}</span> / {TARGET.kcal.toLocaleString()} kcal</h1></div>
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {macros.map(([l, v, t, c]) => (
-          <div key={l}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 4 }}><span className="small">{l}</span><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{v} / {t} g</span></div>
-            <Bar pct={(v / t) * 100} color={c} />
-          </div>
-        ))}
-      </div>
-      <div className="card flat list">
-        {log.map((f, i) => (
-          <div key={f.id} className="li">
-            <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">P {f.protein} · C {f.carbs} · F {f.fat}</div></div>
-            <span className="num small">{f.kcal}</span>
-            <button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={() => setLog((l) => l.filter((_, j) => j !== i))}>×</button>
-          </div>
-        ))}
-      </div>
-      <input id="foodsearch" className="field" placeholder="Search foods or scan a barcode" value={q} onChange={(e) => setQ(e.target.value)} />
-      {q && (
-        <div className="card flat list">
-          {hits.length === 0 ? <div className="li small">No match in the sample list.</div> : hits.map((f) => {
-            const added = log.some((l) => l.id === f.id);
-            return (
-              <div key={f.id} className="li">
-                <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal</div></div>
-                <button className={`btn sm ${added ? "ghost" : "act"}`} disabled={added} onClick={() => setLog((l) => [...l, f])}>{added ? "Added" : "Add"}</button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
-const HABITS = [["water", "Drink 2.5 L water"], ["steps", "8,000 steps"], ["sleep", "In bed by 10:30 pm"]] as const;
-
-function Habits() {
-  const [done, setDone] = useState<Record<string, boolean>>({ water: true, steps: true, sleep: false });
-  return (
-    <>
-      <div><div className="eyebrow">Habits</div><h1 className="h1">{Object.values(done).filter(Boolean).length} of {HABITS.length} today</h1></div>
-      <div className="card flat list">
-        {HABITS.map(([k, t]) => (
-          <label key={k} className="li" style={{ cursor: "pointer" }}>
-            <input type="checkbox" checked={!!done[k]} onChange={(e) => setDone((s) => ({ ...s, [k]: e.target.checked }))} style={{ width: 22, height: 22, accentColor: "var(--good)" }} />
-            <span className="h3">{t}</span>
-          </label>
         ))}
       </div>
     </>
