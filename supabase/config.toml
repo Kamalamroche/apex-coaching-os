@@ -16,3 +16,7 @@ sql_paths = ["./seed.sql"]
 [auth]
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173/**", "http://127.0.0.1:5173/**"]
+
+# Called by a Supabase Cron job, which checks its own x-cron-secret header instead of a user token.
+[functions.email-alerts]
+verify_jwt = false
