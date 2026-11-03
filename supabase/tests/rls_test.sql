@@ -616,3 +616,61 @@ do $$ begin
   assert (select count(*) from coach_resources) = 0, 'other client sees no resources';
 end $$;
 reset role;
+
+-- payments: everyone reads only their own; nobody but the server writes
+reset role;
+grant all on public.coaching_plans, public.billing_customers, public.client_subscriptions, public.payments, public.stripe_events to authenticated;
+insert into coaching_plans (id, coach_id, name, amount_pence, stripe_price_id) values
+  ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','Online coaching',12000,'price_a'),
+  ('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c','Old plan',9000,'price_b'),
+  ('60000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-00000000000d','Rival plan',5000,'price_c');
+update coaching_plans set active = false where id = '60000000-0000-0000-0000-000000000002';
+insert into billing_customers values ('00000000-0000-0000-0000-0000000000c1','cus_1');
+insert into client_subscriptions (stripe_subscription_id, client_id, coach_id, plan_id, stripe_customer_id, status, amount_pence, billing_interval) values
+  ('sub_1','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000c','60000000-0000-0000-0000-000000000001','cus_1','active',12000,'month'),
+  ('sub_2','00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-00000000000d','60000000-0000-0000-0000-000000000003','cus_2','active',5000,'month');
+insert into payments (stripe_invoice_id, client_id, coach_id, amount_pence, status) values
+  ('in_1','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000c',12000,'paid'),
+  ('in_2','00000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-00000000000d',5000,'paid');
+insert into stripe_events values ('evt_1','invoice.paid');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from coaching_plans) = 1, 'client sees only their coach''s live plans';
+  assert (select count(*) from client_subscriptions) = 1, 'client sees own membership';
+  assert (select count(*) from payments) = 1, 'client sees own payments';
+  assert (select count(*) from billing_customers) = 0, 'Stripe customer ids stay server-side';
+  assert (select count(*) from stripe_events) = 0, 'webhook log stays server-side';
+  update client_subscriptions set status = 'active', amount_pence = 1;
+  assert (select amount_pence from client_subscriptions) = 12000, 'client cannot change their membership';
+  begin
+    insert into client_subscriptions (stripe_subscription_id, client_id, coach_id, stripe_customer_id, status) values ('sub_forged','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000c','cus_1','active');
+    raise exception 'client gave themselves a membership';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into payments (stripe_invoice_id, client_id, coach_id, amount_pence, status) values ('in_forged','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000c',1,'paid');
+    raise exception 'client recorded a payment';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from coaching_plans) = 2, 'coach sees own plans, closed ones too';
+  assert (select count(*) from client_subscriptions) = 1, 'coach sees own clients'' memberships only';
+  assert (select count(*) from payments) = 1, 'coach sees own income only';
+  begin
+    insert into coaching_plans (coach_id, name, amount_pence) values ('00000000-0000-0000-0000-00000000000c','No Stripe price',100);
+    raise exception 'coach made a plan without going through Stripe';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c3');
+do $$ begin
+  assert (select count(*) from coaching_plans) = 1, 'a newly joined client sees their coach''s live plan';
+end $$;
+reset role;
+do $$ begin
+  begin
+    insert into coaching_plans (coach_id, name, amount_pence) values ('00000000-0000-0000-0000-00000000000c','Free',0);
+    raise exception 'a free plan was accepted';
+  exception when check_violation then null; end;
+end $$;
+select 'Payment checks passed';

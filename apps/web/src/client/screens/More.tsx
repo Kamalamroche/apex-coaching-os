@@ -6,6 +6,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { ConnectedApps } from "./ConnectedApps";
 import { Habits } from "./Habits";
+import { Membership } from "./Membership";
 import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
 import { FormCheckList } from "./FormCheck";
@@ -22,10 +23,11 @@ import { useBookingApi } from "../../data/bookings";
 import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 
-type View = "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
+export type MoreView = "membership" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "apps" | "intake" | "form";
+type View = MoreView;
 
-export function More({ say }: { say: (m: string) => void }) {
-  const [view, setView] = useState<View | null>(null);
+export function More({ say, startOn = null }: { say: (m: string) => void; startOn?: View | null }) {
+  const [view, setView] = useState<View | null>(startOn);
   const { coachName } = useAppInfo();
   const life = useLifestyle();
   const form = useFormChecks();
@@ -66,6 +68,7 @@ export function More({ say }: { say: (m: string) => void }) {
         {view === "form" && <FormCheckList say={say} />}
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
+        {view === "membership" && <Membership say={say} />}
       </>
     );
   }
@@ -73,6 +76,7 @@ export function More({ say }: { say: (m: string) => void }) {
     <>
       <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
       <div className="card flat list">
+        <button className="li" onClick={() => setView("membership")}><div className="grow"><div className="h3">Membership</div><div className="small">Your coaching plan and payments</div></div><span className="tiny">›</span></button>
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
         ))}

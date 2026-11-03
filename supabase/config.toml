@@ -16,3 +16,7 @@ sql_paths = ["./seed.sql"]
 [auth]
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173/**", "http://127.0.0.1:5173/**"]
+
+# Stripe calls the webhook without a Supabase sign-in; the function checks Stripe's signature itself.
+[functions.stripe-webhook]
+verify_jwt = false
