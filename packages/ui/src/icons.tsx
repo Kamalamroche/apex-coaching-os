@@ -1,6 +1,6 @@
 import {
   Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
-  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, type LucideIcon,
+  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, type LucideIcon,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
 
@@ -55,6 +55,16 @@ export const Icons = {
   form: lucide(ClipboardList),
   target: lucide(Target),
   trash: lucide(Trash2),
+  arrow: lucide(ArrowRight),
+  back: lucide(ChevronLeft),
+  forward: lucide(ChevronRight),
+  swipe: lucide(ChevronsRight),
+  clock: lucide(Clock),
+  bell: lucide(Bell),
+  info: lucide(Info),
+  prev: lucide(SkipBack),
+  next: lucide(SkipForward),
+  spark: lucide(Sparkles),
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;

@@ -5,6 +5,7 @@ export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
+export { SwipeStart } from "./SwipeStart";
 export { RatingPicker, PhotoFrame } from "./progress";
 export { HabitDays, MacroBars, NumberField, type DayDot, type MacroLine } from "./lifestyle";
 export { MuscleMap } from "./MuscleMap";
