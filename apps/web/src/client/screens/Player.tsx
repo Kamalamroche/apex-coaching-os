@@ -125,7 +125,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
       <main className="main" style={{ paddingBottom: rest || work ? 180 : 110 }}>
         <div className="pl-hero">
           {ex.video ? (
-            <video src={ex.video.src} autoPlay muted loop playsInline preload="metadata" aria-label={`${ex.name} demonstration`} />
+            <video src={ex.video.src} poster={hero.src} autoPlay muted loop playsInline preload="metadata" aria-label={`${ex.name} demonstration`} />
           ) : (
             <img src={hero.src} alt="" style={{ objectPosition: hero.focus }} />
           )}
