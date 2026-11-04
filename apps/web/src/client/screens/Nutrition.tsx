@@ -38,25 +38,25 @@ export function ClientNutrition() {
   if (s.status !== "ready") return <><div><div className="eyebrow">Nutrition</div><h1 className="h1">Food today</h1></div><LifestyleStatus state={s} /></>;
   return (
     <>
-      <div className="hero short side">
-        <img className="hero-img" src={HERO_IMAGES.meal.src} alt="" style={{ objectPosition: HERO_IMAGES.meal.focus.replace("center", "75%") }} />
-        <div className="hero-body">
-          <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Nutrition · today</span>
+      <section className="fuelboard">
+        <img className="fb-bg" src={HERO_IMAGES.meal.src} alt="" />
+        <div className="fb-head">
+          <span className="gpill caps">Nutrition · today</span>
           {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">for today</ScriptTitle>}
         </div>
-      </div>
-      {!t && <p className="sub" style={{ margin: 0 }}>{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
-      <div className="card" style={{ padding: "4px 14px 16px", borderRadius: "var(--r-lg)" }}>
-        <FuelGauge eaten={eaten.kcal} target={t?.kcal ?? null} logs={todays.length} />
+        {!t && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
+        <div className="fb-glass">
+          <FuelGauge eaten={eaten.kcal} target={t?.kcal ?? null} logs={todays.length} />
+        </div>
         {t && (
           <MacroRings lines={[
             { label: "Protein", value: eaten.proteinG, target: t.proteinG, unit: "g", colour: "var(--viz-1)" },
-            { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--viz-2)" },
+            { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--act)" },
             { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
           ]} />
         )}
-        {t?.note && <div className="small" style={{ color: "var(--text)", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}><b>{coachName}:</b> {t.note}</div>}
-      </div>
+        {t?.note && <div className="fb-glass fb-coach"><b>{coachName}:</b> {t.note}</div>}
+      </section>
 
       {MEALS.map((m) => {
         const list = todays.filter((f) => f.meal === m.key);

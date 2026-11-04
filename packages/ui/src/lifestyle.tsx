@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Bar } from "./primitives";
 
 /* Small visuals for habits and nutrition. Flat, hairline, colour only where it carries meaning. */
@@ -78,18 +78,33 @@ const arcPath = (cx: number, cy: number, r: number, from: number, to: number) =>
   return `M ${x1} ${y1} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${x2} ${y2}`;
 };
 
-/** Calories eaten against the target on an open arc, with what's left and how many foods are logged either side. */
+/** Calories eaten against the target on an open arc: a warm filled stroke with a knob where you are, and a hatched track for what's left. */
 export function FuelGauge({ eaten, target, logs }: { eaten: number; target: number | null; logs: number }) {
+  const id = useId().replace(/:/g, "");
   const SWEEP = 240;
+  const R = 76;
   const pct = target ? Math.min(1, eaten / target) : 0;
   const over = !!target && eaten > target;
   const left = target ? Math.round(target - eaten) : null;
+  const end = -SWEEP / 2 + Math.max(3, SWEEP * pct);
+  const [kx, ky] = polar(100, 92, R, end);
   return (
     <div className="fuel">
       <div className="fuel-arc">
-        <svg viewBox="0 0 200 140" role="img" aria-label={target ? `${Math.round(eaten)} of ${target} kcal eaten` : `${Math.round(eaten)} kcal eaten`}>
-          <path d={arcPath(100, 86, 74, -SWEEP / 2, SWEEP / 2)} stroke="var(--line)" strokeWidth={10} strokeLinecap="round" fill="none" />
-          {pct > 0 && <path d={arcPath(100, 86, 74, -SWEEP / 2, -SWEEP / 2 + Math.max(2, SWEEP * pct))} stroke={over ? "var(--warn)" : "var(--act)"} strokeWidth={10} strokeLinecap="round" fill="none" />}
+        <svg viewBox="0 0 200 150" role="img" aria-label={target ? `${Math.round(eaten)} of ${target} kcal eaten` : `${Math.round(eaten)} kcal eaten`}>
+          <defs>
+            <pattern id={`h${id}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+              <rect width="7" height="7" fill="rgba(255,255,255,.07)" />
+              <rect width="3" height="7" fill="rgba(255,255,255,.34)" />
+            </pattern>
+            <linearGradient id={`g${id}`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stopColor={over ? "var(--warn)" : "var(--viz-2)"} />
+              <stop offset="1" stopColor={over ? "var(--warn)" : "var(--act)"} />
+            </linearGradient>
+          </defs>
+          <path d={arcPath(100, 92, R, end, SWEEP / 2)} stroke={`url(#h${id})`} strokeWidth={16} fill="none" />
+          {pct > 0 && <path d={arcPath(100, 92, R, -SWEEP / 2, end)} stroke={`url(#g${id})`} strokeWidth={16} strokeLinecap="round" fill="none" />}
+          {pct > 0 && <circle cx={kx} cy={ky} r={4.5} fill="#fff" />}
         </svg>
         <div className="mid"><b>{Math.round(eaten).toLocaleString("en-GB")}</b><span>{target ? `of ${target.toLocaleString("en-GB")} kcal` : "kcal today"}</span></div>
       </div>
@@ -101,24 +116,27 @@ export function FuelGauge({ eaten, target, logs }: { eaten: number; target: numb
   );
 }
 
-/** One macro as a small ring: grams eaten in the middle, the target underneath. */
+/** One macro per frosted tile: a ring with its initial inside, the name beside it, and grams eaten against the target. */
 export function MacroRings({ lines }: { lines: MacroLine[] }) {
-  const R = 26;
+  const R = 19;
   const C = 2 * Math.PI * R;
   return (
     <div className="rings">
       {lines.map((l) => {
         const pct = l.target ? Math.min(1, l.value / l.target) : 0;
         return (
-          <div key={l.label} className="ring">
-            <div className="r">
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx={32} cy={32} r={R} stroke="var(--line)" strokeWidth={6} fill="none" />
-                {pct > 0 && <circle cx={32} cy={32} r={R} stroke={l.colour} strokeWidth={6} fill="none" strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} />}
-              </svg>
-              <b>{Math.round(l.value)}<small style={{ fontSize: 10, color: "var(--text2)" }}>{l.unit}</small></b>
+          <div key={l.label} className="ring" aria-label={`${l.label}: ${Math.round(l.value)} of ${l.target ?? "no target"} ${l.unit}`}>
+            <div className="ring-top">
+              <div className="r">
+                <svg viewBox="0 0 48 48" aria-hidden="true">
+                  <circle cx={24} cy={24} r={R} stroke="rgba(255,255,255,.16)" strokeWidth={4} fill="none" />
+                  {pct > 0 && <circle cx={24} cy={24} r={R} stroke={l.colour} strokeWidth={4} fill="none" strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} />}
+                </svg>
+                <i>{l.label[0]}</i>
+              </div>
+              <span>{l.label}</span>
             </div>
-            <small>{l.label} · <span className="num">{l.target ? `${l.target.toLocaleString("en-GB")} ${l.unit}` : "no target"}</span></small>
+            <b className="num">{Math.round(l.value)}<small> / {l.target ? `${l.target.toLocaleString("en-GB")} ${l.unit}` : "–"}</small></b>
           </div>
         );
       })}

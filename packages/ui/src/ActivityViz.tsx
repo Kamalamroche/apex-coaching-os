@@ -96,17 +96,23 @@ function mapLabel(mode: Metric, v: number, a: Activity): string {
  * the real values on the key), with distance markers, start and finish. `at` (0–1 of the distance) shows a dot that
  * follows the charts below.
  */
-export function RouteMap({ activity, height = 260, at = null }: { activity: Activity; height?: number; at?: number | null }) {
+/** `look="mode"`: the run-mode poster. Always dark tiles, an orange route (paler where slower), glass km chips,
+    and room left at the top and bottom for the overlays the screen puts there. */
+export function RouteMap({ activity, height = 260, at = null, look = "plain" }: { activity: Activity; height?: number; at?: number | null; look?: "plain" | "mode" }) {
   const route = activity.detail?.route;
   const profile = activity.detail?.profile;
-  const dark = useDarkTheme();
+  const themeDark = useDarkTheme();
+  const poster = look === "mode";
+  const dark = poster || themeDark;
   const [box, width] = useWidth<HTMLDivElement>();
   const [failed, setFailed] = useState(0);
   const modes = profile ? MAP_MODES.filter((m) => m === "pace" || (m === "hr" ? profile.filter((q) => q.hr).length > profile.length / 2 : activity.sport !== "swim" && profile.filter((q) => q.ele !== undefined).length > profile.length / 2)) : [];
   const [mode, setMode] = useState<Metric>("pace");
   const drawn = useMemo(() => {
     if (!route || route.length < 2 || width < 40) return null;
-    const view = fitView(route, width, height, 30);
+    const inset = poster ? { t: 190, b: 215 } : { t: 0, b: 0 };
+    const fit = fitView(route, width, Math.max(120, height - inset.t - inset.b), 30);
+    const view = { ...fit, height, top: fit.top - inset.t };
     const pts = route.map(([la, ln]) => viewPx(view, la, ln));
     // The chosen measure for each route point: route and profile are both spread evenly by distance.
     // Higher heat is quicker, a higher heart rate or higher ground.
@@ -141,12 +147,12 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
     }).filter((_, j, all) => all.length <= 10 || (j + 1) % Math.ceil(all.length / 10) === 0);
     const loop = Math.hypot(pts[0]![0] - pts.at(-1)![0], pts[0]![1] - pts.at(-1)![1]) < 14;
     return { view, pts, tiles: tilesFor(view), segs, full, start: pts[0]!, end: pts.at(-1)!, marks, loop, range: series && hi > lo ? ([lo, hi] as const) : null };
-  }, [route, profile, activity.metres, activity.sport, width, height, mode]);
+  }, [route, profile, activity.metres, activity.sport, width, height, mode, poster]);
 
   const dot = drawn && at !== null ? drawn.pts[Math.round(Math.min(1, Math.max(0, at)) * (drawn.pts.length - 1))] : null;
   const showTiles = drawn && failed < 3;
   return (
-    <div ref={box} className={`cx-map ${showTiles ? "tiles" : ""}`} style={{ height }}>
+    <div ref={box} className={`cx-map ${showTiles ? "tiles" : ""} ${poster ? "mode" : ""}`} style={{ height }}>
       {drawn && (
         <>
           {showTiles && (
@@ -157,26 +163,58 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
               ))}
             </div>
           )}
-          <svg width={drawn.view.width} height={drawn.view.height} viewBox={`0 0 ${drawn.view.width} ${drawn.view.height}`} role="img" aria-label={`Route of ${activity.name}`}>
-            <path d={drawn.full} fill="none" stroke={dark ? "#0B1020" : "#FFFFFF"} strokeOpacity=".9" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-            {drawn.segs.map((s, i) => (
-              <path key={i} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--viz-2) ${s.heat}%, var(--viz-1))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-            ))}
-            {drawn.marks.map((m) => (
-              <g key={m.label} transform={`translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})`}>
-                <circle r="9" fill="var(--card)" stroke="var(--line2)" />
-                <text textAnchor="middle" dy="3.5" fontSize="9" fontWeight="700" fill="var(--text)" fontFamily="var(--num)">{m.label}</text>
+          {poster ? (
+            <svg width={drawn.view.width} height={drawn.view.height} viewBox={`0 0 ${drawn.view.width} ${drawn.view.height}`} role="img" aria-label={`Route of ${activity.name}`}>
+              <path d={drawn.full} fill="none" stroke="var(--act)" strokeOpacity=".22" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+              {drawn.segs.map((sg, i) => (
+                <path key={i} d={sg.d} fill="none" stroke={`color-mix(in srgb, var(--act) ${45 + Math.round(sg.heat * 0.55)}%, #FFFFFF)`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+              ))}
+              {drawn.marks.map((m) => <circle key={m.label} cx={m.x} cy={m.y} r="3.5" fill="var(--act)" stroke="#FFFFFF" strokeWidth="1.5" />)}
+              {drawn.marks.filter((_, j, all) => all.length <= 3 || j === Math.floor(all.length / 3) - 1 || j === Math.floor((2 * all.length) / 3) - 1 || j === all.length - 1).map((m) => {
+                const label = `${m.label} km`;
+                const w = 14 + label.length * 6.4;
+                const left = m.x + 10 + w > drawn.view.width - 8;
+                return (
+                  <g key={`c${m.label}`} transform={`translate(${(left ? m.x - 10 - w : m.x + 10).toFixed(1)} ${(m.y - 12).toFixed(1)})`}>
+                    <rect width={w} height="24" rx="12" fill="rgba(17,28,48,.78)" stroke="rgba(255,255,255,.22)" />
+                    <text x={w / 2} y="16" textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#FFFFFF" fontFamily="var(--num)">{label}</text>
+                  </g>
+                );
+              })}
+              {!drawn.loop && <circle cx={drawn.start[0]} cy={drawn.start[1]} r="6.5" fill="#0A1220" stroke="#FFFFFF" strokeWidth="3" />}
+              <g transform={`translate(${(drawn.loop ? drawn.start : drawn.end)[0].toFixed(1)} ${(drawn.loop ? drawn.start : drawn.end)[1].toFixed(1)})`}>
+                <circle r="17" fill="var(--act)" fillOpacity=".22" />
+                <circle r="9" fill="var(--act)" stroke="#FFFFFF" strokeWidth="3" />
               </g>
-            ))}
-            {!drawn.loop && <circle cx={drawn.end[0]} cy={drawn.end[1]} r="7" fill="var(--crit)" stroke="var(--card)" strokeWidth="3" />}
-            <circle cx={drawn.start[0]} cy={drawn.start[1]} r="7" fill="var(--good)" stroke="var(--card)" strokeWidth="3" />
-            {dot && (
-              <g transform={`translate(${dot[0].toFixed(1)} ${dot[1].toFixed(1)})`}>
-                <circle r="13" fill="var(--text)" fillOpacity=".12" />
-                <circle r="6.5" fill="var(--text)" stroke="var(--card)" strokeWidth="2.5" />
-              </g>
-            )}
-          </svg>
+              {dot && (
+                <g transform={`translate(${dot[0].toFixed(1)} ${dot[1].toFixed(1)})`}>
+                  <circle r="13" fill="#FFFFFF" fillOpacity=".18" />
+                  <circle r="6.5" fill="#FFFFFF" stroke="#0A1220" strokeWidth="2.5" />
+                </g>
+              )}
+            </svg>
+          ) : (
+            <svg width={drawn.view.width} height={drawn.view.height} viewBox={`0 0 ${drawn.view.width} ${drawn.view.height}`} role="img" aria-label={`Route of ${activity.name}`}>
+              <path d={drawn.full} fill="none" stroke={dark ? "#0B1020" : "#FFFFFF"} strokeOpacity=".9" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+              {drawn.segs.map((s, i) => (
+                <path key={i} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--viz-2) ${s.heat}%, var(--viz-1))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+              ))}
+              {drawn.marks.map((m) => (
+                <g key={m.label} transform={`translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})`}>
+                  <circle r="9" fill="var(--card)" stroke="var(--line2)" />
+                  <text textAnchor="middle" dy="3.5" fontSize="9" fontWeight="700" fill="var(--text)" fontFamily="var(--num)">{m.label}</text>
+                </g>
+              ))}
+              {!drawn.loop && <circle cx={drawn.end[0]} cy={drawn.end[1]} r="7" fill="var(--crit)" stroke="var(--card)" strokeWidth="3" />}
+              <circle cx={drawn.start[0]} cy={drawn.start[1]} r="7" fill="var(--good)" stroke="var(--card)" strokeWidth="3" />
+              {dot && (
+                <g transform={`translate(${dot[0].toFixed(1)} ${dot[1].toFixed(1)})`}>
+                  <circle r="13" fill="var(--text)" fillOpacity=".12" />
+                  <circle r="6.5" fill="var(--text)" stroke="var(--card)" strokeWidth="2.5" />
+                </g>
+              )}
+            </svg>
+          )}
         </>
       )}
       {modes.length > 1 && (
@@ -185,8 +223,8 @@ export function RouteMap({ activity, height = 260, at = null }: { activity: Acti
         </div>
       )}
       <div className="cx-map-key">
-        <span><i style={{ background: "var(--good)" }} />Start{drawn?.loop ? " / finish" : ""}</span>
-        {drawn && !drawn.loop && <span><i style={{ background: "var(--crit)" }} />Finish</span>}
+        <span><i style={{ background: poster ? (drawn?.loop ? "var(--act)" : "#FFFFFF") : "var(--good)" }} />Start{drawn?.loop ? " / finish" : ""}</span>
+        {drawn && !drawn.loop && <span><i style={{ background: poster ? "var(--act)" : "var(--crit)" }} />Finish</span>}
         {drawn?.range && (
           <span className="cx-heat">
             <b className="num">{mapLabel(mode, drawn.range[0], activity)}</b><i /><b className="num">{mapLabel(mode, drawn.range[1], activity)}</b>
