@@ -71,7 +71,9 @@ export function ActivityView({ activity, all, showNote = true }: { activity: Act
         <div className="big"><b className="num">{a.metres ? dist : formatDuration(a.movingSeconds)}<small>{a.metres ? unit : ""}</small></b><span>{a.metres ? "Distance" : "Time"}</span></div>
         {stats.map(([v, l, u]) => <div key={l}><b className="num">{v}{u && <small>{u}</small>}</b><span>{l}</span></div>)}
       </div>
-      <RouteMap activity={a} at={mapAt} />
+      <div className="cx-stage">
+        <RouteMap activity={a} at={mapAt} height={340} />
+      </div>
       {vsUsual && <LoadCompare {...vsUsual} sportName={sportLabel(a.sport).toLowerCase()} />}
       <RunAnalysis activity={a} onAt={setMapAt} />
       {extra.length > 0 && (
