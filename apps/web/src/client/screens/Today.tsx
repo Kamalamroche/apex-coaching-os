@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, SwipeStart, ScriptTitle } from "@apex/ui";
+import { Avatar, Icons, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -58,7 +58,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
       ) : !log ? (
         <>
           <div className="hero">
-            <img className="hero-img" src={hero.src} alt="" style={{ objectPosition: hero.focus }} />
+            <HeroBackdrop art={hero} />
             <div className="hero-top">
               <span className="gpill dim caps">Week {w.week} of {w.ofWeeks}</span>
               <span className="gpill dim">Today's session</span>

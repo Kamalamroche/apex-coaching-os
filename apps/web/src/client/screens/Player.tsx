@@ -2,7 +2,7 @@ import {
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { Icons } from "@apex/ui";
+import { Icons, HeroBackdrop } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -127,7 +127,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           {ex.video ? (
             <video src={ex.video.src} poster={hero.src} autoPlay muted loop playsInline preload="metadata" aria-label={`${ex.name} demonstration`} />
           ) : (
-            <img src={hero.src} alt="" style={{ objectPosition: hero.focus }} />
+            <HeroBackdrop art={hero} />
           )}
           <div className="bar-top">
             <button className="gbtn round" onClick={onExit} aria-label="Exit workout"><Icons.close width={18} height={18} /></button>

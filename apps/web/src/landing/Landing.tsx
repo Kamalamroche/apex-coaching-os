@@ -130,7 +130,7 @@ export function Landing() {
           <div className="lp-wrap lp-coach-grid">
             <div className="lp-tri-stage">
               <svg className="lp-tri-shape" viewBox="0 0 400 380" aria-hidden="true"><path d="M200 34 366 330H34Z" /></svg>
-              <img src="/landing/coach-sitting.webp" width={786} height={1300} loading="lazy" alt="A HELIX coach sitting with a tablet, smiling" />
+              <img src="/hero/coach-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX coach talking a client through her plan" />
             </div>
             <div>
               <h2 className="lp-h2 lp-poster-h sm">
@@ -335,9 +335,11 @@ export function Landing() {
         <section className="lp-final lp-final-poster">
           <div className="lp-wrap lp-final-grid">
             <div className="lp-portrait" aria-hidden="true">
-              <img src="/landing/athlete-portrait.webp" width={1051} height={1300} alt="" />
+              <img className="lp-pt-photo" src="/hero/rings.webp" width={1080} height={1350} alt="" />
+              <span className="lp-pt-tag">Coach with APEX<br />Season one</span>
               <span className="lp-vert">APEX</span>
-              <span className="lp-sign">Coach with APEX</span>
+              <img className="lp-pt-cut" src="/hero/rings-cut.webp" width={1080} height={1350} alt="" />
+              <span className="lp-sign">2026 // HELIX no. 01</span>
             </div>
             <div className="lp-final-in">
             <h2 className="lp-h2 lp-poster-h sm">
@@ -378,10 +380,12 @@ export function Landing() {
 function PosterStage() {
   return (
     <div className="lp-stage">
+      <img className="lp-stage-photo" src="/hero/hinge.webp" width={1080} height={1350} alt="" />
+      <span className="lp-stage-kicker" aria-hidden="true">Day 1 // Coaching OS</span>
       <span className="lp-stage-word" aria-hidden="true">APEX</span>
+      <img className="lp-stage-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift in an orange studio" />
       <span className="lp-ribbon r1" aria-hidden="true">One plan</span>
       <span className="lp-ribbon r2" aria-hidden="true">Real progress</span>
-      <img className="lp-stage-cut" src="/landing/athlete-deadlift.webp" width={1100} height={1236} alt="A HELIX athlete setting up a barbell deadlift" />
       <div className="lp-stage-chip" aria-hidden="true">
         <Label kind="insight">Insight</Label>
         <b className="num">Deadlift +10 kg</b>

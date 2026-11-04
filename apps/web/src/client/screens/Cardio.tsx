@@ -1,5 +1,5 @@
 import { HERO_IMAGES, heroForSport, activityFromFile, formatDistance, formatDuration, manualActivity, newKey, SPORTS, weeklyMetres, weekTotals, type Activity, type Sport } from "@apex/core";
-import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars, ScriptTitle } from "@apex/ui";
+import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ActivityRow, ActivityView } from "../../app/ActivityView";
 import { useAppInfo } from "../../app/AppContext";
@@ -67,7 +67,7 @@ export function Cardio({ say }: { say: (m: string) => void }) {
   return (
     <div onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={onDrop} style={{ display: "contents" }}>
       <div className="hero short side">
-        <img className="hero-img" src={HERO_IMAGES[heroForSport(week[0]?.sport)].src} alt="" style={{ objectPosition: HERO_IMAGES[heroForSport(week[0]?.sport)].focus.replace("center", "72%") }} />
+        <HeroBackdrop art={HERO_IMAGES[heroForSport(week[0]?.sport)]} />
         <div className="hero-body">
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Cardio · this week</span>
           <ScriptTitle script="Keep moving"><span className="num">{formatDuration(weekSeconds)}</span>{weekMetres > 0 && <><br /><span className="num">{formatDistance(weekMetres)}</span></>}</ScriptTitle>

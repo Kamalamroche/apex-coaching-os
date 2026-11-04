@@ -1,6 +1,6 @@
 import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, Label, Sheet, ScriptTitle } from "@apex/ui";
+import { Avatar, Icons, Label, Sheet, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -78,7 +78,7 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
         <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}>{pending.length}</b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
       </div>
       <div className="hero side short">
-        <img className="hero-img" src={hero.src} alt="" style={{ objectPosition: hero.focus.replace("center", "70%") }} />
+        <HeroBackdrop art={hero} />
         <div className="hero-body" style={{ maxWidth: 280 }}>
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
           <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>

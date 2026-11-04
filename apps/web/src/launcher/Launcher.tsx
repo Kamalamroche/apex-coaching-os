@@ -1,4 +1,4 @@
-import { Icons, ScriptTitle, ThemeButton, useToast } from "@apex/ui";
+import { Icons, ScriptTitle, ThemeButton, useToast, HeroBackdrop } from "@apex/ui";
 import { HERO_IMAGES, createDemoStore } from "@apex/core";
 import { supabase } from "../data/supabase";
 
@@ -10,7 +10,7 @@ export function Launcher() {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
         <div className="wordmark"><Icons.logo /><b>APEX</b></div>
         <div className="hero short" style={{ width: "min(720px, 100%)", minHeight: 260, textAlign: "left" }}>
-          <img className="hero-img" src={HERO_IMAGES.coach.src} alt="" style={{ objectPosition: "center 40%" }} />
+          <HeroBackdrop art={HERO_IMAGES.coach} word="APEX" />
           <div className="hero-body">
             <ScriptTitle script="Simple for the client.">Powerful for the coach.</ScriptTitle>
           </div>

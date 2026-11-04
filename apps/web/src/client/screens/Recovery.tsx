@@ -1,5 +1,5 @@
 import { HERO_IMAGES, localDate, WEARABLES, type RecoveryDay, type WearableProvider } from "@apex/core";
-import { ScriptTitle, Sheet } from "@apex/ui";
+import { ScriptTitle, Sheet, HeroBackdrop } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { RecoveryView } from "../../app/RecoveryView";
 import { useAppInfo } from "../../app/AppContext";
@@ -28,7 +28,7 @@ export function Recovery({ say, openApps }: { say: (m: string) => void; openApps
   return (
     <>
       <div className="hero short side">
-        <img className="hero-img" src={HERO_IMAGES.recovery.src} alt="" style={{ objectPosition: "75% 50%" }} />
+        <HeroBackdrop art={HERO_IMAGES.recovery} />
         <div className="hero-body">
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Recovery</span>
           <ScriptTitle script="How you">slept</ScriptTitle>

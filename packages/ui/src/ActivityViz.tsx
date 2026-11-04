@@ -181,7 +181,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
                   </g>
                 );
               })}
-              {!drawn.loop && <circle cx={drawn.start[0]} cy={drawn.start[1]} r="6.5" fill="#0A1220" stroke="#FFFFFF" strokeWidth="3" />}
+              {!drawn.loop && <circle cx={drawn.start[0]} cy={drawn.start[1]} r="6.5" fill="#0D0F13" stroke="#FFFFFF" strokeWidth="3" />}
               <g transform={`translate(${(drawn.loop ? drawn.start : drawn.end)[0].toFixed(1)} ${(drawn.loop ? drawn.start : drawn.end)[1].toFixed(1)})`}>
                 <circle r="17" fill="var(--act)" fillOpacity=".22" />
                 <circle r="9" fill="var(--act)" stroke="#FFFFFF" strokeWidth="3" />
@@ -189,7 +189,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
               {dot && (
                 <g transform={`translate(${dot[0].toFixed(1)} ${dot[1].toFixed(1)})`}>
                   <circle r="13" fill="#FFFFFF" fillOpacity=".18" />
-                  <circle r="6.5" fill="#FFFFFF" stroke="#0A1220" strokeWidth="2.5" />
+                  <circle r="6.5" fill="#FFFFFF" stroke="#0D0F13" strokeWidth="2.5" />
                 </g>
               )}
             </svg>

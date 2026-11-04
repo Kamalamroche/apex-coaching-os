@@ -5,7 +5,7 @@ export const SHARE_W = 1080;
 export const SHARE_H = 1920;
 
 const T = {
-  bg: "#0A1220", text: "#F4F6FA", text2: "#A9B4C8", text3: "#6F7D96",
+  bg: "#0D0F13", text: "#F5F5F3", text2: "#AAAFB9", text3: "#717783",
   act: "#FF6A1A", data: "#38BDF8", good: "#22C55E", warn: "#F59E0B", warnDeep: "#B45309",
   head: "Archivo, system-ui, sans-serif", num: '"JetBrains Mono", ui-monospace, monospace',
 };
@@ -88,11 +88,11 @@ function background(c: Ctx, photo: ShareDraw["photo"]) {
 
 function fadeBottom(c: Ctx, from: number, solid: number, alpha: number) {
   const g = c.createLinearGradient(0, from, 0, solid);
-  g.addColorStop(0, "rgba(10,18,32,0)");
-  g.addColorStop(1, `rgba(10,18,32,${alpha})`);
+  g.addColorStop(0, "rgba(13,15,19,0)");
+  g.addColorStop(1, `rgba(13,15,19,${alpha})`);
   c.fillStyle = g;
   c.fillRect(0, from, SHARE_W, SHARE_H - from);
-  c.fillStyle = `rgba(10,18,32,${alpha})`;
+  c.fillStyle = `rgba(13,15,19,${alpha})`;
   c.fillRect(0, solid, SHARE_W, SHARE_H - solid);
 }
 
@@ -242,7 +242,7 @@ function sticker(c: Ctx, d: ShareCanvasData, photo: ShareDraw["photo"], site: st
   const pill = `${d.workoutName.toUpperCase()} · DONE`;
   fit(c, pill, 26, 560, (s) => font(c, `700 ${s}px ${T.head}`, s * 0.2));
   const pw = c.measureText(pill).width + 50;
-  c.fillStyle = "rgba(10,18,32,.6)";
+  c.fillStyle = "rgba(13,15,19,.6)";
   roundRect(c, SHARE_W - 48 - pw, 56, pw, 56, 28); c.fill();
   c.fillStyle = T.text;
   c.textAlign = "left";
@@ -263,7 +263,7 @@ function sticker(c: Ctx, d: ShareCanvasData, photo: ShareDraw["photo"], site: st
     background(c, photo);
     c.filter = "none";
   }
-  c.fillStyle = "rgba(10,18,32,.72)";
+  c.fillStyle = "rgba(13,15,19,.72)";
   c.fillRect(x, y, w, h);
   c.restore();
   c.strokeStyle = "rgba(255,255,255,.12)";

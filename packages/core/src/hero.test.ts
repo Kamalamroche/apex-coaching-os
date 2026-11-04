@@ -34,6 +34,10 @@ describe("hero images", () => {
     expect(heroForSport("ride")).toBe("ride");
     expect(heroForSport("row")).toBe("ski");
     expect(heroForSport(undefined)).toBe("run");
-    for (const h of Object.values(HERO_IMAGES)) expect(h.src).toMatch(/^\/hero\/[a-z-]+\.webp$/);
+    for (const h of Object.values(HERO_IMAGES)) {
+      expect(h.src).toMatch(/^\/hero\/[a-z-]+\.webp$/);
+      if (h.cut) expect(h.cut).toBe(h.src.replace(".webp", "-cut.webp"));
+      expect(h.word.length).toBeLessThanOrEqual(6);
+    }
   });
 });
