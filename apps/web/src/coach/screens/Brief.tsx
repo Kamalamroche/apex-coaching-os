@@ -77,7 +77,7 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
         <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}>{pending.length}</b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
       </div>
       <div className="hero side short">
-        <img className="hero-img" src={hero.src} alt="" style={{ objectPosition: "70% 12%" }} />
+        <img className="hero-img" src={hero.src} alt="" style={{ objectPosition: hero.focus.replace("center", "70%") }} />
         <div className="hero-body" style={{ maxWidth: 280 }}>
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
           <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>
