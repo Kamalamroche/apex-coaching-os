@@ -1,4 +1,4 @@
-import { CLIENTS, firstName, newestFirst, type Client } from "@apex/core";
+import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, Icons, Label, Sheet } from "@apex/ui";
 import { useState } from "react";
@@ -47,7 +47,8 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
   const { coachName, clientName, mode } = useAppInfo();
   const clientFirst = firstName(clientName);
   const clientInitials = clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-  const { log, progress } = useApexState(store);
+  const { log, progress, workout } = useApexState(store);
+  const hero = HERO_IMAGES[heroForWorkout(workout)];
   const newCheckIn = mode === "live" ? newestFirst(progress.checkIns).find((c) => !c.reviewedAt) : undefined;
   const plateaus = usePlateaus();
   const [handled, setHandled] = useState<Record<string, boolean>>({});
@@ -63,18 +64,44 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
 
   return (
     <>
-      <div className="full">
-        <div className="eyebrow">Saturday 25 October</div>
-        <h1 className="h1">Morning, {coachName}.{mode === "demo" && (pending.length ? ` ${pending.length} clients need you.` : " Everyone's on track.")}</h1>
+      <div className="full hello">
+        <div>
+          <p className="sub">Saturday 25 October</p>
+          <h1 className="h1">Morning, {coachName}.{mode === "demo" && (pending.length ? ` ${pending.length} clients need you.` : " Everyone's on track.")}</h1>
+        </div>
       </div>
       <SampleNote />
-      <div className="kpis full">
-        <div className="kpi"><b>{clientCount ?? CLIENTS.length}</b><small>Active clients</small>{mode === "demo" && <i style={{ color: "var(--good)" }}>+2 this month</i>}</div>
-        <div className="kpi"><b>74%</b><small>Sessions done, 7 days</small><i style={{ color: "var(--good)" }}>+4 pts</i></div>
-        <div className="kpi"><b style={{ color: "var(--act)" }}>{pending.length}</b><small>Need you today</small><i style={{ color: "var(--text3)" }}>{TRIAGE.length - pending.length} handled</i></div>
+      <div className="tiles full">
+        <div className="tile c1"><span className="ic"><Icons.clients /></span><b>{clientCount ?? CLIENTS.length}</b><span>Active clients{mode === "demo" && <><br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+2 this month</i></>}</span></div>
+        <div className="tile c3"><span className="ic"><Icons.check /></span><b>74<small>%</small></b><span>Sessions done, 7 days<br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+4 pts</i></span></div>
+        <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}>{pending.length}</b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
       </div>
-      <TwinCard onOpen={() => setTwin(true)} />
-      <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
+      <div className="hero side short">
+        <img className="hero-img" src={hero.src} alt="" style={{ objectPosition: "70% 12%" }} />
+        <div className="hero-body" style={{ maxWidth: 280 }}>
+          <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
+          <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>
+          <div className="gpills">
+            {log ? (
+              <>
+                <span className="gpill num">{log.sets} sets</span>
+                <span className="gpill num">{log.volumeKg.toLocaleString("en-GB")} kg</span>
+                {log.prs ? <span className="gpill num">{log.prs} PR</span> : <span className="gpill num">RPE {log.rpe}</span>}
+              </>
+            ) : (
+              <>
+                <span className="gpill num">{workout.items.length} exercises</span>
+                <span className="gpill num">{workout.minutes} min</span>
+                <span className="gpill num">Week {workout.week} of {workout.ofWeeks}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="stack" style={{ gap: 18 }}>
+        <TwinCard onOpen={() => setTwin(true)} />
+        <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
+      </div>
 
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
