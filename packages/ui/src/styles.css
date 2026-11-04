@@ -591,7 +591,8 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .hero{position:relative;container-type:inline-size;border-radius:var(--r-lg);overflow:hidden;background:var(--card2) center/cover no-repeat;min-height:340px;display:flex;flex-direction:column;justify-content:space-between;padding:16px;color:var(--glass-ink);isolation:isolate}
 .hero>img.hero-img,.hero>video.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-4}
 /* Poster word behind the athlete: photo (-4), word (-3), athlete cut-out (-2), legibility fade (-1) */
-.hero-word{position:absolute;left:0;right:0;top:9%;z-index:-3;text-align:center;font:900 min(42cqw,calc(124cqw / var(--n,5)))/.8 var(--head);font-stretch:112%;letter-spacing:-.035em;white-space:nowrap;pointer-events:none;user-select:none}
+.hero-word{position:absolute;left:0;right:0;top:17%;z-index:-3;text-align:center;font:900 min(42cqw,calc(124cqw / var(--n,5)))/.8 var(--head);font-stretch:112%;letter-spacing:-.035em;white-space:nowrap;pointer-events:none;user-select:none}
+.hero.short .hero-word{top:6%;text-align:right;right:5%;font-size:min(30cqw,calc(96cqw / var(--n,5)))}
 .hero-word.ink-light{color:rgba(255,255,255,.94)}
 .hero-word.ink-act{color:#FF6A1A}
 .hero>img.hero-cut,.pl-hero>img.hero-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none}
