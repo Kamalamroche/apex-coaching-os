@@ -98,7 +98,10 @@ export function Landing() {
           <div className="lp-wrap lp-hero-grid">
             <div className="lp-hero-copy">
               <span className="eyebrow" style={{ color: "var(--act)" }}>Coaching software for personal trainers</span>
-              <h1 className="lp-h1">Coach more people. Keep it personal.</h1>
+              <h1 className="lp-h1 lp-poster-h">
+                <span className="b">Coach more people.</span>
+                <span className="s">Keep it personal.</span>
+              </h1>
               <p className="lp-lead">APEX tells you who needs you each morning, progresses programs from what your clients actually lift, and gives every client an app that opens on today's workout.</p>
               <div className="lp-ctas">
                 <a className="btn act" href="/coach/">Start free with 3 clients</a>
@@ -110,7 +113,7 @@ export function Landing() {
                 <li><Check />Units in kg by default</li>
               </ul>
             </div>
-            <HeroVisual />
+            <PosterStage />
           </div>
         </section>
 
@@ -120,6 +123,37 @@ export function Landing() {
             <span>Online coaches</span><i />
             <span>Hybrid coaching</span><i />
             <span>Small gyms and studios</span>
+          </div>
+        </section>
+
+        <section className="lp-sec lp-coach">
+          <div className="lp-wrap lp-coach-grid">
+            <div className="lp-tri-stage">
+              <svg className="lp-tri-shape" viewBox="0 0 400 380" aria-hidden="true"><path d="M200 34 366 330H34Z" /></svg>
+              <img src="/landing/coach-sitting.webp" width={786} height={1300} loading="lazy" alt="A HELIX coach sitting with a tablet, smiling" />
+            </div>
+            <div>
+              <h2 className="lp-h2 lp-poster-h sm">
+                <span className="s">Built by a coach,</span>
+                <span className="b">for coaches.</span>
+              </h2>
+              <p className="lp-lead">APEX comes from a working personal trainer at HELIX. Every screen answers a question coaches ask every day: who needs me, what changes next, and is my client actually progressing?</p>
+              <ul className="lp-ticks">
+                <li><Check />Morning Brief, ranked by urgency</li>
+                <li><Check />Programs that progress from logged sets</li>
+                <li><Check />Your decision before anything reaches a client</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-sec lp-preview">
+          <div className="lp-wrap">
+            <div className="lp-head">
+              <span className="eyebrow">See it in action</span>
+              <h2 className="lp-h2">The Brief on your desk. Today's session in their pocket.</h2>
+            </div>
+            <HeroVisual />
           </div>
         </section>
 
@@ -298,13 +332,23 @@ export function Landing() {
           </div>
         </section>
 
-        <section className="lp-final">
-          <div className="lp-wrap lp-final-in">
-            <h2 className="lp-h2">Your next client deserves your best coaching.</h2>
+        <section className="lp-final lp-final-poster">
+          <div className="lp-wrap lp-final-grid">
+            <div className="lp-portrait" aria-hidden="true">
+              <img src="/landing/athlete-portrait.webp" width={1051} height={1300} alt="" />
+              <span className="lp-vert">APEX</span>
+              <span className="lp-sign">Coach with APEX</span>
+            </div>
+            <div className="lp-final-in">
+            <h2 className="lp-h2 lp-poster-h sm">
+              <span className="s">Your next client</span>
+              <span className="b">deserves your best coaching.</span>
+            </h2>
             <p className="lp-lead">Start free with your first three clients. Upgrade when your diary fills up.</p>
-            <div className="lp-ctas" style={{ justifyContent: "center" }}>
+            <div className="lp-ctas">
               <a className="btn act" href="/coach/">Start free</a>
               <a className="btn ghost" href="/client/?demo">See the client app</a>
+            </div>
             </div>
           </div>
         </section>
@@ -326,6 +370,23 @@ export function Landing() {
           <ThemeButton />
         </div>
       </footer>
+    </div>
+  );
+}
+
+/** Poster hero: giant APEX letters behind a cut-out HELIX athlete, with two slanted ribbons. Original photo and words. */
+function PosterStage() {
+  return (
+    <div className="lp-stage">
+      <span className="lp-stage-word" aria-hidden="true">APEX</span>
+      <span className="lp-ribbon r1" aria-hidden="true">One plan</span>
+      <span className="lp-ribbon r2" aria-hidden="true">Real progress</span>
+      <img className="lp-stage-cut" src="/landing/athlete-deadlift.webp" width={1100} height={1236} alt="A HELIX athlete setting up a barbell deadlift" />
+      <div className="lp-stage-chip" aria-hidden="true">
+        <Label kind="insight">Insight</Label>
+        <b className="num">Deadlift +10 kg</b>
+        <span className="tiny">in 6 weeks, same RPE</span>
+      </div>
     </div>
   );
 }

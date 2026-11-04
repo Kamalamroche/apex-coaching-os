@@ -1,5 +1,5 @@
 import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
-import { Avatar, BackLink, Icons, type IconName } from "@apex/ui";
+import { Avatar, BackLink, Icons, type IconName, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { useAppInfo } from "../../app/AppContext";
@@ -78,7 +78,7 @@ export function More({ say }: { say: (m: string) => void }) {
   }
   return (
     <>
-      <div><p className="sub" style={{ margin: 0 }}>More</p><h1 className="h1">Everything else</h1></div>
+      <div><p className="sub" style={{ margin: 0 }}>More</p><ScriptTitle script="Everything" className="sm">else</ScriptTitle></div>
       <div className="card flat list">
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>

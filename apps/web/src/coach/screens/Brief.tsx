@@ -1,6 +1,6 @@
 import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, Label, Sheet } from "@apex/ui";
+import { Avatar, Icons, Label, Sheet, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -67,7 +67,8 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
       <div className="full hello">
         <div>
           <p className="sub">Saturday 25 October</p>
-          <h1 className="h1">Morning, {coachName}.{mode === "demo" && (pending.length ? ` ${pending.length} clients need you.` : " Everyone's on track.")}</h1>
+          <ScriptTitle script="Morning">{coachName}</ScriptTitle>
+          {mode === "demo" && <p className="h3" style={{ margin: "8px 0 0", color: "var(--text2)" }}>{pending.length ? `${pending.length} clients need you today.` : "Everyone's on track."}</p>}
         </div>
       </div>
       <SampleNote />

@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, SwipeStart } from "@apex/ui";
+import { Avatar, Icons, SwipeStart, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -31,7 +31,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
   return (
     <>
       <div className="hello">
-        <div><p className="sub">Saturday 25 October</p><h1 className="h1">Hi {clientName.split(" ")[0]}.</h1></div>
+        <div><p className="sub">Saturday 25 October</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
         <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={44} />
       </div>
 

@@ -1,5 +1,5 @@
 import { FOODS, HERO_IMAGES, MEALS, dayTotals, localDate, loggedAverage, parseNumber, type FoodEntry, type Meal } from "@apex/core";
-import { FuelGauge, Icons, MacroRings } from "@apex/ui";
+import { FuelGauge, Icons, MacroRings, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
@@ -42,7 +42,7 @@ export function ClientNutrition() {
         <img className="hero-img" src={HERO_IMAGES.meal.src} alt="" style={{ objectPosition: HERO_IMAGES.meal.focus.replace("center", "75%") }} />
         <div className="hero-body">
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Nutrition · today</span>
-          <h1 className="hero-title" style={{ fontSize: 28 }}>{t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? "Right on target." : "Fuel for today"}</h1>
+          {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">for today</ScriptTitle>}
         </div>
       </div>
       {!t && <p className="sub" style={{ margin: 0 }}>{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}

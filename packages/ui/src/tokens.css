@@ -12,7 +12,7 @@
   --ai:#A78BFA; --ai-soft:rgba(167,139,250,.14);
   /* Data-viz series: four calm hues, checked for colour-blind separation and 3:1 contrast on both themes. */
   --viz-1:#5468E0; --viz-2:#DB6A30; --viz-3:#159A86; --viz-4:#A85CC8;
-  --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
+  --head:"Archivo",system-ui,sans-serif; --script:"Ms Madi","Snell Roundhand","Segoe Script",cursive; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
   --r:16px; --r-sm:10px; --r-lg:24px; --pill:999px;
   /* Glass: frosted pills and bars laid over photos and maps. Same values on both themes, because they sit on imagery. */
   --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.24); --glass-ink:#FFFFFF; --glass-dim:rgba(10,18,32,.42);

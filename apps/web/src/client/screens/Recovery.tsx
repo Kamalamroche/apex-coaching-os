@@ -1,5 +1,5 @@
-import { localDate, WEARABLES, type RecoveryDay, type WearableProvider } from "@apex/core";
-import { Sheet } from "@apex/ui";
+import { HERO_IMAGES, localDate, WEARABLES, type RecoveryDay, type WearableProvider } from "@apex/core";
+import { ScriptTitle, Sheet } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { RecoveryView } from "../../app/RecoveryView";
 import { useAppInfo } from "../../app/AppContext";
@@ -27,9 +27,13 @@ export function Recovery({ say, openApps }: { say: (m: string) => void; openApps
 
   return (
     <>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div><div className="eyebrow">Recovery</div><h1 className="h1">How you slept</h1></div>
-        <button className="btn ghost sm" onClick={() => setAdding(true)}>Add numbers</button>
+      <div className="hero short side">
+        <img className="hero-img" src={HERO_IMAGES.recovery.src} alt="" style={{ objectPosition: "75% 50%" }} />
+        <div className="hero-body">
+          <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Recovery</span>
+          <ScriptTitle script="How you">slept</ScriptTitle>
+          <button className="gbtn" style={{ alignSelf: "flex-start" }} onClick={() => setAdding(true)}>Add numbers</button>
+        </div>
       </div>
       {status === "needs-update" && <div className="card small" style={{ borderColor: "var(--warn)" }}>Recovery needs a one-off database update before it can save. Ask {coachName} to run it.</div>}
       {recovery.length ? <RecoveryView recovery={recovery} activities={activities} /> : (

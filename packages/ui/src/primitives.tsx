@@ -35,3 +35,13 @@ export const BackLink = ({ onClick, children }: { onClick: () => void; children:
 
 export const riskColor = (risk: "high" | "medium" | "low"): string =>
   ({ high: "var(--crit)", medium: "var(--warn)", low: "var(--good)" })[risk];
+
+/** Poster title: a handwritten word in HELIX orange resting on a bold condensed line. Screen readers hear one plain heading. */
+export function ScriptTitle({ script, children, as: Tag = "h1", className = "" }: { script: string; children: ReactNode; as?: "h1" | "h2"; className?: string }) {
+  return (
+    <Tag className={`stitle ${className}`}>
+      <span className="s">{script}</span>{" "}
+      <span className="b">{children}</span>
+    </Tag>
+  );
+}

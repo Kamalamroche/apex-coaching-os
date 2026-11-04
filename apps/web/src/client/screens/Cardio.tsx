@@ -1,5 +1,5 @@
-import { HERO_IMAGES, activityFromFile, formatDistance, formatDuration, manualActivity, newKey, SPORTS, weeklyMetres, weekTotals, type Activity, type Sport } from "@apex/core";
-import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars } from "@apex/ui";
+import { HERO_IMAGES, heroForSport, activityFromFile, formatDistance, formatDuration, manualActivity, newKey, SPORTS, weeklyMetres, weekTotals, type Activity, type Sport } from "@apex/core";
+import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars, ScriptTitle } from "@apex/ui";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ActivityRow, ActivityView } from "../../app/ActivityView";
 import { useAppInfo } from "../../app/AppContext";
@@ -67,10 +67,10 @@ export function Cardio({ say }: { say: (m: string) => void }) {
   return (
     <div onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={onDrop} style={{ display: "contents" }}>
       <div className="hero short side">
-        <img className="hero-img" src={HERO_IMAGES.run.src} alt="" style={{ objectPosition: HERO_IMAGES.run.focus.replace("center", "72%") }} />
+        <img className="hero-img" src={HERO_IMAGES[heroForSport(week[0]?.sport)].src} alt="" style={{ objectPosition: HERO_IMAGES[heroForSport(week[0]?.sport)].focus.replace("center", "72%") }} />
         <div className="hero-body">
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Cardio · this week</span>
-          <h1 className="hero-title" style={{ fontSize: 28 }}><span className="num">{formatDuration(weekSeconds)}</span>{weekMetres > 0 && <><br /><span className="num">{formatDistance(weekMetres)}</span></>}</h1>
+          <ScriptTitle script="Keep moving"><span className="num">{formatDuration(weekSeconds)}</span>{weekMetres > 0 && <><br /><span className="num">{formatDistance(weekMetres)}</span></>}</ScriptTitle>
         </div>
       </div>
       {status === "needs-update" && <div className="card small" style={{ borderColor: "var(--warn)" }}>Cardio needs a one-off database update before it can save. Ask {coachName} to run it.</div>}

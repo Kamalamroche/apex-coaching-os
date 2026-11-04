@@ -1,0 +1,15 @@
+{
+  "name": "APEX Coaching",
+  "short_name": "APEX",
+  "description": "Coaching OS for personal trainers and their clients.",
+  "start_url": "/start/",
+  "display": "standalone",
+  "background_color": "#0A1220",
+  "theme_color": "#0A1220",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

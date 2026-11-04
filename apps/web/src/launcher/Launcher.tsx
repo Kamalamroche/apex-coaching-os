@@ -1,5 +1,5 @@
-import { Icons, ThemeButton, useToast } from "@apex/ui";
-import { createDemoStore } from "@apex/core";
+import { Icons, ScriptTitle, ThemeButton, useToast } from "@apex/ui";
+import { HERO_IMAGES, createDemoStore } from "@apex/core";
 import { supabase } from "../data/supabase";
 
 export function Launcher() {
@@ -9,7 +9,12 @@ export function Launcher() {
     <div className="sel">
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
         <div className="wordmark"><Icons.logo /><b>APEX</b></div>
-        <h1 className="h1" style={{ fontSize: "clamp(26px,5vw,40px)", maxWidth: 620 }}>Simple for the client. Powerful for the coach.</h1>
+        <div className="hero short" style={{ width: "min(720px, 100%)", minHeight: 260, textAlign: "left" }}>
+          <img className="hero-img" src={HERO_IMAGES.coach.src} alt="" style={{ objectPosition: "center 40%" }} />
+          <div className="hero-body">
+            <ScriptTitle script="Simple for the client.">Powerful for the coach.</ScriptTitle>
+          </div>
+        </div>
         <p className="sub" style={{ maxWidth: 460 }}>
           {live ? "Sign in to your coach or client account, or try the demo with sample data." : "Demo with sample data. Edit Priya's workout as the coach, then open the client app and you'll see the change. Open both in separate tabs and they stay in sync."}
         </p>

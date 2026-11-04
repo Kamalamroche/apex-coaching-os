@@ -1,5 +1,5 @@
 export { Icons, type IconName } from "./icons";
-export { Bar, Label, Avatar, BackLink, riskColor, type LabelKind } from "./primitives";
+export { Bar, Label, Avatar, BackLink, ScriptTitle, riskColor, type LabelKind } from "./primitives";
 export { Spark } from "./Spark";
 export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
