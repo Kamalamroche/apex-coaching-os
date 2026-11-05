@@ -13,4 +13,5 @@ export { RouteMap, RunAnalysis, SplitsChart, LoadCompare, useDarkTheme, ProfileC
 export { Gauge, MiniRing } from "./Gauge";
 export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart, STAGE_COLOURS, STAGE_LABEL } from "./RecoveryViz";
 export { drawShareCard, loadShareFonts, DEFAULT_CROWN, SHARE_W, SHARE_H, type ShareCanvasData, type CrownPlacement, type ShareDraw } from "./shareCard";
-export { CountUp, LiquidPill, LiquidTank, NumberSheet, Wheel, WheelInput, statusColour, useCoarsePointer, useReducedMotion } from "./motion";
+export { LiquidPill, LiquidTank, LiquidTile, enableTilt } from "./liquid";
+export { CountUp, NumberSheet, Wheel, WheelInput, statusColour, useCoarsePointer, useReducedMotion } from "./motion";

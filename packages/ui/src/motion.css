@@ -78,82 +78,87 @@
 .hb-day:nth-child(2) .hb-sq{animation-delay:.04s}.hb-day:nth-child(3) .hb-sq{animation-delay:.08s}.hb-day:nth-child(4) .hb-sq{animation-delay:.12s}
 .hb-day:nth-child(5) .hb-sq{animation-delay:.16s}.hb-day:nth-child(6) .hb-sq{animation-delay:.2s}.hb-day:nth-child(7) .hb-sq{animation-delay:.24s}
 
-/* ---------- Liquid tank ---------- */
-.lq{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--line);
-  --water-top:color-mix(in oklab,var(--data) 62%,var(--blue));--water-deep:color-mix(in oklab,var(--blue) 55%,#071433);
-  --water-back:color-mix(in oklab,var(--data) 55%,var(--card))}
-.lq-full{min-height:372px;display:flex;flex-direction:column}
-.lq-mini{width:36px;height:36px;border-radius:10px;flex:none;border:0;background:var(--bg2)}
-.lq-water{position:absolute;inset:0;transform:translateY(calc((1 - var(--lvl)) * 100%));transition:transform var(--t-fill) var(--ease-liquid);z-index:1}
-.lq-surface{position:absolute;left:0;right:0;top:-22px;height:24px}
-.lq-wave{position:absolute;left:0;bottom:0;width:200%;height:100%;animation:lq-flow 7s linear infinite}
-.lq-wave.back{fill:var(--water-back);opacity:.7;animation-duration:11s;animation-direction:reverse;bottom:5px}
-.lq-wave.front{fill:var(--water-top)}
-@keyframes lq-flow{to{translate:-50% 0}}
-.lq-surface.slosh{animation:lq-slosh 1.6s var(--ease-out)}
-@keyframes lq-slosh{0%{scale:1 1}18%{scale:1 2.1}45%{scale:1 .7}70%{scale:1 1.25}100%{scale:1 1}}
-.lq-surface{transform-origin:50% 100%}
-.lq-body{position:absolute;inset:0 0 -1px;background:linear-gradient(180deg,var(--water-top),var(--water-deep));overflow:hidden}
-.lq-bubble{position:absolute;bottom:-8px;width:var(--s);height:var(--s);border-radius:50%;background:rgba(255,255,255,.32);animation:lq-bubble 6.5s ease-in infinite}
-@keyframes lq-bubble{0%{translate:0 0;opacity:0}12%{opacity:1}100%{translate:6px -340px;opacity:0}}
-.lq-mini .lq-surface{top:-6px;height:7px}
-.lq-mini .lq-wave{animation-duration:3.5s}
-.lq-mini .lq-wave.back{animation-duration:5s;bottom:1px}
-/* The big number: dark above the water, white inside it. The white copy is clipped at the waterline. */
-.lq-big{position:absolute;left:0;right:0;bottom:96px;text-align:center;font:800 72px/1 var(--num);letter-spacing:-.04em;color:var(--text3);opacity:.55;z-index:0;pointer-events:none}
-.lq-big small{font-size:.42em;font-weight:700;letter-spacing:0;margin-left:2px}
-.lq-big-in{color:#FFFFFF;opacity:1;z-index:2;clip-path:inset(calc((1 - var(--lvl)) * 100% - 10px) 0 0 0);transition:clip-path var(--t-fill) var(--ease-liquid)}
-.lq-content{position:relative;z-index:3;flex:1;display:flex;flex-direction:column;padding:18px}
-.lq-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:42px;padding:0 6px;border-radius:var(--pill);
-  border:1px solid var(--glass-line);background:var(--glass);color:var(--glass-ink);font:700 13px/1 var(--ui);font-variant-numeric:tabular-nums;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.lq-chip.solid{background:var(--glass-ink);color:#0D0F13;border-color:transparent}
-.lq-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:auto}
-.lq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.lq-head .h1{margin:2px 0 0}
-.lq-head small{color:var(--text2);font:600 13px/1.3 var(--ui)}
-.lq-goal{color:var(--good);display:inline-flex;align-items:center;gap:6px;font:700 13px/1 var(--ui);animation:m-pop .5s var(--ease-spring)}
-.wlog{display:flex;align-items:center;gap:12px;padding:12px 14px}
-.wlog .ml{font:700 15px/1 var(--num);color:var(--text)}
+/* ---------- Liquid tank (canvas, liquid.tsx) ---------- */
+.lq{position:relative;overflow:hidden;isolation:isolate}
+.lq-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.lq-content{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+.lq-mini{width:36px;height:36px;border-radius:10px;flex:none;background:var(--bg2);box-shadow:inset 0 0 0 1px var(--line)}
+/* The water scene: deep blue sky over the water on both themes, because it is a picture rather than a page. */
+.lq-scene{color:#FFFFFF;background:linear-gradient(180deg,color-mix(in oklab,var(--blue) 26%,#0D0F13) 0%,color-mix(in oklab,var(--blue) 55%,#0D0F13) 48%,color-mix(in oklab,var(--blue) 72%,var(--data)) 100%)}
+.lq-card{border-radius:var(--r-lg);height:360px;box-shadow:var(--card-shadow)}
+.lq-card .lq-content{padding:18px;gap:16px}
+.lq-card .lq-chips{margin-top:0}
+.lq-chip{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:0 6px;border-radius:var(--pill);
+  border:1px solid rgba(255,255,255,.26);background:rgba(255,255,255,.14);color:#FFFFFF;font:600 14px/1 var(--ui);font-variant-numeric:tabular-nums;white-space:nowrap;
+  backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+.lq-chip svg{opacity:.9}
+.lq-chip.solid{background:#FFFFFF;color:#0D0F13;border-color:transparent;font-weight:700}
+.lq-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:auto}
+.lq-head{color:#FFFFFF;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.lq-title{font:300 30px/1.05 var(--ui);letter-spacing:-.01em;margin:0}
+.lq-title b{font-weight:700}
+.lq-line{font:300 19px/1.25 var(--ui);color:rgba(255,255,255,.7);margin-top:4px}
+.lq-line b{font-weight:600;color:#FFFFFF;font-variant-numeric:tabular-nums}
+.lq-goal{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 10px;border-radius:var(--pill);background:rgba(255,255,255,.16);color:#FFFFFF;font:600 12.5px/1 var(--ui);animation:m-pop .5s var(--ease-spring)}
+.lq-open{display:inline-flex;align-items:center;gap:4px;color:#FFFFFF;font:600 13px/1 var(--ui);background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:var(--pill);padding:8px 12px}
+/* Full-screen water. */
+.lqx{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;animation:m-fade .3s ease-out}
+.lqx>.lq{position:absolute;inset:0}
+.lqx .lq-content{padding:calc(14px + env(safe-area-inset-top,0px)) 20px 0;max-width:520px;margin:0 auto;width:100%}
+.lqx-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.lqx-back{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#FFFFFF;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.lqx .lq-title{font-size:38px}
+.lqx .lq-line{font-size:22px}
+.lqx-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px}
+.lqx-log{background:var(--card);color:var(--text);border-radius:26px 26px 0 0;margin:0 -20px;padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));height:30vh;overflow:auto;box-shadow:0 -10px 30px -18px rgba(0,0,0,.6);animation:m-sheet .55s var(--ease-out) .1s backwards}
+.lqx-log h3{font:400 22px/1 var(--ui);margin:0 0 8px}
+.wlog{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.wlog:first-of-type{border-top:0}
+.wlog .ml{font:600 14px/1.2 var(--ui);color:var(--text2)}
+.wlog time{font:500 13px/1 var(--ui);color:var(--text3);font-variant-numeric:tabular-nums}
 
-/* ---------- Liquid pill ---------- */
-.lpill{display:flex;flex-direction:column;gap:6px}
-.lpill-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:0 6px}
-.lpill-track{position:relative;height:30px;border-radius:var(--pill);overflow:hidden;isolation:isolate;
-  background:color-mix(in srgb,var(--text) 7%,var(--bg2));box-shadow:inset 0 1px 2px rgba(0,0,0,.28),inset 0 0 0 1px color-mix(in srgb,var(--text) 8%,transparent)}
-.lpill-sm .lpill-track{height:12px}
-.lpill-lg .lpill-track{height:44px}
-.lpill-fill{position:absolute;inset:0 auto 0 0;background:currentColor;border-radius:var(--pill) 0 0 var(--pill);
-  transition:width var(--t-fill) var(--ease-liquid),color .9s var(--ease-out)}
-.lpill-fill.full{border-radius:var(--pill)}
-/* Glass: a soft highlight across the top and a little depth underneath, painted over the liquid. */
-.lpill-track::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
-  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 42%,rgba(0,0,0,0) 60%,rgba(0,0,0,.14) 100%)}
-.lpill-sm .lpill-track::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 60%)}
-.lpill-edge{position:absolute;top:0;right:-5px;width:6px;height:200%;fill:currentColor;animation:lp-edge 2.4s linear infinite}
-.lpill-sm .lpill-edge{width:4px;right:-3px}
-@keyframes lp-edge{to{translate:0 -50%}}
-.lpill-edge.slosh{animation:lp-edge 2.4s linear infinite,lp-wob 1.2s var(--ease-out)}
-@keyframes lp-wob{30%{scale:2.2 1}60%{scale:.8 1}}
-.lpill-edge{transform-origin:0 50%}
-.lpill-text{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:800 13px/1 var(--num);color:var(--text);mix-blend-mode:normal}
+/* ---------- Liquid pill (SVG, liquid.tsx) ---------- */
+.lpill{display:flex;flex-direction:column;gap:8px}
+.lpill-scale{display:flex;justify-content:space-between;font:400 13px/1 var(--ui);color:var(--text3);padding:0 14px;font-variant-numeric:tabular-nums}
+.lpill-track{position:relative;height:34px;border-radius:var(--pill);overflow:hidden;isolation:isolate;
+  background:linear-gradient(180deg,rgba(0,0,0,.22),rgba(255,255,255,.04)),color-mix(in srgb,var(--text) 9%,var(--bg2));
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.35),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 1px color-mix(in srgb,var(--text) 10%,transparent)}
+.lpill-sm .lpill-track{height:12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.lpill-lg .lpill-track{height:58px}
+.lpill-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lpill-rim{stroke-width:2.2;stroke-linecap:round}
+.lpill-sm .lpill-rim{stroke-width:1.2}
+/* Glass over the liquid: a bright band along the top, depth underneath, like a rounded tube. */
+.lpill-track::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.38) 0%,rgba(255,255,255,.12) 22%,rgba(255,255,255,0) 46%,rgba(0,0,0,0) 62%,rgba(0,0,0,.22) 100%)}
+.lpill-track::before{content:"";position:absolute;left:14px;right:14px;top:4px;height:3px;border-radius:3px;background:rgba(255,255,255,.28);filter:blur(.5px);z-index:1;pointer-events:none}
+.lpill-sm .lpill-track::before{display:none}
+.lpill-sm .lpill-track::after{background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 55%,rgba(0,0,0,.12))}
+.lpill-text{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font:600 14px/1 var(--ui);color:#FFFFFF;font-variant-numeric:tabular-nums}
+.lp-tile{background:#171A21;color:#FFFFFF;border-radius:28px;padding:22px 20px 20px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 20px 40px -24px rgba(0,0,0,.7)}
+.lp-tile-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lp-tile-head b{font:700 26px/1 var(--ui);letter-spacing:-.01em}
+.lp-tile-head span{font:500 13px/1.2 var(--ui);color:rgba(255,255,255,.6);text-align:right}
+.lp-tile .lpill-scale{color:rgba(255,255,255,.55)}
+.lp-tile .lpill-track{background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(255,255,255,.05)),#272C36}
 
 /* ---------- Number wheel ---------- */
-.wheel{position:relative;flex:none;perspective:900px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent)}
-.wheel-lens{position:absolute;left:0;right:0;border-radius:12px;background:color-mix(in srgb,var(--text) 6%,transparent);pointer-events:none}
-.wheel-scroll{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;transform-style:preserve-3d;outline:none;border-radius:12px}
+.wheel{position:relative;flex:none;perspective:700px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent);mask-image:linear-gradient(180deg,transparent,#000 26%,#000 74%,transparent)}
+.wheel-scroll{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;transform-style:preserve-3d;outline:none;border-radius:14px}
 .wheel-scroll::-webkit-scrollbar{display:none}
 .wheel-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--act)}
-.wheel-i{scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 12px;font-size:22px;font-weight:500;color:var(--text2);opacity:0;backface-visibility:hidden;will-change:transform,opacity;cursor:pointer;user-select:none;-webkit-user-select:none}
-.wheel-right .wheel-i{justify-content:flex-end;padding-right:4px}
+.wheel-i{scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 14px;font:300 24px/1 var(--ui);font-variant-numeric:tabular-nums;letter-spacing:.01em;color:var(--text2);opacity:0;backface-visibility:hidden;will-change:transform,opacity;cursor:pointer;user-select:none;-webkit-user-select:none;transition:color .15s,font-weight .15s}
+.wheel-right .wheel-i{justify-content:flex-end;padding-right:2px}
 .wheel-left .wheel-i{justify-content:flex-start;padding-left:2px}
-.wheel-i.on{color:var(--text);font-weight:800}
-.nsheet{display:flex;flex-direction:column;gap:14px}
+.wheel-i.on{color:var(--text);font-weight:600}
+.nsheet{display:flex;flex-direction:column;gap:10px}
 .nsheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.nsheet-head b{font-size:28px;font-weight:800;letter-spacing:-.02em}
-.nsheet-head small{font-size:14px;color:var(--text2);font-weight:600}
-.nsheet-wheels{position:relative;display:flex;justify-content:center;align-items:center;gap:0}
-.nsheet-unit{font:700 15px/1 var(--ui);color:var(--text2);margin-left:8px}
-.nsheet-type{font-size:24px;font-weight:800;text-align:center;padding:16px}
+.nsheet-head b{font:300 30px/1 var(--ui);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.nsheet-head small{font-size:15px;color:var(--text2);font-weight:400}
+.nsheet-wheels{position:relative;display:flex;justify-content:center;align-items:center;gap:6px;padding:4px 0}
+.nsheet-unit{font:400 17px/1 var(--ui);color:var(--text3);margin-left:6px}
+.nsheet-type{font:300 28px/1 var(--ui);text-align:center;padding:16px}
 .nsheet-ok{min-height:52px;font-size:16px}
 
 /* Inputs that open a wheel on phones look tappable rather than typed into. */
