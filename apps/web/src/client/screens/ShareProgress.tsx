@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { loadPhoto, playIn, shareCards, siteName } from "../../app/shareImage";
 import { useStore } from "../../data/StoreContext";
-import { useWeekStory } from "./WeekStory";
+import { PhotoPick, useWeekStory } from "./WeekStory";
 
 type Kind = "photos" | "body" | "best";
 
@@ -30,6 +30,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
   const [showCoach, setShowCoach] = useState(true);
   const [imgs, setImgs] = useState<{ before: HTMLImageElement | null; after: HTMLImageElement | null }>({ before: null, after: null });
   const [fonts, setFonts] = useState(false);
+  const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const [status, setStatus] = useState("");
   const canvas = useRef<HTMLCanvasElement>(null);
   const coach = showCoach && coachName ? coachName : null;
@@ -56,9 +57,9 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
       });
       drawBeforeAfter(cv, { format, before: imgs.before, after: imgs.after, beforeDate: shortDate(pair.before.takenAt), afterDate: shortDate(pair.after.takenAt), weeks: pair.weeks, numbers: lines, hideFace, coach, site, t });
     } else if (kind === "body" && change) {
-      drawMeasureCard(cv, { format, change, series: measurementSeries(progress.measurements, measure), showValues, coach, site, t });
+      drawMeasureCard(cv, { format, photo, change, series: measurementSeries(progress.measurements, measure), showValues, coach, site, t });
     } else if (kind === "best" && best) {
-      drawBestCard(cv, { format, best, date: shortDate(best.at), coach, site, t });
+      drawBestCard(cv, { format, photo, best, date: shortDate(best.at), coach, site, t });
     } else {
       cv.width = 1080;
       cv.height = cardHeight(format);
@@ -72,7 +73,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
     if (!cv) return;
     return playIn((t) => draw(cv, t), 900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, format, pose, hideFace, numbers, measure, showValues, bestIdx, coach, imgs, fonts, progress.measurements]);
+  }, [kind, format, pose, hideFace, numbers, measure, showValues, bestIdx, coach, imgs, fonts, progress.measurements, photo]);
 
   const ready = (kind === "photos" && !!pair) || (kind === "body" && !!change) || (kind === "best" && !!best);
   const share = async () => {
@@ -137,6 +138,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
           {bests.slice(0, 6).map((b, i) => <button key={`${b.exerciseId}-${b.at}`} role="radio" aria-checked={bestIdx === i} className={`chip ${bestIdx === i ? "on" : ""}`} onClick={() => setBestIdx(i)}>{b.exercise} {b.kg} kg</button>)}
         </div>
       )}
+      {kind !== "photos" && <div className="sp-photo"><PhotoPick photo={photo} onPhoto={setPhoto} /><span className="tiny">Your picture behind the numbers</span></div>}
       {coachName && <label className="sp-opt"><input type="checkbox" checked={showCoach} onChange={(e) => setShowCoach(e.target.checked)} /> Show "Coached by {coachName}"</label>}
       <button className="btn act block" style={{ minHeight: 52 }} disabled={!ready} onClick={() => void share()}>Share</button>
       <div className="tiny" style={{ textAlign: "center" }}>{status || "Your photos stay on your phone unless you share them."}</div>

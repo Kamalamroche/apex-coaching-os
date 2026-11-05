@@ -50,6 +50,8 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
   const [paused, setPaused] = useState(false);
   const [status, setStatus] = useState("");
   const [fonts, setFonts] = useState(false);
+  /** The client's own picture behind every slide. It stays on the phone. */
+  const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const site = siteName();
@@ -72,8 +74,8 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!slide || !story || !canvas.current) return;
     const cv = canvas.current;
-    return playIn((t) => drawStorySlide(cv, { slide, format: "story", t, week: story.label, coach: coachName || null, site }));
-  }, [slide, story, coachName, site, fonts]);
+    return playIn((t) => drawStorySlide(cv, { slide, format: "story", t, week: story.label, coach: coachName || null, site, photo }));
+  }, [slide, story, coachName, site, fonts, photo]);
 
   // Move on by itself; the bar of the open slide fills while it plays.
   useEffect(() => {
@@ -103,7 +105,7 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
 
   const render = (s: StorySlide) => {
     const cv = document.createElement("canvas");
-    drawStorySlide(cv, { slide: s, format: "story", t: 1, week: story?.label ?? "", coach: coachName || null, site });
+    drawStorySlide(cv, { slide: s, format: "story", t: 1, week: story?.label ?? "", coach: coachName || null, site, photo });
     return cv;
   };
   const caption = storyCaption("week", coachName || null, `https://${site}`);
@@ -126,7 +128,10 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
         <button className="wk-tap next" onClick={() => go(1)} aria-label="Next slide" />
       </div>
       <div className="wk-foot">
-        <label className="wk-opt"><input type="checkbox" checked={withBody} onChange={(e) => { setWithBody(e.target.checked); setIdx(0); }} /> Add my body change</label>
+        <div className="wk-row">
+          <label className="wk-opt"><input type="checkbox" checked={withBody} onChange={(e) => { setWithBody(e.target.checked); setIdx(0); }} /> Add my body change</label>
+          <PhotoPick photo={photo} onPhoto={setPhoto} dark />
+        </div>
         <div className="wk-btns">
           <button className="btn wk-ghost" onClick={() => void shareOne()}>Share this slide</button>
           <button className="btn act" onClick={() => void shareAll()}>Share my week</button>
@@ -135,5 +140,23 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** "Add my photo" / "Remove photo": a picture from the phone, kept on the phone. */
+export function PhotoPick({ photo, onPhoto, dark = false }: { photo: HTMLImageElement | null; onPhoto: (img: HTMLImageElement | null) => void; dark?: boolean }) {
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => onPhoto(img);
+    img.src = URL.createObjectURL(file);
+  };
+  return photo ? (
+    <button className={`btn sm ${dark ? "wk-ghost" : "ghost"}`} onClick={() => onPhoto(null)}>Remove photo</button>
+  ) : (
+    <label className={`btn sm ${dark ? "wk-ghost" : "ghost"}`} style={{ cursor: "pointer" }}>
+      <Icons.camera width={16} height={16} /> Add my photo
+      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => pick(e.target.files?.[0])} />
+    </label>
   );
 }

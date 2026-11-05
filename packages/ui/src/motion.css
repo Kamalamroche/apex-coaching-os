@@ -269,3 +269,7 @@
 .sp-canvas.post{aspect-ratio:4/5}
 .sp-empty{position:absolute;inset:auto 16px 50%;translate:0 50%;text-align:center;color:#AAAFB9;max-width:240px;justify-self:center}
 .sp-cta{min-height:48px}
+.wk-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.wk-row .btn{min-height:38px;display:inline-flex;align-items:center;gap:6px}
+.sp-photo{display:flex;align-items:center;gap:10px}
+.sp-photo .btn{display:inline-flex;align-items:center;gap:6px}

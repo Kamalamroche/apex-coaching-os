@@ -138,6 +138,8 @@ export interface StoryDraw {
   week: string;
   coach: string | null;
   site: string;
+  /** The client's own picture. With one, the picture fills the card and the numbers sit small at the bottom. */
+  photo?: Img | null;
 }
 
 export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
@@ -148,6 +150,10 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
   if (!c) return;
   const s = p.slide;
   const t = p.t;
+  if (p.photo && p.photo.width) {
+    photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t);
+    return;
+  }
   frame(c, h, s.kind === "end" ? "" : p.week, p.coach, p.site, s.kind !== "end");
   const story = p.format === "story";
   const mid = story ? h * 0.47 : h * 0.5;
@@ -321,6 +327,7 @@ export function drawBeforeAfter(canvas: HTMLCanvasElement, p: BeforeAfterDraw) {
 
 export interface MeasureDraw {
   format: CardFormat;
+  photo?: Img | null;
   change: BodyChange;
   series: { at: string; value: number }[];
   /** Show the actual values as well as the change. Off by default. */
@@ -336,6 +343,15 @@ export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
   canvas.height = h;
   const c = canvas.getContext("2d");
   if (!c) return;
+  const since0 = new Date(p.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (p.photo && p.photo.width) {
+    photoCard(c, h, p.photo, {
+      eyebrow: p.change.label, value: signedUnit(p.change.delta, "").trim(), unit: p.change.unit,
+      sub: p.showValues ? `${kgText(p.change.first)} → ${kgText(p.change.last)} ${p.change.unit} since ${since0}` : `Since ${since0}`,
+      spark: p.series.map((q) => q.value),
+    }, p.coach, p.site, p.t);
+    return;
+  }
   frame(c, h, "Progress", p.coach, p.site);
   const story = p.format === "story";
   const mid = story ? h * 0.38 : h * 0.4;
@@ -375,6 +391,7 @@ export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
 
 export interface BestDraw {
   format: CardFormat;
+  photo?: Img | null;
   best: PersonalBest;
   date: string;
   coach: string | null;
@@ -383,5 +400,129 @@ export interface BestDraw {
 }
 
 export function drawBestCard(canvas: HTMLCanvasElement, p: BestDraw) {
-  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site });
+  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site, photo: p.photo ?? null });
+}
+
+/* ---------- Photo cards: the client's picture fills the card, the logo stays on top, the numbers take the bottom ~15% ---------- */
+
+interface Band {
+  eyebrow: string;
+  value: string;
+  unit: string;
+  sub: string;
+  /** Seven days trained / not, drawn as small dots beside the number. */
+  days?: boolean[];
+  /** A share 0–1 drawn as a small ring beside the number. */
+  ring?: number;
+  /** Values drawn as a small line beside the number. */
+  spark?: number[];
+}
+
+function slideBand(s: StorySlide, week: string): Band {
+  switch (s.kind) {
+    case "cover": return { eyebrow: `${s.soFar ? "My week so far" : "My week"} · ${week}`, value: String(s.workouts), unit: s.workouts === 1 ? "workout" : "workouts", sub: hm(s.minutes), days: s.days };
+    case "lifted": return { eyebrow: `Lifted · ${week}`, value: num(s.kg), unit: "kg", sub: s.fun ? `That's ${s.fun}` : `${s.sets} sets` };
+    case "best": return { eyebrow: `Personal best · ${s.best.exercise}`, value: kgText(s.best.kg), unit: "kg", sub: `Up from ${kgText(s.best.previousKg)} kg` };
+    case "habits": return { eyebrow: `Habits · ${week}`, value: String(Math.round((s.done / s.due) * 100)), unit: "%", sub: `${s.done} of ${s.due} ticked off`, ring: s.done / s.due };
+    case "streak": return { eyebrow: "Streak", value: String(s.weeks), unit: s.weeks === 1 ? "week" : "weeks", sub: "in a row with at least one workout" };
+    case "body": return { eyebrow: s.change.label, value: signedUnit(s.change.delta, "").trim(), unit: s.change.unit, sub: `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` };
+    case "end": return { eyebrow: "Train with me", value: "APEX", unit: "", sub: "" };
+  }
+}
+
+function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, site: string, t: number) {
+  cover(c, img, 0, 0, CARD_W, h, false);
+  const story = h > 1500;
+  const k = (at: number) => part(t, at, 0.5);
+  // Shade only where words sit: a light veil under the logo, a deeper one under the numbers.
+  let g = c.createLinearGradient(0, 0, 0, 260);
+  g.addColorStop(0, "rgba(13,15,19,.5)");
+  g.addColorStop(1, "rgba(13,15,19,0)");
+  c.fillStyle = g;
+  c.fillRect(0, 0, CARD_W, 260);
+  const bandTop = h * (story ? 0.78 : 0.74);
+  g = c.createLinearGradient(0, bandTop - 140, 0, h);
+  g.addColorStop(0, "rgba(13,15,19,0)");
+  g.addColorStop(0.45, "rgba(13,15,19,.62)");
+  g.addColorStop(1, "rgba(13,15,19,.9)");
+  c.fillStyle = g;
+  c.fillRect(0, bandTop - 140, CARD_W, h - bandTop + 140);
+
+  const P = 64;
+  mark(c, P, story ? 120 : 96, 44);
+
+  const foot = h - (story ? 64 : 48);
+  const rule = foot - (story ? 44 : 38);
+  const subY = rule - (story ? 40 : 32);
+  const valY = subY - (story ? 48 : 42);
+  const eyeY = valY - (story ? 100 : 86);
+  const vs = story ? 104 : 90;
+
+  if (b.value === "APEX" && !b.unit) {
+    // Closing card: the coach and where to find them, nothing else.
+    setFont(c, 600, 24, 6);
+    text(c, b.eyebrow.toUpperCase(), P, eyeY + 40, k(0), C.act);
+    setFont(c, 300, story ? 72 : 60, -1);
+    text(c, coach ? `Coached by ${coach}` : "Train with APEX", P, valY, k(0.1), C.text);
+  } else {
+    c.save();
+    c.globalAlpha = k(0);
+    c.fillStyle = C.act;
+    c.fillRect(P, eyeY + 4, 36, 4);
+    c.restore();
+    const ew = fitSize(c, b.eyebrow.toUpperCase(), 600, 22, CARD_W - P * 2 - 60, 5);
+    setFont(c, 600, ew, 5);
+    text(c, b.eyebrow.toUpperCase(), P + 52, eyeY + 12, k(0), C.text);
+    setFont(c, 200, vs, -vs * 0.03);
+    const vw = c.measureText(b.value).width;
+    text(c, b.value, P, valY, k(0.08), C.text);
+    if (b.unit) {
+      setFont(c, 300, vs * 0.3, 0);
+      text(c, b.unit, P + vw + 14, valY, k(0.08), C.text2);
+    }
+    setFont(c, 400, story ? 30 : 26, 0);
+    text(c, b.sub, P, subY, k(0.18), C.text2);
+    // A small graphic on the right of the number.
+    const gx = CARD_W - P;
+    const gy = valY - vs * 0.36;
+    const kk = k(0.2);
+    c.save();
+    c.globalAlpha = kk;
+    if (b.days) {
+      const r = 11, step = 36;
+      b.days.forEach((on, i) => {
+        const cx = gx - (6 - i) * step - r;
+        c.beginPath();
+        c.arc(cx, gy, r, 0, Math.PI * 2);
+        if (on) { c.fillStyle = C.act; c.fill(); } else { c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 2; c.stroke(); }
+      });
+    } else if (b.ring !== undefined) {
+      const r = vs * 0.38;
+      c.lineWidth = 8;
+      c.lineCap = "round";
+      c.strokeStyle = "rgba(255,255,255,.22)";
+      c.beginPath(); c.arc(gx - r, gy, r, 0, Math.PI * 2); c.stroke();
+      c.strokeStyle = C.good;
+      c.beginPath(); c.arc(gx - r, gy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * b.ring * ease(t / 0.9)); c.stroke();
+    } else if (b.spark && b.spark.length >= 2) {
+      const w = 260, hh = vs * 0.6;
+      const lo = Math.min(...b.spark), hi = Math.max(...b.spark);
+      const X = (i: number) => gx - w + (i / (b.spark!.length - 1)) * w;
+      const Y = (v: number) => gy + hh / 2 - ((v - lo) / Math.max(0.001, hi - lo)) * hh;
+      c.strokeStyle = C.good;
+      c.lineWidth = 5;
+      c.lineJoin = "round";
+      c.lineCap = "round";
+      c.beginPath();
+      b.spark.forEach((v, i) => (i ? c.lineTo(X(i), Y(v)) : c.moveTo(X(i), Y(v))));
+      c.stroke();
+    }
+    c.restore();
+  }
+  c.fillStyle = "rgba(255,255,255,.18)";
+  c.fillRect(P, rule, CARD_W - P * 2, 2);
+  setFont(c, 500, story ? 24 : 22, 1);
+  text(c, coach ? `Coached by ${coach}` : "Trained with APEX", P, foot, 1, C.text2);
+  setFont(c, 400, story ? 22 : 20, 1);
+  text(c, site, CARD_W - P, foot, 1, C.text3, "right");
 }
