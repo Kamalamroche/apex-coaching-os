@@ -1,6 +1,6 @@
 import { bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, Sheet, Spark, ScriptTitle } from "@apex/ui";
+import { BackLink, Icons, Sheet, Spark, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -8,6 +8,8 @@ import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
 import { ConnectedApps } from "./ConnectedApps";
 import { Recovery } from "./Recovery";
+import { ShareProgress } from "./ShareProgress";
+import { WeekStoryViewer } from "./WeekStory";
 
 const WEEK_MS = 7 * 86400000;
 
@@ -15,7 +17,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
   const store = useStore();
   const { coachName } = useAppInfo();
   const { progress } = useApexState(store);
-  const [sheet, setSheet] = useState<"measure" | "photos" | null>(null);
+  const [sheet, setSheet] = useState<"measure" | "photos" | "share" | "week" | null>(null);
   const [mode, setMode] = useState<"body" | "recovery" | "apps">("body");
   const { recovery } = useActivities();
   const last = bestPerDay(recovery)[0];
@@ -38,6 +40,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
     <>
       {modes}
       <div>{weeks ? <ScriptTitle script="Progress" className="sm">{`${weeks} week${weeks === 1 ? "" : "s"} in`}</ScriptTitle> : <ScriptTitle script="Your" className="sm">starting point</ScriptTitle>}</div>
+      <button className="btn act block sp-cta" onClick={() => setSheet("share")}><Icons.share width={18} height={18} /> Share my progress</button>
       <ProgressNotice />
       <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
         <div className="kpi"><b>{weight ? weight.last : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(weight.delta)} since start</i>}</div>
@@ -79,6 +82,8 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
         <span className="tiny">›</span>
       </button>
       {sheet === "measure" && <MeasureSheet onClose={() => setSheet(null)} onSaved={() => { setSheet(null); say("Measurements saved"); }} />}
+      {sheet === "share" && <ShareProgress onClose={() => setSheet(null)} openWeek={() => setSheet("week")} />}
+      {sheet === "week" && <WeekStoryViewer onClose={() => setSheet(null)} />}
       {sheet === "photos" && <PhotoSheet onClose={() => setSheet(null)} onSaved={() => { setSheet(null); say("Photos saved"); }} />}
     </>
   );

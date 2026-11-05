@@ -117,6 +117,9 @@ export function buildSummary(workout: Workout, sets: SessionSets, minutes: numbe
 }
 
 /** After a session: this one becomes "last time" and its heaviest sets raise the bests. */
+/** How many finished sessions the client keeps in memory for the weekly story. */
+export const MAX_RECENT = 120;
+
 export function nextHistory(history: TrainingHistory, log: SessionLog, workout: Workout, sets: SessionSets): TrainingHistory {
   const bestKg = { ...history.bestKg };
   for (const it of workout.items) {
@@ -137,6 +140,7 @@ export function nextHistory(history: TrainingHistory, log: SessionLog, workout: 
     previous: { workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes },
     // A lighter day isn't a fair test of strength, so it doesn't count towards a plateau.
     trend: log.summary?.readiness?.adjusted ? (history.trend ?? {}) : addSessionToTrend(history.trend ?? {}, e1rms),
+    sessions: [{ at: new Date().toISOString(), workoutName: log.workoutName, sets: log.sets, volumeKg: log.volumeKg, minutes: log.minutes, bests: log.summary?.bests ?? [] }, ...(history.sessions ?? [])].slice(0, MAX_RECENT),
     ...(log.summary?.readiness ? { readiness: addReadinessPoint(history.readiness, { at: new Date().toISOString(), score: log.summary.readiness.score }) } : history.readiness ? { readiness: history.readiness } : {}),
   };
 }

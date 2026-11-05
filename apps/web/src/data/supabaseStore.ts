@@ -3,7 +3,7 @@ import {
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
   withDayWorkout, withProgram,
   type ApexState, type ApexStore, type CheckInRow, type LoggedSetRow, type MeasurementInput, type MeasurementRow, type MessageRow, type PhotoRow, type PhotoUpload,
-  type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  MAX_RECENT, toRecentSession, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -138,6 +138,12 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         }
         if (stale()) return;
       }
+      // Finished sessions for the weekly story. Optional: a failure here never stops the workout loading.
+      const { data: sessionRows } = await db.from("sessions")
+        .select(`started_at, finished_at, sets_completed, volume_kg, workouts(name)${hasSummaryColumn ? ", bests:summary->bests" : ""}`)
+        .eq("client_id", ids.clientId).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(MAX_RECENT);
+      const sessions = ((sessionRows ?? []) as unknown as (PreviousSessionRow & { bests?: PersonalBest[] | null })[]).map(toRecentSession);
+      if (stale()) return;
       const last = latestSetByExercise(recentSets);
       const days: ProgramDay[] = dayRows.map((d) => ({ ...toWorkout(d, (items ?? []).filter((i) => i.workout_id === d.id), program.weeks, last), key: d.id, dayIndex: d.day_index }));
       const plan: Program = { name: program.name, weeks: program.weeks, days };
@@ -156,7 +162,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
       if (stale()) return;
-      const next = withProgram({ ...state, messages, progress, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness } }, plan, active ?? undefined);
+      const next = withProgram({ ...state, messages, progress, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness, sessions } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
       savedDays = new Set(dayIds);
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };

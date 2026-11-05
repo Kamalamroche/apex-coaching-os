@@ -145,6 +145,19 @@ export interface TrainingHistory {
   trend?: Record<number, number[]>;
   /** Readiness scores from recent sessions, oldest first. Missing on older saved state. */
   readiness?: ReadinessPoint[];
+  /** Finished sessions, newest first, for the weekly story and share cards. Missing on older saved state. */
+  sessions?: RecentSession[];
+}
+
+/** One finished session, as the weekly story needs it. */
+export interface RecentSession {
+  /** ISO date-time the session finished. */
+  at: string;
+  workoutName: string;
+  sets: number;
+  volumeKg: number;
+  minutes: number;
+  bests: PersonalBest[];
 }
 
 export interface ReadinessPoint {

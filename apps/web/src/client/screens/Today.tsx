@@ -7,6 +7,7 @@ import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { HabitList } from "./Habits";
 import { useStore } from "../../data/StoreContext";
+import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -21,6 +22,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
   const { status } = useStoreStatus();
   const { workout: w, log, progress } = useApexState(store);
   const [mood, setMood] = useState<number | null>(null);
+  const [story, setStory] = useState(false);
   const life = useLifestyle();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
@@ -50,6 +52,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
             );
           })}
         </div>
+        <WeekStoryCard onOpen={() => setStory(true)} />
+        {story && <WeekStoryViewer onClose={() => setStory(false)} />}
       </section>
       {status === "loading" ? (
         <div className="card"><div className="small">Loading today's session…</div></div>
