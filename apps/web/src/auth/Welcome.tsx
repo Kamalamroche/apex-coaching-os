@@ -24,12 +24,12 @@ export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: bo
         <img src="/welcome/pilates.webp" srcSet="/welcome/pilates-720.webp 720w, /welcome/pilates.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" fetchPriority="high" />
       </picture>
       <div className="wel-top">
-        <span className="wel-logo"><Icons.logo width={26} height={26} /><b>APEX</b></span>
+        <span className="wel-logo"><Icons.logo width={22} height={22} /><b>APEX</b></span>
       </div>
       <div className="wel-copy">
         <h1 className="wel-h">Train with <b>Purpose.</b> Move with <b>Grace.</b></h1>
         <p className="wel-sub">Coach-built plans, guided Pilates and strength sessions, check-ins and real progress, all in one calm place.</p>
-        <a className="wel-pill" href="/#how">Watch how it works <Icons.play width={14} height={14} /></a>
+        <a className="wel-pill" href="/#how">Watch how it works <Icons.play width={12} height={12} /></a>
       </div>
       <div className="wel-actions">
         <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"}</button>
