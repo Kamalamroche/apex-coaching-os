@@ -521,20 +521,18 @@ button.lv-row{cursor:pointer}
 .tm-peek.poster>svg{color:rgba(255,255,255,.75) !important}
 @media (prefers-reduced-motion:reduce){.tm-ladder i,.tm-day,.tm-peek.poster>img{animation:none}.tm-post.fresh{animation:none}}
 
-/* Editorial serif titles (italic lead, upright follow-on stepped in), for big titles on photos */
-.ed-title{margin:0;display:flex;flex-direction:column;align-items:flex-start;font-family:var(--serif);font-optical-sizing:auto;font-variation-settings:"wdth" 87.5;font-weight:500;line-height:.92;letter-spacing:-.025em;color:inherit;text-wrap:balance}
-.ed-title>i{font-style:italic;font-size:1em;animation:ed-in .9s var(--ease-out) .1s backwards}
-.ed-title>span{font-size:1em;padding-left:.9em;animation:ed-in .9s var(--ease-out) .28s backwards}
-@keyframes ed-in{from{opacity:0;translate:0 .25em;filter:blur(8px)}}
-.hero .ed-title{font-size:46px;color:#fff}
-.tm-photo .ed-title{font-size:38px;color:#fff}
-.tm-photo .ed-title>i:first-letter{font-size:1em}
-@media (prefers-reduced-motion:reduce){.ed-title>i,.ed-title>span{animation:none}}
-.tm-peek.poster b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:24px;font-variation-settings:"wdth" 87.5;letter-spacing:-.02em;line-height:1}
-.tm-fig b,.tm-place,.tm-idea .tm-idea-fig{font-family:var(--serif);font-variation-settings:"wdth" 87.5;font-weight:400;letter-spacing:-.03em}
-.tm-fig b{font-style:italic}
+/* Roman-capital titles: tall serif caps, wide tracking, tiny spaced caption (Kamal's VENI VIDI VICI reference) */
+.ed-title{margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:.1em;font-family:var(--serif);font-weight:500;font-style:normal;color:inherit;text-transform:uppercase}
+.ed-line{display:block;font-size:1em;line-height:1;letter-spacing:.09em;margin-right:-.09em;white-space:nowrap;animation:ed-in .9s var(--ease-out) backwards;animation-delay:calc(.1s + var(--k,0) * .12s)}
+.ed-cap{display:block;margin-top:.9em;font:500 10px/1.2 var(--serif);letter-spacing:.42em;text-transform:uppercase;opacity:.85;animation:m-fade .8s var(--ease-out) .5s backwards}
+@keyframes ed-in{from{opacity:0;translate:0 .2em;filter:blur(6px)}}
+.hero .ed-title{font-size:40px;color:#fff}
+.tm-photo .ed-title{font-size:30px;color:#fff}
+@media (prefers-reduced-motion:reduce){.ed-line,.ed-cap{animation:none}}
+.tm-peek.poster b{font-family:var(--serif);font-weight:500;font-size:19px;letter-spacing:.09em;text-transform:uppercase;line-height:1.05}
+.tm-fig b,.tm-place,.tm-idea .tm-idea-fig{font-family:var(--serif);font-weight:400;letter-spacing:-.03em}
 .tm-fig.light b{font-weight:400}
-.tm-note{font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;line-height:1.22;letter-spacing:-.01em;font-variation-settings:"wdth" 87.5}
+.tm-note{font-family:var(--serif);font-style:normal;font-weight:400;font-size:20px;line-height:1.3;letter-spacing:0}
 .tm-photo::after{background:linear-gradient(180deg,rgba(13,15,19,.45) 0%,rgba(13,15,19,0) 26%,rgba(13,15,19,.12) 46%,rgba(13,15,19,.9) 100%)}
 .tm-photo{min-height:320px;padding:12px 12px 14px}
 .tm-foot.glass{padding:4px 0 0}

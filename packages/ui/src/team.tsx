@@ -24,7 +24,7 @@ export function TeamHero({ eyebrow, title, pills, children }: { eyebrow: string;
       <HeroBackdrop art={TEAM_ART} />
       <div className="hero-top"><span className="gpill dim caps">{eyebrow}</span></div>
       <div className="hero-body">
-        <EditorialTitle as="h1" text={title} />
+        <EditorialTitle as="h1" text={title} caption="Train together" />
         {pills.length > 0 && (
           <div className="gpills">
             {pills.map((p, i) => { const I = Icons[p.icon]; return <span key={p.text} className="gpill num" style={{ ["--i" as string]: i }}><I /> {p.text}</span>; })}
@@ -70,7 +70,9 @@ function Who({ p, now, onRemove, glass }: { p: TeamPost; now?: Date; onRemove?: 
 
 function PhotoTitle({ title }: { title: string }) {
   const m = /^(finished)\s+(.+)$/i.exec(title);
-  return m ? <EditorialTitle as="h3" text={`${m[1]} ${m[2]}`} lead={m[1]} /> : <EditorialTitle as="h3" text={title} />;
+  if (!m) return <EditorialTitle as="h3" text={title} />;
+  const [name, kind] = m[2]!.split(" · ");
+  return <EditorialTitle as="h3" text={name!} caption={kind ? `${m[1]} · ${kind}` : m[1]} />;
 }
 
 /** Every rung of our level ladder, lit up to this one. */

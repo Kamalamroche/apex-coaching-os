@@ -46,18 +46,26 @@ export function ScriptTitle({ script, children, as: Tag = "h1", className = "" }
   );
 }
 
-/** Editorial title for photos and big headings: the first words in a high-contrast italic serif, the rest upright and
- * stepped in on the next line. `lead` sets the italic part; otherwise it is the first half of the words. */
-export function EditorialTitle({ text, lead, as: Tag = "h2", className = "" }: { text: string; lead?: string; as?: "h1" | "h2" | "h3"; className?: string }) {
+/** Classic Roman-capital title for photos and big headings: tall high-contrast serif capitals, widely spaced, one
+ * short phrase per line, with an optional tiny spaced caption underneath ("VENI / VIDI / VICI", "I came. I saw."). Text after
+ * " · " becomes the caption when none is given. */
+export function EditorialTitle({ text, caption, as: Tag = "h2", className = "" }: { text: string; caption?: string; as?: "h1" | "h2" | "h3"; className?: string }) {
   const t = text.trim();
   const dot = t.indexOf(" · ");
-  const words = t.split(/\s+/);
-  const first = lead ?? (dot > 0 ? t.slice(0, dot) : words.length < 2 ? t : words.slice(0, Math.ceil(words.length / 2)).join(" "));
-  const rest = t.slice(first.length).replace(/^\s*·\s*/, "").trim();
+  const main = dot > 0 ? t.slice(0, dot) : t;
+  const cap = caption ?? (dot > 0 ? t.slice(dot + 3) : "");
+  const words = main.split(/\s+/);
+  // Short words share a line ("LOWER A"), so lines stay balanced like the poster.
+  const lines: string[] = [];
+  for (const w of words) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && (w.length <= 2 || last.length <= 2)) lines[lines.length - 1] = `${last} ${w}`;
+    else lines.push(w);
+  }
   return (
-    <Tag className={`ed-title ${className}`} aria-label={text}>
-      <i aria-hidden="true">{first}</i>
-      {rest && <span aria-hidden="true">{rest}</span>}
+    <Tag className={`ed-title ${className}`} aria-label={cap ? `${main}. ${cap}` : main}>
+      {lines.map((l, k) => <span key={k} className="ed-line" aria-hidden="true" style={{ ["--k" as string]: k }}>{l}</span>)}
+      {cap && <small className="ed-cap" aria-hidden="true">{cap}</small>}
     </Tag>
   );
 }
