@@ -326,7 +326,10 @@ export function LiquidPill({ value, max = 100, colour = "status", label, size = 
 
   useEffect(() => {
     const s = sim.current;
-    if (Math.abs(target - s.target) > 0.001) s.energy = Math.min(1.5, s.energy + 0.6 + Math.abs(target - s.target) * 2);
+    // Small steps (a timer ticking down) only stir the edge a little; real jumps make it wobble.
+    const d = Math.abs(target - s.target);
+    if (d > 0.04) s.energy = Math.min(1.5, s.energy + 0.6 + d * 2);
+    else if (d > 0.001) s.energy = Math.min(0.35, s.energy + 0.12);
     s.target = target;
   }, [target]);
 

@@ -23,7 +23,7 @@ export function Thread({ me, to }: { me: Message["from"]; to: string }) {
         {messages.map((m, i) => {
           const mine = m.from === me;
           return (
-            <div key={i} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", background: mine ? "var(--blue)" : "var(--card)", color: mine ? "#fff" : "var(--text)", border: mine ? "none" : "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
+            <div key={i} className={`msg ${mine ? "mine" : "theirs"}`} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", background: mine ? "var(--blue)" : "var(--card)", color: mine ? "#fff" : "var(--text)", border: mine ? "none" : "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
               <div style={{ whiteSpace: "pre-line" }}>{m.text}</div>
               <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4, textAlign: "right" }}>{m.time}</div>
             </div>

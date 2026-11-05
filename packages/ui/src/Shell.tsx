@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icons, type IconName } from "./icons";
 import { ThemeButton } from "./ThemeButton";
 
@@ -23,6 +23,26 @@ interface ShellProps<T extends string> {
 
 /** App frame: top bar with logo and theme, content, floating tab bar (the open tab shows its name, the rest are icons). */
 export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, wide, actions, children }: ShellProps<T>) {
+  const nav = useRef<HTMLElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
+  // The dark pill behind the open tab slides to the tab you pick and stretches to its width.
+  useLayoutEffect(() => {
+    const n = nav.current;
+    const p = pill.current;
+    if (!n || !p) return;
+    const place = () => {
+      const on = n.querySelector<HTMLElement>(".tab.on");
+      if (!on) return;
+      p.style.translate = `${on.offsetLeft}px 0`;
+      p.style.width = `${on.offsetWidth}px`;
+    };
+    place();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
+    n.querySelectorAll(".tab").forEach((t) => ro?.observe(t));
+    // Let the first placement land without sliding in from the left.
+    requestAnimationFrame(() => p.classList.add("ready"));
+    return () => ro?.disconnect();
+  }, [tab, tabs.length]);
   return (
     <div className={`shell ${wide ? "wide" : ""}`}>
       <div className="top">
@@ -34,7 +54,8 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
         <div style={{ display: "flex", gap: 6 }}>{actions}<ThemeButton /></div>
       </div>
       <main className="main">{children}</main>
-      <nav className="tabs" aria-label={`${side} navigation`}>
+      <nav ref={nav} className="tabs" aria-label={`${side} navigation`}>
+        <span ref={pill} className="tab-pill" aria-hidden="true" />
         {tabs.map((t) => {
           const Icon = Icons[t.icon];
           return (

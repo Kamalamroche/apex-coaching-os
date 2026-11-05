@@ -2,7 +2,7 @@ import {
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { Icons, HeroBackdrop, WheelInput } from "@apex/ui";
+import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WheelInput } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -27,9 +27,9 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const [idx, setIdx] = useState(0);
   const [sets, setSets] = useState<SessionSets>(() => initialSets(w));
   const [rpe, setRpe] = useState<Record<string, number>>({});
-  const [rest, setRest] = useState<{ left: number } | null>(null);
+  const [rest, setRest] = useState<{ left: number; total: number } | null>(null);
   /** Work countdown for a timed station ("40s"): the set ticks itself off when it reaches zero. */
-  const [work, setWork] = useState<{ key: string; set: number; left: number } | null>(null);
+  const [work, setWork] = useState<{ key: string; set: number; left: number; total: number } | null>(null);
   const [showCues, setShowCues] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [plates, setPlates] = useState(false);
@@ -47,7 +47,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
       setRest(null);
       return;
     }
-    const id = setTimeout(() => setRest((r) => r && { left: r.left - 1 }), 1000);
+    const id = setTimeout(() => setRest((r) => r && { ...r, left: r.left - 1 }), 1000);
     return () => clearTimeout(id);
   }, [rest]);
 
@@ -71,7 +71,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
     const after = { ...sets, [key]: (sets[key] ?? []).map((x, j) => (j === i ? { ...x, done: true } : x)) };
     setSets(after);
     const { next, restSeconds } = afterSet(w, after, at);
-    if (restSeconds) setRest({ left: restSeconds });
+    if (restSeconds) setRest({ left: restSeconds, total: restSeconds });
     if (next !== null) setTimeout(() => { setIdx(next); setShowCues(false); window.scrollTo(0, 0); }, 350);
   }
 
@@ -184,7 +184,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           ))}
         </div>
         {workSecs && !exerciseDone && (
-          <button className="btn act block" style={{ minHeight: 52 }} disabled={!!work} onClick={() => { const n = itemSets.findIndex((s) => !s.done); if (n >= 0) setWork({ key: it.key, set: n, left: workSecs }); setRest(null); }}>
+          <button className="btn act block" style={{ minHeight: 52 }} disabled={!!work} onClick={() => { const n = itemSets.findIndex((s) => !s.done); if (n >= 0) setWork({ key: it.key, set: n, left: workSecs, total: workSecs }); setRest(null); }}>
             {work ? "Working…" : `Start ${workSecs} s`}
           </button>
         )}
@@ -203,17 +203,25 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
       )}
       {work && (
-        <div className="rest" role="timer" aria-live="polite" style={{ background: "var(--act)", color: "var(--act-ink)" }}>
-          <div className="grow"><div className="tiny" style={{ color: "inherit", opacity: 0.7 }}>Work · {exerciseFor(w.items.find((x) => x.key === work.key) ?? it).name}</div><b>{formatRest(work.left)}</b></div>
-          <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setWork(null)}>Stop</button>
-          <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setWork((x) => x && { ...x, left: 0 })}>Done</button>
+        <div className="rest rest-lq" role="timer" aria-live="polite" aria-label={`Work, ${formatRest(work.left)} left`}>
+          <LiquidPill value={work.left} max={work.total} colour="var(--act)" size="lg" label="Work time left">
+            <span className="rest-k">Work · {exerciseFor(w.items.find((x) => x.key === work.key) ?? it).name}</span><Rolling text={formatRest(work.left)} className="rest-t" />
+          </LiquidPill>
+          <div className="rest-btns">
+            <button className="btn sm rest-b" onClick={() => setWork(null)}>Stop</button>
+            <button className="btn act sm" onClick={() => setWork((x) => x && { ...x, left: 0 })}>Done</button>
+          </div>
         </div>
       )}
       {rest && !work && (
-        <div className="rest" role="timer" aria-live="polite">
-          <div className="grow"><div className="tiny" style={{ color: "inherit", opacity: 0.7 }}>Rest</div><b>{formatRest(rest.left)}</b></div>
-          <button className="btn sm" style={{ background: "var(--bg)", color: "var(--text)" }} onClick={() => setRest((r) => r && { left: r.left + 30 })}>+30 s</button>
-          <button className="btn act sm" onClick={() => setRest(null)}>Skip</button>
+        <div className="rest rest-lq" role="timer" aria-live="polite" aria-label={`Rest, ${formatRest(rest.left)} left`}>
+          <LiquidPill value={rest.left} max={rest.total} size="lg" label="Rest time left">
+            <span className="rest-k">Rest</span><Rolling text={formatRest(rest.left)} className="rest-t" />
+          </LiquidPill>
+          <div className="rest-btns">
+            <button className="btn sm rest-b" onClick={() => setRest((r) => r && { left: r.left + 30, total: Math.max(r.total, r.left + 30) })}>+30 s</button>
+            <button className="btn act sm" onClick={() => setRest(null)}>Skip</button>
+          </div>
         </div>
       )}
       <nav className="navbar" aria-label="Workout">
@@ -251,12 +259,13 @@ function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { wor
   return (
     <div className="shell">
       <main className="main" style={{ paddingBottom: 40 }}>
-        <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete</div>
+        <Celebrate big={prs > 0} />
+        <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete{prs > 0 ? ` · ${prs} personal best${prs > 1 ? "s" : ""}` : ""}</div>
         <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">
-          <div className="kpi"><b>{count}</b><small>Sets · {summary.totalReps ?? 0} reps</small></div>
-          <div className="kpi"><b>{volume.toLocaleString()}</b><small>kg lifted</small></div>
-          <div className="kpi"><b>{mins}</b><small>Minutes</small></div>
+          <div className="kpi"><b><CountUp value={count} /></b><small>Sets · {summary.totalReps ?? 0} reps</small></div>
+          <div className="kpi"><b><CountUp value={volume} duration={1400} /></b><small>kg lifted</small></div>
+          <div className="kpi"><b><CountUp value={mins} /></b><small>Minutes</small></div>
         </div>
         <WorkoutSummaryCard summary={summary} />
         <button className="btn ghost block" style={{ minHeight: 48 }} onClick={() => setSharing(true)}><Icons.camera width={18} height={18} /> Share with a photo</button>
