@@ -2,7 +2,7 @@
    Kept here (no Supabase client) so they can be unit tested. */
 
 import type { SessionSets } from "./session";
-import type { BlockStyle, Message, PreviousSession, SetTarget, SessionLog, Workout, WorkoutItem, WorkoutSummary } from "./types";
+import type { BlockStyle, Message, PersonalBest, PreviousSession, RecentSession, SetTarget, SessionLog, Workout, WorkoutItem, WorkoutSummary } from "./types";
 
 export interface WorkoutRow {
   id: string;
@@ -168,6 +168,13 @@ export const toPreviousSession = (row: PreviousSessionRow): PreviousSession => (
   sets: row.sets_completed ?? 0,
   volumeKg: Number(row.volume_kg ?? 0),
   minutes: Math.max(1, Math.round((Date.parse(row.finished_at) - Date.parse(row.started_at)) / 60000)),
+});
+
+/** A finished session as the weekly story needs it. `bests` comes from the summary column when it exists. */
+export const toRecentSession = (row: PreviousSessionRow & { bests?: PersonalBest[] | null }): RecentSession => ({
+  ...toPreviousSession(row),
+  at: row.finished_at,
+  bests: Array.isArray(row.bests) ? row.bests : [],
 });
 
 /** Heaviest logged load per exercise. */

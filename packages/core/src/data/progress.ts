@@ -33,7 +33,7 @@ function silhouette(pose: Pose, t: number): string {
   const x = (dx: number) => (150 + dx * w).toFixed(1);
   const body = `M${x(-26)} 120 Q${x(-44)} 128 ${x(-40)} 170 L${x(-waist)} 230 Q${x(-hip - 4)} 270 ${x(-hip)} 300 L${x(-24)} 470 L${x(-8)} 470 L${x(-4)} 320 L${x(4)} 320 L${x(8)} 470 L${x(24)} 470 L${x(hip)} 300 Q${x(hip + 4)} 270 ${x(waist)} 230 L${x(40)} 170 Q${x(44)} 128 ${x(26)} 120 Z`;
   const tone = pose === "back" ? "#1D4ED8" : "#2F6BFF";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice"><rect width="300" height="400" fill="#162540"/><rect y="360" width="300" height="40" fill="#111C30"/><circle cx="150" cy="88" r="24" fill="${tone}"/><path d="${body}" fill="${tone}" transform="translate(0 26) scale(1 0.78)"/><text x="12" y="388" font-family="sans-serif" font-size="12" fill="#6F7D96">SAMPLE</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice"><rect width="300" height="400" fill="#162540"/><rect y="360" width="300" height="40" fill="#111C30"/><circle cx="150" cy="88" r="24" fill="${tone}"/><path d="${body}" fill="${tone}" transform="translate(0 26) scale(1 0.78)"/><text x="12" y="388" font-family="sans-serif" font-size="12" fill="#6F7D96">SAMPLE</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 

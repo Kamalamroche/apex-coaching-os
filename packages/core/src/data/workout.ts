@@ -37,4 +37,16 @@ export const INITIAL_HISTORY: TrainingHistory = {
     { at: "2026-10-23T07:30:00.000Z", score: 88 },
     { at: "2026-10-24T07:30:00.000Z", score: 72 },
   ],
+  // Three weeks of sessions, newest first, so the demo weekly story has a week to tell.
+  sessions: [
+    { at: "2026-10-24T08:20:00.000Z", workoutName: "Lower A · Strength", sets: 13, volumeKg: 2950, minutes: 46, bests: [{ exerciseId: 15, exercise: "Trap Bar Deadlift", kg: 70, previousKg: 67.5 }] },
+    { at: "2026-10-23T18:10:00.000Z", workoutName: "Upper B · Volume", sets: 15, volumeKg: 2140, minutes: 50, bests: [] },
+    { at: "2026-10-21T07:40:00.000Z", workoutName: "Lower B · Volume", sets: 14, volumeKg: 3120, minutes: 52, bests: [{ exerciseId: 9, exercise: "Bulgarian Split Squat", kg: 24, previousKg: 22.5 }] },
+    { at: "2026-10-20T18:05:00.000Z", workoutName: "Upper A · Strength", sets: 12, volumeKg: 1880, minutes: 44, bests: [] },
+    { at: "2026-10-17T07:35:00.000Z", workoutName: "Lower A · Strength", sets: 13, volumeKg: 2810, minutes: 47, bests: [] },
+    { at: "2026-10-15T18:20:00.000Z", workoutName: "Upper B · Volume", sets: 15, volumeKg: 2060, minutes: 49, bests: [] },
+    { at: "2026-10-13T07:30:00.000Z", workoutName: "Lower B · Volume", sets: 14, volumeKg: 2990, minutes: 51, bests: [] },
+    { at: "2026-10-10T07:45:00.000Z", workoutName: "Lower A · Strength", sets: 13, volumeKg: 2700, minutes: 48, bests: [] },
+    { at: "2026-10-07T18:00:00.000Z", workoutName: "Upper A · Strength", sets: 12, volumeKg: 1790, minutes: 45, bests: [] },
+  ],
 };
