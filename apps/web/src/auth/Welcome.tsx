@@ -27,9 +27,9 @@ export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: bo
         <span className="wel-logo"><Icons.logo width={26} height={26} /><b>APEX</b></span>
       </div>
       <div className="wel-copy">
-        <h1 className="wel-h">Move <b>better.</b><br />Feel <b>stronger.</b></h1>
-        <p className="wel-sub">Your HELIX coach, your plan and every session in one place.</p>
-        <a className="wel-pill" href="/#how">How APEX works <Icons.play width={14} height={14} /></a>
+        <h1 className="wel-h">Train with <b>Purpose.</b> Move with <b>Grace.</b></h1>
+        <p className="wel-sub">Coach-built plans, guided Pilates and strength sessions, check-ins and real progress, all in one calm place.</p>
+        <a className="wel-pill" href="/#how">Watch how it works <Icons.play width={14} height={14} /></a>
       </div>
       <div className="wel-actions">
         <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"}</button>
