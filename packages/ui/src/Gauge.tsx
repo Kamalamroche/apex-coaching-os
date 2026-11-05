@@ -44,7 +44,7 @@ export function Gauge({ value, size = 200, stroke = 14, color = "var(--act)", gr
         {gradient && <path d={arc} fill="none" stroke={paint} strokeWidth={stroke} strokeLinecap="round" opacity={0.18} />}
         {value !== null && (
           <path className="gauge-fill" d={arc} fill="none" stroke={paint} strokeWidth={stroke} strokeLinecap="round"
-            strokeDasharray={len} strokeDashoffset={len * (1 - pct)} />
+            strokeDasharray={len} strokeDashoffset={len * (1 - pct)} style={{ ["--len" as string]: len }} />
         )}
         {value !== null && gradient && pct > 0 && <circle className="gauge-knob" cx={kx} cy={ky} r={stroke * 0.62} fill="var(--card)" stroke="currentColor" strokeWidth={stroke * 0.32} />}
         {marks.map((m) => {
@@ -67,7 +67,7 @@ export function MiniRing({ value, max = 5, size = 52, color, children, label }: 
     <div className="gauge" style={{ width: size, height: size, color }} role="img" aria-label={label}>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
-        <circle className="gauge-fill" cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - pct)} opacity={value ? 1 : 0} />
+        <circle className="gauge-fill" cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - pct)} opacity={value ? 1 : 0} style={{ ["--len" as string]: len }} />
       </svg>
       <div className="gauge-mid">{children}</div>
     </div>

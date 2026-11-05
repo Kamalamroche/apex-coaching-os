@@ -1,6 +1,6 @@
 import { RATINGS, parseNumber, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, RatingPicker } from "@apex/ui";
+import { BackLink, RatingPicker, WheelInput } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, PoseSlots, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -53,7 +53,7 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
         <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Body</h2></div>
         <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           Weight this morning, kg
-          <input id="ci-weight" className="field num" inputMode="decimal" placeholder={lastWeight ? `Last time ${lastWeight}` : "e.g. 72.4"} value={weight} onChange={(e) => setWeight(e.target.value)} />
+          <WheelInput id="ci-weight" title="Weight this morning" unit="kg" min={30} max={250} step={0.1} fallback={lastWeight ? Number(lastWeight) : 70} placeholder={lastWeight ? `Last time ${lastWeight}` : "e.g. 72.4"} value={weight} onChange={setWeight} />
         </label>
         {showMeasures ? (
           <MeasureInputs value={measures} onChange={setMeasures} last={progress.measurements} skip={["weightKg"]} />

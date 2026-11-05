@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { Bar } from "./primitives";
+import { CountUp } from "./motion";
 
 /* Small visuals for habits and nutrition. Flat, hairline, colour only where it carries meaning. */
 
@@ -103,10 +104,10 @@ export function FuelGauge({ eaten, target, logs }: { eaten: number; target: numb
             </linearGradient>
           </defs>
           <path d={arcPath(100, 92, R, end, SWEEP / 2)} stroke={`url(#h${id})`} strokeWidth={16} fill="none" />
-          {pct > 0 && <path d={arcPath(100, 92, R, -SWEEP / 2, end)} stroke={`url(#g${id})`} strokeWidth={16} strokeLinecap="round" fill="none" />}
-          {pct > 0 && <circle cx={kx} cy={ky} r={4.5} fill="#fff" />}
+          {pct > 0 && <path className="m-draw" pathLength={1} d={arcPath(100, 92, R, -SWEEP / 2, end)} stroke={`url(#g${id})`} strokeWidth={16} strokeLinecap="round" fill="none" />}
+          {pct > 0 && <circle className="gauge-knob" cx={kx} cy={ky} r={4.5} fill="#fff" />}
         </svg>
-        <div className="mid"><b>{Math.round(eaten).toLocaleString("en-GB")}</b><span>{target ? `of ${target.toLocaleString("en-GB")} kcal` : "kcal today"}</span></div>
+        <div className="mid"><b><CountUp value={Math.round(eaten)} /></b><span>{target ? `of ${target.toLocaleString("en-GB")} kcal` : "kcal today"}</span></div>
       </div>
       <div className="fuel-side">
         <div><b>{left === null ? "–" : Math.abs(left).toLocaleString("en-GB")}</b><small>{left !== null && left < 0 ? "kcal over" : "kcal left"}</small></div>

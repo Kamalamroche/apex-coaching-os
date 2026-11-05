@@ -13,6 +13,13 @@ function readMode(): Mode {
   }
 }
 
+/** Lets colours fade across for a moment while the theme changes (motion.css). */
+function crossFade() {
+  const root = document.documentElement;
+  root.classList.add("theming");
+  window.setTimeout(() => root.classList.remove("theming"), 520);
+}
+
 /** Cycles Auto → Dark → Light. Auto follows the OS setting. */
 export function ThemeButton() {
   const [mode, setMode] = useState<Mode>(readMode);
@@ -28,7 +35,7 @@ export function ThemeButton() {
   }, [mode]);
   const next = NEXT[mode];
   return (
-    <button className="iconbtn" onClick={() => setMode(next)} aria-label={`Theme: ${mode}. Switch to ${next}`}>
+    <button className="iconbtn" onClick={() => { crossFade(); setMode(next); }} aria-label={`Theme: ${mode}. Switch to ${next}`}>
       {mode === "dark" ? "Dark" : mode === "light" ? "Light" : "Auto"}
     </button>
   );

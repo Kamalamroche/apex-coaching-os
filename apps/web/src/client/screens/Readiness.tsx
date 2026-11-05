@@ -2,7 +2,7 @@ import {
   BAND_ADVICE, BAND_LABEL, READINESS_QUESTIONS, RECOVERY_SOURCES, describeLighter, localDate, readinessFromWatch, exerciseFor, lighterSession, readinessOf, vsUsual,
   type Readiness, type ReadinessAnswers, type ReadinessPoint, type Workout, type WorkoutItem,
 } from "@apex/core";
-import { Gauge, Icons, Label } from "@apex/ui";
+import { CountUp, Gauge, Icons, Label } from "@apex/ui";
 import { useMemo, useState, type CSSProperties } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
@@ -98,7 +98,7 @@ function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness;
         <section className="rdy-hero" style={{ "--band": colour } as CSSProperties}>
           <div className="eyebrow">{today}</div>
           <Gauge value={r.score} size={210} stroke={10} color={colour} label={`Readiness ${r.score} out of 100, ${BAND_LABEL[r.band]}`}>
-            <b className="rdy-num num">{r.score}</b><span className="rdy-word">{BAND_LABEL[r.band]}</span>
+            <b className="rdy-num num"><CountUp value={r.score} /></b><span className="rdy-word">{BAND_LABEL[r.band]}</span>
           </Gauge>
           {usual && (
             <span className="rdy-delta" style={{ "--d": usual.diff >= 0 ? "var(--good)" : "var(--crit)" } as CSSProperties}>

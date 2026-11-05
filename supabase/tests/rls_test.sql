@@ -342,6 +342,36 @@ do $$ begin
 end $$;
 reset role;
 
+-- water tracker
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into water_entries (client_id, day, ml) values ('00000000-0000-0000-0000-0000000000c1','2026-11-02',250);
+do $$ begin
+  assert (select count(*) from water_entries) = 1, 'client logs own water';
+  begin
+    insert into water_entries (client_id, day, ml) values ('00000000-0000-0000-0000-0000000000c2','2026-11-02',250);
+    raise exception 'client logged water for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into water_entries (client_id, day, ml) values ('00000000-0000-0000-0000-0000000000c1','2026-11-02',0);
+    raise exception 'logged an empty drink';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select sum(ml) from water_entries) = 250, 'coach sees client water';
+end $$;
+delete from water_entries;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from water_entries) = 1, 'coach cannot delete client water';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from water_entries) = 0, 'rival sees no water';
+end $$;
+reset role;
+
 -- automatic messages
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
 set role authenticated;
@@ -788,3 +818,4 @@ do $$ begin
   assert (select count(*) from public.pending_email_alerts(now() + interval '2 hours', interval '15 minutes') where user_id = '00000000-0000-0000-0000-0000000000e2') = 0, 'switched off means no email';
 end $$;
 reset role;
+

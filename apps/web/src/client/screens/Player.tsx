@@ -2,7 +2,7 @@ import {
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { Icons, HeroBackdrop } from "@apex/ui";
+import { Icons, HeroBackdrop, WheelInput } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -173,11 +173,11 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
             <div key={i} className="sets" style={{ marginBottom: 8, opacity: s.done ? 0.75 : 1 }}>
               <span className="num" style={{ textAlign: "center", fontWeight: 800, color: s.done ? "var(--good)" : "var(--text2)" }}>{i + 1}</span>
               {hasKg ? (
-                <input id={`pk-${it.key}-${i}`} className="cell" inputMode="decimal" value={s.kg} onChange={(e) => patchSet(i, { kg: e.target.value })} aria-label={`Set ${i + 1} weight`} />
+                <WheelInput id={`pk-${it.key}-${i}`} className="cell" title={`Set ${i + 1} weight`} unit="kg" min={0} max={400} step={0.25} fallback={targets[i]?.kg || it.kg || 20} value={s.kg} onChange={(v) => patchSet(i, { kg: v })} />
               ) : (
                 <span className="tiny" style={{ textAlign: "center" }}>BW</span>
               )}
-              <input id={`pr-${it.key}-${i}`} className="cell" inputMode="numeric" value={s.reps} onChange={(e) => patchSet(i, { reps: e.target.value })} aria-label={`Set ${i + 1} reps`} />
+              <WheelInput id={`pr-${it.key}-${i}`} className="cell" title={`Set ${i + 1} ${workSecs ? "seconds" : distanceMetres(it.reps) ? "metres" : "reps"}`} unit={workSecs ? "s" : distanceMetres(it.reps) ? "m" : "reps"} min={0} max={distanceMetres(it.reps) ? 5000 : workSecs ? 600 : 100} step={distanceMetres(it.reps) ? 10 : workSecs ? 5 : 1} fallback={Number(targets[i]?.reps ?? it.reps) || 8} value={s.reps} onChange={(v) => patchSet(i, { reps: v })} />
               <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{targets[i]?.kg} kg</> : null}</span>
               <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}><Icons.check width={20} height={20} strokeWidth={2.25} /></button>
             </div>

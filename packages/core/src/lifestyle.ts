@@ -99,6 +99,58 @@ export function habitCompliance(habits: Habit[], ticks: HabitTick[], today: stri
   return Math.round((days.reduce((a, d) => a + d.done, 0) / due) * 100);
 }
 
+/* ---------- Water ---------- */
+
+/** One drink, logged by the client. */
+export interface WaterEntry {
+  id: string;
+  /** Local date, YYYY-MM-DD. */
+  day: string;
+  ml: number;
+  /** When it was logged, ISO. */
+  at: string;
+}
+
+/** Quick-add sizes, in ml. */
+export const WATER_SIZES = [150, 250, 500];
+export const DEFAULT_WATER_GOAL_ML = 2500;
+
+/**
+ * The daily goal in ml, read from the habit's wording: "Drink 2.5 L of water", "3 litres", "2000 ml", "8 glasses" (250 ml each).
+ * Falls back to 2.5 L when there's no number, and keeps the result between 500 ml and 8 L.
+ */
+export function waterGoalMl(title: string): number {
+  const t = title.toLowerCase().replace(/,(?=\d{3}\b)/g, "");
+  const n = (s: string) => Number(s.replace(",", "."));
+  const pick = (): number | null => {
+    let m = t.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|millilit(?:re|er)s?)\b/);
+    if (m?.[1]) return n(m[1]);
+    m = t.match(/(\d+(?:[.,]\d+)?)\s*(?:l|lit(?:re|er)s?)\b/);
+    if (m?.[1]) return n(m[1]) * 1000;
+    m = t.match(/(\d+)\s*(?:glass|glasses|cups?)\b/);
+    if (m?.[1]) return n(m[1]) * 250;
+    return null;
+  };
+  const v = pick();
+  if (v === null || !Number.isFinite(v) || v <= 0) return DEFAULT_WATER_GOAL_ML;
+  return Math.round(Math.min(8000, Math.max(500, v)));
+}
+
+/** Total ml drunk on a day. */
+export const waterOn = (entries: WaterEntry[], day: string): number => entries.reduce((a, e) => (e.day === day ? a + e.ml : a), 0);
+
+/** A day's drinks, newest first. */
+export const waterLogOn = (entries: WaterEntry[], day: string): WaterEntry[] => entries.filter((e) => e.day === day).sort((a, b) => b.at.localeCompare(a.at));
+
+/** "1.65 L" from 1650, "750 ml" under a litre. */
+export function formatMl(ml: number): string {
+  if (Math.abs(ml) < 1000) return `${Math.round(ml)} ml`;
+  return `${(ml / 1000).toFixed(2).replace(/0$/, "").replace(/\.0$/, "")} L`;
+}
+
+/** The first water habit due on the day, which the water tracker fills and ticks. */
+export const waterHabitOn = (habits: Habit[], day: string): Habit | undefined => habitsOn(habits, day).find((h) => h.kind === "water");
+
 /* ---------- Nutrition ---------- */
 
 export interface NutritionTargets {
@@ -236,6 +288,10 @@ export interface LifestyleState {
   /** Food from about the last month. */
   food: FoodEntry[];
   intake: IntakeForm | null;
+  /** Water drunk over about the last two weeks. */
+  water: WaterEntry[];
+  /** False when the live database doesn't have the water table yet: the tracker says so and habits keep working. */
+  waterReady: boolean;
   /** "needs-update": the database doesn't have these tables yet (the SQL hasn't run). */
   status: "loading" | "ready" | "needs-update" | "error";
   error?: string;
@@ -255,6 +311,9 @@ export interface LifestyleStore {
   /** Client. */
   addFood(f: FoodEntry): void;
   removeFood(id: string): void;
+  /** Client: log a drink. */
+  addWater(e: WaterEntry): void;
+  removeWater(id: string): void;
   /** Client, once (sending again replaces it). */
   submitIntake(a: IntakeAnswers): Promise<void>;
 }
@@ -265,6 +324,7 @@ export interface HabitRow { id: string; client_id: string; kind: HabitKind; titl
 export interface HabitTickRow { client_id: string; habit_id: string; day: string }
 export interface NutritionTargetsRow { client_id: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; note: string | null }
 export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number }
+export interface WaterRow { id: string; client_id: string; day: string; ml: number; created_at: string }
 export interface IntakeRow { client_id: string; answers: IntakeAnswers; health_flags: number; submitted_at: string }
 
 export const toHabitRow = (h: Habit, clientId: string): HabitRow => ({ id: h.id, client_id: clientId, kind: h.kind, title: h.title.slice(0, 120), days: [...h.days].sort(), created_at: h.createdAt });
@@ -277,6 +337,9 @@ export const fromTargetsRow = (r: NutritionTargetsRow): NutritionTargets => ({ k
 
 export const toFoodRow = (f: FoodEntry, clientId: string): FoodEntryRow => ({ id: f.id, client_id: clientId, day: f.day, meal: f.meal, name: f.name.slice(0, 120), kcal: Math.round(f.kcal), protein_g: f.proteinG, carbs_g: f.carbsG, fat_g: f.fatG });
 export const fromFoodRow = (r: FoodEntryRow): FoodEntry => ({ id: r.id, day: r.day.slice(0, 10), meal: r.meal, name: r.name, kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g) });
+
+export const toWaterRow = (e: WaterEntry, clientId: string): WaterRow => ({ id: e.id, client_id: clientId, day: e.day, ml: Math.round(Math.min(5000, Math.max(1, e.ml))), created_at: e.at });
+export const fromWaterRow = (r: WaterRow): WaterEntry => ({ id: r.id, day: r.day.slice(0, 10), ml: num(r.ml), at: r.created_at });
 
 export const fromIntakeRow = (r: IntakeRow): IntakeForm => ({ answers: { ...blankIntake(), ...r.answers }, submittedAt: r.submitted_at });
 
@@ -307,7 +370,17 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
       meal(11 + i * 2, "dinner", "Dinner (quick add)", 760 - i * 30, 48, 80, 24, addDays(today, -d)),
     ]),
   ];
-  return { habits, ticks, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null };
+  const sip = (i: number, ml: number, h: number, m: number, day = today): WaterEntry => {
+    const d = new Date(`${day}T00:00:00`);
+    d.setHours(h, m);
+    return { id: `demo-water-${i}`, day, ml, at: d.toISOString() };
+  };
+  // Yesterday finished the goal; today is part way, so the tracker has somewhere to go.
+  const water: WaterEntry[] = [
+    sip(1, 500, 8, 5, addDays(today, -1)), sip(2, 500, 11, 30, addDays(today, -1)), sip(3, 750, 14, 10, addDays(today, -1)), sip(4, 750, 18, 40, addDays(today, -1)),
+    sip(5, 250, 7, 40), sip(6, 500, 10, 15), sip(7, 250, 12, 30),
+  ];
+  return { habits, ticks, water, waterReady: true, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null };
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
@@ -337,8 +410,8 @@ export function createDemoLifestyleStore(
   const update = (fn: (s: LifestyleState) => LifestyleState) => {
     state = fn(state);
     try {
-      const { habits, ticks, targets, food, intake } = state;
-      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake }));
+      const { habits, ticks, targets, food, intake, water } = state;
+      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake, water }));
     } catch {
       /* storage full or blocked: the change still shows in this tab */
     }
@@ -365,6 +438,8 @@ export function createDemoLifestyleStore(
     setTargets: (t) => update((s) => ({ ...s, targets: t })),
     addFood: (f) => update((s) => ({ ...s, food: [...s.food, f] })),
     removeFood: (id) => update((s) => ({ ...s, food: s.food.filter((f) => f.id !== id) })),
+    addWater: (e) => update((s) => ({ ...s, water: [...s.water, e] })),
+    removeWater: (id) => update((s) => ({ ...s, water: s.water.filter((e) => e.id !== id) })),
     async submitIntake(a) {
       update((s) => ({ ...s, intake: { answers: a, submittedAt: new Date().toISOString() } }));
     },
@@ -373,9 +448,9 @@ export function createDemoLifestyleStore(
 
 /** A store with nothing in it, for a coach with no clients yet. */
 export function emptyLifestyleStore(): LifestyleStore {
-  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, status: "ready" };
+  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, status: "ready" };
   const noop = () => {};
-  return { get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, addFood: noop, removeFood: noop, submitIntake: async () => {} };
+  return { get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, addFood: noop, removeFood: noop, addWater: noop, removeWater: noop, submitIntake: async () => {} };
 }
 
 function safeStorage(): StorageLike | null {

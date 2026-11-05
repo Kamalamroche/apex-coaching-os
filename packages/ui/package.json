@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",
-    "./landing.css": "./src/landing.css"
+    "./landing.css": "./src/landing.css",
+    "./motion.css": "./src/motion.css"
   },
   "peerDependencies": {
     "react": "^18.3.1"
