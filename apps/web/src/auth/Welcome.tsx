@@ -14,7 +14,7 @@ function markSeen() {
 
 /**
  * Client welcome: full-bleed HELIX Pilates studio photo (burgundy low-key look), APEX mark,
- * a big light headline with heavy key words, a glass pill and one clear action. Shown before sign-in, and once per visit in the demo.
+ * a light headline with heavy key words and one glass action. Shown before sign-in, and once per visit in the demo.
  */
 export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: boolean }) {
   const go = () => { markSeen(); onContinue(); };
@@ -27,12 +27,11 @@ export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: bo
         <span className="wel-logo"><Icons.logo width={22} height={22} /><b>APEX</b></span>
       </div>
       <div className="wel-copy">
-        <h1 className="wel-h">Train with <b>Purpose.</b> Move with <b>Grace.</b></h1>
+        <h1 className="wel-h"><span>Train with <b>Purpose.</b></span> <span className="wel-h2">Move with <b>Grace.</b></span></h1>
         <p className="wel-sub">Coach-built plans, guided sessions and real progress, all in one calm place.</p>
-        <a className="wel-pill" href="/#how">Watch how it works <Icons.play width={12} height={12} /></a>
       </div>
       <div className="wel-actions">
-        <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"}</button>
+        <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"} <Icons.arrow width={14} height={14} /></button>
         {!demo && <button className="wel-alt" onClick={go}>I already have an account</button>}
       </div>
     </div>
