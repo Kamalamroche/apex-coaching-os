@@ -1,5 +1,5 @@
 export { Icons, type IconName } from "./icons";
-export { Bar, Label, Avatar, BackLink, ScriptTitle, HeroBackdrop, riskColor, type LabelKind } from "./primitives";
+export { Bar, Label, Avatar, BackLink, ScriptTitle, EditorialTitle, HeroBackdrop, riskColor, type LabelKind } from "./primitives";
 export { Spark } from "./Spark";
 export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
@@ -18,3 +18,4 @@ export { Celebrate, CountUp, Rolling, NumberSheet, Wheel, WheelInput, statusColo
 export { CARD_W, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, drawStorySlide, loadStoryFonts, photoBandBox, BAND_SIZE, type CardFormat } from "./storyCard";
 export { DailyRings, RingWeek, RING_COLOURS, type RingView } from "./rings";
 export { LevelCard, LevelRow, MilestoneList, MilestoneMoment, type LevelView, type MilestoneView } from "./levels";
+export { EffortBoard, TEAM_ART, TeamDraftPreview, TeamFeed, TeamHero, TeamPostItem, teamInitials } from "./team";

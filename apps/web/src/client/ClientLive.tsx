@@ -18,6 +18,7 @@ import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
+import { TeamProvider, liveTeam } from "../data/team";
 import { ResourceProvider, liveResources } from "../data/resources";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
@@ -52,6 +53,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
   useEffect(() => () => goals.close(), [goals]);
   const challenges = useMemo(() => (coach ? liveChallenges(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const resources = useMemo(() => (coach ? liveResources(db, coach.id) : null), [db, coach]);
+  const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
   const notice = useConnectReturn(db, activities, strava, wearables);
@@ -75,9 +77,11 @@ export function ClientLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
+                    <TeamProvider value={team}>
                     <ResourceProvider value={resources}>
                       <ClientApp notice={notice} />
                     </ResourceProvider>
+                    </TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>

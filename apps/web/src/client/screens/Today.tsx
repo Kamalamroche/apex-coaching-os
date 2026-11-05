@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, DailyRings, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
@@ -10,6 +10,7 @@ import { HabitList } from "./Habits";
 import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
+import { TeamPeek } from "../../app/TeamParts";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -18,7 +19,7 @@ const TODAY_INDEX = 5;
 /* Sample week: Monday 20 to Sunday 26 October. */
 const WEEK_DATES = [20, 21, 22, 23, 24, 25, 26];
 
-export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void }) {
+export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; say?: (m: string) => void }) {
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const { status } = useStoreStatus();
@@ -55,8 +56,9 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
         <RingWeek days={rings.week} labels={ringLabels} />
         <p className="tiny dr-nudge">{rings.nudge}</p>
         <LevelRow level={lv.level} onOpen={() => setLevels(true)} />
-        <FreshMilestone list={lv.list} today={lv.today} />
-        {levels && <LevelsSheet onClose={() => setLevels(false)} />}
+        <FreshMilestone list={lv.list} today={lv.today} say={say} />
+        {openTeam && <TeamPeek onOpen={openTeam} />}
+        {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
       </section>
 
       <section aria-label="This week">
@@ -90,7 +92,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
               <span className="gpill dim">Today's session</span>
             </div>
             <div className="hero-body">
-              <h2 className="hero-title">{w.name}</h2>
+              <EditorialTitle text={w.name} />
               <div className="gpills">
                 <span className="gpill num"><Icons.clock /> {w.minutes} min</span>
                 <span className="gpill num">{w.items.length} exercises</span>

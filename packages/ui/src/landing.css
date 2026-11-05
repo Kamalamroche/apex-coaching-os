@@ -32,11 +32,11 @@
 .lp-link:hover{color:var(--act)}
 
 /* ---------- type ---------- */
-.lp-h1{margin:0;font:900 clamp(40px,10.5vw,80px)/.92 var(--head);font-stretch:125%;letter-spacing:-.01em;text-transform:uppercase}
+.lp-h1{margin:0;font:500 clamp(27px,7vw,54px)/1.06 var(--serif);letter-spacing:.08em;text-transform:uppercase}
 .lp-h1 span{display:block}
 .lp-h1 .act,.lp-h2 .act{color:var(--act)}
-.lp-h2{margin:0;font:900 clamp(30px,7vw,54px)/.95 var(--head);font-stretch:122%;letter-spacing:-.005em;text-transform:uppercase;text-wrap:balance}
-.lp-h2.big{font-size:clamp(36px,8.4vw,76px)}
+.lp-h2{margin:0;font:500 clamp(21px,4.8vw,36px)/1.1 var(--serif);letter-spacing:.07em;text-transform:uppercase;text-wrap:balance}
+.lp-h2.big{font-size:clamp(24px,5.8vw,48px)}
 .lp-lead{margin:0;color:var(--text2);font-size:clamp(16px,1.5vw,18px);line-height:1.55;max-width:46ch}
 .lp-kick{display:inline-flex;align-items:center;gap:10px;font:700 12px/1 var(--num);letter-spacing:.2em;text-transform:uppercase;color:var(--act)}
 .lp-kick::before{content:"";width:24px;height:2px;background:currentColor}
@@ -123,7 +123,7 @@
 /* DAY 01: his deadlift photo, numerals between backdrop and athlete */
 .ps-day{background:var(--ps-ink);color:var(--ps-white)}
 .ps-day .ps-photo,.ps-day .ps-cut{object-position:center 55%}
-.ps-day .ps-spaced{position:absolute;z-index:2;top:12cqw;left:0;right:0;text-align:center;font:700 3.6cqw/1 var(--num);letter-spacing:1.4em;padding-left:1.4em}
+.ps-day .ps-spaced{position:absolute;z-index:2;top:12cqw;left:0;right:0;text-align:center;font:500 3.6cqw/1 var(--serif);letter-spacing:1.4em;padding-left:1.4em}
 .ps-day .ps-num{left:0;right:0;top:17cqw;text-align:center;font-size:74cqw;letter-spacing:-.03em;color:var(--ps-act)}
 .ps-day .t1{left:-3cqw;top:84cqw}
 .ps-day .t2{right:-3cqw;top:24cqw;transform:skewX(-14deg) rotate(3deg)}
@@ -132,7 +132,7 @@
 .ps-split .ps-block{position:absolute;left:0;right:0;top:0;height:37%;z-index:0;background:var(--ps-sky)}
 .ps-split .ps-num{left:-2cqw;right:-2cqw;top:12cqw;text-align:center;font-size:50cqw;letter-spacing:-.02em;color:var(--ps-paper)}
 .ps-split .ps-cut{transform:scale(.74);transform-origin:58% 96%}
-.ps-split .ps-label{position:absolute;z-index:5;left:6cqw;top:57cqw;font:900 5.2cqw/.92 var(--head);font-stretch:125%;text-transform:uppercase;color:var(--ps-white);mix-blend-mode:difference}
+.ps-split .ps-label{position:absolute;z-index:5;left:6cqw;top:57cqw;font:500 4.2cqw/1.08 var(--serif);letter-spacing:.09em;text-transform:uppercase;color:var(--ps-white);mix-blend-mode:difference}
 
 /* TRAIN: flat orange, letters filled with the studio photo */
 .ps-flat{background:var(--ps-act)}
@@ -143,7 +143,7 @@
 /* Stronger every week: full photo, clean corner headline, one number */
 .ps-photo-only{color:var(--ps-white)}
 .ps-photo-only .ps-photo{object-position:center 40%}
-.ps-head{position:absolute;z-index:4;left:6cqw;top:6.5cqw;font:700 8.6cqw/.98 var(--ui);letter-spacing:-.025em}
+.ps-head{position:absolute;z-index:4;left:6cqw;top:6.5cqw;font:500 5.2cqw/1.1 var(--serif);letter-spacing:.08em;text-transform:uppercase}
 .ps-sub{position:absolute;z-index:4;left:6cqw;bottom:24cqw;font:700 2.6cqw/1 var(--num);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
 .ps-stat{position:absolute;z-index:4;left:6cqw;bottom:6cqw;display:flex;align-items:flex-end;gap:2cqw}
 .ps-stat b{font:900 22cqw/.78 var(--head);font-stretch:62%;color:var(--ps-act)}

@@ -11,6 +11,7 @@ import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
 import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
 import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/challenges";
+import { TeamProvider, demoTeam, type TeamApi } from "../data/team";
 import { ResourceProvider, demoResources } from "../data/resources";
 import { NotesProvider, demoNotes } from "../data/clientNotes";
 import { LifestyleProvider } from "../data/LifestyleContext";
@@ -30,6 +31,7 @@ const demoFormChecks: { current: FormCheckStore | null } = { current: null };
 const demoGoals: { current: GoalStore | null } = { current: null };
 const demoBookingApi: { current: BookingApi | null } = { current: null };
 const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
+const demoTeamApis: Partial<Record<"coach" | "client", TeamApi>> = {};
 const demoResourceApi = demoResources();
 const demoNotesApi = demoNotes();
 const demoTwinApi: { current: TwinApi | null } = { current: null };
@@ -56,12 +58,13 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoGoals.current ??= createDemoGoalStore();
     demoBookingApi.current ??= demoBookings();
     demoChallengeApis[side] ??= demoChallenges(side);
+    demoTeamApis[side] ??= demoTeam(side);
     demoTwinApi.current ??= demoTwin(() => demoStore.current as ApexStore);
     demoPrivacyApis[side] ??= demoPrivacy(side, side === "coach" ? "Kamal" : "Priya Sharma");
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}>{demo()}</TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></ResourceProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}>{demo()}</TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></ResourceProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );
