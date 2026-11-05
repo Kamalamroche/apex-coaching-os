@@ -774,12 +774,12 @@ button.tile{font:inherit}
 .wel-top{display:flex;align-items:center;justify-content:space-between}
 .wel-logo{display:inline-flex;align-items:center;gap:8px}
 .wel-logo b{font:900 20px/1 var(--head);font-stretch:118%;letter-spacing:.02em}
-.wel-copy{margin-top:clamp(28px,7vh,80px)}
-.wel-kick{margin:0 0 14px;font:700 11px/1 var(--num);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.72);display:flex;align-items:center;gap:10px}
-.wel-kick::before{content:"";width:22px;height:1px;background:var(--act)}
-.wel-h{margin:0;font:300 clamp(38px,11vw,56px)/1.02 var(--head);letter-spacing:-.02em;text-wrap:balance}
-.wel-h b{font-weight:800}
-.wel-sub{margin:16px 0 0;max-width:34ch;font-size:15px;line-height:1.5;color:rgba(255,255,255,.74)}
+.wel-copy{margin-top:clamp(20px,5vh,64px);display:flex;flex-direction:column;align-items:flex-start}
+.wel-h{margin:0;font:300 clamp(40px,11.6vw,60px)/1 var(--head);letter-spacing:-.035em;text-wrap:balance}
+.wel-h b{font-weight:800;letter-spacing:-.03em}
+.wel-sub{margin:12px 0 0;max-width:30ch;font-size:15px;line-height:1.5;color:rgba(255,255,255,.74)}
+.wel-pill{margin-top:18px;display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 18px 0 20px;border-radius:var(--pill);border:1px solid var(--glass-line);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--glass-ink);font:700 12px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
+.wel-pill:focus-visible{outline:2px solid var(--act);outline-offset:3px}
 .wel-actions{margin-top:auto;display:flex;flex-direction:column;gap:10px;width:100%;max-width:440px;align-self:center}
 .wel-btn{min-height:56px;border:0;border-radius:var(--pill);background:var(--glass-ink);color:var(--wel-ink);font:700 16px/1 var(--ui);letter-spacing:.01em;cursor:pointer}
 .wel-alt{min-height:48px;border-radius:var(--pill);border:1px solid var(--glass-line);background:var(--glass-dim);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--glass-ink);font:600 14px/1 var(--ui);cursor:pointer}

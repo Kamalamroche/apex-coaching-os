@@ -13,23 +13,23 @@ function markSeen() {
 }
 
 /**
- * Client welcome: full-bleed HELIX studio photo (burgundy low-key look), APEX mark,
- * a light + bold headline and one clear action. Shown before sign-in, and once per visit in the demo.
+ * Client welcome: full-bleed HELIX Pilates studio photo (burgundy low-key look), APEX mark,
+ * a big light headline with heavy key words, a glass pill and one clear action. Shown before sign-in, and once per visit in the demo.
  */
 export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: boolean }) {
   const go = () => { markSeen(); onContinue(); };
   return (
     <div className="wel">
       <picture className="wel-photo" aria-hidden="true">
-        <img src="/welcome/studio.webp" srcSet="/welcome/studio-720.webp 720w, /welcome/studio.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" fetchPriority="high" />
+        <img src="/welcome/pilates.webp" srcSet="/welcome/pilates-720.webp 720w, /welcome/pilates.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" fetchPriority="high" />
       </picture>
       <div className="wel-top">
         <span className="wel-logo"><Icons.logo width={26} height={26} /><b>APEX</b></span>
       </div>
       <div className="wel-copy">
-        <p className="wel-kick">Coached by HELIX</p>
-        <h1 className="wel-h">Train <b>smarter.</b><br />Get <b>stronger.</b></h1>
-        <p className="wel-sub">Your plan, today's workout and your coach, together in one calm place.</p>
+        <h1 className="wel-h">Move <b>better.</b><br />Feel <b>stronger.</b></h1>
+        <p className="wel-sub">Your HELIX coach, your plan and every session in one place.</p>
+        <a className="wel-pill" href="/#how">How APEX works <Icons.play width={14} height={14} /></a>
       </div>
       <div className="wel-actions">
         <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"}</button>
