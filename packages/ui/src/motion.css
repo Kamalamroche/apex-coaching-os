@@ -220,3 +220,14 @@
 .daystrip>.day:nth-child(2){animation-delay:.04s}.daystrip>.day:nth-child(3){animation-delay:.08s}.daystrip>.day:nth-child(4){animation-delay:.12s}
 .daystrip>.day:nth-child(5){animation-delay:.16s}.daystrip>.day:nth-child(6){animation-delay:.2s}.daystrip>.day:nth-child(7){animation-delay:.24s}
 .daystrip>.day.today{animation:m-pop .55s var(--ease-spring) .3s backwards}
+
+/* ---------- Coach: tiles, revenue columns, builder rows ---------- */
+.tiles>.tile{animation:m-rise .5s var(--ease-out) backwards}
+.tiles>.tile:nth-child(2){animation-delay:.07s}.tiles>.tile:nth-child(3){animation-delay:.14s}.tiles>.tile:nth-child(n+4){animation-delay:.21s}
+.tile .ic{animation:m-pop .5s var(--ease-spring) .25s backwards}
+/* Columns grow up from the baseline one after another; their values follow. */
+.m-col{transform-origin:bottom;animation:m-col .8s var(--ease-spring) backwards;animation-delay:calc(.1s + var(--i,0) * 80ms)}
+@keyframes m-col{from{scale:1 0}}
+.m-col-v{animation:m-fade .4s var(--ease-out) backwards;animation-delay:calc(.5s + var(--i,0) * 80ms)}
+/* A newly added or dropped exercise slides into the program; the drop line moves smoothly. */
+.bld-row{animation:m-rise .38s var(--ease-out) backwards;transition:box-shadow .18s var(--ease-out),background-color .2s}

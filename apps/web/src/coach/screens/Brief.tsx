@@ -1,6 +1,6 @@
 import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, Label, Sheet, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, CountUp, Icons, Label, Sheet, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -73,9 +73,9 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
       </div>
       <SampleNote />
       <div className="tiles full">
-        <div className="tile c1"><span className="ic"><Icons.clients /></span><b>{clientCount ?? CLIENTS.length}</b><span>Active clients{mode === "demo" && <><br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+2 this month</i></>}</span></div>
-        <div className="tile c3"><span className="ic"><Icons.check /></span><b>74<small>%</small></b><span>Sessions done, 7 days<br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+4 pts</i></span></div>
-        <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}>{pending.length}</b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
+        <div className="tile c1"><span className="ic"><Icons.clients /></span><b><CountUp value={clientCount ?? CLIENTS.length} /></b><span>Active clients{mode === "demo" && <><br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+2 this month</i></>}</span></div>
+        <div className="tile c3"><span className="ic"><Icons.check /></span><b><CountUp value={74} /><small>%</small></b><span>Sessions done, 7 days<br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+4 pts</i></span></div>
+        <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}><CountUp value={pending.length} /></b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
       </div>
       <div className="hero side short">
         <HeroBackdrop art={hero} />

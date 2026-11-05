@@ -1,5 +1,5 @@
 import { CLIENTS } from "@apex/core";
-import { Avatar, Label } from "@apex/ui";
+import { Avatar, CountUp, Label } from "@apex/ui";
 import { SampleNote } from "../../app/AppContext";
 
 const MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
@@ -12,7 +12,7 @@ export function Business() {
     <>
       <div className="full">
         <div className="eyebrow">Business</div>
-        <h1 className="h1">£{total.toLocaleString()} monthly recurring</h1>
+        <h1 className="h1">£<CountUp value={total} duration={1200} /> monthly recurring</h1>
         <p className="sub">Sample figures. Real numbers come from Stripe once billing is connected.</p>
       </div>
       <SampleNote />
@@ -23,8 +23,8 @@ export function Business() {
             const latest = i === REVENUE.length - 1;
             return (
               <div key={MONTHS[i]} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
-                <span className="num tiny" style={{ color: latest ? "var(--act)" : "var(--text3)", fontWeight: 700 }}>£{(v / 1000).toFixed(2)}k</span>
-                <div style={{ width: "100%", height: `${(v / max) * 84}px`, borderRadius: "4px 4px 0 0", background: latest ? "var(--act)" : "var(--blue-soft)", borderTop: latest ? "none" : "2px solid var(--blue)" }} />
+                <span className="num tiny m-col-v" style={{ ["--i" as string]: i, color: latest ? "var(--act)" : "var(--text3)", fontWeight: 700 }}>£{(v / 1000).toFixed(2)}k</span>
+                <div className="m-col" style={{ ["--i" as string]: i, width: "100%", height: `${(v / max) * 84}px`, borderRadius: "4px 4px 0 0", background: latest ? "var(--act)" : "var(--blue-soft)", borderTop: latest ? "none" : "2px solid var(--blue)" }} />
               </div>
             );
           })}
