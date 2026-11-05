@@ -1,5 +1,5 @@
 import { formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, waterGoalMl, waterOn } from "@apex/core";
-import { HabitDays, Icons, LiquidPill } from "@apex/ui";
+import { HabitDays, Icons, LiquidTile } from "@apex/ui";
 import { useAppInfo } from "../../app/AppContext";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
@@ -45,7 +45,7 @@ export function Habits() {
     <>
       <div className="stack" style={{ gap: 12 }}>
         <div><div className="eyebrow">Habits</div><h1 className="h1">{due.length ? `${done} of ${due.length} today` : "Your habits"}</h1></div>
-        {due.length > 0 && <LiquidPill value={done} max={due.length} label={`${done} of ${due.length} habits done today`} size="md" />}
+        {due.length > 0 && <LiquidTile title="Today." sub={done === due.length ? "All done" : `${due.length - done} to go`} value={Math.round((done / due.length) * 100)} max={100} label={`${done} of ${due.length} habits done today`} />}
       </div>
       {s.status !== "ready" ? status : !s.habits.length ? (
         <div className="card small">No habits yet. {coachName} will add a few small daily ones, like water or steps. They'll show up here and on Today.</div>
