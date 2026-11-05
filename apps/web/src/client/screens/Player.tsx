@@ -1,8 +1,8 @@
 import {
-  afterSet, blockAt, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
+  HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { Icons } from "@apex/ui";
+import { Icons, HeroBackdrop } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -119,22 +119,34 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const plateKg = Number(nextSet?.kg.replace(",", ".")) || it.kg;
 
   const next = w.items[idx + 1];
+  const hero = HERO_IMAGES[heroForExercise(ex)];
   return (
     <div className="shell">
-      <div className="top">
-        <button className="iconbtn" onClick={onExit} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Icons.close width={15} height={15} /> Exit</button>
-        <span className="num small" style={{ fontWeight: 700 }}>{done}/{total} sets</span>
-        <span className="tiny">{idx + 1} of {w.items.length}</span>
-      </div>
-      <div style={{ height: 4, background: "var(--line)" }}>
-        <div style={{ height: "100%", width: `${(done / total) * 100}%`, background: "var(--act)", transition: "width .4s" }} />
-      </div>
-      <main className="main" style={{ paddingBottom: rest ? 170 : 110 }}>
-        <div className="video"><span className="tag label l-data">{inBlock ? `${blockLabel(block.items)} · ${it.group}` : `Block ${it.group}`}</span><Icons.figure /></div>
+      <main className="main" style={{ paddingBottom: rest || work ? 180 : 110 }}>
+        <div className="pl-hero">
+          {ex.video ? (
+            <video src={ex.video.src} poster={hero.src} autoPlay muted loop playsInline preload="metadata" aria-label={`${ex.name} demonstration`} />
+          ) : (
+            <HeroBackdrop art={hero} />
+          )}
+          <div className="bar-top">
+            <button className="gbtn round" onClick={onExit} aria-label="Exit workout"><Icons.close width={18} height={18} /></button>
+            <span className="gpill dim num">{done}/{total} sets · {idx + 1} of {w.items.length}</span>
+            <span className="gpill dim">{inBlock ? `${blockLabel(block.items)} · ${it.group}` : `Block ${it.group}`}</span>
+          </div>
+          <div className="bar-bot">
+            <div className="eyebrow">{ex.muscles.join(" · ")}</div>
+            <h1 className="h1">{ex.name}</h1>
+          </div>
+          <div className="pl-prog"><div style={{ width: `${(done / total) * 100}%` }} /></div>
+        </div>
+        <div className="tiles">
+          <div className="tile mid"><b>{Math.min(itemSets.filter((x) => x.done).length + 1, it.sets)}<small> / {it.sets}</small></b><span>{circuit ? "Round" : "Set"}</span></div>
+          <div className="tile mid"><b>{workSecs ? `${workSecs}s` : (nextSet?.reps || it.reps)}</b><span>{workSecs ? "Work" : distanceMetres(it.reps) ? "Metres" : "Reps"}</span></div>
+          <div className="tile mid"><b>{hasKg ? (nextSet?.kg || it.kg) : "BW"}{hasKg && <small> kg</small>}</b><span>{hasKg ? "Weight" : "Bodyweight"}</span></div>
+        </div>
         <div>
-          <div className="eyebrow">{ex.muscles.join(" · ")}</div>
-          <h1 className="h1" style={{ fontSize: 26 }}>{ex.name}</h1>
-          <div className="small num" style={{ marginTop: 4 }}>
+          <div className="small num">
             {circuit ? `Round ${Math.min(round, it.sets)} of ${it.sets} · ${it.reps}` : `Target ${it.sets}×${it.setPlan ? targets.map((t) => t.reps).join("/") : it.reps}`}
             {it.kg ? ` @ ${it.setPlan ? `up to ${Math.max(...targets.map((t) => t.kg))}` : it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
           </div>
@@ -204,8 +216,8 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           <button className="btn act sm" onClick={() => setRest(null)}>Skip</button>
         </div>
       )}
-      <nav className="tabs" style={{ gap: 8, padding: "10px 16px calc(12px + env(safe-area-inset-bottom,0px))" }}>
-        <button className="btn ghost" style={{ flex: 1 }} disabled={idx === 0} onClick={() => { setIdx(idx - 1); setShowCues(false); }}>Back</button>
+      <nav className="navbar" aria-label="Workout">
+        <button className="btn ghost" style={{ flex: 1 }} disabled={idx === 0} onClick={() => { setIdx(idx - 1); setShowCues(false); }}><Icons.back width={18} height={18} /> Back</button>
         {next ? (
           <button className={`btn ${exerciseDone ? "act" : "ghost"}`} style={{ flex: 2 }} onClick={() => { setIdx(idx + 1); setShowCues(false); window.scrollTo(0, 0); }}>Next: {exerciseFor(next).name}</button>
         ) : (

@@ -1,12 +1,13 @@
 export { Icons, type IconName } from "./icons";
-export { Bar, Label, Avatar, BackLink, riskColor, type LabelKind } from "./primitives";
+export { Bar, Label, Avatar, BackLink, ScriptTitle, HeroBackdrop, riskColor, type LabelKind } from "./primitives";
 export { Spark } from "./Spark";
 export { Sheet } from "./Sheet";
 export { useToast } from "./useToast";
 export { ThemeButton } from "./ThemeButton";
 export { Shell, type TabDef } from "./Shell";
+export { SwipeStart } from "./SwipeStart";
 export { RatingPicker, PhotoFrame } from "./progress";
-export { HabitDays, MacroBars, NumberField, type DayDot, type MacroLine } from "./lifestyle";
+export { FuelGauge, HabitDays, MacroBars, MacroRings, NumberField, type DayDot, type MacroLine } from "./lifestyle";
 export { MuscleMap } from "./MuscleMap";
 export { RouteMap, RunAnalysis, SplitsChart, LoadCompare, useDarkTheme, ProfileChart, SplitsTable, HrZones, WeekBars, RouteThumb, SportIcon, ZONE_COLOURS } from "./ActivityViz";
 export { Gauge, MiniRing } from "./Gauge";

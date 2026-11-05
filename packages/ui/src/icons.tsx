@@ -1,6 +1,6 @@
 import {
   Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
-  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, type LucideIcon,
+  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, type LucideIcon,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
 
@@ -32,7 +32,7 @@ export const Icons = {
   heart: lucide(Heart),
   note: lucide(NotebookPen),
   swap: lucide(ArrowLeftRight),
-  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><path d="M20 4 37 34H3Z" stroke="var(--act)" strokeWidth={3.5} strokeLinejoin="round" /><path d="M20 16l7 12H13Z" fill="var(--blue)" /></svg>,
+  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><path d="M5.5 34 17.5 6h5L34.5 34h-6L20 15.5 11.5 34Z" fill="var(--act)" /><path d="M20 24.5 23.4 34h-6.8Z" fill="var(--blue)" /></svg>,
   run: lucide(Footprints),
   swim: lucide(Waves),
   ride: lucide(Bike),
@@ -55,6 +55,16 @@ export const Icons = {
   form: lucide(ClipboardList),
   target: lucide(Target),
   trash: lucide(Trash2),
+  arrow: lucide(ArrowRight),
+  back: lucide(ChevronLeft),
+  forward: lucide(ChevronRight),
+  swipe: lucide(ChevronsRight),
+  clock: lucide(Clock),
+  bell: lucide(Bell),
+  info: lucide(Info),
+  prev: lucide(SkipBack),
+  next: lucide(SkipForward),
+  spark: lucide(Sparkles),
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;

@@ -2,44 +2,38 @@ import { Icons, ThemeButton, useToast } from "@apex/ui";
 import { createDemoStore } from "@apex/core";
 import { supabase } from "../data/supabase";
 
+/* /start/: pick coach or client. Poster header (giant word behind a cut-out athlete), then two equal choices
+   whose buttons sit on the same line. */
 export function Launcher() {
   const [toast, say] = useToast();
   const live = !!supabase;
   return (
-    <div className="sel">
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
-        <div className="wordmark"><Icons.logo /><b>APEX</b></div>
-        <h1 className="h1" style={{ fontSize: "clamp(26px,5vw,40px)", maxWidth: 620 }}>Simple for the client. Powerful for the coach.</h1>
-        <p className="sub" style={{ maxWidth: 460 }}>
-          {live ? "Sign in to your coach or client account, or try the demo with sample data." : "Demo with sample data. Edit Priya's workout as the coach, then open the client app and you'll see the change. Open both in separate tabs and they stay in sync."}
-        </p>
+    <div className="st">
+      <a href="/" className="st-logo" aria-label="APEX home"><Icons.logo width={24} height={24} /><b>APEX</b></a>
+      <div className="st-stage">
+        <span className="st-giant" aria-hidden="true">APEX</span>
+        <img src="/hero/coach-cut.webp" width={1080} height={1350} alt="A HELIX coach talking a client through her plan" />
       </div>
-      <div className="pick">
-        <a href="/coach/">
-          <span className="eyebrow" style={{ color: "var(--act)" }}>For coaches</span>
-          <span className="h2" style={{ fontSize: 24 }}>Coach OS</span>
-          <ul>
-            <li>Morning Brief: who needs you today, and why</li>
-            <li>Progressions suggested from logged RPE</li>
-            <li>Fast builder with synonym search and one-tap swaps</li>
-            <li>Nutrition, check-ins and revenue in one place</li>
-          </ul>
-          <span className="btn act block" style={{ marginTop: 6 }}>{live ? "Coach sign in" : "Open Coach OS"}</span>
+      <h1 className="st-h">Simple for the client.<span>Powerful for the coach.</span></h1>
+      <p className="st-sub">
+        {live ? "Sign in to your coach or client account. New coaches join with the same button." : "Demo with sample data. Edit Priya's workout as the coach, then open the client app to see the change."}
+      </p>
+      <div className="st-pick">
+        <a href="/coach/" className="st-card">
+          <span className="st-kick">For coaches</span>
+          <b>Coach OS</b>
+          <span className="st-line">Brief, programs, clients and business.</span>
+          <span className="st-btn act">{live ? "Sign in or join" : "Open Coach OS"}</span>
         </a>
-        <a href="/client/" className="cl">
-          <span className="eyebrow" style={{ color: "var(--data)" }}>For clients</span>
-          <span className="h2" style={{ fontSize: 24 }}>Client app</span>
-          <ul className="cl">
-            <li>Opens on today's workout</li>
-            <li>Guided player with video, cues and rest timer</li>
-            <li>Last time's numbers on every set</li>
-            <li>Progress, messages and nutrition one tap away</li>
-          </ul>
-          <span className="btn sec block" style={{ marginTop: 6 }}>{live ? "Client sign in" : "Open client app"}</span>
+        <a href="/client/" className="st-card">
+          <span className="st-kick cl">For clients</span>
+          <b>Client app</b>
+          <span className="st-line">Today's workout, progress and messages.</span>
+          <span className="st-btn">{live ? "Sign in" : "Open client app"}</span>
         </a>
       </div>
-      {live && <div className="row small"><span>Just looking?</span><a className="link" href="/coach/?demo">Coach demo</a><a className="link" href="/client/?demo">Client demo</a></div>}
-      <div className="row">
+      {live && <div className="st-row"><span>Just looking?</span><a href="/coach/?demo">Coach demo</a><a href="/client/?demo">Client demo</a></div>}
+      <div className="st-row">
         <ThemeButton />
         <button className="iconbtn" onClick={() => { createDemoStore().reset(); say("Demo data reset"); }}>Reset demo data</button>
       </div>

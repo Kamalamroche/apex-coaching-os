@@ -59,19 +59,26 @@ export function ActivityView({ activity, all, showNote = true }: { activity: Act
   const [dist, unit] = a.sport === "swim" || a.metres < 1000 ? [Math.round(a.metres).toLocaleString("en-GB"), "m"] : [(a.metres / 1000).toFixed(2), "km"];
   return (
     <>
-      <div>
-        <div className="eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}><SportIcon sport={a.sport} size={14} /> {sportLabel(a.sport)} · {whenLabel(a.startedAt)}</div>
-        <h1 className="h1">{a.name}</h1>
-        <div className="row" style={{ marginTop: 8, gap: 6, flexWrap: "wrap" }}>
-          <Label kind="data">{SOURCE_LABEL[a.source]}</Label>
-          {pbs.map((b) => <span key={b.label} className="cx-pb">★ {b.label} PB</span>)}
+      <div className="runmode">
+        <RouteMap activity={a} at={mapAt} height={a.detail?.route ? 640 : 400} look="mode" />
+        <div className="rm-top">
+          <span className="gpill"><SportIcon sport={a.sport} size={14} /> {sportLabel(a.sport)} · {whenLabel(a.startedAt)}</span>
+          <h1 className="rm-title">{a.name}</h1>
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            <Label kind="data">{SOURCE_LABEL[a.source]}</Label>
+            {pbs.map((b) => <span key={b.label} className="cx-pb">★ {b.label} PB</span>)}
+          </div>
+        </div>
+        <div className="rm-bottom">
+          <b className="rm-big num">{a.metres ? dist : formatDuration(a.movingSeconds)}{a.metres ? <small>{unit}</small> : null}</b>
+          <span className="rm-cap">{a.metres ? "Distance" : "Moving time"}</span>
+          <div className="rm-pills">
+            {stats.map(([v, l, u]) => (
+              <div key={l} className="rm-pill"><b className="num">{v}{u && <small> {u}</small>}</b><span>{l}</span></div>
+            ))}
+          </div>
         </div>
       </div>
-      <div className="cx-hero">
-        <div className="big"><b className="num">{a.metres ? dist : formatDuration(a.movingSeconds)}<small>{a.metres ? unit : ""}</small></b><span>{a.metres ? "Distance" : "Time"}</span></div>
-        {stats.map(([v, l, u]) => <div key={l}><b className="num">{v}{u && <small>{u}</small>}</b><span>{l}</span></div>)}
-      </div>
-      <RouteMap activity={a} at={mapAt} />
       {vsUsual && <LoadCompare {...vsUsual} sportName={sportLabel(a.sport).toLowerCase()} />}
       <RunAnalysis activity={a} onAt={setMapAt} />
       {extra.length > 0 && (

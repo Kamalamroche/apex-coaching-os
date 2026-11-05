@@ -1,6 +1,6 @@
 import { bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, Sheet, Spark } from "@apex/ui";
+import { BackLink, Sheet, Spark, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -37,7 +37,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
   return (
     <>
       {modes}
-      <div><div className="eyebrow">Progress</div><h1 className="h1">{weeks ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Your starting point"}</h1></div>
+      <div>{weeks ? <ScriptTitle script="Progress" className="sm">{`${weeks} week${weeks === 1 ? "" : "s"} in`}</ScriptTitle> : <ScriptTitle script="Your" className="sm">starting point</ScriptTitle>}</div>
       <ProgressNotice />
       <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
         <div className="kpi"><b>{weight ? weight.last : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(weight.delta)} since start</i>}</div>

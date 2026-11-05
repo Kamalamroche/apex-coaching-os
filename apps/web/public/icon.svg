@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15233D"/>
+      <stop offset="1" stop-color="#0A1220"/>
+    </linearGradient>
+    <linearGradient id="or" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF7A2E"/>
+      <stop offset="1" stop-color="#F25A0C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- the apex: a sharp summit chevron, read as an A -->
+  <path d="M206 800 L512 196 L818 800 H664 L512 494 L360 800 Z" fill="url(#or)"/>
+  <!-- the crossbar: a HELIX-blue peak rising inside -->
+  <path d="M512 588 L600 800 H424 Z" fill="#2F6BFF"/>
+</svg>

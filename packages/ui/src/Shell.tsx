@@ -21,7 +21,7 @@ interface ShellProps<T extends string> {
   children: ReactNode;
 }
 
-/** App frame: top bar with logo and theme, content, bottom tab bar. */
+/** App frame: top bar with logo and theme, content, floating tab bar (the open tab shows its name, the rest are icons). */
 export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, wide, actions, children }: ShellProps<T>) {
   return (
     <div className={`shell ${wide ? "wide" : ""}`}>
@@ -38,8 +38,8 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
         {tabs.map((t) => {
           const Icon = Icons[t.icon];
           return (
-            <button key={t.id} className={`tab ${tab === t.id ? "on" : ""}`} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }} aria-current={tab === t.id ? "page" : undefined}>
-              <Icon />
+            <button key={t.id} className={`tab ${tab === t.id ? "on" : ""}`} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }} aria-current={tab === t.id ? "page" : undefined} aria-label={t.label} title={t.label}>
+              <i className="ic"><Icon /></i>
               <span>{t.label}</span>
               {t.dot && <i className="dot" />}
             </button>

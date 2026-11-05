@@ -1,10 +1,10 @@
-/* Athletic Tech design tokens. Navy field, orange = act, blue = coach/structure, cyan = data, violet = AI.
+/* Athletic Tech design tokens. Graphite field (a touch of blue), orange = act, blue = coach/structure, cyan = data, violet = AI.
    Dark-first with a full light theme: follows the OS setting unless <html data-theme> overrides it. */
 :root{
-  --bg:#0A1220; --bg2:#0D1729; --card:#111C30; --card2:#162540; --line:#1F2E4A; --line2:#2A3D60;
-  --text:#F4F6FA; --text2:#A9B4C8; --text3:#6F7D96;
+  --bg:#0D0F13; --bg2:#12151B; --card:#171A21; --card2:#1E222B; --line:#272C36; --line2:#353B47;
+  --text:#F5F5F3; --text2:#AAAFB9; --text3:#717783;
   --act:#FF6A1A; --act-ink:#140600; --act-soft:rgba(255,106,26,.14);
-  --blue:#2F6BFF; --blue-soft:rgba(47,107,255,.16);
+  --blue:#5A73D6; --blue-soft:rgba(90,115,214,.15);
   --data:#38BDF8; --data-soft:rgba(56,189,248,.14);
   --good:#22C55E; --good-soft:rgba(34,197,94,.14);
   --warn:#F59E0B; --warn-soft:rgba(245,158,11,.14);
@@ -13,28 +13,42 @@
   /* Data-viz series: four calm hues, checked for colour-blind separation and 3:1 contrast on both themes. */
   --viz-1:#5468E0; --viz-2:#DB6A30; --viz-3:#159A86; --viz-4:#A85CC8;
   --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace;
-  --r:10px; --r-sm:6px;
+  --r:16px; --r-sm:10px; --r-lg:24px; --pill:999px;
+  /* Glass: frosted pills and bars laid over photos and maps. Same values on both themes, because they sit on imagery. */
+  --glass:rgba(255,255,255,.14); --glass-line:rgba(255,255,255,.24); --glass-ink:#FFFFFF; --glass-dim:rgba(13,15,19,.42);
+  --photo-fade:linear-gradient(180deg,rgba(13,15,19,0) 28%,rgba(13,15,19,.9) 100%);
+  --bar-bg:color-mix(in srgb,var(--card) 84%,transparent);
+  /* Light and shadow: a warm key light top-left, a cool fill bottom-right, and lifted cards, so pages are not flat. */
+  --page-light:radial-gradient(120% 60% at 0% 0%,rgba(255,106,26,.09),transparent 60%),radial-gradient(90% 60% at 100% 85%,rgba(84,104,224,.08),transparent 65%);
+  --card-lift:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 40%);
+  --card-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 30px -20px rgba(0,0,0,.7);
   color-scheme:dark;
 }
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
-  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
-  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --bg:#F3F2EF; --bg2:#EAE8E4; --card:#FFFFFF; --card2:#F8F7F4; --line:#E1DED8; --line2:#CDC9C1;
+  --text:#121418; --text2:#4E525B; --text3:#80848C;
   --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
-  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --blue:#3A54B4; --blue-soft:rgba(58,84,180,.10);
   --data:#0284C7; --data-soft:rgba(2,132,199,.10);
   --good:#15803D; --good-soft:rgba(21,128,61,.10);
   --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
   --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
   --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  --page-light:radial-gradient(120% 60% at 0% 0%,rgba(232,90,12,.07),transparent 60%),radial-gradient(90% 60% at 100% 85%,rgba(84,104,224,.06),transparent 65%);
+  --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
+  --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
   color-scheme:light}}
 :root[data-theme="light"]{
-  --bg:#F3F5F9; --bg2:#EAEEF5; --card:#FFFFFF; --card2:#F6F8FC; --line:#DCE2EC; --line2:#C7D0DE;
-  --text:#0B1324; --text2:#4A5670; --text3:#7A869C;
+  --bg:#F3F2EF; --bg2:#EAE8E4; --card:#FFFFFF; --card2:#F8F7F4; --line:#E1DED8; --line2:#CDC9C1;
+  --text:#121418; --text2:#4E525B; --text3:#80848C;
   --act:#E85A0C; --act-ink:#FFFFFF; --act-soft:rgba(232,90,12,.10);
-  --blue:#1D4ED8; --blue-soft:rgba(29,78,216,.10);
+  --blue:#3A54B4; --blue-soft:rgba(58,84,180,.10);
   --data:#0284C7; --data-soft:rgba(2,132,199,.10);
   --good:#15803D; --good-soft:rgba(21,128,61,.10);
   --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
   --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
   --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  --page-light:radial-gradient(120% 60% at 0% 0%,rgba(232,90,12,.07),transparent 60%),radial-gradient(90% 60% at 100% 85%,rgba(84,104,224,.06),transparent 65%);
+  --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
+  --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
   color-scheme:light}

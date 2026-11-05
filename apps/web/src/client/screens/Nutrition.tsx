@@ -1,5 +1,5 @@
-import { FOODS, MEALS, dayTotals, localDate, loggedAverage, parseNumber, type FoodEntry, type Meal } from "@apex/core";
-import { Icons, MacroBars } from "@apex/ui";
+import { FOODS, HERO_IMAGES, MEALS, dayTotals, localDate, loggedAverage, parseNumber, type FoodEntry, type Meal } from "@apex/core";
+import { FuelGauge, Icons, MacroRings, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
@@ -38,21 +38,25 @@ export function ClientNutrition() {
   if (s.status !== "ready") return <><div><div className="eyebrow">Nutrition</div><h1 className="h1">Food today</h1></div><LifestyleStatus state={s} /></>;
   return (
     <>
-      <div>
-        <div className="eyebrow">Nutrition · today</div>
-        <h1 className="h1"><span className="num">{Math.round(eaten.kcal).toLocaleString()}</span>{t ? <> / <span className="num">{t.kcal.toLocaleString()}</span></> : null} kcal</h1>
-        {!t && <p className="sub">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
-      </div>
-      {t && (
-        <div className="card stack">
-          <MacroBars lines={[
+      <section className="fuelboard">
+        <img className="fb-bg" src={HERO_IMAGES.meal.src} alt="" />
+        <div className="fb-head">
+          <span className="gpill caps">Nutrition · today</span>
+          {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">for today</ScriptTitle>}
+        </div>
+        {!t && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
+        <div className="fb-glass">
+          <FuelGauge eaten={eaten.kcal} target={t?.kcal ?? null} logs={todays.length} />
+        </div>
+        {t && (
+          <MacroRings lines={[
             { label: "Protein", value: eaten.proteinG, target: t.proteinG, unit: "g", colour: "var(--viz-1)" },
-            { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--viz-2)" },
+            { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--act)" },
             { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
           ]} />
-          {t.note && <div className="small" style={{ color: "var(--text)" }}><b>{coachName}:</b> {t.note}</div>}
-        </div>
-      )}
+        )}
+        {t?.note && <div className="fb-glass fb-coach"><b>{coachName}:</b> {t.note}</div>}
+      </section>
 
       {MEALS.map((m) => {
         const list = todays.filter((f) => f.meal === m.key);
@@ -63,8 +67,10 @@ export function ClientNutrition() {
             <div className="card flat list">
               {list.map((f) => (
                 <div key={f.id} className="li">
-                  <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">P {f.proteinG} · C {f.carbsG} · F {f.fatG}</div></div>
-                  <span className="num small">{Math.round(f.kcal)}</span>
+                  <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{Math.round(f.kcal)} kcal</div></div>
+                  <div className="mpills" aria-label={`Protein ${f.proteinG} g, carbs ${f.carbsG} g, fat ${f.fatG} g`}>
+                    <span className="mpill p">P {f.proteinG}</span><span className="mpill c">C {f.carbsG}</span><span className="mpill f">F {f.fatG}</span>
+                  </div>
                   <button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={() => store.removeFood(f.id)}><Icons.close width={16} height={16} /></button>
                 </div>
               ))}

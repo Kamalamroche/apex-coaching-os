@@ -1,5 +1,5 @@
 import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
-import { Avatar, BackLink, Icons } from "@apex/ui";
+import { Avatar, BackLink, Icons, type IconName, ScriptTitle } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { useAppInfo } from "../../app/AppContext";
@@ -53,6 +53,11 @@ export function More({ say }: { say: (m: string) => void }) {
     ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
     ["community", "Community", "Leaderboard and team feed"],
   ];
+  const ICON: Record<View, [IconName, string]> = {
+    book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
+  };
+  const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
   if (view) {
     return (
@@ -73,15 +78,15 @@ export function More({ say }: { say: (m: string) => void }) {
   }
   return (
     <>
-      <div><div className="eyebrow">More</div><h1 className="h1">Everything else</h1></div>
+      <div><p className="sub" style={{ margin: 0 }}>More</p><ScriptTitle script="Everything" className="sm">else</ScriptTitle></div>
       <div className="card flat list">
         {MENU.map(([k, t, s]) => (
-          <button key={k} className="li" onClick={() => setView(k)}><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><span className="tiny">›</span></button>
+          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         ))}
-        <button className="li" onClick={() => setView("apps")}><div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><span className="tiny">›</span></button>
-        <button className="li" onClick={() => setView("account")}><div className="grow"><div className="h3">Privacy and account</div><div className="small">Your agreements, download your data, delete your account</div></div><span className="tiny">›</span></button>
+        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">Privacy and account</div><div className="small">Your agreements, download your data, delete your account</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         {[["Settings", "Units and notifications"]].map(([t, s]) => (
-          <div key={t} className="li"><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
+          <div key={t} className="li"><span className="mi"><Icons.more /></span><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
         ))}
       </div>
     </>
