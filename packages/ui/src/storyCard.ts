@@ -142,6 +142,8 @@ export interface StoryDraw {
   photo?: Img | null;
   /** Where the numbers sit on a photo, 0 = just under the logo, 1 = the bottom (default). The client drags them. */
   place?: number;
+  /** How big the numbers are on a photo, see BAND_SIZE. */
+  size?: number;
 }
 
 export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
@@ -153,7 +155,7 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
   const s = p.slide;
   const t = p.t;
   if (p.photo && p.photo.width) {
-    photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t, p.place);
+    photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t, p.place, p.size);
     return;
   }
   frame(c, h, s.kind === "end" ? "" : p.week, p.coach, p.site, s.kind !== "end");
@@ -331,6 +333,7 @@ export interface MeasureDraw {
   format: CardFormat;
   photo?: Img | null;
   place?: number;
+  size?: number;
   change: BodyChange;
   series: { at: string; value: number }[];
   /** Show the actual values as well as the change. Off by default. */
@@ -352,7 +355,7 @@ export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
       eyebrow: p.change.label, value: signedUnit(p.change.delta, "").trim(), unit: p.change.unit,
       sub: p.showValues ? `${kgText(p.change.first)} → ${kgText(p.change.last)} ${p.change.unit} since ${since0}` : `Since ${since0}`,
       spark: p.series.map((q) => q.value),
-    }, p.coach, p.site, p.t, p.place);
+    }, p.coach, p.site, p.t, p.place, p.size);
     return;
   }
   frame(c, h, "Progress", p.coach, p.site);
@@ -396,6 +399,7 @@ export interface BestDraw {
   format: CardFormat;
   photo?: Img | null;
   place?: number;
+  size?: number;
   best: PersonalBest;
   date: string;
   coach: string | null;
@@ -404,7 +408,7 @@ export interface BestDraw {
 }
 
 export function drawBestCard(canvas: HTMLCanvasElement, p: BestDraw) {
-  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site, photo: p.photo ?? null, place: p.place });
+  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site, photo: p.photo ?? null, place: p.place, size: p.size });
 }
 
 /* ---------- Photo cards: the client's picture fills the card, the logo stays on top, the numbers take the bottom ~15% ---------- */
@@ -438,20 +442,26 @@ function slideBand(s: StorySlide, week: string): Band {
  * The numbers block on a photo card, in card pixels: its height, and the highest and lowest its top can go
  * (`place` 0 and 1). The screens use it to turn a drag into a `place`.
  */
-export function photoBandBox(format: CardFormat): { height: number; minTop: number; maxTop: number } {
+export function photoBandBox(format: CardFormat, size = 1): { height: number; minTop: number; maxTop: number } {
   const h = cardHeight(format);
   const story = format === "story";
   const foot = h - (story ? 64 : 48);
   const top = foot - (story ? 44 + 40 + 48 + 100 : 38 + 32 + 42 + 86) - 40;
-  const height = h - top;
-  return { height, minTop: story ? 220 : 180, maxTop: top };
+  const height = (h - top) * bandSize(size);
+  return { height, minTop: story ? 220 : 180, maxTop: h - height };
 }
 
-function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, site: string, t: number, place = 1) {
+/** How big the numbers are on a photo card, from 0.7 (small) to 1.5 (large); 1 is the default. */
+export const BAND_SIZE = { min: 0.7, max: 1.5 } as const;
+const bandSize = (s: number) => (Number.isFinite(s) ? Math.min(BAND_SIZE.max, Math.max(BAND_SIZE.min, s)) : 1);
+
+function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, site: string, t: number, place = 1, size = 1) {
   cover(c, img, 0, 0, CARD_W, h, false);
   const story = h > 1500;
   const k = (at: number) => part(t, at, 0.5);
-  const box = photoBandBox(story ? "story" : "post");
+  const sz = bandSize(size);
+  const box = photoBandBox(story ? "story" : "post", sz);
+  const home = photoBandBox(story ? "story" : "post", 1).maxTop;
   const p01 = Number.isFinite(place) ? Math.min(1, Math.max(0, place)) : 1;
   const dy = (box.minTop + (box.maxTop - box.minTop) * p01) - box.maxTop;
   // Shade only where words sit: a light veil under the logo, a deeper one under the numbers.
@@ -480,7 +490,11 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
   const P = 64;
   mark(c, P, story ? 120 : 96, 44);
   c.save();
-  c.translate(0, dy);
+  // The block is laid out at its home (bottom, size 1), then moved and scaled from its top-left corner.
+  c.translate(P, bandTop);
+  c.scale(sz, sz);
+  c.translate(-P, -home);
+  const R = P + (CARD_W - P * 2) / sz;
 
   const foot = h - (story ? 64 : 48);
   const rule = foot - (story ? 44 : 38);
@@ -501,7 +515,7 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
     c.fillStyle = C.act;
     c.fillRect(P, eyeY + 4, 36, 4);
     c.restore();
-    const ew = fitSize(c, b.eyebrow.toUpperCase(), 600, 22, CARD_W - P * 2 - 60, 5);
+    const ew = fitSize(c, b.eyebrow.toUpperCase(), 600, 22, R - P - 60, 5);
     setFont(c, 600, ew, 5);
     text(c, b.eyebrow.toUpperCase(), P + 52, eyeY + 12, k(0), C.text);
     setFont(c, 200, vs, -vs * 0.03);
@@ -514,7 +528,7 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
     setFont(c, 400, story ? 30 : 26, 0);
     text(c, b.sub, P, subY, k(0.18), C.text2);
     // A small graphic on the right of the number.
-    const gx = CARD_W - P;
+    const gx = R;
     const gy = valY - vs * 0.36;
     const kk = k(0.2);
     c.save();
@@ -551,10 +565,10 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
     c.restore();
   }
   c.fillStyle = "rgba(255,255,255,.18)";
-  c.fillRect(P, rule, CARD_W - P * 2, 2);
+  c.fillRect(P, rule, R - P, 2);
   setFont(c, 500, story ? 24 : 22, 1);
   text(c, coach ? `Coached by ${coach}` : "Trained with APEX", P, foot, 1, C.text2);
   setFont(c, 400, story ? 22 : 20, 1);
-  text(c, site, CARD_W - P, foot, 1, C.text3, "right");
+  text(c, site, R, foot, 1, C.text3, "right");
   c.restore();
 }

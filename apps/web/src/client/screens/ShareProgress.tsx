@@ -3,7 +3,7 @@ import { useApexState } from "@apex/core/react";
 import { Sheet, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, loadStoryFonts, type CardFormat } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
-import { PlaceDrag } from "../../app/PlaceDrag";
+import { PlaceDrag, SizeSlider } from "../../app/PlaceDrag";
 import { loadPhoto, playIn, shareCards, siteName } from "../../app/shareImage";
 import { useStore } from "../../data/StoreContext";
 import { PhotoPick, useWeekStory } from "./WeekStory";
@@ -33,6 +33,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
   const [fonts, setFonts] = useState(false);
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const [place, setPlace] = useState(1);
+  const [size, setSize] = useState(1);
   const dragged = useRef(false);
   const [status, setStatus] = useState("");
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -60,9 +61,9 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
       });
       drawBeforeAfter(cv, { format, before: imgs.before, after: imgs.after, beforeDate: shortDate(pair.before.takenAt), afterDate: shortDate(pair.after.takenAt), weeks: pair.weeks, numbers: lines, hideFace, coach, site, t });
     } else if (kind === "body" && change) {
-      drawMeasureCard(cv, { format, photo, place, change, series: measurementSeries(progress.measurements, measure), showValues, coach, site, t });
+      drawMeasureCard(cv, { format, photo, place, size, change, series: measurementSeries(progress.measurements, measure), showValues, coach, site, t });
     } else if (kind === "best" && best) {
-      drawBestCard(cv, { format, photo, place, best, date: shortDate(best.at), coach, site, t });
+      drawBestCard(cv, { format, photo, place, size, best, date: shortDate(best.at), coach, site, t });
     } else {
       cv.width = 1080;
       cv.height = cardHeight(format);
@@ -77,7 +78,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
     if (dragged.current) { dragged.current = false; draw(cv, 1); return; }
     return playIn((t) => draw(cv, t), 900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, format, pose, hideFace, numbers, measure, showValues, bestIdx, coach, imgs, fonts, progress.measurements, photo, place]);
+  }, [kind, format, pose, hideFace, numbers, measure, showValues, bestIdx, coach, imgs, fonts, progress.measurements, photo, place, size]);
 
   const ready = (kind === "photos" && !!pair) || (kind === "body" && !!change) || (kind === "best" && !!best);
   const share = async () => {
@@ -102,7 +103,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
       </div>
       <div className="sp-stage">
         <canvas ref={canvas} className={`sp-canvas ${format}`} aria-label="Card preview" />
-        {ready && photo && kind !== "photos" && <PlaceDrag canvas={canvas} format={format} place={place} onPlace={(p) => { dragged.current = true; setPlace(p); }} watch={`${format}-${kind}`} />}
+        {ready && photo && kind !== "photos" && <PlaceDrag canvas={canvas} format={format} place={place} onPlace={(p) => { dragged.current = true; setPlace(p); }} size={size} onSize={(z) => { dragged.current = true; setSize(z); }} watch={`${format}-${kind}`} />}
         {!ready && (
           <div className="sp-empty small">
             {kind === "photos" ? `Add ${pose} photos on two different days to make a before and after.` : kind === "body" ? "Log the same measurement twice to show your change." : "Your personal bests appear here after a workout."}
@@ -143,7 +144,8 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
           {bests.slice(0, 6).map((b, i) => <button key={`${b.exerciseId}-${b.at}`} role="radio" aria-checked={bestIdx === i} className={`chip ${bestIdx === i ? "on" : ""}`} onClick={() => setBestIdx(i)}>{b.exercise} {b.kg} kg</button>)}
         </div>
       )}
-      {kind !== "photos" && <div className="sp-photo"><PhotoPick photo={photo} onPhoto={setPhoto} /><span className="tiny">{photo ? "Drag the numbers to move them" : "Your picture behind the numbers"}</span></div>}
+      {kind !== "photos" && <div className="sp-photo"><PhotoPick photo={photo} onPhoto={setPhoto} /><span className="tiny">{photo ? "Drag to move, pinch to resize" : "Your picture behind the numbers"}</span></div>}
+      {kind !== "photos" && photo && <SizeSlider size={size} onSize={(z) => { dragged.current = true; setSize(z); }} />}
       {coachName && <label className="sp-opt"><input type="checkbox" checked={showCoach} onChange={(e) => setShowCoach(e.target.checked)} /> Show "Coached by {coachName}"</label>}
       <button className="btn act block" style={{ minHeight: 52 }} disabled={!ready} onClick={() => void share()}>Share</button>
       <div className="tiny" style={{ textAlign: "center" }}>{status || "Your photos stay on your phone unless you share them."}</div>

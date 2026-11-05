@@ -310,3 +310,8 @@
 .pd-chip{position:absolute;top:0;left:50%;transform:translate(-50%,-115%);padding:3px 9px;border-radius:var(--pill);background:rgba(13,15,19,.78);color:#F5F5F3;font-size:10px;letter-spacing:.04em;white-space:nowrap;pointer-events:none;animation:pd-hint 3.2s ease-out .6s both}
 .pd:hover .pd-chip,.pd.on .pd-chip,.pd:focus-visible .pd-chip{animation:none;opacity:1}
 @keyframes pd-hint{0%{opacity:0}12%,70%{opacity:1}100%{opacity:0}}
+.pd-size{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
+.pd-size input{flex:1;accent-color:var(--act)}
+.pd-size .pd-a{font-family:var(--head);color:var(--text3);line-height:1}
+.pd-size .pd-a.sm{font-size:12px}.pd-size .pd-a.lg{font-size:20px}
+.wk-foot .pd-size{color:#AAAFB9}
