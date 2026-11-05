@@ -12,6 +12,7 @@ const C = {
   bg: "#0D0F13", bg2: "#151922", text: "#F5F5F3", text2: "#AAAFB9", text3: "#717783", line: "rgba(255,255,255,.12)",
   act: "#FF6A1A", good: "#22C55E", data: "#38BDF8",
   font: "Archivo, system-ui, sans-serif",
+  serif: "'Libre Bodoni', 'Bodoni 72', Didot, Georgia, serif",
 };
 
 type Ctx = CanvasRenderingContext2D;
@@ -19,7 +20,7 @@ type Img = CanvasImageSource & { width: number; height: number };
 
 export async function loadStoryFonts(): Promise<void> {
   try {
-    await Promise.all(["200 300px Archivo", "300 120px Archivo", "500 40px Archivo", "600 40px Archivo", "900 40px Archivo"].map((f) => document.fonts.load(f)));
+    await Promise.all(["200 300px Archivo", "300 120px Archivo", "500 40px Archivo", "600 40px Archivo", "900 40px Archivo", "400 120px 'Libre Bodoni'", "500 120px 'Libre Bodoni'"].map((f) => document.fonts.load(f)));
   } catch { /* draw with fallbacks */ }
 }
 
@@ -28,7 +29,9 @@ const ease = (k: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
 const part = (t: number, at: number, len = 0.45) => ease((t - at) / len);
 
 function setFont(c: Ctx, weight: number, size: number, spacing = 0) {
-  c.font = `${weight} ${size}px ${C.font}`;
+  // Big light numbers and titles are set in the Roman-capital serif, like the app's photo titles.
+  const serif = weight <= 300 && size >= 56;
+  c.font = serif ? `${weight === 200 ? 400 : 500} ${size}px ${C.serif}` : `${weight} ${size}px ${C.font}`;
   const x = c as Ctx & { letterSpacing?: string };
   if ("letterSpacing" in x) x.letterSpacing = `${spacing}px`;
 }
@@ -181,8 +184,8 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
   switch (s.kind) {
     case "cover": {
       eyebrow(c, s.soFar ? "Your week so far" : "Your week", mid - 300, part(t, 0));
-      setFont(c, 300, story ? 132 : 112, -2);
-      text(c, p.week, PAD, mid - 120, part(t, 0.08), C.text);
+      setFont(c, 300, story ? 104 : 88, story ? 8 : 6);
+      text(c, p.week.toUpperCase(), PAD, mid - 120, part(t, 0.08), C.text);
       // Seven days: a filled dot for each day trained.
       const names = ["M", "T", "W", "T", "F", "S", "S"];
       const gap = (CARD_W - PAD * 2) / 7;
@@ -375,8 +378,8 @@ export function drawBeforeAfter(canvas: HTMLCanvasElement, p: BeforeAfterDraw) {
     setFont(c, 400, 28, 0);
     text(c, date, x, top + ph + 100, k, C.text3);
   });
-  setFont(c, 300, story ? 72 : 56, -1);
-  text(c, `${p.weeks} week${p.weeks === 1 ? "" : "s"} of work`, PAD, top - (story ? 48 : 36), part(p.t, 0.1), C.text);
+  setFont(c, 300, story ? 64 : 56, 5);
+  text(c, `${p.weeks} week${p.weeks === 1 ? "" : "s"} of work`.toUpperCase(), PAD, top - (story ? 48 : 36), part(p.t, 0.1), C.text);
   if (p.numbers.length) {
     setFont(c, 500, 34, 0);
     text(c, p.numbers.join("   ·   "), PAD, top + ph + (story ? 190 : 150), part(p.t, 0.45), C.good);
@@ -568,8 +571,8 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
     // Closing card: the coach and where to find them, nothing else.
     setFont(c, 600, 24, 6);
     text(c, b.eyebrow.toUpperCase(), P, eyeY + 40, k(0), C.act);
-    setFont(c, 300, story ? 72 : 60, -1);
-    text(c, coach ? `Coached by ${coach}` : "Train with APEX", P, valY, k(0.1), C.text);
+    setFont(c, 300, story ? 64 : 56, 5);
+    text(c, (coach ? `Coached by ${coach}` : "Train with APEX").toUpperCase(), P, valY, k(0.1), C.text);
   } else {
     c.save();
     c.globalAlpha = k(0);

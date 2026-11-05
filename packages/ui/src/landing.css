@@ -32,11 +32,11 @@
 .lp-link:hover{color:var(--act)}
 
 /* ---------- type ---------- */
-.lp-h1{margin:0;font:900 clamp(40px,10.5vw,80px)/.92 var(--head);font-stretch:125%;letter-spacing:-.01em;text-transform:uppercase}
+.lp-h1{margin:0;font:500 clamp(27px,7vw,54px)/1.06 var(--serif);letter-spacing:.08em;text-transform:uppercase}
 .lp-h1 span{display:block}
 .lp-h1 .act,.lp-h2 .act{color:var(--act)}
-.lp-h2{margin:0;font:900 clamp(30px,7vw,54px)/.95 var(--head);font-stretch:122%;letter-spacing:-.005em;text-transform:uppercase;text-wrap:balance}
-.lp-h2.big{font-size:clamp(36px,8.4vw,76px)}
+.lp-h2{margin:0;font:500 clamp(21px,4.8vw,36px)/1.1 var(--serif);letter-spacing:.07em;text-transform:uppercase;text-wrap:balance}
+.lp-h2.big{font-size:clamp(24px,5.8vw,48px)}
 .lp-lead{margin:0;color:var(--text2);font-size:clamp(16px,1.5vw,18px);line-height:1.55;max-width:46ch}
 .lp-kick{display:inline-flex;align-items:center;gap:10px;font:700 12px/1 var(--num);letter-spacing:.2em;text-transform:uppercase;color:var(--act)}
 .lp-kick::before{content:"";width:24px;height:2px;background:currentColor}
