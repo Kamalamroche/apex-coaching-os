@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, DailyRings, Icons, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, DailyRings, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
@@ -9,6 +9,7 @@ import { useLifestyle } from "../../data/LifestyleContext";
 import { HabitList } from "./Habits";
 import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
+import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -25,6 +26,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
   const { activities } = useActivitiesIfAny();
   const [mood, setMood] = useState<number | null>(null);
   const [story, setStory] = useState(false);
+  const [levels, setLevels] = useState(false);
+  const lv = useLevels();
   const life = useLifestyle();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
@@ -51,6 +54,9 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
         <RingWeek days={rings.week} labels={ringLabels} />
         <p className="tiny dr-nudge">{rings.nudge}</p>
+        <LevelRow level={lv.level} onOpen={() => setLevels(true)} />
+        <FreshMilestone list={lv.list} today={lv.today} />
+        {levels && <LevelsSheet onClose={() => setLevels(false)} />}
       </section>
 
       <section aria-label="This week">

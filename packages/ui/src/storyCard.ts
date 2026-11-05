@@ -1,4 +1,4 @@
-import { signedUnit, type BodyChange, type PersonalBest, type StorySlide } from "@apex/core";
+import { distanceText, signedUnit, type BodyChange, type CardioWeek, type PersonalBest, type StorySlide } from "@apex/core";
 
 /* The weekly story and the progress cards, drawn on a canvas so they can be saved and posted.
    One quiet style for all of them: a deep near-black field, thin large numbers, small spaced capitals, one orange
@@ -92,6 +92,21 @@ function frame(c: Ctx, h: number, corner: string, coach: string | null, site: st
   c.fillStyle = C.text3;
   c.textAlign = "right";
   c.fillText(site, CARD_W - PAD, footY);
+}
+
+/** "12.4 km" → ["12.4", "km"]. */
+function splitDistance(r: CardioWeek): [string, string] {
+  const d = distanceText(r.metres, r.sport);
+  const i = d.lastIndexOf(" ");
+  return [d.slice(0, i), d.slice(i + 1)];
+}
+
+/** "+3.2 km on last week", or null with nothing to compare. */
+function vsText(r: CardioWeek): string | null {
+  if (!r.lastWeekMetres) return null;
+  const diff = r.metres - r.lastWeekMetres;
+  if (Math.abs(diff) < 50) return "Same as last week";
+  return `${diff > 0 ? "+" : "−"}${distanceText(Math.abs(diff), r.sport)} on last week`;
 }
 
 /** A large thin number with its unit, centred block at baseline y. Returns the bottom of the block. */
@@ -239,6 +254,45 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
       eyebrow(c, s.change.label, mid - 280, part(t, 0));
       bigNumber(c, signedUnit(s.change.delta * ease(t / 0.8), "").trim(), s.change.unit, mid, big, part(t, 0.05));
       line(c, `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.`, mid + 110, part(t, 0.45));
+      break;
+    }
+    case "cardio": {
+      const top = s.rows[0]!;
+      eyebrow(c, "Distance this week", mid - 300, part(t, 0));
+      const [v, u] = splitDistance(top);
+      bigNumber(c, v, `${u} ${top.label.toLowerCase()}`, mid - 40, big, part(t, 0.05));
+      const vs = vsText(top);
+      if (vs) line(c, vs, mid + 50, part(t, 0.4), top.metres >= top.lastWeekMetres ? C.good : C.text3, 34, 500);
+      line(c, `${top.sessions} session${top.sessions === 1 ? "" : "s"} · ${hm(top.minutes)}`, mid + (vs ? 110 : 50), part(t, 0.45), C.text2, 34, 400);
+      // The other sports as quiet rows: name and detail on the left, distance on the right.
+      s.rows.slice(1).forEach((r, i) => {
+        const y = mid + 290 + i * 150;
+        const k = part(t, 0.5 + i * 0.08, 0.35);
+        c.save(); c.globalAlpha = k; c.fillStyle = C.line; c.fillRect(PAD, y - 70, CARD_W - PAD * 2, 2); c.restore();
+        setFont(c, 500, 42, 0);
+        text(c, r.label, PAD, y, k, C.text);
+        setFont(c, 200, 72, -1);
+        text(c, distanceText(r.metres, r.sport), CARD_W - PAD, y + 14, k, C.text, "right");
+        const d = vsText(r);
+        setFont(c, 400, 30, 0);
+        text(c, `${r.sessions} session${r.sessions === 1 ? "" : "s"} · ${hm(r.minutes)}`, PAD, y + 46, k, C.text2);
+        if (d) text(c, d, CARD_W - PAD, y + 62, k, r.metres >= r.lastWeekMetres ? C.good : C.text3, "right");
+      });
+      break;
+    }
+    case "milestone": {
+      eyebrow(c, `Milestone · ${s.title}`, mid - 300, part(t, 0));
+      bigNumber(c, s.value, s.unit, mid, big, part(t, 0.05));
+      line(c, s.sub, mid + 110, part(t, 0.45));
+      // A small summit mark: three rising steps that draw in, the last one orange.
+      for (let i = 0; i < 3; i++) {
+        const k = part(t, 0.35 + i * 0.08, 0.3);
+        c.globalAlpha = k;
+        c.fillStyle = i === 2 ? C.act : C.text3;
+        const w = 64, gap = 14, hh = 24 + i * 26;
+        c.fillRect(PAD + i * (w + gap), mid + 260 - hh * k, w, hh * k);
+      }
+      c.globalAlpha = 1;
       break;
     }
     case "end": {
@@ -434,6 +488,13 @@ function slideBand(s: StorySlide, week: string): Band {
     case "habits": return { eyebrow: `Habits · ${week}`, value: String(Math.round((s.done / s.due) * 100)), unit: "%", sub: `${s.done} of ${s.due} ticked off`, ring: s.done / s.due };
     case "streak": return { eyebrow: "Streak", value: String(s.weeks), unit: s.weeks === 1 ? "week" : "weeks", sub: "in a row with at least one workout" };
     case "body": return { eyebrow: s.change.label, value: signedUnit(s.change.delta, "").trim(), unit: s.change.unit, sub: `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` };
+    case "milestone": return { eyebrow: `Milestone · ${s.title}`, value: s.value, unit: s.unit, sub: s.sub };
+    case "cardio": {
+      const top = s.rows[0]!;
+      const [v, u] = splitDistance(top);
+      const others = s.rows.slice(1).map((r) => `${r.label} ${distanceText(r.metres, r.sport)}`).join(" · ");
+      return { eyebrow: `Distance · ${week}`, value: v, unit: `${u} ${top.label.toLowerCase()}`, sub: others || vsText(top) || `${top.sessions} session${top.sessions === 1 ? "" : "s"}` };
+    }
     case "end": return { eyebrow: "Train with me", value: "APEX", unit: "", sub: "" };
   }
 }
