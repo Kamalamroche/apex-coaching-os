@@ -4,6 +4,7 @@ import { Icons, drawStorySlide, loadStoryFonts } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppInfo } from "../../app/AppContext";
+import { PlaceDrag } from "../../app/PlaceDrag";
 import { playIn, shareCards, siteName } from "../../app/shareImage";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { useStore } from "../../data/StoreContext";
@@ -52,6 +53,8 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
   const [fonts, setFonts] = useState(false);
   /** The client's own picture behind every slide. It stays on the phone. */
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
+  /** Where the numbers sit on the photo, 0 top to 1 bottom. One place for every slide. */
+  const [place, setPlace] = useState(1);
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const site = siteName();
@@ -74,8 +77,14 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!slide || !story || !canvas.current) return;
     const cv = canvas.current;
-    return playIn((t) => drawStorySlide(cv, { slide, format: "story", t, week: story.label, coach: coachName || null, site, photo }));
+    return playIn((t) => drawStorySlide(cv, { slide, format: "story", t, week: story.label, coach: coachName || null, site, photo, place }));
   }, [slide, story, coachName, site, fonts, photo]);
+  // Moving the numbers redraws at once, without playing the slide in again.
+  useEffect(() => {
+    if (!slide || !story || !canvas.current || !photo) return;
+    drawStorySlide(canvas.current, { slide, format: "story", t: 1, week: story.label, coach: coachName || null, site, photo, place });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [place]);
 
   // Move on by itself; the bar of the open slide fills while it plays.
   useEffect(() => {
@@ -105,7 +114,7 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
 
   const render = (s: StorySlide) => {
     const cv = document.createElement("canvas");
-    drawStorySlide(cv, { slide: s, format: "story", t: 1, week: story?.label ?? "", coach: coachName || null, site, photo });
+    drawStorySlide(cv, { slide: s, format: "story", t: 1, week: story?.label ?? "", coach: coachName || null, site, photo, place });
     return cv;
   };
   const caption = storyCaption("week", coachName || null, `https://${site}`);
@@ -126,6 +135,7 @@ export function WeekStoryViewer({ onClose }: { onClose: () => void }) {
         <canvas key={idx} ref={canvas} className="wk-canvas" aria-label={`Slide ${idx + 1} of ${slides.length}`} />
         <button className="wk-tap prev" onClick={() => go(-1)} aria-label="Previous slide" />
         <button className="wk-tap next" onClick={() => go(1)} aria-label="Next slide" />
+        {photo && <PlaceDrag canvas={canvas} format="story" place={place} onPlace={(p) => { setPaused(true); setPlace(p); }} watch={idx} />}
       </div>
       <div className="wk-foot">
         <div className="wk-row">

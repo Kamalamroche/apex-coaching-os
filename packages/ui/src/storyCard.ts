@@ -140,6 +140,8 @@ export interface StoryDraw {
   site: string;
   /** The client's own picture. With one, the picture fills the card and the numbers sit small at the bottom. */
   photo?: Img | null;
+  /** Where the numbers sit on a photo, 0 = just under the logo, 1 = the bottom (default). The client drags them. */
+  place?: number;
 }
 
 export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
@@ -151,7 +153,7 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
   const s = p.slide;
   const t = p.t;
   if (p.photo && p.photo.width) {
-    photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t);
+    photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t, p.place);
     return;
   }
   frame(c, h, s.kind === "end" ? "" : p.week, p.coach, p.site, s.kind !== "end");
@@ -328,6 +330,7 @@ export function drawBeforeAfter(canvas: HTMLCanvasElement, p: BeforeAfterDraw) {
 export interface MeasureDraw {
   format: CardFormat;
   photo?: Img | null;
+  place?: number;
   change: BodyChange;
   series: { at: string; value: number }[];
   /** Show the actual values as well as the change. Off by default. */
@@ -349,7 +352,7 @@ export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
       eyebrow: p.change.label, value: signedUnit(p.change.delta, "").trim(), unit: p.change.unit,
       sub: p.showValues ? `${kgText(p.change.first)} → ${kgText(p.change.last)} ${p.change.unit} since ${since0}` : `Since ${since0}`,
       spark: p.series.map((q) => q.value),
-    }, p.coach, p.site, p.t);
+    }, p.coach, p.site, p.t, p.place);
     return;
   }
   frame(c, h, "Progress", p.coach, p.site);
@@ -392,6 +395,7 @@ export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
 export interface BestDraw {
   format: CardFormat;
   photo?: Img | null;
+  place?: number;
   best: PersonalBest;
   date: string;
   coach: string | null;
@@ -400,7 +404,7 @@ export interface BestDraw {
 }
 
 export function drawBestCard(canvas: HTMLCanvasElement, p: BestDraw) {
-  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site, photo: p.photo ?? null });
+  drawStorySlide(canvas, { slide: { kind: "best", best: p.best, others: 0 }, format: p.format, t: p.t, week: p.date, coach: p.coach, site: p.site, photo: p.photo ?? null, place: p.place });
 }
 
 /* ---------- Photo cards: the client's picture fills the card, the logo stays on top, the numbers take the bottom ~15% ---------- */
@@ -430,26 +434,53 @@ function slideBand(s: StorySlide, week: string): Band {
   }
 }
 
-function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, site: string, t: number) {
+/**
+ * The numbers block on a photo card, in card pixels: its height, and the highest and lowest its top can go
+ * (`place` 0 and 1). The screens use it to turn a drag into a `place`.
+ */
+export function photoBandBox(format: CardFormat): { height: number; minTop: number; maxTop: number } {
+  const h = cardHeight(format);
+  const story = format === "story";
+  const foot = h - (story ? 64 : 48);
+  const top = foot - (story ? 44 + 40 + 48 + 100 : 38 + 32 + 42 + 86) - 40;
+  const height = h - top;
+  return { height, minTop: story ? 220 : 180, maxTop: top };
+}
+
+function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, site: string, t: number, place = 1) {
   cover(c, img, 0, 0, CARD_W, h, false);
   const story = h > 1500;
   const k = (at: number) => part(t, at, 0.5);
+  const box = photoBandBox(story ? "story" : "post");
+  const p01 = Number.isFinite(place) ? Math.min(1, Math.max(0, place)) : 1;
+  const dy = (box.minTop + (box.maxTop - box.minTop) * p01) - box.maxTop;
   // Shade only where words sit: a light veil under the logo, a deeper one under the numbers.
   let g = c.createLinearGradient(0, 0, 0, 260);
   g.addColorStop(0, "rgba(13,15,19,.5)");
   g.addColorStop(1, "rgba(13,15,19,0)");
   c.fillStyle = g;
   c.fillRect(0, 0, CARD_W, 260);
-  const bandTop = h * (story ? 0.78 : 0.74);
-  g = c.createLinearGradient(0, bandTop - 140, 0, h);
+  const bandTop = box.maxTop + dy;
+  const bandBottom = bandTop + box.height;
+  const atBottom = p01 > 0.98;
+  g = c.createLinearGradient(0, bandTop - 140, 0, atBottom ? h : bandBottom + 120);
   g.addColorStop(0, "rgba(13,15,19,0)");
-  g.addColorStop(0.45, "rgba(13,15,19,.62)");
-  g.addColorStop(1, "rgba(13,15,19,.9)");
+  if (atBottom) {
+    g.addColorStop(0.45, "rgba(13,15,19,.62)");
+    g.addColorStop(1, "rgba(13,15,19,.9)");
+  } else {
+    // Floating: a soft band that fades out above and below the numbers.
+    g.addColorStop(0.3, "rgba(13,15,19,.6)");
+    g.addColorStop(0.75, "rgba(13,15,19,.6)");
+    g.addColorStop(1, "rgba(13,15,19,0)");
+  }
   c.fillStyle = g;
-  c.fillRect(0, bandTop - 140, CARD_W, h - bandTop + 140);
+  c.fillRect(0, bandTop - 140, CARD_W, (atBottom ? h : bandBottom + 120) - bandTop + 140);
 
   const P = 64;
   mark(c, P, story ? 120 : 96, 44);
+  c.save();
+  c.translate(0, dy);
 
   const foot = h - (story ? 64 : 48);
   const rule = foot - (story ? 44 : 38);
@@ -525,4 +556,5 @@ function photoCard(c: Ctx, h: number, img: Img, b: Band, coach: string | null, s
   text(c, coach ? `Coached by ${coach}` : "Trained with APEX", P, foot, 1, C.text2);
   setFont(c, 400, story ? 22 : 20, 1);
   text(c, site, CARD_W - P, foot, 1, C.text3, "right");
+  c.restore();
 }

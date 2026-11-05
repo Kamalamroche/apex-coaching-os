@@ -273,3 +273,40 @@
 .wk-row .btn{min-height:38px;display:inline-flex;align-items:center;gap:6px}
 .sp-photo{display:flex;align-items:center;gap:10px}
 .sp-photo .btn{display:inline-flex;align-items:center;gap:6px}
+
+/* Daily rings (Today). */
+.dr{display:flex;align-items:center;gap:18px;padding:16px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.dr-dial{position:relative;flex:none}
+.dr-dial svg{display:block}
+.dr-fill{animation:dr-fill 1.1s var(--ease-out) backwards;animation-delay:calc(.15s + var(--i,0) * .12s);transition:stroke-dasharray .8s var(--ease-out)}
+@keyframes dr-fill{from{stroke-dasharray:0 2}}
+.dr g{transition:color .3s}
+.dr-tick{animation:m-pop .45s var(--ease-spring) backwards;animation-delay:calc(1.05s + var(--i,0) * .12s);transform-box:fill-box;transform-origin:center}
+.dr-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center}
+.dr-mid b{font:300 42px/1 var(--head);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--text)}
+.dr-mid>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2)}
+.dr-flame{color:var(--text3);margin-bottom:2px}
+.dr-flame.lit{color:var(--act);animation:dr-flicker 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes dr-flicker{0%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.06,1.1) rotate(-3deg)}60%{transform:scale(.98,1.04) rotate(2deg)}}
+.dr-legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}
+.dr-legend li{display:flex;align-items:center;gap:10px;min-width:0;animation:m-rise .45s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .07s)}
+.dr-legend li>i{width:8px;height:22px;border-radius:4px;background:var(--c);flex:none}
+.dr-legend b{display:block;font-size:14px;color:var(--text)}
+.dr-legend small{display:block;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-legend .grow{min-width:0;flex:1}
+.dr-pct{font-size:13px;color:var(--text2)}
+.dr-legend li.closed .dr-pct{color:var(--c);display:grid;place-items:center;width:22px;height:22px;border-radius:var(--pill);background:color-mix(in srgb,var(--c) 16%,transparent)}
+.dr-best{font-size:12px;color:var(--text2);animation-delay:.35s!important}
+.dr-best .lnk{background:none;border:0;padding:0;color:var(--text2);font:inherit;cursor:pointer}
+.dr-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.dr-day{display:flex;flex-direction:column;align-items:center;gap:4px;animation:m-rise .4s var(--ease-out) backwards;animation-delay:calc(.2s + var(--i,0) * .04s)}
+.dr-day small{font-size:11px;color:var(--text3)}
+@media (max-width:360px){.dr{gap:12px;padding:14px}.dr-dial{transform:scale(.9);margin:-7px}}
+.dr-nudge{margin:8px 2px 0;text-align:center;animation:m-fade .5s ease-out .6s backwards}
+/* Drag handle over the numbers on a photo card. */
+.pd{position:absolute;z-index:3;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:12px;outline:1.5px dashed rgba(255,255,255,0);outline-offset:-6px;transition:outline-color .2s}
+.pd:hover,.pd:focus-visible,.pd.on{outline-color:rgba(255,255,255,.55)}
+.pd.on{cursor:grabbing}
+.pd-chip{position:absolute;top:0;left:50%;transform:translate(-50%,-115%);padding:3px 9px;border-radius:var(--pill);background:rgba(13,15,19,.78);color:#F5F5F3;font-size:10px;letter-spacing:.04em;white-space:nowrap;pointer-events:none;animation:pd-hint 3.2s ease-out .6s both}
+.pd:hover .pd-chip,.pd.on .pd-chip,.pd:focus-visible .pd-chip{animation:none;opacity:1}
+@keyframes pd-hint{0%{opacity:0}12%,70%{opacity:1}100%{opacity:0}}
