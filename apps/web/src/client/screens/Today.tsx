@@ -1,7 +1,8 @@
-import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
+import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, Icons, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
-import { useState } from "react";
+import { Avatar, DailyRings, Icons, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { useMemo, useState } from "react";
+import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useLifestyle } from "../../data/LifestyleContext";
@@ -20,7 +21,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const { status } = useStoreStatus();
-  const { workout: w, log, progress } = useApexState(store);
+  const { workout: w, log, progress, history } = useApexState(store);
+  const { activities } = useActivitiesIfAny();
   const [mood, setMood] = useState<number | null>(null);
   const [story, setStory] = useState(false);
   const life = useLifestyle();
@@ -29,6 +31,14 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
   const doneCount = WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0);
   const totalSets = w.items.reduce((a, it) => a + it.sets, 0);
   const hero = HERO_IMAGES[heroForWorkout(w)];
+  const day = localDate(new Date());
+  const rings = useMemo(() => {
+    const input: RingInput = { sessions: history.sessions ?? [], activities, habits: life.habits, ticks: life.ticks, water: life.water, food: life.food, targets: life.targets };
+    const today = dayRings(input, day);
+    const streak = ringStreak(input, day);
+    return { today, streak, week: ringWeek(input, day), nudge: ringNudge(today, streak.days) };
+  }, [history.sessions, activities, life.habits, life.ticks, life.water, life.food, life.targets, day]);
+  const ringLabels = rings.week.map((d) => (d.day === day ? "Today" : "MTWTFSS"[(new Date(`${d.day}T12:00:00`).getDay() + 6) % 7]!));
   const freshReply = latest?.coachReply && latest.reviewedAt && Date.now() - Date.parse(latest.reviewedAt) < 7 * 86400000 ? latest : null;
   return (
     <>
@@ -36,6 +46,12 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
         <div><p className="sub">Saturday 25 October</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
         <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={44} />
       </div>
+
+      <section aria-label="Today's rings">
+        <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
+        <RingWeek days={rings.week} labels={ringLabels} />
+        <p className="tiny dr-nudge">{rings.nudge}</p>
+      </section>
 
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>
@@ -101,7 +117,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake }: 
 
       <div className="tiles">
         <div className="tile c1"><span className="ic"><Icons.check /></span><b>{doneCount}<small> / 4</small></b><span>Sessions this week</span></div>
-        <div className="tile c2"><span className="ic"><Icons.flame /></span><b>19<small> days</small></b><span>Streak</span></div>
+        <div className="tile c2"><span className="ic"><Icons.flame /></span><b>{rings.streak.days}<small> day{rings.streak.days === 1 ? "" : "s"}</small></b><span>Streak</span></div>
         <button className="tile c3" onClick={openCheckIn}><span className="ic"><Icons.target /></span><b style={{ fontSize: 16, lineHeight: 1.25 }}>{due.due ? "Due" : (WEEKDAY_NAMES[progress.checkInDay] ?? "Weekly").slice(0, 3)}</b><span>Check-in</span></button>
       </div>
 

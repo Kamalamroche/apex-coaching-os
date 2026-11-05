@@ -49,3 +49,4 @@ export * from "./mapView";
 export * from "./privacy";
 export * from "./twin";
 export * from "./story";
+export * from "./rings";
