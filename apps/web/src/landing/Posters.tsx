@@ -3,11 +3,11 @@ import { Icons } from "@apex/ui";
 /* Campaign posters for the landing page. Each one is a fixed 4:5 composition sized in container units,
    so it looks the same on a phone and a desktop. Original HELIX photos and words only.
    Ideas taken (not copied) from Kamal's references: giant condensed numbers behind a cut-out athlete,
-   slanted tags, split colour blocks, type filled with the photo, an athlete resting on a big shape. */
+   split colour blocks, type filled with the photo, an athlete resting on a big shape. */
 
 const Grain = () => <i className="ps-grain" aria-hidden="true" />;
 
-/** Hero: his deadlift photo, DAY 01 in condensed numerals between the backdrop and the athlete, two slanted tags. */
+/** Hero: his deadlift photo, DAY 01 in condensed numerals between the backdrop and the athlete, no tags. */
 export function DayPoster() {
   return (
     <figure className="ps ps-day">
@@ -15,8 +15,6 @@ export function DayPoster() {
       <span className="ps-spaced" aria-hidden="true">D A Y</span>
       <span className="ps-num" aria-hidden="true">01</span>
       <img className="ps-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift" />
-      <span className="ps-tag t1" aria-hidden="true">One plan</span>
-      <span className="ps-tag t2" aria-hidden="true">Real progress</span>
       <span className="ps-mark" aria-hidden="true"><Icons.logo width={18} height={18} /></span>
       <span className="ps-meta tl" aria-hidden="true">Coaching OS<br />Season one</span>
       <span className="ps-meta br" aria-hidden="true">2026 // HELIX no. 01</span>
@@ -89,7 +87,6 @@ export function NextPoster() {
       <img className="ps-photo" src="/hero/rings.webp" width={1080} height={1350} loading="lazy" alt="" />
       <span className="ps-vert" aria-hidden="true">Next</span>
       <img className="ps-cut" src="/hero/rings-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete holding an L-sit on gymnastic rings" />
-      <span className="ps-tag t1" aria-hidden="true">Your next client</span>
       <span className="ps-meta br" aria-hidden="true">Start free // 3 clients</span>
       <Grain />
     </figure>
