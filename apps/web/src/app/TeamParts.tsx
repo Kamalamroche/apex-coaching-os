@@ -1,6 +1,6 @@
 import { cardioWeek, distanceDraft, levelDraft, localDate, milestoneDraft, mondayOf, teamName, toggleFive, workoutDraft, type EffortLine, type TeamDraft, type TeamPost } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, Sheet, TeamDraftPreview, teamInitials, type IconName } from "@apex/ui";
+import { Icons, Sheet, TEAM_ART, TeamDraftPreview, teamInitials, type IconName } from "@apex/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useActivitiesIfAny } from "../data/ActivityContext";
 import { useStore } from "../data/StoreContext";
@@ -125,7 +125,9 @@ export function TeamPeek({ onOpen }: { onOpen: () => void }) {
   const faces = [...new Map(data.posts.map((p) => [p.author, p])).values()].slice(0, 3);
   const mine = data.posts.filter((p) => p.isMe).reduce((a, p) => a + p.fives, 0);
   return (
-    <button className="tm-peek" onClick={onOpen}>
+    <button className="tm-peek poster" onClick={onOpen}>
+      <img src={TEAM_ART.src} alt="" />
+      <span className="tm-peek-word" aria-hidden="true">TEAM</span>
       {data.joined && faces.length ? (
         <span className="tm-avs" aria-hidden="true">{faces.map((p, i) => <span key={p.author} className={`tm-av${p.isCoach ? " coach" : ""}`} style={{ ["--i" as string]: i }}>{teamInitials(p.author)}</span>)}</span>
       ) : (

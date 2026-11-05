@@ -93,6 +93,17 @@ export function agoText(iso: string, now = new Date()): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+/** The divider a post sits under in the feed. */
+export function feedDay(iso: string, now = new Date()): "Today" | "Yesterday" | "This week" | "Earlier" {
+  const d = new Date(iso);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86_400_000);
+  if (diff <= 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return "This week";
+  return "Earlier";
+}
+
 /** Effort first by workouts, then minutes; ties share a place. */
 export function rankEffort(lines: EffortLine[]): (EffortLine & { place: number })[] {
   const sorted = [...lines].sort((a, b) => b.workouts - a.workouts || b.minutes - a.minutes || a.name.localeCompare(b.name));

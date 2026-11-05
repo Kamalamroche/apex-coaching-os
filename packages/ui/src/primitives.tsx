@@ -46,6 +46,22 @@ export function ScriptTitle({ script, children, as: Tag = "h1", className = "" }
   );
 }
 
+/** Editorial title for photos and big headings: the first words in a high-contrast italic serif, the rest upright and
+ * stepped in on the next line. `lead` sets the italic part; otherwise it is the first half of the words. */
+export function EditorialTitle({ text, lead, as: Tag = "h2", className = "" }: { text: string; lead?: string; as?: "h1" | "h2" | "h3"; className?: string }) {
+  const t = text.trim();
+  const dot = t.indexOf(" · ");
+  const words = t.split(/\s+/);
+  const first = lead ?? (dot > 0 ? t.slice(0, dot) : words.length < 2 ? t : words.slice(0, Math.ceil(words.length / 2)).join(" "));
+  const rest = t.slice(first.length).replace(/^\s*·\s*/, "").trim();
+  return (
+    <Tag className={`ed-title ${className}`} aria-label={text}>
+      <i aria-hidden="true">{first}</i>
+      {rest && <span aria-hidden="true">{rest}</span>}
+    </Tag>
+  );
+}
+
 /** A campaign photo with a big poster word set behind the athlete (photo, then word, then the athlete cut-out on top). */
 export function HeroBackdrop({ art, word, focus }: { art: { src: string; cut?: string; focus: string; word: string; ink: "light" | "act" }; word?: string | null; focus?: string }) {
   const text = word === null ? "" : (word ?? art.word).toUpperCase();

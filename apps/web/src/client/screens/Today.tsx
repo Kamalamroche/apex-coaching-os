@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, DailyRings, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
@@ -92,7 +92,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               <span className="gpill dim">Today's session</span>
             </div>
             <div className="hero-body">
-              <h2 className="hero-title">{w.name}</h2>
+              <EditorialTitle text={w.name} />
               <div className="gpills">
                 <span className="gpill num"><Icons.clock /> {w.minutes} min</span>
                 <span className="gpill num">{w.items.length} exercises</span>

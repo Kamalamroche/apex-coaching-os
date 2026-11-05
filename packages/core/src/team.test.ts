@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agoText, distanceDraft, draftProblem, fromTeamFeedRow, milestoneDraft, rankEffort, sampleTeam, teamName, heroForPost, postFigure, toggleFive, workoutDraft } from "./team";
+import { agoText, distanceDraft, draftProblem, fromTeamFeedRow, milestoneDraft, rankEffort, sampleTeam, teamName, heroForPost, postFigure, feedDay, toggleFive, workoutDraft } from "./team";
 
 describe("team", () => {
   it("drafts posts without weights or body numbers", () => {
@@ -58,5 +58,13 @@ describe("team", () => {
     expect(postFigure({ kind: "distance", title: "21.4 km run this week" })).toEqual({ value: "21.4", unit: "km run" });
     expect(postFigure({ kind: "level", title: "Up to level 4: Committed" })).toEqual({ value: "4", unit: "Committed" });
     expect(postFigure({ kind: "workout", title: "Finished Lower A" })).toBeNull();
+  });
+
+  it("groups the feed by day", () => {
+    const now = new Date(2026, 10, 5, 12);
+    expect(feedDay(new Date(2026, 10, 5, 8).toISOString(), now)).toBe("Today");
+    expect(feedDay(new Date(2026, 10, 4, 23).toISOString(), now)).toBe("Yesterday");
+    expect(feedDay(new Date(2026, 10, 1, 9).toISOString(), now)).toBe("This week");
+    expect(feedDay(new Date(2026, 9, 20, 9).toISOString(), now)).toBe("Earlier");
   });
 });

@@ -1,4 +1,4 @@
-import { HERO_IMAGES, heroForPost, type TeamDraft } from "@apex/core";
+import { HERO_IMAGES, heroForPost, postFigure, type TeamDraft } from "@apex/core";
 import { EffortBoard, Icons, TeamFeed, TeamHero, type IconName } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
@@ -51,10 +51,12 @@ export function Team({ say }: { say: (m: string) => void }) {
                 {ideas.map((x, i) => {
                   const hero = heroForPost(x.draft);
                   const I = Icons[x.icon];
+                  const fig = hero ? null : postFigure({ kind: x.draft.kind, title: x.draft.title });
                   return (
                     <button key={x.label} className={`tm-idea${hero ? "" : " plain"}`} style={{ ["--i" as string]: i }} onClick={() => setDraft(x.draft)}>
                       {hero && <img src={HERO_IMAGES[hero].src} alt="" style={{ objectPosition: HERO_IMAGES[hero].focus }} />}
                       <span className="tm-plus" aria-hidden="true"><Icons.plus width={15} height={15} /></span>
+                      {fig && <span className="tm-idea-fig num">{fig.value}</span>}
                       <small><I width={12} height={12} /> {x.draft.kind}</small>
                       <b>{x.label}</b>
                     </button>

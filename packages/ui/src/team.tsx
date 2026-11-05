@@ -1,8 +1,8 @@
-import { HERO_IMAGES, agoText, heroForPost, postFigure, rankEffort, type EffortLine, type TeamDraft, type TeamPost, type TeamPostKind } from "@apex/core";
+import { HERO_IMAGES, LEVELS, agoText, feedDay, heroForPost, postFigure, rankEffort, type EffortLine, type TeamDraft, type TeamPost, type TeamPostKind } from "@apex/core";
 import { useState, type ReactNode } from "react";
 import { Icons, type IconName } from "./icons";
 import { CountUp, Rolling } from "./motion";
-import { HeroBackdrop } from "./primitives";
+import { EditorialTitle, HeroBackdrop } from "./primitives";
 
 /* Team: the same poster language as Today. Workout and distance posts sit on our studio photos, milestones and levels
    lead with a big light number, coach notes read like a quote. High fives burst and roll; the effort board rises as a podium. */
@@ -15,13 +15,16 @@ const KIND: Record<TeamPostKind, [IconName, string]> = {
 export const teamInitials = (name: string) => name.replace(/\./g, "").split(" ").map((p) => p[0] ?? "").join("").slice(0, 2).toUpperCase();
 
 /** The poster at the top of the team screens: studio photo, big word, glass pills. */
+/** The team's own studio still: two of our athletes mid high five. */
+export const TEAM_ART = { src: "/hero/team.webp", cut: "/hero/team-cut.webp", focus: "center 40%", word: "Team", ink: "light" as const };
+
 export function TeamHero({ eyebrow, title, pills, children }: { eyebrow: string; title: string; pills: { icon: IconName; text: string }[]; children?: ReactNode }) {
   return (
     <div className="hero tm-hero">
-      <HeroBackdrop art={HERO_IMAGES.coach} word="Team" />
+      <HeroBackdrop art={TEAM_ART} />
       <div className="hero-top"><span className="gpill dim caps">{eyebrow}</span></div>
       <div className="hero-body">
-        <h1 className="hero-title">{title}</h1>
+        <EditorialTitle as="h1" text={title} />
         {pills.length > 0 && (
           <div className="gpills">
             {pills.map((p, i) => { const I = Icons[p.icon]; return <span key={p.text} className="gpill num" style={{ ["--i" as string]: i }}><I /> {p.text}</span>; })}
@@ -65,6 +68,20 @@ function Who({ p, now, onRemove, glass }: { p: TeamPost; now?: Date; onRemove?: 
   );
 }
 
+function PhotoTitle({ title }: { title: string }) {
+  const m = /^(finished)\s+(.+)$/i.exec(title);
+  return m ? <EditorialTitle as="h3" text={`${m[1]} ${m[2]}`} lead={m[1]} /> : <EditorialTitle as="h3" text={title} />;
+}
+
+/** Every rung of our level ladder, lit up to this one. */
+function LevelLadder({ level }: { level: number }) {
+  return (
+    <span className="tm-ladder" aria-label={`Level ${level} of ${LEVELS.length}`}>
+      {LEVELS.map((l, k) => <i key={l.name} className={k < level ? (k === level - 1 ? "on now" : "on") : undefined} style={{ ["--k" as string]: k }} />)}
+    </span>
+  );
+}
+
 /** One post, drawn for its kind. */
 export function TeamPostItem({ p, onFive, onRemove, now, i = 0 }: { p: TeamPost; onFive?: () => void; onRemove?: () => void; now?: Date; i?: number }) {
   const hero = heroForPost(p);
@@ -72,27 +89,28 @@ export function TeamPostItem({ p, onFive, onRemove, now, i = 0 }: { p: TeamPost;
   const [icon, label] = KIND[p.kind];
   const I = Icons[icon];
   const style = { ["--i" as string]: Math.min(i, 8) };
+  const fresh = p.isMe && Date.now() - Date.parse(p.at) < 90_000 ? " fresh" : "";
   if (hero) {
     const art = HERO_IMAGES[hero];
     const bits = (p.detail ?? "").split(" · ").filter(Boolean);
     return (
-      <article className="tm-post photo" style={style}>
+      <article className={`tm-post photo${fresh}`} style={style}>
         <div className="tm-photo">
           <img src={art.src} alt="" style={{ objectPosition: art.focus }} loading="lazy" />
           <Who p={p} now={now} onRemove={onRemove} glass />
           <div className="tm-photo-body">
             <span className="gpill dim caps"><I /> {label}</span>
-            {fig ? <div className="tm-fig light"><b className="num">{fig.value}</b><span>{fig.unit}</span></div> : <h3 className="tm-photo-title">{p.title}</h3>}
+            {fig ? <div className="tm-fig light"><b className="num">{fig.value}</b><span>{fig.unit}</span></div> : <PhotoTitle title={p.title} />}
             {bits.length > 0 && <div className="gpills">{bits.map((b) => <span key={b} className="gpill num">{b}</span>)}</div>}
+            <footer className="tm-foot glass"><FiveButton p={p} onFive={onFive} /></footer>
           </div>
         </div>
-        <footer className="tm-foot"><FiveButton p={p} onFive={onFive} /></footer>
       </article>
     );
   }
   if (p.kind === "note") {
     return (
-      <article className="tm-post quote" style={style}>
+      <article className={`tm-post quote${fresh}`} style={style}>
         <Who p={p} now={now} onRemove={onRemove} />
         <blockquote className="tm-note">{p.title}</blockquote>
         {p.detail && <small className="tm-detail">{p.detail}</small>}
@@ -101,13 +119,13 @@ export function TeamPostItem({ p, onFive, onRemove, now, i = 0 }: { p: TeamPost;
     );
   }
   return (
-    <article className={`tm-post figure k-${p.kind}`} style={style}>
+    <article className={`tm-post figure k-${p.kind}${fresh}`} style={style}>
       <Who p={p} now={now} onRemove={onRemove} />
       <div className="tm-figure">
         <span className="tm-eyebrow"><I width={13} height={13} /> {label}</span>
         {fig ? <div className="tm-fig"><b className="num">{fig.value}</b><span>{fig.unit}</span></div> : <h3 className="tm-plain">{p.title}</h3>}
         {p.detail && <small className="tm-detail">{p.detail}</small>}
-        {p.kind === "level" ? <span className="tm-level" aria-hidden="true"><i /></span> : <span className="tm-steps" aria-hidden="true"><i /><i /><i /></span>}
+        {p.kind === "level" ? <LevelLadder level={Number(fig?.value) || 1} /> : <span className="tm-steps" aria-hidden="true"><i /><i /><i /></span>}
       </div>
       <footer className="tm-foot"><FiveButton p={p} onFive={onFive} /></footer>
     </article>
@@ -117,9 +135,16 @@ export function TeamPostItem({ p, onFive, onRemove, now, i = 0 }: { p: TeamPost;
 export function TeamFeed({ posts, onFive, onRemove, canRemove, now }: { posts: TeamPost[]; onFive?: (id: string) => void; onRemove?: (p: TeamPost) => void; canRemove?: (p: TeamPost) => boolean; now?: Date }) {
   return (
     <div className="tm-feed">
-      {posts.map((p, i) => (
-        <TeamPostItem key={p.id} p={p} i={i} now={now} onFive={onFive ? () => onFive(p.id) : undefined} onRemove={onRemove && (canRemove?.(p) ?? true) ? () => onRemove(p) : undefined} />
-      ))}
+      {posts.map((p, i) => {
+        const day = feedDay(p.at, now);
+        const head = i === 0 || feedDay(posts[i - 1]!.at, now) !== day;
+        return (
+          <div key={p.id} className="tm-slot">
+            {head && <div className="tm-day" style={{ ["--i" as string]: Math.min(i, 8) }}><span>{day}</span></div>}
+            <TeamPostItem p={p} i={i} now={now} onFive={onFive ? () => onFive(p.id) : undefined} onRemove={onRemove && (canRemove?.(p) ?? true) ? () => onRemove(p) : undefined} />
+          </div>
+        );
+      })}
     </div>
   );
 }
