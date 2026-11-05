@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { agoText, distanceDraft, draftProblem, fromTeamFeedRow, milestoneDraft, rankEffort, sampleTeam, teamName, toggleFive, workoutDraft } from "./team";
+import { agoText, distanceDraft, draftProblem, fromTeamFeedRow, milestoneDraft, rankEffort, sampleTeam, teamName, heroForPost, postFigure, toggleFive, workoutDraft } from "./team";
 
 describe("team", () => {
   it("drafts posts without weights or body numbers", () => {
@@ -45,5 +45,18 @@ describe("team", () => {
     expect(teamName("  Anna  de la cruz ")).toBe("Anna C.");
     expect(teamName("Kamal")).toBe("Kamal");
     expect(teamName("")).toBe("Someone");
+  });
+
+  it("picks a photo or a big number for each post", () => {
+    expect(heroForPost({ kind: "workout", title: "Finished Lower A" })).toBe("lower");
+    expect(heroForPost({ kind: "workout", title: "Finished Upper B" })).toBe("upper");
+    expect(heroForPost({ kind: "distance", title: "1,800 m swim this week" })).toBe("swim");
+    expect(heroForPost({ kind: "distance", title: "21.4 km run this week" })).toBe("run");
+    expect(heroForPost({ kind: "note", title: "Hi" })).toBeNull();
+    expect(postFigure({ kind: "milestone", title: "Reached 25 workouts" })).toEqual({ value: "25", unit: "workouts" });
+    expect(postFigure({ kind: "milestone", title: "Reached 100 tonnes lifted" })).toEqual({ value: "100", unit: "tonnes lifted" });
+    expect(postFigure({ kind: "distance", title: "21.4 km run this week" })).toEqual({ value: "21.4", unit: "km run" });
+    expect(postFigure({ kind: "level", title: "Up to level 4: Committed" })).toEqual({ value: "4", unit: "Committed" });
+    expect(postFigure({ kind: "workout", title: "Finished Lower A" })).toBeNull();
   });
 });

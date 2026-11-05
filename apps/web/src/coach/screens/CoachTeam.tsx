@@ -1,5 +1,5 @@
 import { TEAM_TITLE_MAX } from "@apex/core";
-import { BackLink, EffortBoard, TeamFeed } from "@apex/ui";
+import { BackLink, EffortBoard, TeamFeed, TeamHero } from "@apex/ui";
 import { useState } from "react";
 import { TeamStatus, useTeam } from "../../app/TeamParts";
 import { effortWeekLabel, useTeamApi } from "../../data/team";
@@ -21,7 +21,11 @@ export function CoachTeam({ onBack, say }: { onBack: () => void; say: (m: string
   return (
     <>
       <BackLink onClick={onBack}>Messages</BackLink>
-      <div><div className="eyebrow">Team</div><h1 className="h1">Your team</h1></div>
+      <TeamHero
+        eyebrow={effortWeekLabel()}
+        title="Your team"
+        pills={data.status === "ready" ? [{ icon: "clients", text: `${data.effort.length} joined` }, { icon: "train", text: `${data.effort.reduce((a, l) => a + l.workouts, 0)} workouts` }, { icon: "five", text: `${data.posts.reduce((a, p) => a + p.fives, 0)} high fives` }] : []}
+      />
       <TeamStatus data={data} />
       {data.status === "ready" && (
         <>

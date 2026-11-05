@@ -1,9 +1,16 @@
-import type { TeamDraft } from "@apex/core";
-import { EffortBoard, Icons, TeamFeed } from "@apex/ui";
+import { HERO_IMAGES, heroForPost, type TeamDraft } from "@apex/core";
+import { EffortBoard, Icons, TeamFeed, TeamHero, type IconName } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { PostToTeam, TeamStatus, useTeam, useTeamSuggestions } from "../../app/TeamParts";
 import { effortWeekLabel, useTeamApi } from "../../data/team";
+
+const RULES: [IconName, string, string][] = [
+  ["check", "You choose", "Only what you post. Nothing is shared by itself."],
+  ["five", "High fives", "Cheer each other on after every session."],
+  ["progress", "Effort only", "Workouts and minutes. Never weight or photos."],
+  ["clients", "Private", "Only your coach and the team. Leave any time."],
+];
 
 /** Client: the coach's private team. Join, post what you choose, give high fives, see this week's effort. */
 export function Team({ say }: { say: (m: string) => void }) {
@@ -17,30 +24,42 @@ export function Team({ say }: { say: (m: string) => void }) {
     try { await fn(); say(done); } catch (e) { say(e instanceof Error ? e.message : String(e)); }
     await data.reload();
   };
+  const fives = data.posts.reduce((a, p) => a + p.fives, 0);
+  const people = new Set(data.effort.map((l) => l.name)).size;
+  const joined = data.status === "ready" && data.joined;
   return (
     <>
-      <div><div className="eyebrow">Team</div><h1 className="h1">{coachName}'s team</h1></div>
+      <TeamHero
+        eyebrow={joined ? effortWeekLabel() : "Private team"}
+        title={`${coachName}'s team`}
+        pills={joined ? [{ icon: "clients", text: `${people} training` }, { icon: "five", text: `${fives} high fives` }] : [{ icon: "clients", text: `Coached by ${coachName}` }]}
+      >
+        {data.status === "ready" && !data.joined && <button className="btn act block" style={{ minHeight: 50 }} onClick={() => void act(() => api.join(), `You're in · ${coachName}'s team`)}>Join the team</button>}
+      </TeamHero>
       <TeamStatus data={data} />
       {data.status === "ready" && !data.joined && (
-        <section className="card stack">
-          <span className="tm-kind" aria-hidden="true"><Icons.clients width={20} height={20} /></span>
-          <div className="h3">Train alongside {coachName}'s other clients</div>
-          <ul className="small" style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
-            <li>You choose what to post: a finished workout, a milestone, your week's distance.</li>
-            <li>Give and get high fives. Your name shows as first name and initial.</li>
-            <li>The weekly board counts effort only. Never weight, measurements or photos.</li>
-            <li>Only {coachName} and the team can see it. Leave any time.</li>
-          </ul>
-          <button className="btn act block" onClick={() => void act(() => api.join(), `You're in · ${coachName}'s team`)}>Join the team</button>
-        </section>
+        <ul className="tm-rules">
+          {RULES.map(([icon, t, s], i) => { const I = Icons[icon]; return <li key={t} style={{ ["--i" as string]: i }}><I width={18} height={18} /><b>{t}</b>{s}</li>; })}
+        </ul>
       )}
-      {data.status === "ready" && data.joined && (
+      {joined && (
         <>
           {ideas.length > 0 && (
             <section className="stack" style={{ gap: 8 }}>
-              <div className="sect" style={{ marginBottom: 0 }}><h2 className="h3">Post to the team</h2></div>
+              <div className="sect" style={{ marginBottom: 0 }}><h2 className="h3">Post to the team</h2><span className="tiny">You see it first</span></div>
               <div className="tm-suggest">
-                {ideas.map((x) => { const I = Icons[x.icon]; return <button key={x.label} onClick={() => setDraft(x.draft)}><I width={15} height={15} /> {x.label}</button>; })}
+                {ideas.map((x, i) => {
+                  const hero = heroForPost(x.draft);
+                  const I = Icons[x.icon];
+                  return (
+                    <button key={x.label} className={`tm-idea${hero ? "" : " plain"}`} style={{ ["--i" as string]: i }} onClick={() => setDraft(x.draft)}>
+                      {hero && <img src={HERO_IMAGES[hero].src} alt="" style={{ objectPosition: HERO_IMAGES[hero].focus }} />}
+                      <span className="tm-plus" aria-hidden="true"><Icons.plus width={15} height={15} /></span>
+                      <small><I width={12} height={12} /> {x.draft.kind}</small>
+                      <b>{x.label}</b>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}

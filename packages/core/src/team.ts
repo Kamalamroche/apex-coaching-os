@@ -1,5 +1,6 @@
 import { distanceText, type CardioWeek } from "./story";
 import type { Milestone } from "./levels";
+import { heroForWorkout, type HeroImage } from "./hero";
 
 /* Team: a private feed for one coach and the clients who join it. Clients choose what to post (a workout, a milestone,
    their week's distance); everyone can give a high five. Never body numbers or photos. The effort board ranks effort
@@ -106,6 +107,36 @@ export function rankEffort(lines: EffortLine[]): (EffortLine & { place: number }
 /** Gives or takes back my high five, as the screen shows it before the server answers. */
 export function toggleFive(posts: TeamPost[], id: string): TeamPost[] {
   return posts.map((p) => (p.id === id ? { ...p, iFived: !p.iFived, fives: Math.max(0, p.fives + (p.iFived ? -1 : 1)) } : p));
+}
+
+/* ---------- How a post is drawn ---------- */
+
+/** The studio photo behind a workout or distance post; null for posts drawn as a big number or a note. */
+export function heroForPost(p: Pick<TeamPost, "kind" | "title">): HeroImage | null {
+  const t = p.title.toLowerCase();
+  if (p.kind === "workout") {
+    const name = t.replace(/^finished\s+/, "");
+    const hero = heroForWorkout({ name, items: [] });
+    if (hero !== "dumbbell") return hero;
+    if (/upper|push|pull|chest|back|arms|shoulder/.test(name)) return "upper";
+    if (/lower|legs?\b|glute/.test(name)) return "lower";
+    return "dumbbell";
+  }
+  if (p.kind === "distance") return /\bswim/.test(t) ? "swim" : /\bride|\bcycl/.test(t) ? "ride" : /\brow/.test(t) ? "ski" : "run";
+  return null;
+}
+
+/** The big number a milestone, distance, streak or level post leads with: "Reached 25 workouts" → 25 workouts. */
+export function postFigure(p: Pick<TeamPost, "kind" | "title">): { value: string; unit: string } | null {
+  if (p.kind === "level") {
+    const m = /level\s+(\d+)(?::\s*(.+))?/i.exec(p.title);
+    return m ? { value: m[1]!, unit: m[2]?.trim() || "Level" } : null;
+  }
+  if (p.kind === "workout" || p.kind === "note") return null;
+  const m = /(\d[\d,]*(?:\.\d+)?)\s*(.*)$/.exec(p.title);
+  if (!m) return null;
+  const unit = m[2]!.replace(/\s*this week$/i, "").trim();
+  return { value: m[1]!, unit: unit || p.title };
 }
 
 /* ---------- Rows ---------- */
