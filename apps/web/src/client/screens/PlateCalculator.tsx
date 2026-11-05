@@ -13,10 +13,10 @@ const PLATE_LOOK: Record<string, { h: number; w: number; bg: string; ink: string
   "1.25": { h: 38, w: 8, bg: "var(--text3)", ink: "var(--bg)" },
 };
 
-function Plate({ kg }: { kg: number }) {
+function Plate({ kg, side, i }: { kg: number; side: "l" | "r"; i: number }) {
   const look = PLATE_LOOK[String(kg)] ?? { h: 50, w: 10, bg: "var(--text3)", ink: "var(--bg)" };
   return (
-    <div title={`${kg} kg`} style={{ height: look.h, width: look.w, background: look.bg, borderRadius: 3, display: "grid", placeItems: "center", flex: "none" }}>
+    <div title={`${kg} kg`} className={`plate plate-${side}`} style={{ ["--i" as string]: i, height: look.h, width: look.w, background: look.bg, borderRadius: 3, display: "grid", placeItems: "center", flex: "none" }}>
       {look.w >= 14 && <span style={{ writingMode: "vertical-rl", font: "800 10px/1 var(--num)", color: look.ink }}>{kg}</span>}
     </div>
   );
@@ -43,11 +43,11 @@ export function PlateCalculator({ exercise, kg, barKg, setBarKg, onClose }: {
           <button key={b.kg} className={`chip ${b.kg === barKg ? "on" : ""}`} role="radio" aria-checked={b.kg === barKg} onClick={() => setBarKg(b.kg)}>{b.label} · {b.kg} kg</button>
         ))}
       </div>
-      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, minHeight: 140, overflow: "hidden", padding: "12px 4px" }} aria-hidden="true">
+      <div className="card plate-bar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, minHeight: 140, overflow: "hidden", padding: "12px 4px" }} aria-hidden="true">
         {sleeve}
-        {[...load.perSide].reverse().map((p, i) => <Plate key={`l${i}`} kg={p} />)}
+        {[...load.perSide].reverse().map((p, i, all) => <Plate key={`l${all.length - 1 - i}-${p}`} kg={p} side="l" i={all.length - 1 - i} />)}
         <div style={{ flex: "1 1 40px", maxWidth: 120, minWidth: 30, height: 8, background: "var(--text3)", borderRadius: 2 }} />
-        {load.perSide.map((p, i) => <Plate key={`r${i}`} kg={p} />)}
+        {load.perSide.map((p, i) => <Plate key={`r${i}-${p}`} kg={p} side="r" i={i} />)}
         {sleeve}
       </div>
       <div>

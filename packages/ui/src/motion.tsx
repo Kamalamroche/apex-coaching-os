@@ -68,6 +68,103 @@ export function CountUp({ value, decimals = 0, duration = 900, format, className
   );
 }
 
+/**
+ * Text whose digits roll like an odometer when they change (timers, counters). Each digit is a strip of 0 to 9 that
+ * slides to its value; other characters stay put. Digits keep their place counted from the right, so 1:00 to 59 rolls cleanly.
+ */
+export function Rolling({ text, className }: { text: string; className?: string }) {
+  const chars = [...text];
+  return (
+    <span className={`roll ${className ?? ""}`}>
+      <span className="sr-only">{text}</span>
+      {chars.map((ch, i) => {
+        const key = chars.length - i;
+        if (!/[0-9]/.test(ch)) return <span key={key} className="roll-c" aria-hidden="true">{ch}</span>;
+        return (
+          <span key={key} className="roll-d" aria-hidden="true">
+            <span className="roll-s" style={{ translate: `0 ${-Number(ch)}em` }}>
+              {DIGITS.map((d) => <span key={d}>{d}</span>)}
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+type Piece = { x: number; y: number; vx: number; vy: number; r: number; vr: number; w: number; h: number; c: string; wob: number };
+
+/**
+ * A short burst of paper confetti in the token colours when something is achieved (a finished workout, a personal best).
+ * Plays once for about two and a half seconds, never blocks taps, and is skipped entirely with "reduce motion".
+ */
+export function Celebrate({ big = false }: { big?: boolean }) {
+  const reduced = useReducedMotion();
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const cv = ref.current;
+    if (reduced || !cv) return;
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    ctx.scale(dpr, dpr);
+    const css = getComputedStyle(document.documentElement);
+    const colours = ["--act", "--blue", "--good", "--warn", "--data"].map((n) => css.getPropertyValue(n).trim() || "#FF6A1A");
+    const n = big ? 130 : 70;
+    const pieces: Piece[] = Array.from({ length: n }, (_, i) => {
+      const fromLeft = i % 2 === 0;
+      const a = (fromLeft ? -Math.PI / 3 : -Math.PI * 2 / 3) + (Math.random() - 0.5) * 0.9;
+      const sp = 9 + Math.random() * (big ? 9 : 6);
+      return {
+        x: fromLeft ? -10 : W + 10, y: H * (0.55 + Math.random() * 0.2),
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+        w: 5 + Math.random() * 5, h: 8 + Math.random() * 7,
+        c: colours[i % colours.length]!, wob: Math.random() * 10,
+      };
+    });
+    try { navigator.vibrate?.(big ? [40, 60, 40, 60, 90] : 40); } catch { /* not supported */ }
+    let raf = 0;
+    const t0 = performance.now();
+    let last = t0;
+    const frame = (t: number) => {
+      const dt = Math.min(2, (t - last) / 16.7);
+      last = t;
+      const age = (t - t0) / 1000;
+      ctx.clearRect(0, 0, W, H);
+      const fade = age > 1.9 ? Math.max(0, 1 - (age - 1.9) / 0.6) : 1;
+      for (const p of pieces) {
+        p.vy += 0.32 * dt;
+        p.vx *= Math.pow(0.985, dt);
+        p.vy = Math.min(p.vy, 4.5 + Math.sin(age * 6 + p.wob));
+        p.x += (p.vx + Math.sin(age * 5 + p.wob) * 0.8) * dt;
+        p.y += p.vy * dt;
+        p.r += p.vr * dt;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.scale(1, Math.cos(age * 9 + p.wob));
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      if (age < 2.5) raf = requestAnimationFrame(frame);
+      else setDone(true);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [reduced, big]);
+  if (reduced || done) return null;
+  return createPortal(<canvas ref={ref} className="celebrate" aria-hidden="true" />, document.body);
+}
+
 /** Low to high: red, amber, green, blended so the colour moves smoothly as the value fills. */
 export function statusColour(pct: number): string {
   const p = Math.max(0, Math.min(100, pct));
