@@ -3,7 +3,7 @@ import {
   type Badge, type Goal, type GoalInputs, type GoalKind, type GoalState,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Bar, Icons, Label, NumberField } from "@apex/ui";
+import { Bar, Icons, Label, LiquidPill, NumberField } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useFormChecks } from "../data/FormCheckContext";
 import { useGoals } from "../data/GoalContext";
@@ -69,7 +69,7 @@ export function GoalCard({ goal, inputs, onEdit, onLog }: { goal: Goal; inputs: 
         </div>
         {onEdit && <button className="iconbtn" onClick={onEdit} aria-label={`Edit ${goalTitle(goal, exerciseName(goal.exerciseId), p.direction)}`}>Edit</button>}
       </div>
-      <Bar pct={p.pct} color={colour} />
+      <LiquidPill value={p.pct} colour={colour} size="sm" label={`${Math.round(p.pct)}% of the way`} />
       <div className="row" style={{ justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <span className="small"><span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{where}</span> · target {fmt(goal.target)} {goal.unit}{left ? ` · ${left}` : ""}</span>
         <span className="row" style={{ gap: 8 }}>

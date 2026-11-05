@@ -1,8 +1,8 @@
 import {
-  EVERY_DAY, HABIT_PRESETS, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate,
+  EVERY_DAY, HABIT_PRESETS, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type Habit, type HabitKind,
 } from "@apex/core";
-import { HabitDays, Icons, Label, MacroBars, NumberField } from "@apex/ui";
+import { HabitDays, Icons, Label, LiquidTank, MacroBars, NumberField } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
@@ -45,8 +45,10 @@ export function CoachHabits({ clientName, say }: { clientName: string; say: (m: 
           const streak = habitStreak(h, s.ticks, today);
           return (
             <div key={h.id} className="hb-row">
-              <HabitIcon kind={h.kind} />
-              <div className="grow"><div className="h3">{h.title}</div><div className="tiny">{daysText(h.days)}{streak ? ` · ${streak} in a row` : ""}</div></div>
+              {h.kind === "water" && s.waterReady
+                ? <LiquidTank size="mini" pct={waterOn(s.water, today) / waterGoalMl(h.title)} label={`${formatMl(waterOn(s.water, today))} of water today`} />
+                : <HabitIcon kind={h.kind} />}
+              <div className="grow"><div className="h3">{h.title}</div><div className="tiny">{daysText(h.days)}{streak ? ` · ${streak} in a row` : ""}{h.kind === "water" && s.waterReady ? ` · ${formatMl(waterOn(s.water, today))} today` : ""}</div></div>
               <button className="iconbtn" aria-label={`Remove ${h.title}`} onClick={() => { store.removeHabit(h.id); say("Habit removed"); }}><Icons.trash width={16} height={16} /></button>
             </div>
           );

@@ -167,7 +167,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
             <svg width={drawn.view.width} height={drawn.view.height} viewBox={`0 0 ${drawn.view.width} ${drawn.view.height}`} role="img" aria-label={`Route of ${activity.name}`}>
               <path d={drawn.full} fill="none" stroke="var(--act)" strokeOpacity=".22" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
               {drawn.segs.map((sg, i) => (
-                <path key={i} d={sg.d} fill="none" stroke={`color-mix(in srgb, var(--act) ${45 + Math.round(sg.heat * 0.55)}%, #FFFFFF)`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path key={i} className="m-route" pathLength={1} style={{ animationDelay: `${0.2 + (i * 1.2) / drawn.segs.length}s`, animationDuration: `${Math.max(0.03, 1.2 / drawn.segs.length)}s` }} d={sg.d} fill="none" stroke={`color-mix(in srgb, var(--act) ${45 + Math.round(sg.heat * 0.55)}%, #FFFFFF)`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
               ))}
               {drawn.marks.map((m) => <circle key={m.label} cx={m.x} cy={m.y} r="3.5" fill="var(--act)" stroke="#FFFFFF" strokeWidth="1.5" />)}
               {drawn.marks.filter((_, j, all) => all.length <= 3 || j === Math.floor(all.length / 3) - 1 || j === Math.floor((2 * all.length) / 3) - 1 || j === all.length - 1).map((m) => {
@@ -197,7 +197,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
             <svg width={drawn.view.width} height={drawn.view.height} viewBox={`0 0 ${drawn.view.width} ${drawn.view.height}`} role="img" aria-label={`Route of ${activity.name}`}>
               <path d={drawn.full} fill="none" stroke={dark ? "#0B1020" : "#FFFFFF"} strokeOpacity=".9" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
               {drawn.segs.map((s, i) => (
-                <path key={i} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--viz-2) ${s.heat}%, var(--viz-1))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path key={i} className="m-route" pathLength={1} style={{ animationDelay: `${0.2 + (i * 1.2) / drawn.segs.length}s`, animationDuration: `${Math.max(0.03, 1.2 / drawn.segs.length)}s` }} d={s.d} fill="none" stroke={`color-mix(in srgb, var(--viz-2) ${s.heat}%, var(--viz-1))`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
               ))}
               {drawn.marks.map((m) => (
                 <g key={m.label} transform={`translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})`}>

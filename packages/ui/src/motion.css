@@ -1,0 +1,163 @@
+/* APEX motion. One set of timings and curves for every app, loaded after styles.css.
+   Rules: motion explains a change (something arrives, fills, is pressed, is done); it settles quickly and never loops
+   except where the thing itself moves (water). No glows. "Reduce motion" turns all of it off (styles.css). */
+
+:root{
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-in-out:cubic-bezier(.65,0,.35,1);
+  /* A small overshoot, like something with weight settling. */
+  --ease-spring:cubic-bezier(.34,1.42,.64,1);
+  --ease-liquid:cubic-bezier(.3,1.22,.5,1);
+  --t-press:.12s; --t-quick:.22s; --t-enter:.48s; --t-draw:.95s; --t-fill:1.5s;
+}
+
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------- Arrivals ---------- */
+@keyframes m-rise{from{opacity:0;translate:0 14px}}
+@keyframes m-fade{from{opacity:0}}
+@keyframes m-pop{0%{opacity:0;scale:.6}70%{opacity:1;scale:1.08}100%{scale:1}}
+@keyframes m-sheet{from{translate:0 100%}}
+@keyframes m-toast{from{opacity:0;translate:-50% 16px;scale:.94}}
+
+/* Each screen's sections rise in, one after another. "backwards" so nothing keeps a transform once it has landed
+   (a transform would trap fixed sheets inside). */
+.main>*{animation:m-rise var(--t-enter) var(--ease-out) backwards}
+.main>*:nth-child(2){animation-delay:.04s}
+.main>*:nth-child(3){animation-delay:.08s}
+.main>*:nth-child(4){animation-delay:.12s}
+.main>*:nth-child(5){animation-delay:.16s}
+.main>*:nth-child(6){animation-delay:.2s}
+.main>*:nth-child(7){animation-delay:.24s}
+.main>*:nth-child(n+8){animation-delay:.28s}
+/* Lists inside a card follow on just after the card. */
+.card.list>*,.list>.hb-row{animation:m-fade .4s var(--ease-out) backwards}
+.card.list>*:nth-child(2),.list>.hb-row:nth-child(2){animation-delay:.06s}
+.card.list>*:nth-child(3),.list>.hb-row:nth-child(3){animation-delay:.12s}
+.card.list>*:nth-child(n+4),.list>.hb-row:nth-child(n+4){animation-delay:.18s}
+
+/* Hero photos settle into place. */
+.hero-img{animation:m-settle 1.4s var(--ease-out) backwards}
+@keyframes m-settle{from{scale:1.06;opacity:.4}}
+.hero-word{animation:m-fade 1s var(--ease-out) .15s backwards}
+.hero-cut{animation:m-rise 1s var(--ease-out) .1s backwards}
+
+/* ---------- Sheets, toasts, tab bar ---------- */
+.scrim{animation:m-fade var(--t-quick) ease-out}
+.sheet{animation:m-sheet .5s var(--ease-out)}
+.toast{transform:none;translate:-50% 0;animation:m-toast .44s var(--ease-spring)}
+.tab{transition:background-color .3s var(--ease-out),color .3s,scale var(--t-press) var(--ease-out)}
+.tab.on i.ic{animation:m-pop .42s var(--ease-spring)}
+.tab.on span{animation:m-fade .35s var(--ease-out) .05s backwards}
+
+/* ---------- Press ---------- */
+:is(.btn,.chip,.tick,.iconbtn,.gbtn,.rpe button,.rdy-lvl button,.lq-chip,.wheel-i,.link){transition:scale var(--t-press) var(--ease-out),background-color .2s,border-color .2s,color .2s,opacity .2s}
+:is(.btn,.chip,.tick,.iconbtn,.gbtn,.tab,.rpe button,.rdy-lvl button,.lq-chip):active:not(:disabled){scale:.95}
+.tick.on{animation:m-done .5s var(--ease-out)}
+.tick.on svg{animation:m-pop .42s var(--ease-spring)}
+@keyframes m-done{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 45%,transparent)}to{box-shadow:0 0 0 12px transparent}}
+.rpe button.on,.rdy-lvl button.on,.chip.on{animation:m-pop .34s var(--ease-spring)}
+
+/* ---------- Data arriving ---------- */
+.bar>div,.pl-prog>div{transform-origin:left;animation:m-grow var(--t-draw) var(--ease-out) .1s backwards}
+@keyframes m-grow{from{scale:0 1}}
+/* Gauges sweep round from empty. --len is the arc length, set by the component. */
+.gauge-fill{animation:m-sweep var(--t-draw) var(--ease-out) .1s backwards}
+@keyframes m-sweep{from{stroke-dashoffset:var(--len,0)}}
+.gauge-knob{animation:m-fade .3s ease-out .7s backwards}
+/* Paths drawn with pathLength="1". */
+.m-draw{stroke-dasharray:1 1;animation:m-dash var(--t-draw) var(--ease-out) .1s backwards}
+@keyframes m-dash{from{stroke-dashoffset:1}}
+.ring .r circle+circle{animation:m-ring var(--t-draw) var(--ease-out) .15s backwards}
+@keyframes m-ring{from{stroke-dasharray:0 200}}
+/* Charts wipe in from the left; routes draw themselves segment by segment. */
+.cx-chart-svg,.m-chart{animation:m-wipe 1.1s var(--ease-out) .1s backwards}
+@keyframes m-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.m-route{stroke-dasharray:1 1;animation:m-dash .26s linear backwards}
+.hb-sq{animation:m-pop .4s var(--ease-spring) backwards}
+.hb-day:nth-child(2) .hb-sq{animation-delay:.04s}.hb-day:nth-child(3) .hb-sq{animation-delay:.08s}.hb-day:nth-child(4) .hb-sq{animation-delay:.12s}
+.hb-day:nth-child(5) .hb-sq{animation-delay:.16s}.hb-day:nth-child(6) .hb-sq{animation-delay:.2s}.hb-day:nth-child(7) .hb-sq{animation-delay:.24s}
+
+/* ---------- Liquid tank ---------- */
+.lq{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--line);
+  --water-top:color-mix(in oklab,var(--data) 62%,var(--blue));--water-deep:color-mix(in oklab,var(--blue) 55%,#071433);
+  --water-back:color-mix(in oklab,var(--data) 55%,var(--card))}
+.lq-full{min-height:372px;display:flex;flex-direction:column}
+.lq-mini{width:36px;height:36px;border-radius:10px;flex:none;border:0;background:var(--bg2)}
+.lq-water{position:absolute;inset:0;transform:translateY(calc((1 - var(--lvl)) * 100%));transition:transform var(--t-fill) var(--ease-liquid);z-index:1}
+.lq-surface{position:absolute;left:0;right:0;top:-22px;height:24px}
+.lq-wave{position:absolute;left:0;bottom:0;width:200%;height:100%;animation:lq-flow 7s linear infinite}
+.lq-wave.back{fill:var(--water-back);opacity:.7;animation-duration:11s;animation-direction:reverse;bottom:5px}
+.lq-wave.front{fill:var(--water-top)}
+@keyframes lq-flow{to{translate:-50% 0}}
+.lq-surface.slosh{animation:lq-slosh 1.6s var(--ease-out)}
+@keyframes lq-slosh{0%{scale:1 1}18%{scale:1 2.1}45%{scale:1 .7}70%{scale:1 1.25}100%{scale:1 1}}
+.lq-surface{transform-origin:50% 100%}
+.lq-body{position:absolute;inset:0 0 -1px;background:linear-gradient(180deg,var(--water-top),var(--water-deep));overflow:hidden}
+.lq-bubble{position:absolute;bottom:-8px;width:var(--s);height:var(--s);border-radius:50%;background:rgba(255,255,255,.32);animation:lq-bubble 6.5s ease-in infinite}
+@keyframes lq-bubble{0%{translate:0 0;opacity:0}12%{opacity:1}100%{translate:6px -340px;opacity:0}}
+.lq-mini .lq-surface{top:-6px;height:7px}
+.lq-mini .lq-wave{animation-duration:3.5s}
+.lq-mini .lq-wave.back{animation-duration:5s;bottom:1px}
+/* The big number: dark above the water, white inside it. The white copy is clipped at the waterline. */
+.lq-big{position:absolute;left:0;right:0;bottom:96px;text-align:center;font:800 72px/1 var(--num);letter-spacing:-.04em;color:var(--text3);opacity:.55;z-index:0;pointer-events:none}
+.lq-big small{font-size:.42em;font-weight:700;letter-spacing:0;margin-left:2px}
+.lq-big-in{color:#FFFFFF;opacity:1;z-index:2;clip-path:inset(calc((1 - var(--lvl)) * 100% - 10px) 0 0 0);transition:clip-path var(--t-fill) var(--ease-liquid)}
+.lq-content{position:relative;z-index:3;flex:1;display:flex;flex-direction:column;padding:18px}
+.lq-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:42px;padding:0 6px;border-radius:var(--pill);
+  border:1px solid var(--glass-line);background:var(--glass);color:var(--glass-ink);font:700 13px/1 var(--ui);font-variant-numeric:tabular-nums;white-space:nowrap;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.lq-chip.solid{background:var(--glass-ink);color:#0D0F13;border-color:transparent}
+.lq-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:auto}
+.lq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.lq-head .h1{margin:2px 0 0}
+.lq-head small{color:var(--text2);font:600 13px/1.3 var(--ui)}
+.lq-goal{color:var(--good);display:inline-flex;align-items:center;gap:6px;font:700 13px/1 var(--ui);animation:m-pop .5s var(--ease-spring)}
+.wlog{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.wlog .ml{font:700 15px/1 var(--num);color:var(--text)}
+
+/* ---------- Liquid pill ---------- */
+.lpill{display:flex;flex-direction:column;gap:6px}
+.lpill-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:0 6px}
+.lpill-track{position:relative;height:30px;border-radius:var(--pill);overflow:hidden;isolation:isolate;
+  background:color-mix(in srgb,var(--text) 7%,var(--bg2));box-shadow:inset 0 1px 2px rgba(0,0,0,.28),inset 0 0 0 1px color-mix(in srgb,var(--text) 8%,transparent)}
+.lpill-sm .lpill-track{height:12px}
+.lpill-lg .lpill-track{height:44px}
+.lpill-fill{position:absolute;inset:0 auto 0 0;background:currentColor;border-radius:var(--pill) 0 0 var(--pill);
+  transition:width var(--t-fill) var(--ease-liquid),color .9s var(--ease-out)}
+.lpill-fill.full{border-radius:var(--pill)}
+/* Glass: a soft highlight across the top and a little depth underneath, painted over the liquid. */
+.lpill-track::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
+  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 42%,rgba(0,0,0,0) 60%,rgba(0,0,0,.14) 100%)}
+.lpill-sm .lpill-track::after{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 60%)}
+.lpill-edge{position:absolute;top:0;right:-5px;width:6px;height:200%;fill:currentColor;animation:lp-edge 2.4s linear infinite}
+.lpill-sm .lpill-edge{width:4px;right:-3px}
+@keyframes lp-edge{to{translate:0 -50%}}
+.lpill-edge.slosh{animation:lp-edge 2.4s linear infinite,lp-wob 1.2s var(--ease-out)}
+@keyframes lp-wob{30%{scale:2.2 1}60%{scale:.8 1}}
+.lpill-edge{transform-origin:0 50%}
+.lpill-text{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:800 13px/1 var(--num);color:var(--text);mix-blend-mode:normal}
+
+/* ---------- Number wheel ---------- */
+.wheel{position:relative;flex:none;perspective:900px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent)}
+.wheel-lens{position:absolute;left:0;right:0;border-radius:12px;background:color-mix(in srgb,var(--text) 6%,transparent);pointer-events:none}
+.wheel-scroll{position:absolute;inset:0;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;transform-style:preserve-3d;outline:none;border-radius:12px}
+.wheel-scroll::-webkit-scrollbar{display:none}
+.wheel-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--act)}
+.wheel-i{scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 12px;font-size:22px;font-weight:500;color:var(--text2);opacity:0;backface-visibility:hidden;will-change:transform,opacity;cursor:pointer;user-select:none;-webkit-user-select:none}
+.wheel-right .wheel-i{justify-content:flex-end;padding-right:4px}
+.wheel-left .wheel-i{justify-content:flex-start;padding-left:2px}
+.wheel-i.on{color:var(--text);font-weight:800}
+.nsheet{display:flex;flex-direction:column;gap:14px}
+.nsheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.nsheet-head b{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.nsheet-head small{font-size:14px;color:var(--text2);font-weight:600}
+.nsheet-wheels{position:relative;display:flex;justify-content:center;align-items:center;gap:0}
+.nsheet-unit{font:700 15px/1 var(--ui);color:var(--text2);margin-left:8px}
+.nsheet-type{font-size:24px;font-weight:800;text-align:center;padding:16px}
+.nsheet-ok{min-height:52px;font-size:16px}
+
+/* Inputs that open a wheel on phones look tappable rather than typed into. */
+@media (pointer:coarse){input[inputmode="none"]{caret-color:transparent;cursor:pointer}}
+
+/* Colour themes cross-fade instead of snapping. ThemeButton adds .theming for half a second. */
+@media (prefers-reduced-motion:no-preference){html.theming,html.theming *{transition:background-color .45s var(--ease-out),border-color .45s var(--ease-out),color .45s var(--ease-out),fill .45s,stroke .45s!important}}

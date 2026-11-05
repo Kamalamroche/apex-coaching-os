@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   addDays, againstTarget, blankIntake, createDemoLifestyleStore, dayTotals, EVERY_DAY, fromFoodRow, fromHabitRow, fromTargetsRow, habitCompliance, habitDays,
   habitStreak, habitsOn, healthFlags, intakeProblem, kcalFromMacros, loggedAverage, toFoodRow, toggleTick, toHabitRow, toTargetsRow,
-  type FoodEntry, type Habit, type HabitTick,
+  formatMl, fromWaterRow, toWaterRow, waterGoalMl, waterHabitOn, waterLogOn, waterOn,
+  type FoodEntry, type Habit, type HabitTick, type WaterEntry,
 } from "./lifestyle";
 
 // 2026-11-02 is a Monday.
@@ -122,5 +123,55 @@ describe("demo store", () => {
     expect(b.get().habits.map((h) => h.id)).toEqual(["demo-habit-1", "demo-habit-3", "new"]);
     expect(b.get().ticks.some((t) => t.habitId === "demo-habit-2")).toBe(false);
     expect(b.get().ticks).toContainEqual({ habitId: "new", day: TODAY });
+  });
+});
+
+describe("water", () => {
+  it("reads the daily goal from the habit's wording", () => {
+    expect(waterGoalMl("Drink 2.5 L of water")).toBe(2500);
+    expect(waterGoalMl("3 litres a day")).toBe(3000);
+    expect(waterGoalMl("Drink 2,000 ml")).toBe(2000);
+    expect(waterGoalMl("1,5 l water")).toBe(1500);
+    expect(waterGoalMl("8 glasses of water")).toBe(2000);
+    expect(waterGoalMl("Stay hydrated")).toBe(2500);
+    expect(waterGoalMl("50 L")).toBe(8000);
+  });
+
+  it("adds up a day and lists it newest first", () => {
+    const e: WaterEntry[] = [
+      { id: "a", day: TODAY, ml: 250, at: "2026-11-02T08:00:00.000Z" },
+      { id: "b", day: TODAY, ml: 500, at: "2026-11-02T12:00:00.000Z" },
+      { id: "c", day: "2026-11-01", ml: 750, at: "2026-11-01T12:00:00.000Z" },
+    ];
+    expect(waterOn(e, TODAY)).toBe(750);
+    expect(waterLogOn(e, TODAY).map((x) => x.id)).toEqual(["b", "a"]);
+  });
+
+  it("formats ml and litres", () => {
+    expect(formatMl(750)).toBe("750 ml");
+    expect(formatMl(1650)).toBe("1.65 L");
+    expect(formatMl(2000)).toBe("2 L");
+    expect(formatMl(2500)).toBe("2.5 L");
+  });
+
+  it("round-trips a database row", () => {
+    const e: WaterEntry = { id: "w1", day: TODAY, ml: 250, at: "2026-11-02T08:00:00.000Z" };
+    expect(fromWaterRow(toWaterRow(e, "c1"))).toEqual(e);
+  });
+
+  it("finds the water habit due today", () => {
+    expect(waterHabitOn([weekdays, daily], TODAY)?.id).toBe("h1");
+    expect(waterHabitOn([weekdays], TODAY)).toBeUndefined();
+  });
+
+  it("keeps drinks in the demo store", () => {
+    const mem = new Map<string, string>();
+    const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+    const s = createDemoLifestyleStore(storage, null, new Date("2026-11-02T12:00:00"));
+    const before = waterOn(s.get().water, TODAY);
+    s.addWater({ id: "x", day: TODAY, ml: 250, at: "2026-11-02T12:00:00.000Z" });
+    expect(waterOn(s.get().water, TODAY)).toBe(before + 250);
+    s.removeWater("x");
+    expect(waterOn(createDemoLifestyleStore(storage, null, new Date("2026-11-02T12:00:00")).get().water, TODAY)).toBe(before);
   });
 });

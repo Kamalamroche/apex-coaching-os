@@ -13,9 +13,9 @@ export function Spark({ data, unit }: { data: number[]; unit: string }) {
   return (
     <div>
       <svg viewBox={`-4 -6 ${w + 8} ${h + 12}`} style={{ width: "100%", height: 80, display: "block" }} role="img" aria-label={`Trend from ${first} to ${last} ${unit}`}>
-        <path d={`${d}L${w} ${h}L0 ${h}Z`} fill="var(--data-soft)" />
-        <path d={d} fill="none" stroke="var(--data)" strokeWidth="2.5" strokeLinejoin="round" />
-        <circle cx={end[0]} cy={end[1]} r="4.5" fill="var(--act)" />
+        <path d={`${d}L${w} ${h}L0 ${h}Z`} fill="var(--data-soft)" className="m-chart" />
+        <path className="m-draw" pathLength={1} d={d} fill="none" stroke="var(--data)" strokeWidth="2.5" strokeLinejoin="round" />
+        <circle className="gauge-knob" cx={end[0]} cy={end[1]} r="4.5" fill="var(--act)" />
       </svg>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <span className="tiny num">{first} {unit}</span>
