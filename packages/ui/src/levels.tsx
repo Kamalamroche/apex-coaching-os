@@ -79,7 +79,7 @@ export function MilestoneList({ list, onShare }: { list: MilestoneView[]; onShar
 }
 
 /** The moment a milestone is reached: shown once on Today. */
-export function MilestoneMoment({ m, onShare, onClose }: { m: MilestoneView & { value: string; unit: string }; onShare: () => void; onClose: () => void }) {
+export function MilestoneMoment({ m, onShare, onPost, onClose }: { m: MilestoneView & { value: string; unit: string }; onShare: () => void; onPost?: () => void; onClose: () => void }) {
   return (
     <div className="ms-moment" role="status">
       <button className="ms-x" onClick={onClose} aria-label="Dismiss"><Icons.close width={16} height={16} /></button>
@@ -88,6 +88,7 @@ export function MilestoneMoment({ m, onShare, onClose }: { m: MilestoneView & { 
       <div className="small">{m.sub}</div>
       <div className="ms-steps" aria-hidden="true"><i /><i /><i /></div>
       <button className="btn act block" onClick={onShare}><Icons.share width={16} height={16} /> Share it</button>
+      {onPost && <button className="btn ghost block" onClick={onPost}><Icons.clients width={16} height={16} /> Post to your team</button>}
     </div>
   );
 }

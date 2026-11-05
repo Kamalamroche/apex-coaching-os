@@ -706,6 +706,63 @@ end $$;
 reset role;
 update program_versions set published_by = '00000000-0000-0000-0000-00000000000c';
 
+-- team: only the coach and clients who joined see the feed; names are short; high fives are one each
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'not in the team yet: no feed';
+  begin
+    insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','workout','Before joining');
+    raise exception 'posted without joining';
+  exception when insufficient_privilege then null; end;
+end $$;
+insert into team_members (coach_id, client_id) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1');
+insert into team_posts (id, coach_id, author_id, kind, title, detail) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','workout','Lower A done','18 sets');
+insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 1, 'member sees the feed';
+  assert (select author from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 'Priya S.', 'short name only';
+  assert (select fives from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 1, 'high five counted';
+  assert (select i_fived and is_me from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)), 'my post, my high five';
+  assert (select count(*) from public.team_effort('00000000-0000-0000-0000-00000000000c', current_date - 6)) = 1, 'effort board lists members';
+  begin
+    insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-00000000000c','note','Spoofed coach');
+    raise exception 'posted as the coach';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into team_members (coach_id, client_id) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000c1');
+    raise exception 'joined another coach''s team';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-00000000000c','note','Great week, team');
+insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 2, 'coach sees the whole feed';
+  assert (select fives from public.team_feed('00000000-0000-0000-0000-00000000000c', 20) where kind = 'workout') = 2, 'two high fives';
+  assert (select is_coach from public.team_feed('00000000-0000-0000-0000-00000000000c', 20) where kind = 'note'), 'coach post marked';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'another coach''s client sees no feed';
+  assert (select count(*) from team_posts) = 0, 'and no posts';
+  assert (select count(*) from public.team_effort('00000000-0000-0000-0000-00000000000c', current_date - 6)) = 0, 'and no effort board';
+  begin
+    insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2');
+    raise exception 'high-fived a post they cannot see';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+delete from team_members where client_id = '00000000-0000-0000-0000-0000000000c1';
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'left the team: feed gone';
+end $$;
+reset role;
+
 -- Each account type deletes cleanly: the rival's client, then Kamal (with programs, messages, notes),
 -- then Priya, whose own history survives her coach leaving.
 set role authenticated;
@@ -818,4 +875,5 @@ do $$ begin
   assert (select count(*) from public.pending_email_alerts(now() + interval '2 hours', interval '15 minutes') where user_id = '00000000-0000-0000-0000-0000000000e2') = 0, 'switched off means no email';
 end $$;
 reset role;
+
 

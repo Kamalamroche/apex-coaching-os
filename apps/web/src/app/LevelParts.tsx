@@ -10,6 +10,9 @@ import { useStore } from "../data/StoreContext";
 import { useAppInfo } from "./AppContext";
 import { useGoalInputs } from "./GoalParts";
 import { shareCards, siteName } from "./shareImage";
+import { milestoneDraft } from "@apex/core";
+import { PostToTeam } from "./TeamParts";
+import { useTeamApi } from "../data/team";
 
 const SEEN_KEY = "apex-milestones-seen-v1";
 const readSeen = (): string[] => {
@@ -50,13 +53,16 @@ export async function shareMilestone(m: Milestone, coach: string | null): Promis
 export function FreshMilestone({ list, today, say }: { list: Milestone[]; today: string; say?: (m: string) => void }) {
   const { coachName } = useAppInfo();
   const [seen, setSeen] = useState(readSeen);
+  const [posting, setPosting] = useState(false);
+  const team = useTeamApi();
   const m = freshMilestone(list, today, seen);
   if (!m) return null;
   const done = () => { const next = [...seen, m.id]; writeSeen(next); setSeen(next); };
   return (
     <>
       <Celebrate />
-      <MilestoneMoment m={m} onClose={done} onShare={() => void shareMilestone(m, coachName || null).then((s) => { if (s) say?.(s); done(); })} />
+      <MilestoneMoment m={m} onClose={done} onShare={() => void shareMilestone(m, coachName || null).then((s) => { if (s) say?.(s); done(); })} onPost={team ? () => setPosting(true) : undefined} />
+      {posting && <PostToTeam draft={milestoneDraft(m)} say={say} onClose={() => { setPosting(false); done(); }} />}
     </>
   );
 }
