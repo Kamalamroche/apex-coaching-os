@@ -1,4 +1,4 @@
-import { biggestChange, storyCaption, storySlides, weeklyStory, type StorySlide, type WeekStory as Story } from "@apex/core";
+import { biggestChange, distanceText, storyCaption, storySlides, weeklyStory, type StorySlide, type WeekStory as Story } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons, drawStorySlide, loadStoryFonts } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useAppInfo } from "../../app/AppContext";
 import { PlaceDrag, SizeSlider } from "../../app/PlaceDrag";
 import { playIn, shareCards, siteName } from "../../app/shareImage";
+import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { useStore } from "../../data/StoreContext";
 import { localDate } from "@apex/core";
@@ -17,12 +18,24 @@ export function useWeekStory(includeBody = false): { story: Story | null; slides
   const store = useStore();
   const { history, progress } = useApexState(store);
   const life = useLifestyle();
+  const { activities } = useActivitiesIfAny();
   const { coachName } = useAppInfo();
   return useMemo(() => {
-    const story = weeklyStory({ sessions: history.sessions ?? [], today: localDate(new Date()), habits: life.habits, ticks: life.ticks, coach: coachName });
+    const story = weeklyStory({ activities, sessions: history.sessions ?? [], today: localDate(new Date()), habits: life.habits, ticks: life.ticks, coach: coachName });
     if (!story) return { story: null, slides: [] };
     return { story, slides: storySlides(story, includeBody ? biggestChange(progress.measurements) : null) };
-  }, [history.sessions, life.habits, life.ticks, coachName, progress.measurements, includeBody]);
+  }, [activities, history.sessions, life.habits, life.ticks, coachName, progress.measurements, includeBody]);
+}
+
+/** "4 workouts · 10,090 kg · 12.4 km run · new best", leaving out what's zero. */
+function weekLine(s: Story): string {
+  const parts = [
+    s.workouts ? `${s.workouts} workout${s.workouts === 1 ? "" : "s"}` : "",
+    s.kg ? `${s.kg.toLocaleString("en-GB")} kg` : "",
+    ...s.cardio.slice(0, 2).map((c) => `${distanceText(c.metres, c.sport)} ${c.label.toLowerCase()}`),
+    s.best ? "new best" : "",
+  ].filter(Boolean);
+  return parts.join(" · ") || "Your week in training";
 }
 
 /** The small card on Today that opens the story. */
@@ -35,7 +48,7 @@ export function WeekStoryCard({ onOpen }: { onOpen: () => void }) {
       <span className="grow">
         <span className="wk-eyebrow">{story.soFar ? "Your week so far" : "Your week"}</span>
         <b>{story.label}</b>
-        <span className="wk-sub">{story.workouts} workout{story.workouts === 1 ? "" : "s"} · {story.kg.toLocaleString("en-GB")} kg{story.best ? " · new best" : ""}</span>
+        <span className="wk-sub">{weekLine(story)}</span>
       </span>
       <Icons.forward width={18} height={18} />
     </button>

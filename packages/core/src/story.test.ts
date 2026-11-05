@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_HISTORY } from "./data/workout";
 import { INITIAL_PROGRESS } from "./data/progress";
-import { beforeAfterPair, biggestChange, storySlides, storyWeek, weekLabel, mondayOf, weeklyStory } from "./story";
+import { beforeAfterPair, cardioWeek, distanceText, biggestChange, storySlides, storyWeek, weekLabel, mondayOf, weeklyStory } from "./story";
 import { nextHistory } from "./summary";
 import { INITIAL_WORKOUT } from "./data/workout";
 import type { RecentSession } from "./types";
@@ -69,5 +69,21 @@ describe("progress cards", () => {
     expect(p.before.id).toBe("a");
     expect(p.weeks).toBe(8);
     expect(beforeAfterPair(photos, "side")).toBeNull();
+  });
+});
+
+describe("cardio week", () => {
+  const act = (sport: "run" | "swim", day: string, metres: number) => ({ id: `${sport}${day}${metres}`, sport, name: sport, startedAt: new Date(`${day}T08:00:00`).toISOString(), metres, movingSeconds: metres / 3, elapsedSeconds: metres / 3, source: "manual" as const });
+  it("adds up distance per sport against the week before, longest first", () => {
+    const list = [act("run", "2026-10-26", 5000), act("run", "2026-10-29", 7400), act("swim", "2026-10-28", 1500), act("run", "2026-10-21", 10000)];
+    const w = cardioWeek(list, "2026-10-26");
+    expect(w.map((r) => [r.sport, r.metres, r.sessions, r.lastWeekMetres])).toEqual([["run", 12400, 2, 10000], ["swim", 1500, 1, 0]]);
+    expect(distanceText(12400, "run")).toBe("12.4 km");
+    expect(distanceText(1500, "swim")).toBe("1,500 m");
+  });
+  it("adds a cardio slide to the story", () => {
+    const s = weeklyStory({ sessions: [], activities: [act("run", "2026-10-27", 8000)], today: "2026-11-05" });
+    expect(s?.cardio[0]?.metres).toBe(8000);
+    expect(storySlides(s!).some((x) => x.kind === "cardio")).toBe(true);
   });
 });

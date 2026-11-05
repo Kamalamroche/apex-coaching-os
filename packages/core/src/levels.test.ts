@@ -54,3 +54,15 @@ describe("milestones", () => {
     expect(freshMilestone(list, today, [fresh!.id])?.id).not.toBe(fresh!.id);
   });
 });
+
+describe("distance milestones", () => {
+  it("counts km per sport and only suggests sports the client does", () => {
+    const run = (day: string, km: number) => ({ id: day, sport: "run" as const, name: "Run", startedAt: new Date(`${day}T08:00:00`).toISOString(), metres: km * 1000, movingSeconds: km * 300, elapsedSeconds: km * 300, source: "manual" as const });
+    const list = milestones({ ...base(), activities: [run("2026-10-01", 6), run("2026-10-08", 5), run("2026-10-15", 8)] });
+    expect(list.find((m) => m.id === "run-10")).toMatchObject({ earned: true, at: "2026-10-08", title: "10 km run" });
+    expect(list.find((m) => m.id === "run-50")).toMatchObject({ earned: false, have: 19 });
+    const next = nextMilestones(list, 10).map((m) => m.kind);
+    expect(next).toContain("run");
+    expect(next).not.toContain("swim");
+  });
+});

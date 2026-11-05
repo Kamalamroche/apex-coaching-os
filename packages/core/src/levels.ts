@@ -120,7 +120,7 @@ export function levelState(i: LevelInput): LevelState {
 
 /* ---------- Milestones ---------- */
 
-export type MilestoneKind = "workouts" | "kg" | "bests" | "streak";
+export type MilestoneKind = "workouts" | "kg" | "bests" | "streak" | "run" | "swim" | "ride";
 
 export interface Milestone {
   id: string;
@@ -144,7 +144,12 @@ const LADDERS: Record<MilestoneKind, number[]> = {
   kg: [10_000, 50_000, 100_000, 250_000, 500_000, 1_000_000],
   bests: [1, 5, 10, 25, 50],
   streak: [7, 14, 30, 60, 100],
+  /** Distances in km, all time. */
+  run: [10, 50, 100, 250, 500, 1000],
+  swim: [5, 10, 25, 50, 100],
+  ride: [100, 500, 1000, 2500, 5000],
 };
+const DISTANCE: MilestoneKind[] = ["run", "swim", "ride"];
 
 const tonnes = (kg: number) => `${(kg / 1000).toLocaleString("en-GB")}`;
 
@@ -157,6 +162,9 @@ function describe(kind: MilestoneKind, need: number): Pick<Milestone, "title" | 
     }
     case "bests": return { title: need === 1 ? "First personal best" : `${need} personal bests`, value: String(need), unit: need === 1 ? "personal best" : "personal bests", sub: "Stronger than you've ever been." };
     case "streak": return { title: `${need}-day streak`, value: String(need), unit: "days", sub: "In a row, at least one ring closed every day." };
+    case "run": return { title: `${need.toLocaleString("en-GB")} km run`, value: need.toLocaleString("en-GB"), unit: "km run", sub: "Every kilometre logged in APEX." };
+    case "swim": return { title: `${need} km swum`, value: String(need), unit: "km swum", sub: `That's ${(need * 40).toLocaleString("en-GB")} lengths of a 25 m pool.` };
+    case "ride": return { title: `${need.toLocaleString("en-GB")} km ridden`, value: need.toLocaleString("en-GB"), unit: "km ridden", sub: "Every kilometre logged in APEX." };
   }
 }
 
@@ -165,6 +173,14 @@ export function milestones(i: LevelInput): Milestone[] {
   const sorted = [...i.sessions].sort((a, b) => a.at.localeCompare(b.at));
   const reachedAt = (kind: MilestoneKind, need: number): { have: number; at: string | null } => {
     if (kind === "streak") return streakReach(i, need);
+    if (DISTANCE.includes(kind)) {
+      let km = 0;
+      for (const a of [...i.activities].filter((x) => x.sport === kind).sort((x, y) => x.startedAt.localeCompare(y.startedAt))) {
+        km += a.metres / 1000;
+        if (km >= need) return { have: km, at: dayOf(a.startedAt) };
+      }
+      return { have: km, at: null };
+    }
     let have = 0;
     for (const s of sorted) {
       have += kind === "workouts" ? 1 : kind === "kg" ? s.volumeKg : s.bests.length;
@@ -200,7 +216,11 @@ function streakReach(i: LevelInput, need: number): { have: number; at: string | 
 
 /** The next milestone in each ladder that isn't earned yet, closest first. */
 export function nextMilestones(list: Milestone[], n = 3): Milestone[] {
-  const firsts = (Object.keys(LADDERS) as MilestoneKind[]).map((k) => list.find((m) => m.kind === k && !m.earned)).filter((m): m is Milestone => !!m);
+  // A distance ladder only shows once the client has done that sport.
+  const firsts = (Object.keys(LADDERS) as MilestoneKind[])
+    .filter((k) => !DISTANCE.includes(k) || list.some((m) => m.kind === k && m.have > 0))
+    .map((k) => list.find((m) => m.kind === k && !m.earned))
+    .filter((m): m is Milestone => !!m);
   return firsts.sort((a, b) => b.have / b.need - a.have / a.need).slice(0, n);
 }
 

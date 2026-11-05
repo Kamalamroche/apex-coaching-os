@@ -1,4 +1,5 @@
 import { MEASURES, changeOver, measurementSeries, type MeasureKey, type Measurement, type Pose, type ProgressPhoto } from "./checkins";
+import { sportLabel, type Activity, type Sport } from "./activity";
 import { addDays, habitDays, type Habit, type HabitTick } from "./lifestyle";
 import { localDate } from "./recovery";
 import { pictureWeight } from "./summary";
@@ -28,9 +29,9 @@ export function weekLabel(monday: string): string {
  * The week the story tells: the latest week before this one with a finished session. When the client has only trained
  * this week, it is this week so far. Null before the first session.
  */
-export function storyWeek(sessions: RecentSession[], today: string): string | null {
+export function storyWeek(sessions: RecentSession[], today: string, activities: Activity[] = []): string | null {
   const thisWeek = mondayOf(today);
-  const weeks = [...new Set(sessions.map((s) => mondayOf(dayOf(s.at))))].sort().reverse();
+  const weeks = [...new Set([...sessions.map((s) => s.at), ...activities.map((a) => a.startedAt)].map((at) => mondayOf(dayOf(at))))].sort().reverse();
   return weeks.find((w) => w < thisWeek) ?? weeks[0] ?? null;
 }
 
@@ -94,17 +95,57 @@ export interface WeekStory {
   habits: { done: number; due: number } | null;
   /** kg against the week before, null without one. */
   vsLastWeekKg: number | null;
+  /** Distance per sport this week, longest first, with the week before to compare. Empty without cardio. */
+  cardio: CardioWeek[];
   coach: string | null;
 }
 
+/** One sport's week: distance, sessions and time, against the week before. */
+export interface CardioWeek {
+  sport: Sport;
+  label: string;
+  metres: number;
+  sessions: number;
+  minutes: number;
+  /** Metres the week before, 0 when none. */
+  lastWeekMetres: number;
+}
+
+/** "12.4 km" for most sports, "1,500 m" for a swim under 10 km. */
+export function distanceText(metres: number, sport: Sport): string {
+  if (sport === "swim" && metres < 10000) return `${Math.round(metres).toLocaleString("en-GB")} m`;
+  const km = metres / 1000;
+  return `${km >= 100 ? Math.round(km).toLocaleString("en-GB") : (Math.round(km * 10) / 10).toLocaleString("en-GB")} km`;
+}
+
+/** Distance per sport in the week starting `monday`, with the week before. Sports with no distance are left out. */
+export function cardioWeek(activities: Activity[], monday: string): CardioWeek[] {
+  const inWeek = (a: Activity, w: string) => mondayOf(localDate(new Date(a.startedAt))) === w;
+  const prev = addDays(monday, -7);
+  const sports = [...new Set(activities.filter((a) => inWeek(a, monday) && a.metres > 0).map((a) => a.sport))];
+  return sports
+    .map((sport) => {
+      const mine = activities.filter((a) => a.sport === sport && inWeek(a, monday));
+      return {
+        sport, label: sportLabel(sport),
+        metres: Math.round(mine.reduce((t, a) => t + a.metres, 0)),
+        sessions: mine.length,
+        minutes: Math.round(mine.reduce((t, a) => t + a.movingSeconds, 0) / 60),
+        lastWeekMetres: Math.round(activities.filter((a) => a.sport === sport && inWeek(a, prev)).reduce((t, a) => t + a.metres, 0)),
+      };
+    })
+    .sort((a, b) => b.metres - a.metres);
+}
+
 export function weeklyStory(input: {
+  activities?: Activity[];
   sessions: RecentSession[];
   today: string;
   habits?: Habit[];
   ticks?: HabitTick[];
   coach?: string | null;
 }): WeekStory | null {
-  const week = storyWeek(input.sessions, input.today);
+  const week = storyWeek(input.sessions, input.today, input.activities ?? []);
   if (!week) return null;
   const inWeek = (w: string) => input.sessions.filter((s) => mondayOf(dayOf(s.at)) === w);
   const list = inWeek(week);
@@ -132,6 +173,7 @@ export function weeklyStory(input: {
     streakWeeks,
     habits: due ? { done: days.reduce((a, d) => a + d.done, 0), due } : null,
     vsLastWeekKg: prev.length ? Math.round(kg - prev.reduce((a, s) => a + s.volumeKg, 0)) : null,
+    cardio: cardioWeek(input.activities ?? [], week),
     coach: input.coach?.trim() || null,
   };
 }
@@ -145,11 +187,13 @@ export type StorySlide =
   | { kind: "streak"; weeks: number }
   | { kind: "body"; change: BodyChange }
   | { kind: "milestone"; title: string; value: string; unit: string; sub: string }
+  | { kind: "cardio"; rows: CardioWeek[] }
   | { kind: "end"; coach: string | null };
 
 export function storySlides(s: WeekStory, body: BodyChange | null = null): StorySlide[] {
   const out: StorySlide[] = [{ kind: "cover", label: s.label, soFar: s.soFar, workouts: s.workouts, minutes: s.minutes, days: s.days }];
   if (s.kg > 0) out.push({ kind: "lifted", kg: s.kg, fun: s.fun, vsLastWeekKg: s.vsLastWeekKg, sets: s.sets });
+  if (s.cardio.length) out.push({ kind: "cardio", rows: s.cardio.slice(0, 4) });
   if (s.best) out.push({ kind: "best", best: s.best, others: s.bests - 1 });
   if (s.habits) out.push({ kind: "habits", ...s.habits });
   if (s.streakWeeks >= 2) out.push({ kind: "streak", weeks: s.streakWeeks });
