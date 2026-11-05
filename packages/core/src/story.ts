@@ -144,6 +144,7 @@ export type StorySlide =
   | { kind: "habits"; done: number; due: number }
   | { kind: "streak"; weeks: number }
   | { kind: "body"; change: BodyChange }
+  | { kind: "milestone"; title: string; value: string; unit: string; sub: string }
   | { kind: "end"; coach: string | null };
 
 export function storySlides(s: WeekStory, body: BodyChange | null = null): StorySlide[] {

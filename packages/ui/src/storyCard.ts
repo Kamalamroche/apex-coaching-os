@@ -241,6 +241,21 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
       line(c, `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.`, mid + 110, part(t, 0.45));
       break;
     }
+    case "milestone": {
+      eyebrow(c, `Milestone · ${s.title}`, mid - 300, part(t, 0));
+      bigNumber(c, s.value, s.unit, mid, big, part(t, 0.05));
+      line(c, s.sub, mid + 110, part(t, 0.45));
+      // A small summit mark: three rising steps that draw in, the last one orange.
+      for (let i = 0; i < 3; i++) {
+        const k = part(t, 0.35 + i * 0.08, 0.3);
+        c.globalAlpha = k;
+        c.fillStyle = i === 2 ? C.act : C.text3;
+        const w = 64, gap = 14, hh = 24 + i * 26;
+        c.fillRect(PAD + i * (w + gap), mid + 260 - hh * k, w, hh * k);
+      }
+      c.globalAlpha = 1;
+      break;
+    }
     case "end": {
       const k = part(t, 0, 0.6);
       c.save();
@@ -434,6 +449,7 @@ function slideBand(s: StorySlide, week: string): Band {
     case "habits": return { eyebrow: `Habits · ${week}`, value: String(Math.round((s.done / s.due) * 100)), unit: "%", sub: `${s.done} of ${s.due} ticked off`, ring: s.done / s.due };
     case "streak": return { eyebrow: "Streak", value: String(s.weeks), unit: s.weeks === 1 ? "week" : "weeks", sub: "in a row with at least one workout" };
     case "body": return { eyebrow: s.change.label, value: signedUnit(s.change.delta, "").trim(), unit: s.change.unit, sub: `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` };
+    case "milestone": return { eyebrow: `Milestone · ${s.title}`, value: s.value, unit: s.unit, sub: s.sub };
     case "end": return { eyebrow: "Train with me", value: "APEX", unit: "", sub: "" };
   }
 }

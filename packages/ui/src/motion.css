@@ -315,3 +315,48 @@
 .pd-size .pd-a{font-family:var(--head);color:var(--text3);line-height:1}
 .pd-size .pd-a.sm{font-size:12px}.pd-size .pd-a.lg{font-size:20px}
 .wk-foot .pd-size{color:#AAAFB9}
+
+/* Levels and milestones. */
+.lv-row{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;text-align:left;animation:m-rise .45s var(--ease-out) .25s backwards}
+button.lv-row{cursor:pointer}
+.lv-row .grow{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}
+.lv-badge{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:15px;font-weight:600;color:var(--act);background:var(--act-soft);animation:m-pop .5s var(--ease-spring) .45s backwards}
+.lv-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.lv-top b{font-size:14px}
+.lv-top small{font-size:12px;color:var(--text3);white-space:nowrap}
+.lv-bar{display:block;height:6px;border-radius:var(--pill);background:var(--line);overflow:hidden}
+.lv-bar.lg{height:8px;margin:14px 0 10px}
+.lv-bar.sm{height:4px;margin-top:6px}
+.lv-bar i{display:block;height:100%;width:100%;border-radius:inherit;background:var(--act);transform-origin:left;transform:scaleX(var(--p,0));animation:lv-fill 1.2s var(--ease-out) .35s backwards}
+@keyframes lv-fill{from{transform:scaleX(0)}}
+.lv-card{padding:18px 18px 16px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.lv-eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--act);font-weight:600}
+.lv-name{font:300 34px/1.1 var(--head);letter-spacing:-.02em;color:var(--text);margin-top:6px;animation:m-rise .5s var(--ease-out) .05s backwards}
+.lv-points{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+.lv-points b{font:200 46px/1 var(--head);letter-spacing:-.03em;color:var(--text)}
+.lv-points>span{font-size:13px;color:var(--text2)}
+.lv-lines{list-style:none;margin:0;padding:4px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.lv-lines li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:13px;color:var(--text2);border-bottom:1px solid var(--line)}
+.lv-lines li:last-child{border-bottom:0}
+.lv-lines li b{color:var(--text);font-weight:500}
+.lv-foot{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--text2)}
+.lv-foot b{color:var(--text);font-weight:600}
+.lv-week{color:var(--good);white-space:nowrap}
+.ms-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ms-list li{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);animation:m-rise .4s var(--ease-out) backwards;animation-delay:calc(.05s + var(--i,0) * .04s)}
+.ms-list li:last-child{border-bottom:0}
+.ms-list .grow{min-width:0;flex:1}
+.ms-list b{display:block;font-size:14px;color:var(--text)}
+.ms-list small{display:block;font-size:12px;color:var(--text3)}
+.ms-list .ms-left{flex:none}
+.ms-mark{flex:none;width:28px;height:28px;border-radius:var(--pill);display:grid;place-items:center;color:var(--text3);border:1px solid var(--line)}
+.ms-list li.earned .ms-mark{color:var(--act-ink);background:var(--act);border-color:var(--act)}
+.ms-moment{position:relative;margin-top:12px;padding:20px 18px 16px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--act) 40%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--act) 10%,var(--card)),var(--card) 60%);animation:m-pop .55s var(--ease-spring) backwards;display:flex;flex-direction:column;gap:6px}
+.ms-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:var(--pill);border:0;background:transparent;color:var(--text3);display:grid;place-items:center;cursor:pointer}
+.ms-big{display:flex;align-items:baseline;gap:10px;margin-top:2px}
+.ms-big b{font:200 64px/1 var(--head);letter-spacing:-.04em;color:var(--text);animation:m-rise .6s var(--ease-out) .15s backwards}
+.ms-big>span{font-size:16px;color:var(--text2)}
+.ms-steps{display:flex;align-items:flex-end;gap:5px;height:34px;margin:6px 0 8px}
+.ms-steps i{width:20px;border-radius:3px;background:var(--line2);transform-origin:bottom;animation:lv-step .5s var(--ease-out) backwards}
+.ms-steps i:nth-child(1){height:10px;animation-delay:.3s}.ms-steps i:nth-child(2){height:20px;animation-delay:.4s}.ms-steps i:nth-child(3){height:32px;background:var(--act);animation-delay:.5s}
+@keyframes lv-step{from{transform:scaleY(0)}}
