@@ -549,3 +549,66 @@ button.lv-row{cursor:pointer}
 .lv-points b,.ms-big b{font-family:var(--serif);font-weight:400;letter-spacing:-.02em}
 .wel-h{font-family:var(--serif);font-weight:400;font-size:clamp(21px,5.8vw,28px);letter-spacing:.06em;text-transform:uppercase;line-height:1.12}
 .wel-h b,.wel-h strong{font-weight:600}
+
+/* ───────── Growth: public coach page, Train with me, invite a friend ───────── */
+.gr-page{display:flex;flex-direction:column;gap:14px}
+.gr-hero{min-height:min(560px,128vw)}
+.gr-hero.coach{min-height:360px}
+.gr-hero .hero-img{animation:gr-zoom 1.6s var(--ease-out) backwards}
+@keyframes gr-zoom{from{transform:scale(1.08)}to{transform:none}}
+.gr-hero::after,.gr-invite::after{background:linear-gradient(180deg,rgba(10,10,12,.35) 0%,rgba(10,10,12,0) 30%,rgba(10,10,12,.15) 55%,rgba(10,10,12,.78) 100%)}
+.gr-logo{display:inline-flex;align-items:center;gap:6px;color:#fff;font:800 13px/1 var(--head);letter-spacing:.14em}
+.gr-headline{margin:0;max-width:30em;color:rgba(255,255,255,.88);font:400 15px/1.45 var(--ui);animation:m-rise .6s var(--ease-out) .35s backwards}
+.gr-hero .gpill,.gr-invite .gpill{animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.45s + var(--i,0) * .07s)}
+.gr-cta{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border:0;border-radius:var(--pill);background:var(--act);color:var(--act-ink);font:700 15px/1 var(--ui);letter-spacing:.01em;text-decoration:none;cursor:pointer;animation:m-rise .6s var(--ease-out) .6s backwards;transition:transform .18s var(--ease-out)}
+.gr-cta:active{transform:scale(.97)}
+.gr-cta.glass{background:var(--glass);border:1px solid var(--glass-line);color:#fff;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.gr-row{display:flex;gap:8px}.gr-row>*{flex:1}
+.gr-count{display:flex;align-items:baseline;gap:12px;padding:4px 4px 0;animation:m-rise .6s var(--ease-out) .2s backwards}
+.gr-count b,.gr-count b *{font:400 54px/1 var(--serif);letter-spacing:-.02em;color:var(--act)}
+.gr-count>span{font-size:14px;color:var(--text2);max-width:14em}
+.gr-eyebrow{display:block;font:500 10px/1.2 var(--serif);letter-spacing:.42em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.gr-offer ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gr-offer li{padding:14px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--text2);animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.25s + var(--i,0) * .07s)}
+.gr-offer li svg{color:var(--act)}
+.gr-offer li b{color:var(--text);font-size:14px}
+.gr-about blockquote{margin:0;padding:2px 0 2px 16px;border-left:2px solid var(--act);font:400 18px/1.5 var(--serif);color:var(--text)}
+.gr-made{display:flex;align-items:center;justify-content:center;gap:6px;margin:6px 0 0;font:500 10px/1 var(--serif);letter-spacing:.32em;text-transform:uppercase;color:var(--text3)}
+.gr-page.preview{pointer-events:none}
+.gr-page.preview .gr-hero{min-height:440px}
+/* Sent */
+.gr-sent{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:8px 0 4px}
+.gr-sent .ed-title{font-size:28px;color:var(--text)}
+.gr-sent .ed-cap{color:var(--text3)}
+.gr-sent p{margin:0;color:var(--text2);font-size:14px;line-height:1.5}
+.gr-tick{width:52px;height:52px;border-radius:var(--pill);display:grid;place-items:center;background:var(--act);color:var(--act-ink);animation:m-pop .6s var(--ease-spring) backwards}
+/* Goal chips */
+.gr-chips{display:flex;flex-wrap:wrap;gap:6px}
+.gr-chip{padding:9px 12px;border-radius:var(--pill);border:1px solid var(--line2);background:var(--card);color:var(--text);font:600 13px/1 var(--ui);cursor:pointer;transition:background .15s,border-color .15s,transform .15s var(--ease-out)}
+.gr-chip[aria-pressed="true"]{background:var(--act);border-color:var(--act);color:var(--act-ink)}
+.gr-chip:active{transform:scale(.95)}
+/* Coach: link box and requests */
+.gr-link{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.gr-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 13px/1.2 var(--num);color:var(--text)}
+.gr-req{padding:14px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:10px;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .06s)}
+.gr-req.s-declined{opacity:.6}
+.gr-req header{display:flex;align-items:center;gap:10px}
+.gr-req header b{display:block;font-size:15px}
+.gr-req header small{display:block;color:var(--text3);font-size:12px;margin-top:2px}
+.gr-state{padding:5px 9px;border-radius:var(--pill);font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--card2);color:var(--text2)}
+.gr-state.s-new{background:var(--act-soft);color:var(--act)}
+.gr-state.s-joined{background:var(--good-soft);color:var(--good)}
+.gr-ref{margin:0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--act)}
+.gr-msg{margin:0;font:400 15px/1.45 var(--serif);color:var(--text)}
+.gr-req footer{display:flex;gap:8px;flex-wrap:wrap}
+/* Client invite card */
+.gr-invite{min-height:300px}
+.gr-invite .ed-title{font-size:26px;color:#fff}
+@media (min-width:760px){.gr-hero{min-height:520px}.gr-offer ul{grid-template-columns:repeat(4,1fr)}}
+@media (prefers-reduced-motion:reduce){.gr-hero .hero-img,.gr-headline,.gr-cta,.gr-count,.gr-offer li,.gr-req,.gr-tick,.gr-hero .gpill,.gr-invite .gpill{animation:none}}
+.gr-shell{max-width:620px;margin:0 auto;padding:12px 16px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;min-height:100vh;background:var(--bg);color:var(--text)}
+.gr-top{display:flex;justify-content:space-between;align-items:center}
+.gr-wait{margin:30vh auto 0;width:34px;height:34px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--act);animation:gr-spin 1s linear infinite}
+@keyframes gr-spin{to{rotate:360deg}}
+.gr-form-title{font-size:21px;color:var(--text)}
+.gr-form-title .ed-cap{color:var(--text3)}

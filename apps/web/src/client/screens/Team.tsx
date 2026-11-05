@@ -2,6 +2,7 @@ import { HERO_IMAGES, heroForPost, postFigure, type TeamDraft } from "@apex/core
 import { EffortBoard, Icons, TeamFeed, TeamHero, type IconName } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
+import { InviteFriend } from "../../app/GrowthParts";
 import { PostToTeam, TeamStatus, useTeam, useTeamSuggestions } from "../../app/TeamParts";
 import { effortWeekLabel, useTeamApi } from "../../data/team";
 
@@ -72,6 +73,7 @@ export function Team({ say }: { say: (m: string) => void }) {
           ) : (
             <div className="card small">Nothing yet. Finish a workout and be the first to post.</div>
           )}
+          <InviteFriend say={say} />
           <button className="btn ghost sm" style={{ alignSelf: "center" }} onClick={() => { if (window.confirm(`Leave ${coachName}'s team? Your posts stay until you remove them.`)) void act(() => api.leave(), "You left the team"); }}>Leave the team</button>
         </>
       )}

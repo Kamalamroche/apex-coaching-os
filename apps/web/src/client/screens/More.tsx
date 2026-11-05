@@ -18,6 +18,7 @@ import { Challenges } from "./Challenges";
 import { Resources } from "./Resources";
 import { Team } from "./Team";
 import { useTeamApi } from "../../data/team";
+import { InviteFriend, useFriendInvite } from "../../app/GrowthParts";
 import { useResourceApi } from "../../data/resources";
 import { useChallengeApi } from "../../data/challenges";
 import { useBookingApi } from "../../data/bookings";
@@ -25,13 +26,14 @@ import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
 
-type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "apps" | "intake" | "form";
+type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
 
 export type MoreView = View;
 
 export function More({ say, start }: { say: (m: string) => void; start?: View | null }) {
   const [view, setView] = useState<View | null>(start ?? null);
   const teamApi = useTeamApi();
+  const friend = useFriendInvite();
   const { coachName } = useAppInfo();
   const life = useLifestyle();
   const form = useFormChecks();
@@ -50,6 +52,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   const MENU: [View, string, string][] = [
     ...(bookingApi ? [["book", `Book with ${coachName}`, nextBooking ? `Next: ${whenLabel(nextBooking.startsAt)}` : "A call or a training session"] as [View, string, string]] : []),
     ...(teamApi ? [["team", "Team", `${coachName}'s private team: high fives and the weekly effort board`] as [View, string, string]] : []),
+    ...(friend ? [["invite", "Invite a friend", friend.summary.joined ? `${friend.summary.joined} joined ${coachName} through you` : `Bring a friend to train with ${coachName}`] as [View, string, string]] : []),
     ...(challengeApi ? [["challenges", "Challenges", `Join ${coachName}'s challenges and climb the leaderboard`] as [View, string, string]] : []),
     ...(resourceApi ? [["resources", "Resources", `Guides, videos and links from ${coachName}`] as [View, string, string]] : []),
     ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
@@ -61,7 +64,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], apps: ["link", "c3"], account: ["info", "c4"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -71,6 +74,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
         <BackLink onClick={() => setView(null)}>More</BackLink>
         {view === "book" && <Book say={say} />}
         {view === "team" && <Team say={say} />}
+        {view === "invite" && <InviteFriend say={say} />}
         {view === "challenges" && <Challenges say={say} />}
         {view === "resources" && <Resources />}
         {view === "goals" && <Goals say={say} />}

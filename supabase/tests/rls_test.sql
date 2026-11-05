@@ -877,3 +877,101 @@ end $$;
 reset role;
 
 
+
+-- Growth: public coach page, requests to train, friend codes
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000f1'),('00000000-0000-0000-0000-0000000000f2'),('00000000-0000-0000-0000-0000000000f3');
+insert into profiles values ('00000000-0000-0000-0000-0000000000f1','coach','Grow Coach'),('00000000-0000-0000-0000-0000000000f2','client','Fiona Client'),('00000000-0000-0000-0000-0000000000f3','client','Not Theirs');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2');
+grant execute on function public.public_coach_page(text) to anon;
+grant execute on function public.request_to_train(text, text, text, text, text, text) to anon;
+grant usage on schema public to anon;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  begin
+    insert into coach_pages (coach_id, slug, headline) values ('00000000-0000-0000-0000-0000000000f2','fiona','Me');
+    raise exception 'a client made a coach page';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into coach_pages (coach_id, slug, headline, bio, show_clients) values ('00000000-0000-0000-0000-0000000000f1','grow-coach','Get strong','Hi', true);
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  assert (select count(*) from public.public_coach_page('grow-coach')) = 0, 'unpublished page is hidden';
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update coach_pages set published = true where coach_id = '00000000-0000-0000-0000-0000000000f1';
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ declare c text; begin
+  c := public.my_referral_code('00000000-0000-0000-0000-0000000000f1');
+  assert c ~ '^[a-z0-9]{8}$', 'friend code made';
+  assert public.my_referral_code('00000000-0000-0000-0000-0000000000f1') = c, 'same code next time';
+  perform set_config('test.ref', c, false);
+  begin
+    perform public.my_referral_code('00000000-0000-0000-0000-00000000000d');
+    raise exception 'friend code for someone else''s coach';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f3');
+do $$ begin
+  assert (select count(*) from referral_codes) = 0, 'other people''s codes are hidden';
+  assert (select count(*) from coach_pages) = 0, 'not their coach: page row hidden';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare p record; begin
+  select * into p from public.public_coach_page('Grow-Coach');
+  assert p.name = 'Grow Coach' and p.headline = 'Get strong' and p.clients = 1, 'published page is public';
+  perform public.request_to_train('grow-coach', 'Leo Martin', 'Leo@Example.com', 'Run further', 'Half marathon', current_setting('test.ref'));
+  perform public.request_to_train('grow-coach', 'Hana Ito', 'hana@example.com');
+  begin
+    perform public.request_to_train('grow-coach', 'Leo Again', 'leo@example.com');
+    raise exception 'asked twice';
+  exception when unique_violation then null; end;
+  begin
+    perform public.request_to_train('nobody-here', 'Leo', 'leo@example.com');
+    raise exception 'asked a page that does not exist';
+  exception when no_data_found then null; end;
+  begin
+    perform 1 from join_requests;
+    raise exception 'anon read requests';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into invites (token, coach_id) values ('f0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000f1');
+update join_requests set status = 'invited', invite_token = 'f0000000-0000-0000-0000-000000000001' where email = 'leo@example.com';
+do $$ begin
+  assert (select count(*) from public.coach_join_requests()) = 2, 'coach sees both requests';
+  assert (select referred_by from public.coach_join_requests() where email = 'leo@example.com') = 'Fiona C.', 'coach sees who sent the friend';
+  assert (select referred_by from public.coach_join_requests() where email = 'hana@example.com') is null, 'no referrer';
+end $$;
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000f4');
+insert into profiles values ('00000000-0000-0000-0000-0000000000f4','client','Leo Martin');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f4');
+select public.accept_invite('f0000000-0000-0000-0000-000000000001');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  assert (select asked from public.my_referrals('00000000-0000-0000-0000-0000000000f1')) = 1, 'my friend asked';
+  assert (select joined from public.my_referrals('00000000-0000-0000-0000-0000000000f1')) = 1, 'and joined';
+  assert (select count(*) from join_requests) = 0, 'clients never read requests';
+  assert (select slug from coach_pages) = 'grow-coach', 'client reads own coach''s page for the invite link';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from public.coach_join_requests()) = 0, 'rival sees no requests';
+  begin
+    update coach_pages set headline = 'Hacked';
+    assert (select count(*) from coach_pages) = 0, 'rival sees no page rows';
+  end;
+end $$;
+reset role;
