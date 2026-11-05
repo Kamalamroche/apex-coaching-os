@@ -41,12 +41,6 @@
 .lp-kick{display:inline-flex;align-items:center;gap:10px;font:700 12px/1 var(--num);letter-spacing:.2em;text-transform:uppercase;color:var(--act)}
 .lp-kick::before{content:"";width:24px;height:2px;background:currentColor}
 
-/* ---------- poster stage: giant word behind a cut-out athlete, no frame ---------- */
-.lp-stage{position:relative;container-type:inline-size;aspect-ratio:1/1.08;max-width:100%}
-.lp-giant{position:absolute;left:0;right:0;top:4%;z-index:1;text-align:center;font:900 27cqw/.8 var(--head);font-stretch:125%;letter-spacing:-.02em;text-transform:uppercase;color:var(--act);user-select:none;white-space:nowrap}
-.lp-cut{position:absolute;inset:0;z-index:2;width:100%;height:100%;object-fit:cover;object-position:center 60%}
-.lp-side{position:absolute;right:0;bottom:6%;z-index:3;writing-mode:vertical-rl;transform:rotate(180deg);font:700 11px/1 var(--num);letter-spacing:.24em;text-transform:uppercase;color:var(--text3)}
-
 /* ---------- hero ---------- */
 .lp-hero{padding-block:8px 64px}
 .lp-hero-grid{display:grid;gap:20px}
@@ -60,23 +54,13 @@
 
 /* ---------- three posters ---------- */
 .lp-poster{padding-block:48px}
-.lp-poster .lp-stage,.lp-final-stage{overflow:hidden}
 .lp-poster-grid{display:grid;gap:22px}
 .lp-copy{display:grid;gap:14px;justify-items:start;min-width:0}
-.lp-poster.outline .lp-giant{color:transparent;-webkit-text-stroke:2px var(--text);top:6%;font-size:23cqw}
-.lp-poster.vertical .lp-giant{left:auto;right:0;top:2%;bottom:2%;writing-mode:vertical-rl;text-align:center;font-size:28cqw;font-stretch:100%;line-height:.82}
-.lp-poster.solid .lp-giant{top:auto;bottom:4%;color:var(--text);font-size:25cqw}
-.lp-poster.solid .lp-cut{z-index:0}
-.lp-poster.solid .lp-giant{z-index:1;mix-blend-mode:normal}
 @media (min-width:900px){
   .lp-poster{padding-block:72px}
   .lp-poster-grid{grid-template-columns:1.1fr 1fr;align-items:center;gap:64px}
-  .lp-poster.flip .lp-stage{order:2}
+  .lp-poster.flip .ps{order:2}
 }
-
-/* built by a coach: athlete over a tilted block */
-.lp-tilt .lp-shape{position:absolute;inset:16% 14% 14% 14%;z-index:0;background:var(--act);border-radius:28px;transform:rotate(-12deg)}
-.lp-tilt .lp-cut{object-fit:contain;object-position:center}
 
 /* ---------- pricing + FAQ ---------- */
 .lp-sec{padding-block:64px}
@@ -103,7 +87,6 @@
 /* ---------- final poster ---------- */
 .lp-final{padding-block:48px 72px}
 .lp-final-grid{display:grid;gap:24px}
-.lp-final-stage .lp-vert{position:absolute;left:-1%;top:0;bottom:0;z-index:1;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font:900 31cqw/.8 var(--head);font-stretch:100%;text-transform:uppercase;color:transparent;-webkit-text-stroke:2px var(--act);user-select:none}
 @media (min-width:900px){
   .lp-final-grid{grid-template-columns:1fr 1.1fr;align-items:center;gap:64px}
 }
@@ -116,3 +99,61 @@
 .lp-foot-nav a:hover{color:var(--text)}
 
 @media (prefers-reduced-motion:reduce){.lp-pill,.lp-faq summary::after{transition:none}}
+
+/* ---------- campaign posters (apps/web/src/landing/Posters.tsx) ----------
+   Fixed 4:5 compositions sized in container units. Each poster keeps one look in both themes, so its inks are
+   pinned to the light-theme token values. */
+.ps{--ps-ink:#121418;--ps-paper:#F3F2EF;--ps-white:#FFFFFF;--ps-act:#E85A0C;--ps-sky:color-mix(in srgb,#0284C7 30%,#F3F2EF);
+  position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;border-radius:28px;overflow:hidden;isolation:isolate;background:var(--ps-paper);color:var(--ps-ink)}
+.ps-photo,.ps-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none}
+.ps-photo{z-index:0}
+.ps-cut{z-index:3}
+.ps-num,.ps-fill,.ps-vert{position:absolute;font-family:var(--head);font-weight:900;font-stretch:62%;line-height:.78;text-transform:uppercase;user-select:none;white-space:nowrap}
+.ps-num{z-index:2}
+.ps-grain{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.16;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.ps-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase}
+.ps-meta.tl{top:5.5cqw;left:6cqw}
+.ps-meta.tr{top:5.5cqw;right:6cqw;text-align:right}
+.ps-meta.bl{bottom:5.5cqw;left:6cqw}
+.ps-meta.br{bottom:5.5cqw;right:6cqw;text-align:right}
+.ps-mark{position:absolute;z-index:5;top:5cqw;right:6cqw;color:var(--ps-white);display:flex}
+.ps-mark svg{width:5cqw;height:5cqw}
+.ps-tag{position:absolute;z-index:4;background:var(--ps-act);color:var(--ps-white);font:800 3.6cqw/1 var(--head);font-style:italic;font-stretch:110%;letter-spacing:.03em;text-transform:uppercase;padding:1.8cqw 3.4cqw 1.8cqw 4.4cqw;transform:skewX(-14deg) rotate(-4deg);box-shadow:0 1.6cqw 3.2cqw -1cqw rgba(0,0,0,.45)}
+
+/* DAY 01: his deadlift photo, numerals between backdrop and athlete */
+.ps-day{background:var(--ps-ink);color:var(--ps-white)}
+.ps-day .ps-photo,.ps-day .ps-cut{object-position:center 55%}
+.ps-day .ps-spaced{position:absolute;z-index:2;top:12cqw;left:0;right:0;text-align:center;font:700 3.6cqw/1 var(--num);letter-spacing:1.4em;padding-left:1.4em}
+.ps-day .ps-num{left:0;right:0;top:17cqw;text-align:center;font-size:74cqw;letter-spacing:-.03em;color:var(--ps-act)}
+.ps-day .t1{left:-3cqw;top:84cqw}
+.ps-day .t2{right:-3cqw;top:24cqw;transform:skewX(-14deg) rotate(3deg)}
+
+/* 07:30: split block, the number sinks into the paper below the block */
+.ps-split .ps-block{position:absolute;left:0;right:0;top:0;height:37%;z-index:0;background:var(--ps-sky)}
+.ps-split .ps-num{left:-2cqw;right:-2cqw;top:12cqw;text-align:center;font-size:50cqw;letter-spacing:-.02em;color:var(--ps-paper)}
+.ps-split .ps-cut{transform:scale(.74);transform-origin:58% 96%}
+.ps-split .ps-label{position:absolute;z-index:5;left:6cqw;top:57cqw;font:900 5.2cqw/.92 var(--head);font-stretch:125%;text-transform:uppercase;color:var(--ps-white);mix-blend-mode:difference}
+
+/* TRAIN: flat orange, letters filled with the studio photo */
+.ps-flat{background:var(--ps-act)}
+.ps-flat .ps-fill{z-index:1;right:3cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
+.ps-flat .ps-cut{transform:translateX(-14%) scale(1.04)}
+.ps-flat .ps-meta{color:var(--ps-ink)}
+
+/* Stronger every week: full photo, clean corner headline, one number */
+.ps-photo-only{color:var(--ps-white)}
+.ps-photo-only .ps-photo{object-position:center 40%}
+.ps-head{position:absolute;z-index:4;left:6cqw;top:6.5cqw;font:700 8.6cqw/.98 var(--ui);letter-spacing:-.025em}
+.ps-sub{position:absolute;z-index:4;left:6cqw;bottom:24cqw;font:700 2.6cqw/1 var(--num);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+.ps-stat{position:absolute;z-index:4;left:6cqw;bottom:6cqw;display:flex;align-items:flex-end;gap:2cqw}
+.ps-stat b{font:900 22cqw/.78 var(--head);font-stretch:62%;color:var(--ps-act)}
+.ps-stat small{font:600 3.2cqw/1.2 var(--ui);padding-bottom:1cqw;max-width:16cqw}
+
+/* Built by a coach: athlete over a big rounded triangle */
+.ps-shape .ps-tri{position:absolute;inset:4% 2% 6% 2%;z-index:1;width:96%;height:90%}
+.ps-shape .ps-tri path{fill:var(--ps-act)}
+
+/* NEXT: rings photo, outline letters stacked down the left */
+.ps-next{color:var(--ps-white)}
+.ps-next .ps-vert{z-index:2;left:4cqw;top:4cqw;bottom:4cqw;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-size:52cqw;color:transparent;-webkit-text-stroke:.45cqw var(--ps-act)}
+.ps-next .t1{left:-3cqw;bottom:18cqw}

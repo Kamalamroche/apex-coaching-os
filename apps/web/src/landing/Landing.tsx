@@ -1,25 +1,26 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { Icons, ThemeButton } from "@apex/ui";
+import { BriefPoster, DayPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
 /* Public marketing page at /. Sign-in and demos live at /start/, /coach/ and /client/.
-   Poster layout: each section is one big word, one cut-out HELIX athlete standing on the page, and a few lines of copy.
+   Poster layout: each section pairs one campaign poster (see Posters.tsx) with a few lines of copy.
    Copy is original. Only features that exist today are sold. */
 
-type Poster = { word: string; style: "outline" | "vertical" | "solid"; img: string; alt: string; kicker: string; title: string; body: string };
+type Poster = { id: string; Art: () => ReactElement; kicker: string; title: string; body: string };
 
 const POSTERS: Poster[] = [
   {
-    word: "Brief", style: "outline", img: "coach", alt: "A HELIX coach talking a client through her plan on a tablet",
+    id: "brief", Art: BriefPoster,
     kicker: "Every morning", title: "Know who needs you.",
     body: "Missed sessions, stalled lifts and unread messages, ranked by urgency. Suggestions wait for your OK, and clients only see your decisions.",
   },
   {
-    word: "Train", style: "vertical", img: "run", alt: "A HELIX athlete sprinting",
+    id: "train", Art: TrainPoster,
     kicker: "In their pocket", title: "Today's session, one tap away.",
     body: "Clients open straight onto today's workout with cues, a rest timer, a plate calculator and last time's numbers on every set.",
   },
   {
-    word: "Grow", style: "solid", img: "upper", alt: "A HELIX athlete pressing dumbbells overhead",
+    id: "grow", Art: GrowPoster,
     kicker: "From real data", title: "Progress they can see.",
     body: "Every logged set carries load, reps and RPE. APEX suggests the next step, tracks personal bests and sends you the summary.",
   },
@@ -73,11 +74,7 @@ export function Landing() {
       <main>
         <section className="lp-hero">
           <div className="lp-wrap lp-hero-grid">
-            <div className="lp-stage" aria-hidden="false">
-              <span className="lp-giant" aria-hidden="true">APEX</span>
-              <img className="lp-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift" />
-              <span className="lp-side" aria-hidden="true">Coaching OS · by HELIX</span>
-            </div>
+            <DayPoster />
             <div className="lp-hero-copy">
               <h1 className="lp-h1">
                 <span>Coach more people.</span>
@@ -94,12 +91,9 @@ export function Landing() {
 
         <div id="how">
           {POSTERS.map((p, i) => (
-            <section key={p.word} className={`lp-poster ${p.style} ${i % 2 ? "flip" : ""}`}>
+            <section key={p.id} className={`lp-poster ${i % 2 ? "flip" : ""}`}>
               <div className="lp-wrap lp-poster-grid">
-                <div className="lp-stage">
-                  <span className="lp-giant" aria-hidden="true">{p.word}</span>
-                  <img className="lp-cut" src={`/hero/${p.img}-cut.webp`} width={1080} height={1350} loading="lazy" alt={p.alt} />
-                </div>
+                <p.Art />
                 <div className="lp-copy">
                   <span className="lp-kick">{p.kicker}</span>
                   <h2 className="lp-h2">{p.title}</h2>
@@ -110,12 +104,9 @@ export function Landing() {
           ))}
         </div>
 
-        <section className="lp-poster lp-tilt-sec">
+        <section className="lp-poster flip">
           <div className="lp-wrap lp-poster-grid">
-            <div className="lp-stage lp-tilt">
-              <i className="lp-shape" aria-hidden="true" />
-              <img className="lp-cut" src="/hero/wall-ball-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete throwing a medicine ball" />
-            </div>
+            <ShapePoster />
             <div className="lp-copy">
               <span className="lp-kick">Built at HELIX</span>
               <h2 className="lp-h2">Made by a coach, for coaches.</h2>
@@ -158,10 +149,7 @@ export function Landing() {
 
         <section className="lp-final">
           <div className="lp-wrap lp-final-grid">
-            <div className="lp-stage lp-final-stage">
-              <span className="lp-vert" aria-hidden="true">APEX</span>
-              <img className="lp-cut" src="/hero/rings-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete holding an L-sit on gymnastic rings" />
-            </div>
+            <NextPoster />
             <div className="lp-copy">
               <h2 className="lp-h2 big">Your next client deserves your best coaching.</h2>
               <div className="lp-ctas">
