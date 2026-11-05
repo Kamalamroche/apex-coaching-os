@@ -591,12 +591,13 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .hero{position:relative;container-type:inline-size;border-radius:var(--r-lg);overflow:hidden;background:var(--card2) center/cover no-repeat;min-height:340px;display:flex;flex-direction:column;justify-content:space-between;padding:16px;color:var(--glass-ink);isolation:isolate}
 .hero>img.hero-img,.hero>video.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-4}
 /* Poster word behind the athlete: photo (-4), word (-3), athlete cut-out (-2), legibility fade (-1) */
-.hero-word{position:absolute;left:0;right:0;top:17%;z-index:-3;text-align:center;font:900 min(42cqw,calc(124cqw / var(--n,5)))/.8 var(--head);font-stretch:112%;letter-spacing:-.035em;white-space:nowrap;pointer-events:none;user-select:none}
-.hero.short .hero-word{top:6%;text-align:right;right:5%;font-size:min(30cqw,calc(96cqw / var(--n,5)))}
-.hero-word.ink-light{color:rgba(255,255,255,.94)}
-.hero-word.ink-act{color:#FF6A1A}
+.hero-word{position:absolute;left:0;right:0;top:13%;z-index:-3;text-align:center;font:900 min(72cqw,calc(182cqw / var(--n,5)))/.78 var(--head);font-stretch:62%;letter-spacing:-.02em;white-space:nowrap;pointer-events:none;user-select:none}
+.hero.short .hero-word{top:5%;text-align:right;right:5%;font-size:min(52cqw,calc(150cqw / var(--n,5)))}
+/* Poster numerals in HELIX orange on every set (the DAY 01 look); ink stays in the data for lighter photos later */
+.hero-word.ink-light,.hero-word.ink-act{color:#FF6A1A}
 .hero>img.hero-cut,.pl-hero>img.hero-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none}
 .hero::after{content:"";position:absolute;inset:0;background:var(--photo-fade);z-index:-1}
+.hero::before,.pl-hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.14;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .hero.side::after{background:linear-gradient(180deg,rgba(13,15,19,0) 30%,rgba(13,15,19,.5) 100%),linear-gradient(90deg,rgba(13,15,19,.7) 0%,rgba(13,15,19,.25) 48%,rgba(13,15,19,0) 72%)}
 .hero.short{min-height:200px;justify-content:flex-end}
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -646,7 +647,7 @@ button.tile{font:inherit}
 /* Player hero */
 .pl-hero{position:relative;container-type:inline-size;margin:-16px calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;height:min(56vh,440px);border-radius:0 0 32px 32px;overflow:hidden;background:var(--card2);isolation:isolate}
 .pl-hero>img,.pl-hero>video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-4}
-.pl-hero .hero-word{top:13%}
+.pl-hero .hero-word{top:12%}
 .pl-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(13,15,19,.5) 0%,rgba(13,15,19,0) 26%,rgba(13,15,19,0) 58%,rgba(13,15,19,.92) 100%)}
 .pl-hero .bar-top{position:absolute;left:14px;right:14px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:center;gap:8px}
 .pl-hero .bar-bot{position:absolute;left:18px;right:18px;bottom:16px;color:var(--glass-ink);display:flex;flex-direction:column;gap:6px}
