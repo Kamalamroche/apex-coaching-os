@@ -44,7 +44,7 @@ export function TrainPoster() {
   return (
     <figure className="ps ps-flat">
       <span className="ps-fill" aria-hidden="true">Train</span>
-      <img className="ps-cut" src="/hero/run-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete sprinting" />
+      <img className="ps-cut" src="/hero/run-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete running a coastal trail" />
       <span className="ps-meta tl" aria-hidden="true">Client app<br />Today's session</span>
       <span className="ps-meta bl" aria-hidden="true">Cues · rest timer · last time's kg</span>
       <Grain />

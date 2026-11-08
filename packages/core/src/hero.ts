@@ -2,14 +2,14 @@ import { exerciseFor } from "./workout";
 import type { Sport } from "./activity";
 import type { Exercise, Workout } from "./types";
 
-/** Original HELIX campaign stills in apps/web/public/hero (made with Higgsfield, our own athletes in studio sets).
+/** Original HELIX campaign stills in apps/web/public/hero (made with Higgsfield, our own athletes, each in a different real place).
  * Each has a cut-out of the athlete (`cut`) so a big poster word can sit behind them. */
 export type HeroImage =
   | "squat" | "lower" | "hip-thrust" | "hinge" | "bench" | "upper" | "pull" | "dumbbell"
   | "calisthenics" | "rings" | "sled" | "wall-ball" | "ski" | "kettlebell" | "core" | "mobility"
   | "run" | "swim" | "ride" | "recovery" | "coach" | "meal";
 
-/** Colour of the poster word: "light" (white) on the low-key burgundy, rust and graphite sets; "act" (orange) stays available for lighter photos. */
+/** Colour of the poster word: "light" (white) by default; "act" (orange) stays available. */
 export type HeroInk = "light" | "act";
 
 export interface HeroArt { src: string; cut?: string; alt: string; focus: string; word: string; ink: HeroInk }
@@ -18,28 +18,28 @@ const img = (file: string, alt: string, focus: string, word: string, ink: HeroIn
   ({ src: `/hero/${file}.webp`, cut: cut ? `/hero/${file}-cut.webp` : undefined, alt, focus, word, ink });
 
 export const HERO_IMAGES: Record<HeroImage, HeroArt> = {
-  squat: img("squat", "HELIX athlete in a barbell back squat in a burgundy studio", "center 50%", "Squat", "light"),
-  lower: img("lower", "HELIX athlete doing a dumbbell split squat off a box in a burgundy studio", "center 60%", "Legs", "light"),
-  "hip-thrust": img("hip-thrust", "HELIX athlete at the top of a barbell hip thrust in a burgundy studio", "center 55%", "Glutes", "light"),
-  hinge: img("hinge", "HELIX athlete setting up a barbell deadlift in a burgundy studio", "center 55%", "Hinge", "light"),
-  bench: img("bench", "HELIX athlete pressing dumbbells on a bench in a burgundy studio", "center 55%", "Press", "light"),
-  upper: img("upper", "HELIX athlete pressing dumbbells overhead in a burgundy studio", "center 30%", "Upper", "light"),
-  pull: img("pull", "HELIX athlete doing a one-arm dumbbell row in a burgundy studio", "center 55%", "Back", "light"),
-  dumbbell: img("dumbbell", "HELIX athlete holding heavy dumbbells in a burgundy studio", "center 45%", "Strong", "light"),
-  calisthenics: img("calisthenics", "HELIX athlete at the top of a pull-up in a rust-lit studio", "center 30%", "Pull", "light"),
-  rings: img("rings", "HELIX athlete holding an L-sit on gymnastic rings in a rust-lit studio", "center 50%", "Rings", "light"),
-  sled: img("sled", "HELIX athlete driving a push sled in a rust-lit studio", "center 60%", "Race", "light"),
-  "wall-ball": img("wall-ball", "HELIX athlete throwing a medicine ball in a rust-lit studio", "center 35%", "Power", "light"),
-  ski: img("ski", "HELIX athlete on a rowing machine in a rust-lit studio", "center 60%", "Engine", "light"),
-  kettlebell: img("kettlebell", "HELIX athlete at the top of a kettlebell swing in a rust-lit studio", "center 45%", "Swing", "light"),
-  core: img("core", "HELIX athlete holding a forearm plank under a single studio light", "center 60%", "Core", "light"),
-  mobility: img("mobility", "HELIX athlete in a low lunge with a rotation stretch under a single studio light", "center 50%", "Flow", "light"),
-  run: img("run", "HELIX athlete sprinting in a rust-lit studio", "center 45%", "Run", "light"),
-  swim: img("swim", "HELIX swimmer taking a breath mid-stroke in a dark pool", "center 50%", "Swim", "light", false),
-  ride: img("ride", "HELIX athlete riding a road bike in a rust-lit studio", "center 60%", "Ride", "light"),
-  recovery: img("recovery", "HELIX athlete foam rolling under a single warm studio light", "center 65%", "Rest", "light"),
-  coach: img("coach", "Coach talking a HELIX athlete through her plan in a burgundy studio", "center 45%", "Coach", "light"),
-  meal: img("meal", "A chicken, quinoa and avocado bowl on a dark burgundy table", "center 65%", "Fuel", "light", false),
+  squat: img("squat", "HELIX athlete in a barbell back squat in a sunny garage gym", "center 50%", "Squat", "light"),
+  lower: img("lower", "HELIX athlete doing a dumbbell split squat off a box in a city park", "center 60%", "Legs", "light"),
+  "hip-thrust": img("hip-thrust", "HELIX athlete at the top of a barbell hip thrust in a bright boutique gym", "center 55%", "Glutes", "light"),
+  hinge: img("hinge", "HELIX athlete setting up a barbell deadlift in a daylight concrete gym", "center 55%", "Hinge", "light"),
+  bench: img("bench", "HELIX athlete pressing dumbbells on a bench in a high-rise gym", "center 55%", "Press", "light"),
+  upper: img("upper", "HELIX athlete pressing dumbbells overhead on a city rooftop at sunrise", "center 30%", "Upper", "light"),
+  pull: img("pull", "HELIX athlete doing a one-arm dumbbell row in a home garage gym", "center 55%", "Back", "light"),
+  dumbbell: img("dumbbell", "HELIX athlete holding heavy dumbbells in a light grey studio", "center 45%", "Strong", "light"),
+  calisthenics: img("calisthenics", "HELIX athlete at the top of a pull-up on a beach bar", "center 30%", "Pull", "light"),
+  rings: img("rings", "HELIX athlete holding an L-sit on gymnastic rings in a bright gymnastics hall", "center 50%", "Rings", "light"),
+  sled: img("sled", "HELIX athlete driving a push sled on an indoor turf lane", "center 60%", "Race", "light"),
+  "wall-ball": img("wall-ball", "HELIX athlete throwing a medicine ball in a whitewashed brick gym", "center 35%", "Power", "light"),
+  ski: img("ski", "HELIX athlete on a rowing machine by a window over a misty lake", "center 60%", "Engine", "light"),
+  kettlebell: img("kettlebell", "HELIX athlete at the top of a kettlebell swing in a sunny garden", "center 45%", "Swing", "light"),
+  core: img("core", "HELIX athlete holding a forearm plank on a forest deck", "center 60%", "Core", "light"),
+  mobility: img("mobility", "HELIX athlete in a low lunge with a rotation stretch in a daylight studio", "center 50%", "Flow", "light"),
+  run: img("run", "HELIX athlete running a coastal cliff trail", "center 45%", "Run", "light"),
+  swim: img("swim", "HELIX swimmer taking a breath mid-stroke in an outdoor pool", "center 50%", "Swim", "light", false),
+  ride: img("ride", "HELIX athlete riding a road bike on a mountain road", "center 60%", "Ride", "light"),
+  recovery: img("recovery", "HELIX athlete foam rolling in a bright living room", "center 65%", "Rest", "light"),
+  coach: img("coach", "Coach talking a HELIX athlete through her plan in a bright gym", "center 45%", "Coach", "light"),
+  meal: img("meal", "A chicken, quinoa and avocado bowl on a light stone table", "center 65%", "Fuel", "light", false),
 };
 
 type HeroExercise = Pick<Exercise, "pattern" | "category" | "name"> & Partial<Pick<Exercise, "equipment" | "type">>;
