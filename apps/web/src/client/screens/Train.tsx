@@ -54,17 +54,16 @@ export function Train({ start, say }: { start: () => void; say: (m: string) => v
         <div className="cv-weeks" role="img" aria-label={`Week ${workout.week} of ${workout.ofWeeks}`}>
           {Array.from({ length: workout.ofWeeks }, (_, k) => <i key={k} className={k < workout.week - 1 ? "done" : k === workout.week - 1 ? "now" : undefined} style={{ ["--i" as string]: k }} />)}
         </div>
-        <div className="hero-body">
-          <ul className="cv-list">
-            {schedule.map((r, i) => (
-              <li key={r.date} className={r.state} style={{ ["--i" as string]: i }}>
-                <span className="grow"><small>{r.date}</small><b>{r.name}</b></span>
-                {r.state === "today" ? <button className="cv-go" onClick={start}><Icons.play width={14} height={14} /> Start</button> : r.state === "done" ? <span className="gpill dim"><Icons.check /> Done</span> : <small className="cv-plan">Planned</small>}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {!log && <button className="cv-start" onClick={start} aria-label={`Start ${workout.name}`}><Icons.play width={22} height={22} /><span>Start</span></button>}
       </section>
+      <div className="card flat list">
+        {schedule.map((r) => (
+          <div key={r.date} className="li">
+            <div className="grow"><div className="tiny">{r.date}</div><div className="h3">{r.name}</div></div>
+            {r.state === "today" ? <button className="btn act sm" onClick={start}>Start</button> : r.state === "done" ? <span className="label l-dec">Done</span> : <span className="tiny">Planned</span>}
+          </div>
+        ))}
+      </div>
       <section>
         <div className="sect"><h2 className="h2">Exercise library</h2><span className="tiny num">{list.length}</span></div>
         <input className="field" placeholder='Search: try "rdl", "glutes" or "band"' value={query} onChange={(e) => refilter(() => setQuery(e.target.value))} autoComplete="off" style={{ marginBottom: 10 }} />

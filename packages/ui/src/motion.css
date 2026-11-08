@@ -658,3 +658,14 @@ button.lv-row{cursor:pointer}
 .cv-stats.three>div{padding:12px}
 .cv-stats.three b,.cv-stats.three b *{font-size:32px}
 .hero.cover.br-cover{min-height:min(440px,calc(100svh - 230px))}
+
+/* Cleaner covers: photo, a small word, the title, one round button. Nothing else on the picture. */
+.hero-word{display:none}
+.hero.cover::after{background:linear-gradient(180deg,rgba(10,10,12,.42) 0%,rgba(10,10,12,0) 30%,rgba(10,10,12,0) 70%,rgba(10,10,12,.35) 100%)}
+.cv-today{display:block;margin-bottom:8px;font:500 12px/1 var(--ui);letter-spacing:.04em;color:rgba(255,255,255,.82);animation:m-fade .6s var(--ease-out) .2s backwards}
+.cv-title{flex-direction:column;align-items:center}
+.cv-start{position:absolute;right:16px;bottom:16px;width:76px;height:76px;border:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--act);color:var(--act-ink);font:800 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;animation:m-pop .6s var(--ease-spring) .5s backwards;transition:transform .18s var(--ease-out)}
+.cv-start:active{transform:scale(.93)}
+.cv-start:disabled{opacity:.5}
+.pg-cover .gr-cta{margin-top:auto}
+@media (prefers-reduced-motion:reduce){.cv-start,.cv-today{animation:none}}
