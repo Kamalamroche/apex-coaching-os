@@ -706,6 +706,63 @@ end $$;
 reset role;
 update program_versions set published_by = '00000000-0000-0000-0000-00000000000c';
 
+-- team: only the coach and clients who joined see the feed; names are short; high fives are one each
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'not in the team yet: no feed';
+  begin
+    insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','workout','Before joining');
+    raise exception 'posted without joining';
+  exception when insufficient_privilege then null; end;
+end $$;
+insert into team_members (coach_id, client_id) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1');
+insert into team_posts (id, coach_id, author_id, kind, title, detail) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','workout','Lower A done','18 sets');
+insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 1, 'member sees the feed';
+  assert (select author from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 'Priya S.', 'short name only';
+  assert (select fives from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 1, 'high five counted';
+  assert (select i_fived and is_me from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)), 'my post, my high five';
+  assert (select count(*) from public.team_effort('00000000-0000-0000-0000-00000000000c', current_date - 6)) = 1, 'effort board lists members';
+  begin
+    insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-00000000000c','note','Spoofed coach');
+    raise exception 'posted as the coach';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into team_members (coach_id, client_id) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000c1');
+    raise exception 'joined another coach''s team';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into team_posts (coach_id, author_id, kind, title) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-00000000000c','note','Great week, team');
+insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 2, 'coach sees the whole feed';
+  assert (select fives from public.team_feed('00000000-0000-0000-0000-00000000000c', 20) where kind = 'workout') = 2, 'two high fives';
+  assert (select is_coach from public.team_feed('00000000-0000-0000-0000-00000000000c', 20) where kind = 'note'), 'coach post marked';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'another coach''s client sees no feed';
+  assert (select count(*) from team_posts) = 0, 'and no posts';
+  assert (select count(*) from public.team_effort('00000000-0000-0000-0000-00000000000c', current_date - 6)) = 0, 'and no effort board';
+  begin
+    insert into team_high_fives (post_id, user_id) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000c2');
+    raise exception 'high-fived a post they cannot see';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+delete from team_members where client_id = '00000000-0000-0000-0000-0000000000c1';
+do $$ begin
+  assert (select count(*) from public.team_feed('00000000-0000-0000-0000-00000000000c', 20)) = 0, 'left the team: feed gone';
+end $$;
+reset role;
+
 -- Each account type deletes cleanly: the rival's client, then Kamal (with programs, messages, notes),
 -- then Priya, whose own history survives her coach leaving.
 set role authenticated;
@@ -819,3 +876,102 @@ do $$ begin
 end $$;
 reset role;
 
+
+
+-- Growth: public coach page, requests to train, friend codes
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000f1'),('00000000-0000-0000-0000-0000000000f2'),('00000000-0000-0000-0000-0000000000f3');
+insert into profiles values ('00000000-0000-0000-0000-0000000000f1','coach','Grow Coach'),('00000000-0000-0000-0000-0000000000f2','client','Fiona Client'),('00000000-0000-0000-0000-0000000000f3','client','Not Theirs');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2');
+grant execute on function public.public_coach_page(text) to anon;
+grant execute on function public.request_to_train(text, text, text, text, text, text) to anon;
+grant usage on schema public to anon;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  begin
+    insert into coach_pages (coach_id, slug, headline) values ('00000000-0000-0000-0000-0000000000f2','fiona','Me');
+    raise exception 'a client made a coach page';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into coach_pages (coach_id, slug, headline, bio, show_clients) values ('00000000-0000-0000-0000-0000000000f1','grow-coach','Get strong','Hi', true);
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  assert (select count(*) from public.public_coach_page('grow-coach')) = 0, 'unpublished page is hidden';
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update coach_pages set published = true where coach_id = '00000000-0000-0000-0000-0000000000f1';
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ declare c text; begin
+  c := public.my_referral_code('00000000-0000-0000-0000-0000000000f1');
+  assert c ~ '^[a-z0-9]{8}$', 'friend code made';
+  assert public.my_referral_code('00000000-0000-0000-0000-0000000000f1') = c, 'same code next time';
+  perform set_config('test.ref', c, false);
+  begin
+    perform public.my_referral_code('00000000-0000-0000-0000-00000000000d');
+    raise exception 'friend code for someone else''s coach';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f3');
+do $$ begin
+  assert (select count(*) from referral_codes) = 0, 'other people''s codes are hidden';
+  assert (select count(*) from coach_pages) = 0, 'not their coach: page row hidden';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare p record; begin
+  select * into p from public.public_coach_page('Grow-Coach');
+  assert p.name = 'Grow Coach' and p.headline = 'Get strong' and p.clients = 1, 'published page is public';
+  perform public.request_to_train('grow-coach', 'Leo Martin', 'Leo@Example.com', 'Run further', 'Half marathon', current_setting('test.ref'));
+  perform public.request_to_train('grow-coach', 'Hana Ito', 'hana@example.com');
+  begin
+    perform public.request_to_train('grow-coach', 'Leo Again', 'leo@example.com');
+    raise exception 'asked twice';
+  exception when unique_violation then null; end;
+  begin
+    perform public.request_to_train('nobody-here', 'Leo', 'leo@example.com');
+    raise exception 'asked a page that does not exist';
+  exception when no_data_found then null; end;
+  begin
+    perform 1 from join_requests;
+    raise exception 'anon read requests';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into invites (token, coach_id) values ('f0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000f1');
+update join_requests set status = 'invited', invite_token = 'f0000000-0000-0000-0000-000000000001' where email = 'leo@example.com';
+do $$ begin
+  assert (select count(*) from public.coach_join_requests()) = 2, 'coach sees both requests';
+  assert (select referred_by from public.coach_join_requests() where email = 'leo@example.com') = 'Fiona C.', 'coach sees who sent the friend';
+  assert (select referred_by from public.coach_join_requests() where email = 'hana@example.com') is null, 'no referrer';
+end $$;
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000f4');
+insert into profiles values ('00000000-0000-0000-0000-0000000000f4','client','Leo Martin');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f4');
+select public.accept_invite('f0000000-0000-0000-0000-000000000001');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  assert (select asked from public.my_referrals('00000000-0000-0000-0000-0000000000f1')) = 1, 'my friend asked';
+  assert (select joined from public.my_referrals('00000000-0000-0000-0000-0000000000f1')) = 1, 'and joined';
+  assert (select count(*) from join_requests) = 0, 'clients never read requests';
+  assert (select slug from coach_pages) = 'grow-coach', 'client reads own coach''s page for the invite link';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from public.coach_join_requests()) = 0, 'rival sees no requests';
+  begin
+    update coach_pages set headline = 'Hacked';
+    assert (select count(*) from coach_pages) = 0, 'rival sees no page rows';
+  end;
+end $$;
+reset role;

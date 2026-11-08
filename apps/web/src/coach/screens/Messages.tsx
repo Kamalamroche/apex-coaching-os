@@ -9,6 +9,10 @@ import { Automations } from "./Automations";
 import { CoachChallenges } from "./CoachChallenges";
 import { GroupMessage } from "./GroupMessage";
 import { CoachResources } from "./CoachResources";
+import { CoachTeam } from "./CoachTeam";
+import { useTeamApi } from "../../data/team";
+import { useGrowthApi } from "../../data/growth";
+import { CoachGrow } from "./CoachGrow";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -19,7 +23,9 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
-  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | null>(null);
+  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | null>(null);
+  const teamApi = useTeamApi();
+  const growApi = useGrowthApi();
   const [on, setOn] = useState<number | null>(null);
   useEffect(() => {
     if (auto) return;
@@ -28,6 +34,8 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   if (auto) return <Automations api={api} clientNames={Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]))} onBack={() => setAuto(false)} say={say} />;
   if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
+  if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
+  if (extra === "grow") return <CoachGrow onBack={() => setExtra(null)} say={say} />;
   if (extra === "resources") return <CoachResources live={live} onBack={() => setExtra(null)} say={say} />;
   const autoButton = (
     <div className="card flat list">
@@ -46,6 +54,20 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
         <div className="grow"><div className="h3">Challenges</div><div className="tiny">Group challenges with a leaderboard</div></div>
         <span className="tiny">›</span>
       </button>
+      {teamApi && (
+        <button className="li" onClick={() => setExtra("team")}>
+          <Icons.five width={18} height={18} style={{ color: "var(--act)" }} />
+          <div className="grow"><div className="h3">Team</div><div className="tiny">Private feed, high fives and the weekly effort board</div></div>
+          <span className="tiny">›</span>
+        </button>
+      )}
+      {growApi && (
+        <button className="li" onClick={() => setExtra("grow")}>
+          <Icons.globe width={18} height={18} style={{ color: "var(--act)" }} />
+          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Your public page, your link and requests from new people</div></div>
+          <span className="tiny">›</span>
+        </button>
+      )}
       <button className="li" onClick={() => setExtra("resources")}>
         <Icons.file width={18} height={18} style={{ color: "var(--act)" }} />
         <div className="grow"><div className="h3">Resource library</div><div className="tiny">Guides, videos and links for your clients</div></div>

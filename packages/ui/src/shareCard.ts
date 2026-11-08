@@ -7,7 +7,7 @@ export const SHARE_H = 1920;
 const T = {
   bg: "#0D0F13", text: "#F5F5F3", text2: "#AAAFB9", text3: "#717783",
   act: "#FF6A1A", data: "#38BDF8", good: "#22C55E", warn: "#F59E0B", warnDeep: "#B45309",
-  head: "Archivo, system-ui, sans-serif", num: '"JetBrains Mono", ui-monospace, monospace',
+  head: "Archivo, system-ui, sans-serif", serif: "'Libre Bodoni', 'Bodoni 72', Didot, Georgia, serif", num: '"JetBrains Mono", ui-monospace, monospace',
 };
 
 export interface ShareCanvasData {
@@ -38,7 +38,7 @@ export const DEFAULT_CROWN: CrownPlacement = { x: SHARE_W / 2, y: 150, size: 170
 /** Loads the card fonts before drawing so the first render isn't in a fallback face. */
 export async function loadShareFonts(): Promise<void> {
   try {
-    await Promise.all(["900 60px Archivo", "700 30px Archivo", "400 30px Archivo", "700 60px \"JetBrains Mono\""].map((f) => document.fonts.load(f)));
+    await Promise.all(["900 60px Archivo", "700 30px Archivo", "400 30px Archivo", "700 60px \"JetBrains Mono\"", "500 60px 'Libre Bodoni'"].map((f) => document.fonts.load(f)));
   } catch { /* fonts API missing: draw with fallbacks */ }
 }
 
@@ -148,7 +148,7 @@ function strip(c: Ctx, d: ShareCanvasData) {
   c.fillStyle = T.act;
   roundRect(c, 60, y0, 132, 9, 4); c.fill();
   c.fillStyle = T.text;
-  fit(c, d.workoutName.toUpperCase(), 51, 960, (s) => font(c, `900 ${s}px ${T.head}`, s * 0.04, true));
+  fit(c, d.workoutName.toUpperCase(), 60, 960, (s) => font(c, `500 ${s}px ${T.serif}`, s * 0.09));
   c.fillText(d.workoutName.toUpperCase(), 60, y0 + 75);
 
   const stats: [string, string][] = [[kg(d.totalKg), "KG LIFTED"], [String(d.sets), "SETS"], [String(d.minutes), "MIN"]];
