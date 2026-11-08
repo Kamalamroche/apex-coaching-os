@@ -765,26 +765,23 @@ button.tile{font:inherit}
 .st-row a{color:var(--act);font-weight:600;text-decoration:none}
 @media (max-width:330px){.st-pick{grid-template-columns:1fr}}
 
-/* ---------- Client welcome: full-bleed burgundy studio photo, light + bold headline, one action ---------- */
+/* ---------- Client welcome: brand reel, then the actions on its end card ---------- */
 .wel{--wel-ink:#0D0F13;position:relative;isolation:isolate;max-width:560px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--glass-ink);
   padding:max(18px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px))}
-.wel-photo{position:absolute;inset:0;z-index:-1}
-.wel-photo img{width:100%;height:100%;object-fit:cover;object-position:66% 62%;display:block}
-.wel-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,15,19,.18) 0%,rgba(13,15,19,0) 22%,rgba(13,15,19,0) 85%,rgba(13,15,19,.25) 100%)}
-.wel-top{display:flex;align-items:center;justify-content:space-between}
-.wel-logo{display:inline-flex;align-items:center;gap:8px}
-.wel-logo b{font:900 17px/1 var(--head);font-stretch:118%;letter-spacing:.02em}
-.wel-copy{margin-top:clamp(40px,8vh,100px);display:flex;flex-direction:column;align-items:flex-start}
-.wel-h{margin:0;max-width:14em;font:300 clamp(26px,7.4vw,36px)/1.14 var(--head);letter-spacing:-.02em;text-shadow:0 1px 12px rgba(13,15,19,.18)}
-.wel-h span{display:block}
-.wel-h .wel-h2{margin-top:2px;font-size:.78em;letter-spacing:-.015em}
-.wel-h b{font-weight:600;letter-spacing:-.015em}
-.wel-sub{margin:12px 0 0;max-width:34ch;font-size:13px;font-weight:400;line-height:1.45;color:rgba(255,255,255,.82);text-shadow:0 1px 10px rgba(13,15,19,.35)}
 .wel-actions{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
 .wel-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-width:220px;min-height:46px;padding:0 22px 0 26px;border-radius:var(--pill);border:1px solid var(--glass-line);background:var(--glass-dim);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--glass-ink);font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .wel-alt{min-height:40px;padding:0 12px;border:0;background:none;color:rgba(255,255,255,.78);font:500 13px/1 var(--ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .wel-btn:focus-visible,.wel-alt:focus-visible{outline:2px solid var(--act);outline-offset:3px}
 @media (min-width:600px){.wel{box-shadow:0 0 0 100vmax var(--wel-ink)}}
+/* Reel welcome: the brand reel plays once, then the actions fade in on its light end card. */
+.wel-reel{background:var(--wel-ink)}
+.wel-video{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;display:block}
+.wel-reel .intro-bar{top:max(16px,env(safe-area-inset-top,0px));bottom:auto}
+.wel-reel .wel-actions{opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.2,1)}
+.wel-reel.is-ended .wel-actions{opacity:1;transform:none;pointer-events:auto}
+.wel-reel .wel-btn{background:var(--wel-ink);border-color:var(--wel-ink);color:var(--glass-ink);backdrop-filter:none;-webkit-backdrop-filter:none}
+.wel-reel .wel-alt{color:var(--wel-ink);opacity:.72}
+@media (prefers-reduced-motion:reduce){.wel-reel .wel-actions{transition:none}}
 
 /* Brand intro before the client welcome screen: full-bleed reel, two small glass pills. */
 .intro{position:relative;max-width:560px;margin:0 auto;height:100vh;height:100dvh;background:var(--bg);overflow:hidden}

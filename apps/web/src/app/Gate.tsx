@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
 import { SignIn } from "../auth/SignIn";
 import { Welcome, welcomeSeen } from "../auth/Welcome";
-import { Intro, introSeen } from "../auth/Intro";
 import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
 import { FormCheckProvider } from "../data/FormCheckContext";
@@ -52,9 +51,7 @@ export interface Live {
  */
 export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () => ReactNode; live: (l: Live) => ReactNode }) {
   const [welcomed, setWelcomed] = useState(() => side !== "client" || welcomeSeen());
-  const [introDone, setIntroDone] = useState(() => side !== "client" || introSeen());
   if (isDemo() || !supabase) {
-    if (!welcomed && !introDone) return <Intro onDone={() => setIntroDone(true)} />;
     if (!welcomed) return <Welcome demo onContinue={() => setWelcomed(true)} />;
     demoStore.current ??= createDemoStore();
     demoActivities.current ??= createDemoActivityStore();
@@ -75,7 +72,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
       </AppInfoProvider>
     );
   }
-  return <LiveGate db={supabase} side={side} live={live} welcome={welcomed ? null : !introDone ? <Intro onDone={() => setIntroDone(true)} /> : <Welcome demo={false} onContinue={() => setWelcomed(true)} />} />;
+  return <LiveGate db={supabase} side={side} live={live} welcome={welcomed ? null : <Welcome demo={false} onContinue={() => setWelcomed(true)} />} />;
 }
 
 function LiveGate({ db, side, live, welcome }: { db: SupabaseClient; side: "coach" | "client"; live: (l: Live) => ReactNode; welcome: ReactNode }) {

@@ -12,18 +12,18 @@ export function introSeen(): boolean {
   } catch { return false; }
 }
 
-function markSeen() {
+export function markIntroSeen() {
   try { sessionStorage.setItem(SEEN_KEY, "1"); } catch { /* storage blocked: nothing to remember */ }
 }
 
 /**
- * APEX brand reel before the welcome screen. Browsers only autoplay muted video, so it starts silent
- * with a sound button; Skip, the end of the reel, or a playback error all continue to the welcome screen.
+ * APEX brand reel shown first on the landing page (once per tab). Browsers only autoplay muted video, so it starts silent
+ * with a sound button; Skip, the end of the reel, or a playback error all continue to the page.
  */
 export function Intro({ onDone }: { onDone: () => void }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
-  const done = () => { markSeen(); onDone(); };
+  const done = () => { markIntroSeen(); onDone(); };
 
   useEffect(() => {
     const v = ref.current;
