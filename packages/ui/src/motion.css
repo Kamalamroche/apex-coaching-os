@@ -612,3 +612,25 @@ button.lv-row{cursor:pointer}
 @keyframes gr-spin{to{rotate:360deg}}
 .gr-form-title{font-size:21px;color:var(--text)}
 .gr-form-title .ed-cap{color:var(--text3)}
+
+/* ───────── Today cover: the session fills the first screen, the week floats on the photo ───────── */
+.hero.cover{min-height:calc(100svh - 150px);max-height:860px;padding:14px 14px 16px;gap:14px;justify-content:flex-start}
+.hero.cover::after{background:linear-gradient(180deg,rgba(10,10,12,.55) 0%,rgba(10,10,12,.05) 34%,rgba(10,10,12,0) 52%,rgba(10,10,12,.8) 100%)}
+.hero.cover .hero-img{animation:gr-zoom 1.6s var(--ease-out) backwards}
+.cv-top{display:flex;justify-content:space-between;align-items:center;color:#fff;animation:m-fade .6s var(--ease-out) backwards}
+.cv-hi{display:flex;flex-direction:column;gap:3px}
+.cv-hi span{font:500 13px/1 var(--serif);letter-spacing:.32em;text-transform:uppercase}
+.cv-hi small{font-size:12px;color:rgba(255,255,255,.72)}
+.cv-top .ava{background:var(--glass) !important;color:#fff !important;background:var(--glass);border:1px solid var(--glass-line);color:#fff;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.cv-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cv-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:56px;border-radius:var(--pill);background:var(--glass-dim);border:1px solid var(--glass-line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.15s + var(--i,0) * .05s)}
+.cv-day small{font:700 11px/1 var(--ui);letter-spacing:.02em}
+.cv-day svg{opacity:.75}
+.cv-day i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.35)}
+.cv-day.done svg{color:var(--act);opacity:1}
+.hero.cover .cv-day.today{background:#fff;border-color:#fff;color:#14161A;box-shadow:0 0 0 2px var(--act);animation-name:m-pop;animation-timing-function:var(--ease-spring)}
+.hero.cover .cv-day.today svg{color:var(--act);opacity:1}
+.cv-title{display:flex;justify-content:center;text-align:center;margin-top:8px}
+.cv-title .ed-title{align-items:center;font-size:32px;color:#fff}
+.hero.cover .hero-body{margin-top:auto}
+@media (prefers-reduced-motion:reduce){.hero.cover .hero-img,.cv-top,.cv-day{animation:none}}

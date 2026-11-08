@@ -18,6 +18,8 @@ const WEEK: [string, 0 | 1 | 2][] = [["Mon", 1], ["Tue", 1], ["Wed", 0], ["Thu",
 const TODAY_INDEX = 5;
 /* Sample week: Monday 20 to Sunday 26 October. */
 const WEEK_DATES = [20, 21, 22, 23, 24, 25, 26];
+/* Sample plan: which days have a session. */
+const PLANNED = [true, true, false, true, false, true, false];
 
 export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; say?: (m: string) => void }) {
   const store = useStore();
@@ -43,13 +45,47 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
     return { today, streak, week: ringWeek(input, day), nudge: ringNudge(today, streak.days) };
   }, [history.sessions, activities, life.habits, life.ticks, life.water, life.food, life.targets, day]);
   const ringLabels = rings.week.map((d) => (d.day === day ? "Today" : "MTWTFSS"[(new Date(`${d.day}T12:00:00`).getDay() + 6) % 7]!));
+  const cover = status === "ready" && !log;
   const freshReply = latest?.coachReply && latest.reviewedAt && Date.now() - Date.parse(latest.reviewedAt) < 7 * 86400000 ? latest : null;
   return (
     <>
-      <div className="hello">
-        <div><p className="sub">Saturday 25 October</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
-        <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={44} />
-      </div>
+      {cover ? (
+        <section className="hero cover" aria-label="Today's session">
+          <HeroBackdrop art={hero} word={null} />
+          <div className="cv-top">
+            <div className="cv-hi"><span>Hi {clientName.split(" ")[0]}</span><small>Saturday 25 October</small></div>
+            <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={38} />
+          </div>
+          <div className="cv-days" role="list" aria-label="Your week">
+            {WEEK.map(([d, st], i) => {
+              const today = i === TODAY_INDEX;
+              const I = st === 1 ? Icons.flame : PLANNED[i] ? Icons.train : null;
+              return (
+                <span key={d} role="listitem" className={`cv-day${st === 1 ? " done" : ""}${today ? " today" : ""}`} style={{ ["--i" as string]: i }} aria-label={`${d} ${WEEK_DATES[i]}${st === 1 ? ", trained" : today ? ", today" : PLANNED[i] ? ", planned" : ", rest"}`}>
+                  <small>{d.slice(0, d === "Thu" || d === "Tue" || d === "Sat" || d === "Sun" ? 2 : 1)}</small>
+                  {I ? <I width={13} height={13} /> : <i />}
+                </span>
+              );
+            })}
+          </div>
+          <div className="cv-title">
+            <EditorialTitle as="h1" text={w.name} caption={`Today · week ${w.week} of ${w.ofWeeks}`} />
+          </div>
+          <div className="hero-body">
+            <div className="gpills">
+              <span className="gpill num"><Icons.clock /> {w.minutes} min</span>
+              <span className="gpill num">{w.items.length} exercises</span>
+              <span className="gpill num">{totalSets} sets</span>
+            </div>
+            <SwipeStart label="Swipe to start" onStart={start} disabled={w.items.length === 0} />
+          </div>
+        </section>
+      ) : (
+        <div className="hello">
+          <div><p className="sub">Saturday 25 October</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
+          <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={44} />
+        </div>
+      )}
 
       <section aria-label="Today's rings">
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
@@ -66,7 +102,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
           <h2 className="h3">Your week</h2>
           <span className="tiny num">{doneCount} of 4 done</span>
         </div>
-        <div className="daystrip">
+        {!cover && <div className="daystrip">
           {WEEK.map(([d, s], i) => {
             const st = i === TODAY_INDEX && log ? 1 : s;
             return (
@@ -75,7 +111,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               </div>
             );
           })}
-        </div>
+        </div>}
         <WeekStoryCard onOpen={() => setStory(true)} />
         {story && <WeekStoryViewer onClose={() => setStory(false)} />}
       </section>
@@ -85,7 +121,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your program. It will appear here as soon as it's ready.</div></div>
       ) : !log ? (
         <>
-          <div className="hero">
+          {!cover && <div className="hero">
             <HeroBackdrop art={hero} />
             <div className="hero-top">
               <span className="gpill dim caps">Week {w.week} of {w.ofWeeks}</span>
@@ -100,7 +136,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               </div>
               <SwipeStart label="Swipe to start" onStart={start} disabled={w.items.length === 0} />
             </div>
-          </div>
+          </div>}
           <div className="card">
             <div className="sect" style={{ marginBottom: 10 }}><h3 className="h3">In this session</h3><span className="tiny">Coach plan</span></div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
