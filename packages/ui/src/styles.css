@@ -785,3 +785,10 @@ button.tile{font:inherit}
 .wel-alt{min-height:40px;padding:0 12px;border:0;background:none;color:rgba(255,255,255,.78);font:500 13px/1 var(--ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .wel-btn:focus-visible,.wel-alt:focus-visible{outline:2px solid var(--act);outline-offset:3px}
 @media (min-width:600px){.wel{box-shadow:0 0 0 100vmax var(--wel-ink)}}
+
+/* Brand intro before the client welcome screen: full-bleed reel, two small glass pills. */
+.intro{position:relative;max-width:560px;margin:0 auto;height:100vh;height:100dvh;background:var(--bg);overflow:hidden}
+.intro-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.intro-bar{position:absolute;left:0;right:0;bottom:max(20px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;padding:0 18px;pointer-events:none}
+.intro-pill{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--glass-line);background:var(--glass-dim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--glass-ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.intro-pill:focus-visible{outline:2px solid var(--glass-ink);outline-offset:2px}
