@@ -11,9 +11,11 @@ export { FuelGauge, HabitDays, MacroBars, MacroRings, NumberField, type DayDot, 
 export { MuscleMap } from "./MuscleMap";
 export { RouteMap, RunAnalysis, SplitsChart, LoadCompare, useDarkTheme, ProfileChart, SplitsTable, HrZones, WeekBars, RouteThumb, SportIcon, ZONE_COLOURS } from "./ActivityViz";
 export { Gauge, MiniRing } from "./Gauge";
-export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart, STAGE_COLOURS, STAGE_LABEL } from "./RecoveryViz";
+export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, ReadinessBars, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart, STAGE_COLOURS, STAGE_LABEL } from "./RecoveryViz";
 export { drawShareCard, loadShareFonts, DEFAULT_CROWN, SHARE_W, SHARE_H, type ShareCanvasData, type CrownPlacement, type ShareDraw } from "./shareCard";
 export { LiquidPill, LiquidTank, LiquidTile, enableTilt } from "./liquid";
+export { NightTile, StepsTile } from "./habitTiles";
+export { MacroTable, WeekFuel } from "./nutritionViz";
 export { Celebrate, CountUp, Rolling, NumberSheet, Wheel, WheelInput, statusColour, useCoarsePointer, useReducedMotion } from "./motion";
 export { CARD_W, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, drawStorySlide, loadStoryFonts, photoBandBox, BAND_SIZE, type CardFormat } from "./storyCard";
 export { DailyRings, RingWeek, RING_COLOURS, type RingView } from "./rings";

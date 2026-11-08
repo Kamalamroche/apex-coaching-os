@@ -358,7 +358,7 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
   habits.forEach((h, i) => {
     for (let d = 1; d <= 14; d++) if (!misses[i]?.includes(d)) ticks.push({ habitId: h.id, day: addDays(today, -d) });
   });
-  ticks.push({ habitId: "demo-habit-1", day: today });
+  // Today's water ticks itself once the logged drinks reach the goal.
   const meal = (id: number, m: Meal, name: string, kcal: number, p: number, c: number, f: number, day = today): FoodEntry => ({ id: `demo-food-${id}`, day, meal: m, name, kcal, proteinG: p, carbsG: c, fatG: f });
   const food: FoodEntry[] = [
     meal(1, "breakfast", "Oats, 50 g", 188, 7, 32, 4),
@@ -459,4 +459,77 @@ function safeStorage(): StorageLike | null {
   } catch {
     return null;
   }
+}
+
+/** The daily step goal from the habit's wording ("Walk 8,000 steps", "10k steps"). Falls back to 8,000. */
+export function stepsGoal(title: string): number {
+  const t = title.toLowerCase().replace(/(\d),(\d{3})\b/g, "$1$2");
+  const k = t.match(/(\d+(?:\.\d+)?)\s*k\b/);
+  const v = k?.[1] ? Number(k[1]) * 1000 : Number(t.match(/(\d{3,6})/)?.[1] ?? NaN);
+  return Number.isFinite(v) && v >= 500 ? Math.min(50000, Math.round(v)) : 8000;
+}
+
+/**
+ * The bedtime goal in minutes after 18:00 (the same scale as `clockMinutes`), from the habit's wording
+ * ("In bed by 10:30 pm", "bed by 22:30", "by 11pm"). Keeps 23:30 and 00:30 in order. Falls back to 22:30.
+ */
+export function bedtimeGoal(title: string): number {
+  const m = title.toLowerCase().match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?/);
+  if (!m?.[1]) return 270;
+  let h = Number(m[1]);
+  const min = Number(m[2] ?? 0);
+  if (m[3] === "pm" && h < 12) h += 12;
+  if (m[3] === "am" && h === 12) h = 0;
+  if (!m[3] && h < 12 && h >= 7) h += 12; // "bed by 10:30" means the evening
+  if (h > 23 || min > 59) return 270;
+  return ((h * 60 + min - 1080) + 1440) % 1440;
+}
+
+/** Monday to Sunday of the week that holds `day`. */
+export function weekDaysOf(day: string): string[] {
+  const d = new Date(`${day}T12:00:00`);
+  const monday = addDays(day, -((d.getDay() + 6) % 7));
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(monday, i));
+}
+
+export interface WeekNutrition {
+  days: { day: string; totals: Macros; logged: boolean }[];
+  /** Average over the days with something logged, so an unlogged day doesn't pull it down. */
+  avg: Macros;
+  total: Macros;
+  loggedDays: number;
+}
+
+/** Each day's totals for a week, plus the logged-day average and the week's total. */
+export function weekNutrition(food: FoodEntry[], days: string[]): WeekNutrition {
+  const rows = days.map((day) => {
+    const list = food.filter((f) => f.day === day);
+    return { day, totals: sumMacros(list), logged: list.length > 0 };
+  });
+  const logged = rows.filter((r) => r.logged);
+  const total = sumMacros(logged.map((r) => r.totals));
+  const n = Math.max(1, logged.length);
+  const r = (v: number) => Math.round(v / n);
+  return { days: rows, total, loggedDays: logged.length, avg: { kcal: r(total.kcal), proteinG: r(total.proteinG), carbsG: r(total.carbsG), fatG: r(total.fatG) } };
+}
+
+/** Foods the client logged before, newest first, one per name: the quickest way to log again. */
+export function recentFoods(food: FoodEntry[], limit = 12): Omit<FoodEntry, "id" | "day" | "meal">[] {
+  const seen = new Set<string>();
+  const out: Omit<FoodEntry, "id" | "day" | "meal">[] = [];
+  for (const f of [...food].sort((a, b) => b.day.localeCompare(a.day))) {
+    const k = f.name.trim().toLowerCase();
+    if (seen.has(k) || /quick add/i.test(f.name)) continue;
+    seen.add(k);
+    out.push({ name: f.name, kcal: f.kcal, proteinG: f.proteinG, carbsG: f.carbsG, fatG: f.fatG });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** The latest earlier day with this meal logged, and its foods, to repeat in one tap. */
+export function lastMeal(food: FoodEntry[], before: string, meal: Meal): { day: string; items: FoodEntry[] } | null {
+  const days = [...new Set(food.filter((f) => f.meal === meal && f.day < before).map((f) => f.day))].sort();
+  const day = days.at(-1);
+  return day ? { day, items: food.filter((f) => f.day === day && f.meal === meal) } : null;
 }

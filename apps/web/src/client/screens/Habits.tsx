@@ -1,7 +1,9 @@
-import { formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, waterGoalMl, waterOn } from "@apex/core";
-import { HabitDays, Icons, LiquidTile } from "@apex/ui";
+import { bedtimeGoal, clockLabel, clockMinutes, formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, stepsGoal, waterGoalMl, waterOn, type Habit, type RecoveryDay } from "@apex/core";
+import { useEffect, useRef } from "react";
+import { HabitDays, Icons, LiquidTile, NightTile, StepsTile } from "@apex/ui";
 import { useAppInfo } from "../../app/AppContext";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
+import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 import { WaterIcon, WaterTracker } from "./Water";
 
@@ -11,6 +13,9 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
   const s = useLifestyle();
   const today = localDate(new Date());
   const due = habitsOn(s.habits, today);
+  // What the watch or ring measured: today's steps, and the night that ended this morning.
+  const day = useActivitiesIfAny().recovery.find((d) => d.date === today);
+  useAutoTicks(due, day, today);
   if (!due.length) return null;
   return (
     <div className="card flat list">
@@ -19,10 +24,13 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
         const streak = habitStreak(h, s.ticks, today);
         return (
           <div key={h.id} className="hb-row">
-            {h.kind === "water" && s.waterReady ? <WaterIcon /> : <HabitIcon kind={h.kind} />}
+            {h.kind === "water" && s.waterReady ? <WaterIcon />
+              : h.kind === "steps" ? <StepsTile pct={done ? 1 : (day?.steps ?? 0) / stepsGoal(h.title)} label={day?.steps != null ? `${day.steps.toLocaleString("en-GB")} steps today` : h.title} />
+              : h.kind === "sleep" ? <NightTile done={done} label={h.title} />
+              : <HabitIcon kind={h.kind} />}
             <div className="grow">
               <div className="h3" style={{ textDecoration: done && compact ? "line-through" : undefined, color: done && compact ? "var(--text2)" : undefined }}>{h.title}</div>
-              <div className="tiny">{h.kind === "water" && s.waterReady && !done ? `${formatMl(waterOn(s.water, today))} of ${formatMl(waterGoalMl(h.title))}` : streak > 0 ? <><Icons.flame width={12} height={12} style={{ verticalAlign: -2, color: "var(--act)" }} /> {streak} day{streak === 1 ? "" : "s"} in a row</> : compact ? "Not started" : daysText(h.days)}</div>
+              <div className="tiny">{h.kind === "water" && s.waterReady && !done ? `${formatMl(waterOn(s.water, today))} of ${formatMl(waterGoalMl(h.title))}` : !done && measured(h, day) ? measured(h, day) : streak > 0 ? <><Icons.flame width={12} height={12} style={{ verticalAlign: -2, color: "var(--act)" }} /> {streak} day{streak === 1 ? "" : "s"} in a row</> : compact ? "Not started" : daysText(h.days)}</div>
             </div>
             <button className={`tick ${done ? "on" : ""}`} aria-pressed={done} aria-label={`${h.title}: ${done ? "done" : "not done"}`} onClick={() => store.setHabitDone(h.id, today, !done)}>
               {done && <Icons.check width={20} height={20} strokeWidth={2.5} />}
@@ -61,4 +69,31 @@ export function Habits() {
       )}
     </>
   );
+}
+
+/** The measured value behind a steps or bedtime habit, when a watch or ring sent one. */
+function measured(h: Habit, day: RecoveryDay | undefined): string | null {
+  if (h.kind === "steps" && day?.steps != null) return `${day.steps.toLocaleString("en-GB")} of ${stepsGoal(h.title).toLocaleString("en-GB")} steps`;
+  if (h.kind === "sleep" && day?.bedtime) return `In bed ${clockLabel(clockMinutes(day.bedtime))} last night, goal ${clockLabel(bedtimeGoal(h.title))}`;
+  return null;
+}
+
+/**
+ * Ticks steps and bedtime habits by themselves when the watch shows they were met, like water does at its goal.
+ * Each habit is ticked at most once a day this way, so unticking it by hand sticks.
+ */
+function useAutoTicks(due: Habit[], day: RecoveryDay | undefined, today: string) {
+  const store = useLifestyleStore();
+  const s = useLifestyle();
+  const tried = useRef(new Set<string>());
+  useEffect(() => {
+    if (!day) return;
+    for (const h of due) {
+      const key = `${h.id}:${today}`;
+      if (tried.current.has(key) || isDone(s.ticks, h.id, today)) continue;
+      const met = (h.kind === "steps" && day.steps != null && day.steps >= stepsGoal(h.title))
+        || (h.kind === "sleep" && !!day.bedtime && clockMinutes(day.bedtime) <= bedtimeGoal(h.title));
+      if (met) { tried.current.add(key); store.setHabitDone(h.id, today, true); }
+    }
+  }, [due, day, today, s.ticks, store]);
 }
