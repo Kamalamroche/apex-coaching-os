@@ -52,10 +52,6 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
       {cover ? (
         <section className="hero cover" aria-label="Today's session">
           <HeroBackdrop art={hero} word={null} />
-          <div className="cv-top">
-            <div className="cv-hi"><span>Hi {clientName.split(" ")[0]}</span><small>Saturday 25 October</small></div>
-            <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={38} />
-          </div>
           <div className="cv-days" role="list" aria-label="Your week">
             {WEEK.map(([d, st], i) => {
               const today = i === TODAY_INDEX;
@@ -69,16 +65,10 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
             })}
           </div>
           <div className="cv-title">
-            <EditorialTitle as="h1" text={w.name} caption={`Today · week ${w.week} of ${w.ofWeeks}`} />
+            <span className="cv-today">Today</span>
+            <EditorialTitle as="h1" text={w.name} />
           </div>
-          <div className="hero-body">
-            <div className="gpills">
-              <span className="gpill num"><Icons.clock /> {w.minutes} min</span>
-              <span className="gpill num">{w.items.length} exercises</span>
-              <span className="gpill num">{totalSets} sets</span>
-            </div>
-            <SwipeStart label="Swipe to start" onStart={start} disabled={w.items.length === 0} />
-          </div>
+          <button className="cv-start" onClick={start} disabled={w.items.length === 0} aria-label={`Start ${w.name}`}><Icons.play width={22} height={22} /><span>Start</span></button>
         </section>
       ) : (
         <div className="hello">
@@ -138,7 +128,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
             </div>
           </div>}
           <div className="card">
-            <div className="sect" style={{ marginBottom: 10 }}><h3 className="h3">In this session</h3><span className="tiny">Coach plan</span></div>
+            <div className="sect" style={{ marginBottom: 10 }}><h3 className="h3">In this session</h3><span className="tiny num">{w.minutes} min · {w.items.length} exercises · {totalSets} sets</span></div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
             {w.items.map((it) => (
               <li key={it.key} className="row small" style={{ gap: 8 }}>

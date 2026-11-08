@@ -69,15 +69,13 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
         <div className="cv-title">
           <EditorialTitle as="h1" text={coachName} caption={mode === "demo" ? (pending.length ? `Morning brief · ${pending.length} need you` : "Morning brief · all on track") : "Morning brief"} />
         </div>
-        <div className="hero-body">
-          <div className="cv-stats three">
-            <div style={{ ["--i" as string]: 0 }}><b><CountUp value={clientCount ?? CLIENTS.length} /></b><small>Active clients</small>{mode === "demo" && <i>+2 this month</i>}</div>
-            <div style={{ ["--i" as string]: 1 }}><b><CountUp value={74} />%</b><small>Sessions done, 7 days</small><i>+4 pts</i></div>
-            <div style={{ ["--i" as string]: 2 }}><b><CountUp value={pending.length} /></b><small>Need you today</small><i>{TRIAGE.length - pending.length} handled</i></div>
-          </div>
-        </div>
       </section>
       <SampleNote />
+      <div className="tiles full">
+        <div className="tile c1"><span className="ic"><Icons.clients /></span><b><CountUp value={clientCount ?? CLIENTS.length} /></b><span>Active clients{mode === "demo" && <><br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+2 this month</i></>}</span></div>
+        <div className="tile c3"><span className="ic"><Icons.check /></span><b><CountUp value={74} /><small>%</small></b><span>Sessions done, 7 days<br /><i style={{ color: "var(--good)", fontStyle: "normal", fontWeight: 600 }}>+4 pts</i></span></div>
+        <div className="tile c2"><span className="ic"><Icons.target /></span><b style={{ color: "var(--act)" }}><CountUp value={pending.length} /></b><span>Need you today<br /><i style={{ color: "var(--text3)", fontStyle: "normal" }}>{TRIAGE.length - pending.length} handled</i></span></div>
+      </div>
       <div className="hero side short">
         <HeroBackdrop art={hero} />
         <div className="hero-body" style={{ maxWidth: 280 }}>

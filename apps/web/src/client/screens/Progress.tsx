@@ -42,17 +42,17 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
       <section className="hero cover short pg-cover" aria-label="Your progress">
         <HeroBackdrop art={HERO_IMAGES.upper} word={null} />
         <div className="cv-title">
-          <EditorialTitle as="h1" text={weeks ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Starting point"} caption="Your progress" />
+          <EditorialTitle as="h1" text={weeks ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Starting point"}  />
         </div>
         <div className="hero-body">
-          <div className="cv-stats">
-            <div style={{ ["--i" as string]: 0 }}><b>{weight ? <CountUp value={weight.last} decimals={1} /> : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i>{signed(weight.delta)} since start</i>}</div>
-            <div style={{ ["--i" as string]: 1 }}><b>{waist ? <CountUp value={waist.last} decimals={1} /> : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i>{signed(waist.delta)} since start</i>}</div>
-          </div>
-          <button className="gr-cta" onClick={() => setSheet("share")}><Icons.share width={16} height={16} /> Share my progress</button>
+          <button className="cv-start" onClick={() => setSheet("share")} aria-label="Share my progress"><Icons.share width={20} height={20} /><span>Share</span></button>
         </div>
       </section>
       <ProgressNotice />
+      <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
+        <div className="kpi"><b>{weight ? <CountUp value={weight.last} decimals={1} /> : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(weight.delta)} since start</i>}</div>
+        <div className="kpi"><b>{waist ? <CountUp value={waist.last} decimals={1} /> : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(waist.delta)} since start</i>}</div>
+      </div>
 
       <ProgressHub progress={progress} onDelete={(id) => void store.deletePhoto(id).catch((e: unknown) => say(e instanceof Error ? e.message : "Couldn't delete"))} extra={<button className="link" onClick={() => setSheet("photos")}>+ Add photos</button>} />
 
