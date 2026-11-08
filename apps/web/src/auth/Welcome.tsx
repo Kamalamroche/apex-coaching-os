@@ -16,8 +16,8 @@ function markSeen() {
  * Client welcome: full-bleed HELIX Pilates studio photo (burgundy low-key look), APEX mark,
  * a light headline with heavy key words and one glass action. Shown before sign-in, and once per visit in the demo.
  */
-export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: boolean }) {
-  const go = () => { markSeen(); onContinue(); };
+export function Welcome({ onContinue, demo }: { onContinue: (mode: "signup" | "signin") => void; demo: boolean }) {
+  const go = (mode: "signup" | "signin") => { markSeen(); onContinue(mode); };
   return (
     <div className="wel">
       <picture className="wel-photo" aria-hidden="true">
@@ -31,8 +31,8 @@ export function Welcome({ onContinue, demo }: { onContinue: () => void; demo: bo
         <p className="wel-sub">Coach-built plans, guided sessions and real progress, all in one calm place.</p>
       </div>
       <div className="wel-actions">
-        <button className="wel-btn" onClick={go}>{demo ? "Open my training" : "Get started"} <Icons.arrow width={14} height={14} /></button>
-        {!demo && <button className="wel-alt" onClick={go}>I already have an account</button>}
+        <button className="wel-btn" onClick={() => go("signup")}>{demo ? "Open my training" : "Get started"} <Icons.arrow width={14} height={14} /></button>
+        {!demo && <button className="wel-alt" onClick={() => go("signin")}>I already have an account</button>}
       </div>
     </div>
   );

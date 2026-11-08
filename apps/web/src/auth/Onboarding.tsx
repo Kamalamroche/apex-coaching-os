@@ -1,10 +1,12 @@
+import { suggestedName } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { useState } from "react";
 
 /** First sign-in: create the profile for this side of the app, and for a client, accept the invite. */
 export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; session: Session; side: "coach" | "client"; onDone: () => void }) {
-  const [name, setName] = useState("");
+  // Google and Apple share the person's name, so suggest it.
+  const [name, setName] = useState(() => suggestedName(session.user.user_metadata));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const invite = new URLSearchParams(location.search).get("invite");

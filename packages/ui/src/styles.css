@@ -284,6 +284,15 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 
 /* ---------- selector ---------- */
 .sel{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));gap:28px;background:radial-gradient(120% 70% at 85% -10%,var(--act-soft),transparent 60%),radial-gradient(90% 60% at 0% 110%,var(--blue-soft),transparent 60%),var(--bg)}
+/* Sign-in: provider buttons, "or" rule, password eye, in-app browser note */
+.signin .signin-provider{display:flex;align-items:center;justify-content:center;gap:10px;min-height:46px;font-weight:600}
+.signin-or{display:flex;align-items:center;gap:12px;color:var(--text3);font-size:12px}
+.signin-or::before,.signin-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.signin-pass{position:relative}
+.signin-pass .field{padding-right:44px}
+.signin-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;display:grid;place-items:center;border:0;background:none;color:var(--text3);border-radius:10px}
+.signin-note{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:var(--warn-soft);color:var(--text);font-size:13px;line-height:1.45}
+.signin-note svg{flex:none;margin-top:2px;color:var(--warn)}
 .wordmark{display:flex;align-items:center;gap:10px}
 .wordmark b{font:900 30px/1 var(--head);font-stretch:125%;letter-spacing:.02em}
 .pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;width:100%;max-width:720px}

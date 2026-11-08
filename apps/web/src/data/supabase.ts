@@ -38,3 +38,17 @@ export const supabase: SupabaseClient | null = url && key
 
 /** `?demo` in the URL forces demo mode even when Supabase is configured. */
 export const isDemo = (): boolean => !supabase || new URLSearchParams(location.search).has("demo");
+
+/**
+ * Which sign-in options are switched on in the Supabase dashboard (public settings, no sign-in needed),
+ * so the sign-in screen only shows buttons that work. Null when they can't be read.
+ */
+export async function fetchAuthSettings(): Promise<unknown> {
+  if (!url || !key) return null;
+  try {
+    const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/settings`, { headers: { apikey: key } });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}

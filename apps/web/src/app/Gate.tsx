@@ -3,7 +3,7 @@ import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
-import { SignIn } from "../auth/SignIn";
+import { SignIn, type SignInMode } from "../auth/SignIn";
 import { Welcome, welcomeSeen } from "../auth/Welcome";
 import { useAuth, type Profile } from "../auth/useAuth";
 import { ActivityProvider } from "../data/ActivityContext";
@@ -51,6 +51,7 @@ export interface Live {
  */
 export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () => ReactNode; live: (l: Live) => ReactNode }) {
   const [welcomed, setWelcomed] = useState(() => side !== "client" || welcomeSeen());
+  const [mode, setMode] = useState<SignInMode | undefined>();
   if (isDemo() || !supabase) {
     if (!welcomed) return <Welcome demo onContinue={() => setWelcomed(true)} />;
     demoStore.current ??= createDemoStore();
@@ -72,16 +73,16 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
       </AppInfoProvider>
     );
   }
-  return <LiveGate db={supabase} side={side} live={live} welcome={welcomed ? null : <Welcome demo={false} onContinue={() => setWelcomed(true)} />} />;
+  return <LiveGate db={supabase} side={side} live={live} mode={mode} welcome={welcomed ? null : <Welcome demo={false} onContinue={(m) => { setMode(m); setWelcomed(true); }} />} />;
 }
 
-function LiveGate({ db, side, live, welcome }: { db: SupabaseClient; side: "coach" | "client"; live: (l: Live) => ReactNode; welcome: ReactNode }) {
+function LiveGate({ db, side, live, welcome, mode }: { db: SupabaseClient; side: "coach" | "client"; live: (l: Live) => ReactNode; welcome: ReactNode; mode?: SignInMode }) {
   const [auth, refresh] = useAuth(db);
   const invite = useInviteForExistingClient(db, auth.kind === "ready" ? auth.profile : null);
   const signOut = () => void db.auth.signOut();
 
   if (auth.kind === "loading" || invite === "pending") return <Splash />;
-  if (auth.kind === "signed-out") return welcome ?? <SignIn db={db} side={side} />;
+  if (auth.kind === "signed-out") return welcome ?? <SignIn db={db} side={side} mode={mode} />;
   if (auth.kind === "no-profile") return <Onboarding db={db} session={auth.session} side={side} onDone={refresh} />;
   if (auth.profile.role !== side) {
     const other = auth.profile.role;
