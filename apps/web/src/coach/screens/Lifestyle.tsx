@@ -1,8 +1,9 @@
 import {
   EVERY_DAY, HABIT_PRESETS, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type Habit, type HabitKind,
+  weekDaysOf, weekNutrition,
 } from "@apex/core";
-import { HabitDays, Icons, Label, LiquidTank, MacroBars, NumberField } from "@apex/ui";
+import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
@@ -97,6 +98,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
   const eaten = dayTotals(s.food, today);
   const week = loggedAverage(s.food, today);
   const todays = s.food.filter((f) => f.day === today);
+  const weekView = weekNutrition(s.food, weekDaysOf(today));
   const weekState = t && week.days ? againstTarget(week.avg.kcal, t.kcal) : null;
 
   return (
@@ -112,6 +114,18 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           <div className="small">
             {week.days ? <>7-day average <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.kcal.toLocaleString()} kcal</span>, <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.proteinG} g protein</span> over {week.days} day{week.days === 1 ? "" : "s"} logged{weekState === "on" ? ", on target." : weekState === "under" ? ", under target." : weekState === "over" ? ", over target." : "."}</> : `${name} hasn't logged any food this week.`}
           </div>
+        </div>
+      )}
+      {weekView.loggedDays > 0 && (
+        <div className="card stack">
+          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">This week · {weekView.loggedDays} of 7 days logged</h3><Label kind="data">Data</Label></div>
+          <WeekFuel days={weekView.days.map((d) => ({ day: d.day, kcal: d.totals.kcal, logged: d.logged }))} goal={t?.kcal ?? null} selected={today} />
+          <div className="wf-stats">
+            <div><span className="tiny">Average a day</span><b>{weekView.avg.kcal.toLocaleString("en-GB")}</b></div>
+            <div><span className="tiny">Daily goal</span><b>{t ? t.kcal.toLocaleString("en-GB") : "–"}</b></div>
+            <div><span className="tiny">Week total</span><b>{Math.round(weekView.total.kcal).toLocaleString("en-GB")}</b></div>
+          </div>
+          <MacroTable avg={weekView.avg} total={weekView.total} goal={t} />
         </div>
       )}
       {todays.length > 0 && (

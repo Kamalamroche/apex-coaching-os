@@ -15,6 +15,7 @@ export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, ReadinessBars,
 export { drawShareCard, loadShareFonts, DEFAULT_CROWN, SHARE_W, SHARE_H, type ShareCanvasData, type CrownPlacement, type ShareDraw } from "./shareCard";
 export { LiquidPill, LiquidTank, LiquidTile, enableTilt } from "./liquid";
 export { NightTile, StepsTile } from "./habitTiles";
+export { MacroTable, WeekFuel } from "./nutritionViz";
 export { Celebrate, CountUp, Rolling, NumberSheet, Wheel, WheelInput, statusColour, useCoarsePointer, useReducedMotion } from "./motion";
 export { CARD_W, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, drawStorySlide, loadStoryFonts, photoBandBox, BAND_SIZE, type CardFormat } from "./storyCard";
 export { DailyRings, RingWeek, RING_COLOURS, type RingView } from "./rings";

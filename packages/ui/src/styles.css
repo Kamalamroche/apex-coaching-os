@@ -812,3 +812,20 @@ button.tile{font:inherit}
 .rb-read i.dot{border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--text2)}
 .rb-svg{touch-action:pan-y;cursor:pointer}
 .rb-bar,.rb-dot{transition:opacity .25s var(--ease-out,ease-out)}
+/* Nutrition week views (WeekFuel, MacroTable) and the food log's day strip and add sheet */
+.wf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.wf-stats div{display:flex;flex-direction:column;gap:2px}
+.wf-stats b{font:700 17px/1.1 var(--num);color:var(--text)}
+.mtab{width:100%;border-collapse:collapse;font-size:13px}
+.mtab th,.mtab td{padding:8px 4px;text-align:right;border-top:1px solid var(--line)}
+.mtab thead th{border-top:0;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+.mtab th[scope=row]{text-align:left;font-weight:600;color:var(--text)}
+.mtab th[scope=row] i{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:8px;vertical-align:1px}
+.mtab td{color:var(--text)}
+.nut-days{flex:none;align-items:start}
+.nut-days .day{cursor:pointer;font:inherit;align-self:start;height:auto}
+.nut-days .day.pick{background:var(--text);border-color:var(--text);color:var(--bg)}
+.nut-days .day.pick small{color:var(--bg)}
+.nut-days .day.pick i{background:var(--bg)}
+.nut-days .day.logged i{background:var(--act)}
+.nut-repeat{display:flex;align-items:center;gap:10px;justify-content:space-between}
