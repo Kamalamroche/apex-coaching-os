@@ -175,3 +175,26 @@ describe("water", () => {
     expect(waterOn(createDemoLifestyleStore(storage, null, new Date("2026-11-02T12:00:00")).get().water, TODAY)).toBe(before);
   });
 });
+
+describe("steps and bedtime goals", () => {
+  it("reads the step goal", async () => {
+    const { stepsGoal } = await import("./lifestyle");
+    expect(stepsGoal("Walk 8,000 steps")).toBe(8000);
+    expect(stepsGoal("10k steps a day")).toBe(10000);
+    expect(stepsGoal("Walk 12000 steps")).toBe(12000);
+    expect(stepsGoal("Go for a walk")).toBe(8000);
+  });
+  it("reads the bedtime goal and compares clock times across midnight", async () => {
+    const { bedtimeGoal } = await import("./lifestyle");
+    const { clockLabel, clockMinutes } = await import("./recoveryTrends");
+    expect(bedtimeGoal("In bed by 10:30 pm")).toBe(270);
+    expect(bedtimeGoal("Bed by 23:00")).toBe(300);
+    expect(bedtimeGoal("in bed by 11pm")).toBe(300);
+    expect(bedtimeGoal("Bed by 10.30")).toBe(270);
+    expect(bedtimeGoal("Early night")).toBe(270);
+    expect(bedtimeGoal("Bed by 12:30 am")).toBe(390);
+    expect(clockLabel(bedtimeGoal("In bed by 10:30 pm"))).toBe("22:30");
+    const d = new Date(); d.setHours(0, 15, 0, 0);
+    expect(clockMinutes(d.toISOString())).toBeGreaterThan(bedtimeGoal("In bed by 10:30 pm"));
+  });
+});

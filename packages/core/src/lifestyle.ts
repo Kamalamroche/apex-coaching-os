@@ -358,7 +358,7 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
   habits.forEach((h, i) => {
     for (let d = 1; d <= 14; d++) if (!misses[i]?.includes(d)) ticks.push({ habitId: h.id, day: addDays(today, -d) });
   });
-  ticks.push({ habitId: "demo-habit-1", day: today });
+  // Today's water ticks itself once the logged drinks reach the goal.
   const meal = (id: number, m: Meal, name: string, kcal: number, p: number, c: number, f: number, day = today): FoodEntry => ({ id: `demo-food-${id}`, day, meal: m, name, kcal, proteinG: p, carbsG: c, fatG: f });
   const food: FoodEntry[] = [
     meal(1, "breakfast", "Oats, 50 g", 188, 7, 32, 4),
@@ -459,4 +459,28 @@ function safeStorage(): StorageLike | null {
   } catch {
     return null;
   }
+}
+
+/** The daily step goal from the habit's wording ("Walk 8,000 steps", "10k steps"). Falls back to 8,000. */
+export function stepsGoal(title: string): number {
+  const t = title.toLowerCase().replace(/(\d),(\d{3})\b/g, "$1$2");
+  const k = t.match(/(\d+(?:\.\d+)?)\s*k\b/);
+  const v = k?.[1] ? Number(k[1]) * 1000 : Number(t.match(/(\d{3,6})/)?.[1] ?? NaN);
+  return Number.isFinite(v) && v >= 500 ? Math.min(50000, Math.round(v)) : 8000;
+}
+
+/**
+ * The bedtime goal in minutes after 18:00 (the same scale as `clockMinutes`), from the habit's wording
+ * ("In bed by 10:30 pm", "bed by 22:30", "by 11pm"). Keeps 23:30 and 00:30 in order. Falls back to 22:30.
+ */
+export function bedtimeGoal(title: string): number {
+  const m = title.toLowerCase().match(/(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?/);
+  if (!m?.[1]) return 270;
+  let h = Number(m[1]);
+  const min = Number(m[2] ?? 0);
+  if (m[3] === "pm" && h < 12) h += 12;
+  if (m[3] === "am" && h === 12) h = 0;
+  if (!m[3] && h < 12 && h >= 7) h += 12; // "bed by 10:30" means the evening
+  if (h > 23 || min > 59) return 270;
+  return ((h * 60 + min - 1080) + 1440) % 1440;
 }
