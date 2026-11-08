@@ -14,18 +14,19 @@ import { Train } from "./screens/Train";
 
 type Tab = "today" | "train" | "progress" | "chat" | "more";
 
-/** `notice`: a one-off message to show on arrival, e.g. after coming back from Strava. */
-export function ClientApp({ notice }: { notice?: string | null }) {
+/** `notice`: a one-off message to show on arrival, e.g. after coming back from Strava.
+    `startOn`: open a More page straight away, e.g. Membership after coming back from Stripe. */
+export function ClientApp({ notice, startOn }: { notice?: string | null; startOn?: MoreView | null }) {
   const store = useStore();
   const { coachName, signOut } = useAppInfo();
   const { messages } = useApexState(store);
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>(startOn ? "more" : "today");
   const [playing, setPlaying] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [intaking, setIntaking] = useState(false);
-  // Opens More straight on a screen, e.g. Team from Today.
-  const [moreStart, setMoreStart] = useState<{ view: MoreView; n: number } | null>(null);
+  // Opens More straight on a screen, e.g. Team from Today or Membership after Stripe. Changing tab clears it.
+  const [moreStart, setMoreStart] = useState<{ view: MoreView; n: number } | null>(startOn ? { view: startOn, n: 0 } : null);
   const [toast, say] = useToast();
   const tabs: TabDef<Tab>[] = [
     { id: "today", icon: "today", label: "Today" },
