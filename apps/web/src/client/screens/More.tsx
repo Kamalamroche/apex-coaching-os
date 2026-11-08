@@ -6,6 +6,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { ConnectedApps } from "./ConnectedApps";
 import { Habits } from "./Habits";
+import { Membership } from "./Membership";
 import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
 import { FormCheckList } from "./FormCheck";
@@ -26,7 +27,7 @@ import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
 
-type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
+type View = "membership" | "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
 
 export type MoreView = View;
 
@@ -64,7 +65,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], membership: ["money", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -84,6 +85,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "account" && <AccountScreen say={say} />}
+        {view === "membership" && <Membership say={say} />}
       </>
     );
   }
@@ -91,6 +93,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
     <>
       <div><p className="sub" style={{ margin: 0 }}>More</p><ScriptTitle script="Everything" className="sm">else</ScriptTitle></div>
       <div className="card flat list">
+        <button className="li" onClick={() => setView("membership")}>{chip("membership")}<div className="grow"><div className="h3">Membership</div><div className="small">Your coaching plan and payments</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         {MENU.map(([k, t, s]) => (
           <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         ))}
