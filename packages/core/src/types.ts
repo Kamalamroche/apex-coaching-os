@@ -232,6 +232,10 @@ export interface Food {
   protein: number;
   carbs: number;
   fat: number;
+  /** Weight of one portion in grams (or ml for drinks), so the amount can be changed by weight. */
+  grams?: number;
+  /** Shelf in the food list, e.g. "Protein", "Carbs", "Fruit". */
+  group?: string;
 }
 
 /** A set as the client fills it in during a session. */

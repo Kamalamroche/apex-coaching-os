@@ -533,3 +533,39 @@ export function lastMeal(food: FoodEntry[], before: string, meal: Meal): { day: 
   const day = days.at(-1);
   return day ? { day, items: food.filter((f) => f.day === day && f.meal === meal) } : null;
 }
+
+/** Food list search: every word must match; names starting with the query come first, then shorter names. */
+export function searchFoods<T extends { name: string }>(foods: T[], q: string, limit = 20): T[] {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const hits = foods.filter((f) => { const n = f.name.toLowerCase(); return words.every((w) => n.includes(w)); });
+  const first = words[0]!;
+  const rank = (f: T) => (f.name.toLowerCase().startsWith(first) ? 0 : f.name.toLowerCase().includes(` ${first}`) ? 1 : 2);
+  // Plain foods before ready meals, so "chicken" finds chicken breast before a chicken curry.
+  const meal = (f: T) => ((f as { group?: string }).group === "Meals and snacks" ? 1 : 0);
+  return hits.sort((a, b) => rank(a) - rank(b) || meal(a) - meal(b) || a.name.length - b.name.length).slice(0, limit);
+}
+
+/** A portion scaled by `factor` (1.5 = one and a half portions), rounded the way a label reads. */
+export function scalePortion(f: { kcal: number; proteinG: number; carbsG: number; fatG: number }, factor: number) {
+  const r1 = (v: number) => Math.round(v * factor * 10) / 10;
+  return { kcal: Math.round(f.kcal * factor), proteinG: r1(f.proteinG), carbsG: r1(f.carbsG), fatG: r1(f.fatG) };
+}
+
+/** Share of calories from protein, carbs and fat (4/4/9 kcal per gram), whole percentages that add up to 100. */
+export function macroSplit(m: { proteinG: number; carbsG: number; fatG: number }): { protein: number; carbs: number; fat: number } | null {
+  const p = m.proteinG * 4, c = m.carbsG * 4, f = m.fatG * 9;
+  const total = p + c + f;
+  if (total <= 0) return null;
+  const protein = Math.round((p / total) * 100), carbs = Math.round((c / total) * 100);
+  return { protein, carbs, fat: Math.max(0, 100 - protein - carbs) };
+}
+
+/** Days in a row with food logged, ending today (or yesterday, if today has nothing yet). */
+export function loggingStreak(food: { day: string }[], today: string): number {
+  const days = new Set(food.map((f) => f.day));
+  let d = days.has(today) ? today : addDays(today, -1);
+  let n = 0;
+  while (days.has(d)) { n++; d = addDays(d, -1); }
+  return n;
+}

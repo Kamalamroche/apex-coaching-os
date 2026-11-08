@@ -223,3 +223,38 @@ describe("week of food, recent foods, repeat a meal", () => {
     expect(lastMeal(food, "2026-11-02", "breakfast")).toBeNull();
   });
 });
+
+describe("food search, portions, macro split, logging streak", () => {
+  it("searches by every word, best match first", async () => {
+    const { searchFoods } = await import("./lifestyle");
+    const { FOODS } = await import("./data/foods");
+    expect(FOODS.length).toBeGreaterThan(100);
+    expect(searchFoods(FOODS, "chicken")[0]?.name).toMatch(/^Chicken/);
+    expect(searchFoods(FOODS, "rice brown").every((f) => /brown/i.test(f.name) && /rice/i.test(f.name))).toBe(true);
+    expect(searchFoods(FOODS, "")).toEqual([]);
+  });
+  it("scales a portion", async () => {
+    const { scalePortion } = await import("./lifestyle");
+    expect(scalePortion({ kcal: 165, proteinG: 31, carbsG: 0, fatG: 4 }, 1.5)).toEqual({ kcal: 248, proteinG: 46.5, carbsG: 0, fatG: 6 });
+  });
+  it("splits calories by macro", async () => {
+    const { macroSplit } = await import("./lifestyle");
+    expect(macroSplit({ proteinG: 120, carbsG: 210, fatG: 60 })).toEqual({ protein: 26, carbs: 45, fat: 29 });
+    expect(macroSplit({ proteinG: 0, carbsG: 0, fatG: 0 })).toBeNull();
+  });
+  it("counts logging days in a row", async () => {
+    const { loggingStreak } = await import("./lifestyle");
+    const food = ["2026-11-05", "2026-11-06", "2026-11-07"].map((day) => ({ day }));
+    expect(loggingStreak(food, "2026-11-08")).toBe(3);
+    expect(loggingStreak(food, "2026-11-07")).toBe(3);
+    expect(loggingStreak(food, "2026-11-10")).toBe(0);
+  });
+});
+
+describe("food search order", () => {
+  it("puts plain foods before ready meals", async () => {
+    const { searchFoods } = await import("./lifestyle");
+    const { FOODS } = await import("./data/foods");
+    expect(searchFoods(FOODS, "chicken")[0]?.group).toBe("Protein");
+  });
+});
