@@ -1,6 +1,6 @@
-import { bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
+import { HERO_IMAGES, bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, Icons, Sheet, Spark, ScriptTitle } from "@apex/ui";
+import { BackLink, CountUp, EditorialTitle, HeroBackdrop, Icons, Sheet, Spark } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -39,13 +39,20 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
   return (
     <>
       {modes}
-      <div>{weeks ? <ScriptTitle script="Progress" className="sm">{`${weeks} week${weeks === 1 ? "" : "s"} in`}</ScriptTitle> : <ScriptTitle script="Your" className="sm">starting point</ScriptTitle>}</div>
-      <button className="btn act block sp-cta" onClick={() => setSheet("share")}><Icons.share width={18} height={18} /> Share my progress</button>
+      <section className="hero cover short pg-cover" aria-label="Your progress">
+        <HeroBackdrop art={HERO_IMAGES.upper} word={null} />
+        <div className="cv-title">
+          <EditorialTitle as="h1" text={weeks ? `${weeks} week${weeks === 1 ? "" : "s"} in` : "Starting point"} caption="Your progress" />
+        </div>
+        <div className="hero-body">
+          <div className="cv-stats">
+            <div style={{ ["--i" as string]: 0 }}><b>{weight ? <CountUp value={weight.last} decimals={1} /> : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i>{signed(weight.delta)} since start</i>}</div>
+            <div style={{ ["--i" as string]: 1 }}><b>{waist ? <CountUp value={waist.last} decimals={1} /> : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i>{signed(waist.delta)} since start</i>}</div>
+          </div>
+          <button className="gr-cta" onClick={() => setSheet("share")}><Icons.share width={16} height={16} /> Share my progress</button>
+        </div>
+      </section>
       <ProgressNotice />
-      <div className="kpis" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
-        <div className="kpi"><b>{weight ? weight.last : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(weight.delta)} since start</i>}</div>
-        <div className="kpi"><b>{waist ? waist.last : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i style={{ color: "var(--data)" }}>{signed(waist.delta)} since start</i>}</div>
-      </div>
 
       <ProgressHub progress={progress} onDelete={(id) => void store.deletePhoto(id).catch((e: unknown) => say(e instanceof Error ? e.message : "Couldn't delete"))} extra={<button className="link" onClick={() => setSheet("photos")}>+ Add photos</button>} />
 

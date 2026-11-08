@@ -1,6 +1,6 @@
-import { filterLibrary, type BodyArea, type Exercise, type TrainingType } from "@apex/core";
+import { HERO_IMAGES, filterLibrary, heroForWorkout, type BodyArea, type Exercise, type TrainingType } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, Icons } from "@apex/ui";
+import { BackLink, EditorialTitle, HeroBackdrop, Icons } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useStore } from "../../data/StoreContext";
 import { Cardio } from "./Cardio";
@@ -46,15 +46,25 @@ export function Train({ start, say }: { start: () => void; say: (m: string) => v
   return (
     <>
       {modes}
-      <div><div className="eyebrow">Program · week {workout.week} of {workout.ofWeeks}</div><h1 className="h1">Foundations</h1></div>
-      <div className="card flat list">
-        {schedule.map((r) => (
-          <div key={r.date} className="li">
-            <div className="grow"><div className="tiny">{r.date}</div><div className="h3">{r.name}</div></div>
-            {r.state === "today" ? <button className="btn act sm" onClick={start}>Start</button> : r.state === "done" ? <span className="label l-dec">Done</span> : <span className="tiny">Planned</span>}
-          </div>
-        ))}
-      </div>
+      <section className="hero cover short" aria-label="Your program">
+        <HeroBackdrop art={HERO_IMAGES[heroForWorkout(workout)]} word={null} />
+        <div className="cv-title">
+          <EditorialTitle as="h1" text="Foundations" caption={`Program · week ${workout.week} of ${workout.ofWeeks}`} />
+        </div>
+        <div className="cv-weeks" role="img" aria-label={`Week ${workout.week} of ${workout.ofWeeks}`}>
+          {Array.from({ length: workout.ofWeeks }, (_, k) => <i key={k} className={k < workout.week - 1 ? "done" : k === workout.week - 1 ? "now" : undefined} style={{ ["--i" as string]: k }} />)}
+        </div>
+        <div className="hero-body">
+          <ul className="cv-list">
+            {schedule.map((r, i) => (
+              <li key={r.date} className={r.state} style={{ ["--i" as string]: i }}>
+                <span className="grow"><small>{r.date}</small><b>{r.name}</b></span>
+                {r.state === "today" ? <button className="cv-go" onClick={start}><Icons.play width={14} height={14} /> Start</button> : r.state === "done" ? <span className="gpill dim"><Icons.check /> Done</span> : <small className="cv-plan">Planned</small>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
       <section>
         <div className="sect"><h2 className="h2">Exercise library</h2><span className="tiny num">{list.length}</span></div>
         <input className="field" placeholder='Search: try "rdl", "glutes" or "band"' value={query} onChange={(e) => refilter(() => setQuery(e.target.value))} autoComplete="off" style={{ marginBottom: 10 }} />
