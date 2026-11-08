@@ -1,7 +1,7 @@
 import { suggestedName } from "@apex/core";
 import { Icons } from "@apex/ui";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** First sign-in: create the profile for this side of the app, and for a client, accept the invite. */
 export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; session: Session; side: "coach" | "client"; onDone: () => void }) {
@@ -30,6 +30,20 @@ export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; 
     }
     onDone();
   };
+
+  // Google and Apple already told us the name: save it and go straight in, no extra screen.
+  // The name can be changed later in the app. Runs once; if it fails, the form shows the error.
+  const auto = useRef(false);
+  useEffect(() => {
+    if (auto.current || blocked || name.trim().length < 2) return;
+    auto.current = true;
+    void save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (busy && !error && auto.current) {
+    return <div className="sel"><div className="wordmark"><Icons.logo /><b>APEX</b></div><p className="sub">Setting up your account…</p></div>;
+  }
 
   return (
     <div className="sel">

@@ -6,6 +6,16 @@ import { fetchAuthSettings } from "../data/supabase";
 
 export type SignInMode = "signup" | "signin";
 
+type Method = OAuthProvider | "email";
+const LAST_KEY = "apex.lastSignIn";
+/** How this person signed in last time on this device, to mark that button. Storage may be blocked. */
+function lastMethod(): Method | null {
+  try { const v = localStorage.getItem(LAST_KEY); return v === "google" || v === "apple" || v === "email" ? v : null; } catch { return null; }
+}
+function rememberMethod(m: Method) {
+  try { localStorage.setItem(LAST_KEY, m); } catch { /* nothing to remember */ }
+}
+
 /**
  * Sign-in without waiting for an email: one tap with Google or Apple, or email + password that opens
  * the app straight away. The email link stays as a fallback (forgotten password, no password yet).
@@ -22,6 +32,9 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const appBrowser = inAppBrowser(navigator.userAgent);
+  const [last] = useState(lastMethod);
+  // One-tap buttons lead; the email form opens on request (or straight away when one tap can't work here).
+  const [emailOpen, setEmailOpen] = useState(() => !!appBrowser || last === "email");
 
   useEffect(() => {
     let alive = true;
@@ -33,6 +46,7 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
 
   const oauth = async (provider: OAuthProvider) => {
     setState("busy");
+    rememberMethod(provider);
     const { error: e } = await db.auth.signInWithOAuth({ provider, options: { redirectTo: location.href } });
     if (e) fail(e.message);
   };
@@ -40,6 +54,7 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
   // A session arriving fires Supabase's SIGNED_IN event, and the gate moves on to the app by itself.
   const withPassword = async () => {
     setState("busy");
+    rememberMethod("email");
     const creds = { email: email.trim(), password };
     if (mode === "signin") {
       const { error: e } = await db.auth.signInWithPassword(creds);
@@ -68,6 +83,8 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
   const accent = side === "coach" ? "act" : "sec";
   const title = invite ? "You've been invited" : mode === "signup" ? "Create your account" : "Welcome back";
   const providers = opts.providers;
+  const showForm = emailOpen || providers.length === 0;
+  const tag = (m: Method) => (last === m ? <span className="signin-last">Last used</span> : null);
   const passwordOk = password.length >= 8;
   const canSubmit = email.includes("@") && (mode === "signin" ? password.length > 0 : passwordOk);
 
@@ -103,19 +120,24 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {providers.includes("google") && (
                   <button type="button" className="btn ghost block signin-provider" onClick={() => void oauth("google")} disabled={busy}>
-                    <GoogleMark /> Continue with Google
+                    <GoogleMark /> Continue with Google{tag("google")}
                   </button>
                 )}
                 {providers.includes("apple") && (
                   <button type="button" className="btn ghost block signin-provider" onClick={() => void oauth("apple")} disabled={busy}>
-                    <AppleMark /> Continue with Apple
+                    <AppleMark /> Continue with Apple{tag("apple")}
                   </button>
                 )}
-                <div className="signin-or" aria-hidden="true"><span>or</span></div>
+                {opts.password && !showForm && (
+                  <button type="button" className="btn ghost block signin-provider" onClick={() => setEmailOpen(true)} disabled={busy}>
+                    <Icons.mail width={18} height={18} aria-hidden="true" /> Continue with email{tag("email")}
+                  </button>
+                )}
+                {showForm && opts.password && <div className="signin-or" aria-hidden="true"><span>or</span></div>}
               </div>
             )}
 
-            {opts.password && (
+            {opts.password && showForm && (
               <form onSubmit={(e) => { e.preventDefault(); if (canSubmit) void withPassword(); }} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {opts.signUpOpen && (
                   <div className="seg" role="tablist" aria-label="Account">
@@ -124,7 +146,7 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
                   </div>
                 )}
                 <label className="small" htmlFor="email">Email</label>
-                <input id="email" className="field" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                <input id="email" className="field" type="email" autoFocus={emailOpen && !appBrowser} autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
                 <label className="small" htmlFor="password">Password</label>
                 <div className="signin-pass">
                   <input id="password" className="field" type={show ? "text" : "password"} autoComplete={mode === "signup" ? "new-password" : "current-password"} required minLength={mode === "signup" ? 8 : undefined} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "signup" ? "At least 8 characters" : "Your password"} />
@@ -132,6 +154,11 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
                     {show ? <Icons.eyeOff width={18} height={18} /> : <Icons.eye width={18} height={18} />}
                   </button>
                 </div>
+                {mode === "signup" && password.length > 0 && (
+                  <p className={`tiny signin-hint${passwordOk ? " ok" : ""}`} style={{ margin: 0 }}>
+                    {passwordOk ? <><Icons.check width={14} height={14} aria-hidden="true" /> Good length</> : `${8 - password.length} more character${8 - password.length === 1 ? "" : "s"}`}
+                  </p>
+                )}
                 <button className={`btn ${accent} block`} disabled={busy || !canSubmit}>
                   {busy ? "One moment…" : mode === "signup" ? "Create account" : "Sign in"}
                 </button>
@@ -140,9 +167,9 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
 
             {state === "error" && <p className="small" role="alert" style={{ color: "var(--crit)", margin: 0 }}>{error}</p>}
 
-            <button type="button" className="link small" onClick={() => void emailLink()} disabled={busy} style={{ alignSelf: "flex-start" }}>
+            {showForm && <button type="button" className="link small" onClick={() => void emailLink()} disabled={busy} style={{ alignSelf: "flex-start" }}>
               {mode === "signin" ? "Forgot your password? Email me a sign-in link" : "Rather not use a password? Email me a sign-in link"}
-            </button>
+            </button>}
             <p className="tiny" style={{ margin: 0 }}>By continuing you agree to the <a className="link" href="/legal/#terms" target="_blank" rel="noopener">terms</a> and confirm you've read the <a className="link" href="/legal/#privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
           </>
         )}

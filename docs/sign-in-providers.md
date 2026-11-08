@@ -7,6 +7,11 @@ The sign-in screen offers, in this order:
    a new account opens the app straight away, no email to wait for.
 3. **Email me a sign-in link**: the old way, kept for forgotten passwords and people without a password.
 
+The one-tap buttons come first; the email form opens from "Continue with email" (it opens straight away
+in app browsers, where one tap can't work). The button used last time on that device is marked
+"Last used". After Google or Apple, the name they share is saved automatically, so people land in
+the app with no extra screen. Only email sign-ups are asked their name.
+
 The screen reads Supabase's public settings, so a button only shows once its provider is switched on.
 Nothing needs changing in Vercel.
 

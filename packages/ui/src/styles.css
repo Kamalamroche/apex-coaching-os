@@ -48,7 +48,7 @@ input,select{font-family:inherit}
 .list>*+*{border-top:1px solid var(--line)}
 .li{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;background:none;border:0;text-align:left;min-height:56px}
 .grow{flex:1;min-width:0}
-.ava{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0;background:var(--blue-soft);color:var(--blue)}
+.ava{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0;background:var(--blue);color:#fff}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
 .kpi b{display:block;font:700 22px/1.1 var(--num);letter-spacing:-.02em}
@@ -293,6 +293,10 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .signin-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;display:grid;place-items:center;border:0;background:none;color:var(--text3);border-radius:10px}
 .signin-note{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:var(--warn-soft);color:var(--text);font-size:13px;line-height:1.45}
 .signin-note svg{flex:none;margin-top:2px;color:var(--warn)}
+.signin .signin-provider{position:relative}
+.signin-last{position:absolute;right:18px;top:-9px;border:1px solid var(--card);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:var(--pill);background:var(--blue);color:#fff}
+.signin-hint{display:flex;align-items:center;gap:5px;color:var(--text3)}
+.signin-hint.ok{color:var(--good)}
 .wordmark{display:flex;align-items:center;gap:10px}
 .wordmark b{font:900 30px/1 var(--head);font-stretch:125%;letter-spacing:.02em}
 .pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;width:100%;max-width:720px}
