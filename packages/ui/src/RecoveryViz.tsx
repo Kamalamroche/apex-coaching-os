@@ -389,3 +389,61 @@ export function TrendChart({ days, value, colour, unit, usual, lowerIsBetter = f
     </div>
   );
 }
+
+/**
+ * The last fortnight, one column per morning: the score as a bar coloured by band, and resting heart rate as
+ * numbered dots on a dashed line in its own lane above (two lanes on one time line, never two scales on one plot).
+ * Tap a column, or step with the arrows, to read a day. Bars rise and dots pop in when it opens.
+ */
+export function ReadinessBars({ days, scoreName = "Readiness", n = 10 }: { days: RecoveryDay[]; scoreName?: string; n?: number }) {
+  // Oldest first, only mornings with a score.
+  const cols = [...days].filter((d) => (d.recoveryScore ?? d.sleepScore) !== undefined).sort((a, b) => a.date.localeCompare(b.date)).slice(-n);
+  const [sel, setSel] = useState(cols.length - 1);
+  if (cols.length < 2) return null;
+  const i = Math.min(sel, cols.length - 1);
+  const W = 340, hrLane = 44, gap = 10, barH = 112, H = hrLane + gap + barH;
+  const col = W / cols.length;
+  const cx = (k: number) => k * col + col / 2;
+  const score = (d: RecoveryDay) => (d.recoveryScore ?? d.sleepScore)!;
+  const band = (v: number) => (v >= 67 ? "var(--good)" : v >= 34 ? "var(--warn)" : "var(--crit)");
+  const hrs = cols.map((d) => d.restingHr).filter((v): v is number => v !== undefined);
+  const hrLo = Math.min(...hrs), hrHi = Math.max(...hrs);
+  const hy = (v: number) => 12 + (hrHi === hrLo ? 0.5 : 1 - (v - hrLo) / (hrHi - hrLo)) * (hrLane - 24);
+  const hrPts = cols.map((d, k) => (d.restingHr === undefined ? null : ([cx(k), hy(d.restingHr)] as const)));
+  const d = cols[i]!;
+  const step = (k: number) => setSel(Math.max(0, Math.min(cols.length - 1, k)));
+  return (
+    <div className="rb">
+      <div className="rb-days">
+        <button type="button" className="rb-side" onClick={() => step(i - 1)} disabled={i === 0} aria-label="Previous day">{i > 0 ? dayLabel(cols[i - 1]!.date) : ""}</button>
+        <div className="rb-now"><span>{dayLabel(d.date)}</span></div>
+        <button type="button" className="rb-side r" onClick={() => step(i + 1)} disabled={i === cols.length - 1} aria-label="Next day">{i < cols.length - 1 ? dayLabel(cols[i + 1]!.date) : ""}</button>
+      </div>
+      <div className="rb-read">
+        <span><i style={{ background: band(score(d)) }} />{scoreName} <b>{score(d)}</b></span>
+        {d.restingHr !== undefined && <span><i className="dot" />Resting HR <b>{d.restingHr}</b> bpm</span>}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg rb-svg" role="img" aria-label={`${scoreName} and resting heart rate, last ${cols.length} mornings`}
+        onPointerDown={(e) => setSel(scrubIndex(e, cols.length))}>
+        {cols.map((c, k) => {
+          const h = Math.max(6, (score(c) / 100) * (barH - 6));
+          return (
+            <rect key={c.date} className="rb-bar" style={{ animationDelay: `${k * 45}ms` } as CSSProperties} x={cx(k) - col * 0.34} width={col * 0.68} y={H - h} height={h} rx="7"
+              fill={band(score(c))} opacity={k === i ? 1 : 0.62} />
+          );
+        })}
+        <line x1="0" x2={W} y1={H - 0.5} y2={H - 0.5} stroke="var(--line)" />
+        {hrPts.map((p, k) => k > 0 && p && hrPts[k - 1] && (
+          <line key={`h${k}`} x1={hrPts[k - 1]![0]} y1={hrPts[k - 1]![1]} x2={p[0]} y2={p[1]} stroke="var(--text3)" strokeWidth="1.5" strokeDasharray="3 3" />
+        ))}
+        {cols.map((c, k) => c.restingHr !== undefined && (
+          <g key={`d${c.date}`} className="rb-dot" style={{ animationDelay: `${300 + k * 45}ms` } as CSSProperties}>
+            <circle cx={cx(k)} cy={hy(c.restingHr)} r={k === i ? 11.5 : 10} fill={k === i ? "var(--text)" : "var(--card)"} stroke="var(--line2)" strokeWidth="1" />
+            <text x={cx(k)} y={hy(c.restingHr) + 3.6} textAnchor="middle" fontSize="10" fontWeight="700" fontFamily="var(--num)" fill={k === i ? "var(--card)" : "var(--text)"}>{c.restingHr}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="rc-legend tiny"><span><i style={{ background: "var(--good)" }} />67+</span><span><i style={{ background: "var(--warn)" }} />34–66</span><span><i style={{ background: "var(--crit)" }} />Under 34</span><span><i style={{ background: "var(--card)", boxShadow: "inset 0 0 0 1px var(--line2)", borderRadius: 99 }} />Resting HR</span></div>
+    </div>
+  );
+}

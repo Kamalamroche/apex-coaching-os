@@ -687,3 +687,10 @@ button.lv-row{cursor:pointer}
 @keyframes ht-twinkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
 @keyframes ht-z{0%{opacity:0;transform:translate(0,2px)}30%{opacity:.95}100%{opacity:0;transform:translate(3px,-5px)}}
 .ht-star{transform-box:fill-box;transform-origin:center}
+/* ReadinessBars: bars rise from the floor, heart-rate dots pop in after */
+@media (prefers-reduced-motion:no-preference){
+  .rb-bar{transform-box:fill-box;transform-origin:50% 100%;animation:rb-rise .7s var(--ease-spring,cubic-bezier(.3,1.4,.5,1)) backwards}
+  .rb-dot{transform-box:fill-box;transform-origin:center;animation:rb-pop .45s var(--ease-spring,cubic-bezier(.3,1.4,.5,1)) backwards}
+}
+@keyframes rb-rise{from{transform:scaleY(0)}}
+@keyframes rb-pop{from{transform:scale(0);opacity:0}}

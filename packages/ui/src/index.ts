@@ -11,7 +11,7 @@ export { FuelGauge, HabitDays, MacroBars, MacroRings, NumberField, type DayDot, 
 export { MuscleMap } from "./MuscleMap";
 export { RouteMap, RunAnalysis, SplitsChart, LoadCompare, useDarkTheme, ProfileChart, SplitsTable, HrZones, WeekBars, RouteThumb, SportIcon, ZONE_COLOURS } from "./ActivityViz";
 export { Gauge, MiniRing } from "./Gauge";
-export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart, STAGE_COLOURS, STAGE_LABEL } from "./RecoveryViz";
+export { BalanceRows, BalanceScale, Hypnogram, LoadRecoveryChart, ReadinessBars, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart, STAGE_COLOURS, STAGE_LABEL } from "./RecoveryViz";
 export { drawShareCard, loadShareFonts, DEFAULT_CROWN, SHARE_W, SHARE_H, type ShareCanvasData, type CrownPlacement, type ShareDraw } from "./shareCard";
 export { LiquidPill, LiquidTank, LiquidTile, enableTilt } from "./liquid";
 export { NightTile, StepsTile } from "./habitTiles";

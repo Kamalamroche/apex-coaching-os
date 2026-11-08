@@ -2,7 +2,7 @@ import {
   baseline, bestPerDay, contributors, formatSleep, loadAndRecovery, loadByDay, loadEffect, localDate, morningLine, RECOVERY_SOURCES, sleepSchedule, trainingBalance, vsBaseline,
   type Activity, type RecoveryDay,
 } from "@apex/core";
-import { BalanceRows, BalanceScale, Gauge, Hypnogram, Label, LoadRecoveryChart, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart } from "@apex/ui";
+import { BalanceRows, BalanceScale, Gauge, Hypnogram, Label, LoadRecoveryChart, ReadinessBars, RecoveryCalendar, SleepBars, SleepScheduleChart, SleepStagesBar, TrendChart } from "@apex/ui";
 import { useMemo } from "react";
 
 /* Recovery for one client, the same for the client and the coach. Last night up top with one line on
@@ -85,6 +85,13 @@ export function RecoveryView({ recovery, activities = [], compact = false }: { r
               {BALANCE_LINE[balance.zone]}
             </div>
           </div>
+        </section>
+      )}
+
+      {days.filter((d) => (d.recoveryScore ?? d.sleepScore) !== undefined).length >= 3 && (
+        <section>
+          <div className="sect"><h2 className="h2">{last.recoveryScore !== undefined ? SCORE_NAME[last.source] : "Sleep score"}</h2><span className="tiny">Last 10 mornings</span></div>
+          <div className="card"><ReadinessBars days={days} scoreName={last.recoveryScore !== undefined ? SCORE_NAME[last.source] : "Sleep score"} /></div>
         </section>
       )}
 
