@@ -60,3 +60,4 @@ export * from "./levels";
 export * from "./team";
 export * from "./growth";
 export * from "./signIn";
+export * from "./gym";

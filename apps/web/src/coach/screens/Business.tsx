@@ -1,11 +1,11 @@
 import { CLIENTS } from "@apex/core";
-import { Avatar, CountUp, Label } from "@apex/ui";
+import { Avatar, CountUp, Icons, Label } from "@apex/ui";
 import { SampleNote } from "../../app/AppContext";
 
 const MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
 const REVENUE = [920, 1010, 1080, 1150, 1170, 1220];
 
-export function Business() {
+export function Business({ openGym }: { openGym?: () => void }) {
   const max = Math.max(...REVENUE);
   const total = CLIENTS.reduce((a, c) => a + c.monthlyRevenue, 0);
   return (
@@ -15,6 +15,15 @@ export function Business() {
         <h1 className="h1">£<CountUp value={total} duration={1200} /> monthly recurring</h1>
         <p className="sub">Sample figures. Real numbers come from Stripe once billing is connected.</p>
       </div>
+      {openGym && (
+        <div className="card flat list full">
+          <button className="li" onClick={openGym}>
+            <Icons.clients width={18} height={18} style={{ color: "var(--act)" }} />
+            <div className="grow"><div className="h3">Gym</div><div className="tiny">Your trainers, their roles and every client in one place</div></div>
+            <span className="tiny">›</span>
+          </button>
+        </div>
+      )}
       <SampleNote />
       <div className="card">
         <div className="sect"><h3 className="h3">Monthly revenue, 6 months</h3><Label kind="data">Data</Label></div>

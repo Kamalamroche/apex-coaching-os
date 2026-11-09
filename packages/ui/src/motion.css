@@ -711,3 +711,56 @@ button.lv-row{cursor:pointer}
 @keyframes scan-sweep{from{translate:0 -60px}to{translate:0 60px}}
 .scan-dot{animation:m-pop .8s var(--ease-spring) infinite alternate}
 @media (prefers-reduced-motion:reduce){.scan-frame i,.scan-dot{animation:none}}
+
+/* ───────── Gym: trainers under one roof ───────── */
+.gy-hero{min-height:380px}
+.gy-hero .hero-img{animation:gr-zoom 1.6s var(--ease-out) backwards}
+.gy-hero::after{background:linear-gradient(180deg,rgba(10,10,12,.4) 0%,rgba(10,10,12,0) 30%,rgba(10,10,12,.15) 55%,rgba(10,10,12,.8) 100%)}
+.gy-hero .hero-title{animation:m-rise .6s var(--ease-out) .2s backwards}
+.gy-hero .gpill{animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.4s + var(--i,0) * .07s)}
+.gy-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gy-stat{padding:14px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);display:flex;flex-direction:column;gap:6px;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.15s + var(--i,0) * .07s)}
+.gy-stat>b,.gy-stat>b *{font:400 38px/1 var(--serif) !important;letter-spacing:-.02em;color:var(--text)}
+.gy-stat:first-child>b,.gy-stat:first-child>b *{color:var(--act)}
+.gy-stat span{font-size:12px;color:var(--text3)}
+.gy-roster{list-style:none;margin:0;padding:0;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);overflow:hidden}
+.gy-roster li{animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .06s)}
+.gy-roster li+li{border-top:1px solid var(--line)}
+.gy-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;border:0;text-align:left;color:inherit;font:inherit}
+button.gy-row{cursor:pointer}
+.gy-row small{display:block;color:var(--text3);font-size:12px;margin-top:3px}
+.gy-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gy-name b{font-size:15px}
+.gy-name small{font-size:11px;color:var(--act);font-weight:700}
+.gy-chev{color:var(--text3);flex:none;font-size:20px;line-height:1}
+.gy-bar{display:block;height:4px;margin-top:8px;border-radius:var(--pill);background:var(--card2);overflow:hidden}
+.gy-bar i{display:block;height:100%;border-radius:inherit;background:var(--act);transform-origin:left;animation:m-grow .8s var(--ease-out) backwards;animation-delay:calc(.35s + var(--i,0) * .07s)}
+.gy-role{padding:4px 8px;border-radius:var(--pill);font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--card2);color:var(--text2)}
+.gy-role.r-owner{background:var(--act-soft);color:var(--act)}
+.gy-role.r-manager{background:var(--blue-soft);color:var(--blue)}
+.gy-client{display:flex;flex-direction:column;gap:10px;width:100%;padding:14px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);text-align:left;color:inherit;font:inherit;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .05s);transition:transform .18s var(--ease-out),border-color .18s}
+button.gy-client{cursor:pointer}
+button.gy-client:active{transform:scale(.985)}
+button.gy-client:hover{border-color:var(--line2)}
+.gy-client header{display:flex;align-items:center;gap:10px}
+.gy-client header b{display:block;font-size:15px}
+.gy-client header small{display:block;color:var(--text3);font-size:12px;margin-top:2px}
+.gy-state{padding:5px 9px;border-radius:var(--pill);font:700 10px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;background:var(--good-soft);color:var(--good);white-space:nowrap}
+.gy-state.quiet{background:var(--warn-soft);color:var(--warn)}
+.gy-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.gy-facts div{min-width:0}
+.gy-facts dt{font:500 10px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.gy-facts dd{margin:4px 0 0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gy-shared{margin:0;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--blue)}
+.gy-roles ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:8px}
+.gy-roles li{padding:14px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:6px;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.2s + var(--i,0) * .07s)}
+.gy-roles li.on{border-color:var(--act)}
+.gy-right{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2)}
+.gy-right svg{color:var(--act);flex:none}
+.gy-list{display:flex;flex-direction:column;gap:8px}
+.gy-pick{display:flex;flex-direction:column;gap:6px}
+.gy-pick button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line2);background:var(--card);color:var(--text);font:600 14px/1.2 var(--ui);text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.gy-pick button[aria-pressed="true"]{border-color:var(--act);background:var(--act-soft)}
+.gy-pick button .grow small{display:block;font-weight:400;font-size:12px;color:var(--text3);margin-top:2px}
+@media (min-width:760px){.gy-roles ul{grid-template-columns:repeat(3,1fr)}.gy-list{display:grid;grid-template-columns:1fr 1fr}}
+@media (prefers-reduced-motion:reduce){.gy-hero .hero-img,.gy-hero .hero-title,.gy-hero .gpill,.gy-stat,.gy-roster li,.gy-bar i,.gy-client,.gy-roles li{animation:none}}
