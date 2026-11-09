@@ -2,6 +2,7 @@ import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, loc
 import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
 import { useState } from "react";
 import { ClientPlan, RecipeSheet, RecipeShelf } from "../../app/MealPlanParts";
+import { BarcodeScan } from "./BarcodeScan";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
@@ -23,6 +24,7 @@ export function ClientNutrition() {
   const [tab, setTab] = useState<"search" | "recent" | "describe">("search");
   const [said, setSaid] = useState("");
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [scan, setScan] = useState(false);
   // The food picked from the list, waiting for its amount.
   const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
@@ -170,7 +172,15 @@ export function ClientNutrition() {
             ))}
           </div>
         )}
-        {(tab === "search" || (tab === "recent" && recent.length === 0)) && <input id="foodsearch" className="field" placeholder="Search common foods" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {(tab === "search" || (tab === "recent" && recent.length === 0)) && (
+          <div className="row" style={{ gap: 8 }}>
+            <input id="foodsearch" className="field" style={{ flex: 1 }} placeholder="Search common foods" value={q} onChange={(e) => setQ(e.target.value)} />
+            <button type="button" className="iconbtn nut-scan" aria-label="Scan a barcode" onClick={() => setScan(true)}><Icons.scan width={20} height={20} /></button>
+          </div>
+        )}
+        {scan && <BarcodeScan onClose={() => setScan(false)}
+          onFound={(f) => { setScan(false); setTab("search"); setPick({ food: f, portions: 1 }); }}
+          onQuickAdd={() => { setScan(false); setQuick(true); }} />}
         {(tab === "search" || (tab === "recent" && recent.length === 0)) && q && (
           <div className="card flat list">
             {hits.length === 0 ? <div className="li small">Not in the list. Use quick add below.</div> : hits.map((f) => (

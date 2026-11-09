@@ -707,3 +707,7 @@ button.lv-row{cursor:pointer}
 .plan-meal{animation:m-rise .35s var(--ease-out) backwards}
 .plan-meal.done .plan-log svg{animation:m-pop .4s var(--ease-spring) backwards}
 @media (prefers-reduced-motion:reduce){.rcp-card,.plan-meal,.plan-meal.done .plan-log svg{animation:none}}
+.scan-frame i{animation:scan-sweep 1.8s var(--ease-out) infinite alternate}
+@keyframes scan-sweep{from{translate:0 -60px}to{translate:0 60px}}
+.scan-dot{animation:m-pop .8s var(--ease-spring) infinite alternate}
+@media (prefers-reduced-motion:reduce){.scan-frame i,.scan-dot{animation:none}}
