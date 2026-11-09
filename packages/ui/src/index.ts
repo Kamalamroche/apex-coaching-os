@@ -25,3 +25,4 @@ export { CoachPageView, GrowHero, InviteFriendCard, RequestItem } from "./growth
 export { getPrefs, onPrefsChange, setPrefs, unitsFor, usePrefs, useT, useUnits, type Prefs, type Units } from "./prefs";
 export { WeightWheel, useConvertedText } from "./unitInputs";
 export { GymClientItem, GymHero, GymStat, RoleBadge, RoleGuide, TrainerRoster } from "./gym";
+export { LeadCard, PipelineStrip, STAGE_TONE, StageChips, WelcomePreview } from "./leads";

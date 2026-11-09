@@ -22,6 +22,10 @@ export interface JoinRequestDraft {
   email: string;
   goal: string;
   message: string;
+  /** Optional, for coaches who'd rather call or text. */
+  phone?: string;
+  /** How they'd like to train, when they pick. */
+  how?: TrainingModeName | "";
 }
 
 export type JoinRequestStatus = "new" | "invited" | "joined" | "declined";
@@ -83,12 +87,15 @@ export function pageProblem(p: Pick<CoachPage, "slug" | "headline" | "bio" | "sp
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** UK or international phone numbers: digits, spaces, brackets, hyphens, an optional leading +. */
+export const PHONE_PATTERN = /^\+?[0-9][0-9 ()-]{5,22}$/;
 
 /** Why a "Train with me" request can't be sent, or null. */
 export function requestProblem(d: JoinRequestDraft): string | null {
   if (d.name.trim().length < 2) return "Add your name.";
   if (d.name.trim().length > 60) return "Keep your name to 60 characters.";
   if (!EMAIL.test(d.email.trim())) return "Add an email your coach can reply to.";
+  if (d.phone?.trim() && !PHONE_PATTERN.test(d.phone.trim())) return "Check the phone number.";
   if (d.message.trim().length > REQUEST_MESSAGE_MAX) return `Keep your message to ${REQUEST_MESSAGE_MAX} characters.`;
   return null;
 }

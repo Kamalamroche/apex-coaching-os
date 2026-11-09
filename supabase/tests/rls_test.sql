@@ -977,7 +977,7 @@ insert into auth.users values ('00000000-0000-0000-0000-0000000000f1'),('0000000
 insert into profiles values ('00000000-0000-0000-0000-0000000000f1','coach','Grow Coach'),('00000000-0000-0000-0000-0000000000f2','client','Fiona Client'),('00000000-0000-0000-0000-0000000000f3','client','Not Theirs');
 insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2');
 grant execute on function public.public_coach_page(text) to anon;
-grant execute on function public.request_to_train(text, text, text, text, text, text) to anon;
+grant execute on function public.request_to_train(text, text, text, text, text, text, text, text, text) to anon;
 grant usage on schema public to anon;
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
@@ -1187,6 +1187,91 @@ select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
 select public.close_gym();
 do $$ begin
   assert (select count(*) from public.my_gym()) = 0, 'gym closed';
+-- Leads: stages, hand-added leads, enquiry details, welcome emails
+reset role;
+update auth.users set email = 'grow@example.com' where id = '00000000-0000-0000-0000-0000000000f1';
+grant select on lead_settings to authenticated;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ begin
+  assert (select stage from public.coach_join_requests() where email = 'leo@example.com') = 'client', 'accepted invite moves the lead to client';
+  assert (select stage from public.coach_join_requests() where email = 'hana@example.com') = 'new', 'new enquiry starts on new';
+  assert (select source from public.coach_join_requests() where email = 'leo@example.com') = 'referral', 'friend link counts as a referral';
+end $$;
+update join_requests set stage = 'lost' where email = 'hana@example.com';
+do $$ begin
+  assert (select status from join_requests where email = 'hana@example.com') = 'declined', 'lost declines the request';
+end $$;
+update join_requests set stage = 'trial', notes = 'Trial week', follow_up = current_date + 2 where email = 'hana@example.com';
+do $$ begin
+  assert (select status from join_requests where email = 'hana@example.com') = 'new', 'back from lost reopens it';
+  assert (select notes from public.coach_join_requests() where email = 'hana@example.com') = 'Trial week', 'coach keeps notes';
+end $$;
+insert into join_requests (coach_id, name, email, phone, source, notes, added_by_coach) values ('00000000-0000-0000-0000-0000000000f1', 'Dev Patel', '', '07700 900123', 'instagram', 'DM', true);
+do $$ begin
+  begin
+    insert into join_requests (coach_id, name, email) values ('00000000-0000-0000-0000-0000000000f1', 'Sneaky', 'x@example.com');
+    raise exception 'coach added a lead that would be emailed';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into join_requests (coach_id, name, email, added_by_coach) values ('00000000-0000-0000-0000-00000000000d', 'Theirs', '', true);
+    raise exception 'coach added a lead for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.pending_lead_emails();
+    raise exception 'coach read the email queue';
+  exception when insufficient_privilege then null; end;
+end $$;
+insert into lead_settings (coach_id, welcome_text) values ('00000000-0000-0000-0000-0000000000f1', 'Hi {first}!');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from lead_settings) = 0, 'rival sees no lead settings';
+  update join_requests set stage = 'lost';
+  assert (select count(*) from public.coach_join_requests()) = 0, 'rival sees no leads';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  begin
+    insert into join_requests (coach_id, name, email, added_by_coach) values ('00000000-0000-0000-0000-0000000000f1', 'Client', '', true);
+    raise exception 'a client added a lead';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  perform public.request_to_train('grow-coach', 'Ola Nowak', 'ola@example.com', 'Lose fat', '', null, '+44 7700 900456', 'hybrid', 'Instagram');
+  perform public.request_to_train('grow-coach', 'Ben Cole', 'ben@example.com', '', '', null, '', 'sofa', '<bad>');
+  begin
+    perform public.request_to_train('grow-coach', 'Ola', 'ola@example.com');
+    raise exception 'asked twice';
+  exception when unique_violation then null; end;
+  begin
+    perform public.request_to_train('grow-coach', 'Bad Phone', 'bp@example.com', '', '', null, 'call me');
+    raise exception 'bad phone saved';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select source || '/' || how || '/' || phone from join_requests where email = 'ola@example.com') = 'instagram/hybrid/+44 7700 900456', 'enquiry details saved';
+  assert (select source || '/' || how from join_requests where email = 'ben@example.com') = 'page/', 'bad source and mode cleaned';
+end $$;
+set role service_role;
+do $$ declare ids uuid[]; begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 4, 'four welcomes due (not the hand-added lead)';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'coach told about each enquiry';
+  assert (select welcome_text from public.pending_lead_emails() where kind = 'welcome' limit 1) = 'Hi {first}!', 'coach''s own words';
+  select array_agg(request_id) into ids from public.pending_lead_emails() where kind = 'welcome';
+  perform public.mark_lead_emails_sent(ids, '{}');
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 0, 'welcome sent once';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'alerts still due';
+  assert (select count(*) from public.pending_lead_emails(now() + interval '3 days')) = 0, 'old enquiries are never emailed';
+end $$;
+reset role;
+update lead_settings set notify_on = false;
+set role service_role;
+do $$ begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 0, 'coach switched alerts off';
 end $$;
 reset role;
 

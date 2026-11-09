@@ -5,6 +5,7 @@ import { useApexState } from "@apex/core/react";
 import { useEffect, useRef, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
+import { openedForLeads } from "../data/growth";
 import type { CoachLiveInfo } from "./CoachLive";
 import { Brief } from "./screens/Brief";
 import { Builder } from "./screens/Builder";
@@ -37,7 +38,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const { messages } = useApexState(useStore());
   // A dot on Messages while the client has the last word.
   const tabs = TABS.map((t) => (t.id === "chat" ? { ...t, dot: messages.at(-1)?.from === "client" } : t));
-  const [tab, setTab] = useState<Tab>("brief");
+  const [tab, setTab] = useState<Tab>(() => (openedForLeads() ? "chat" : "brief"));
   const [clientId, setClientId] = useState<number | null>(null);
   const [account, setAccount] = useState(false);
   const [gym, setGym] = useState(false);

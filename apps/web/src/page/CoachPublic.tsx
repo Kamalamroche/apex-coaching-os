@@ -1,18 +1,20 @@
-import { GOAL_CHOICES, REQUEST_MESSAGE_MAX, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft } from "@apex/core";
+import { GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
 import { Celebrate, CoachPageView, EditorialTitle, Icons, Sheet, ThemeButton } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage } from "../data/growth";
 import { isDemo, supabase } from "../data/supabase";
 
-/** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=. */
+/** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=.
+    ?form=1 opens the enquiry form straight away, ?embed=1 shows only the form (for the coach's own website), ?src= tags where the link was shared. */
 export function CoachPublic() {
   const api = useMemo(() => (isDemo() || !supabase ? demoPublicPage() : livePublicPage(supabase)), []);
   const { slug, ref } = useMemo(() => {
     const r = readPageLink(location.pathname, location.search);
     return { slug: r.slug ?? (api.live ? null : "kamal"), ref: r.ref };
   }, [api.live]);
+  const link = useMemo(() => readFormLink(location.search), []);
   const [page, setPage] = useState<CoachPage | null | undefined>(undefined);
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(link.form && !link.embed);
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,14 @@ export function CoachPublic() {
     );
   }
   const first = page.name.split(" ")[0] || page.name;
+  const send = async (d: JoinRequestDraft) => { await api.request(page.slug, d, ref, link.source); setSent(true); };
+  if (link.embed) {
+    return (
+      <main className="gr-shell" style={{ minHeight: 0 }}>
+        {sent ? <Sent first={first} /> : <RequestForm first={first} modes={page.modes} referred={!!ref} onSend={send} />}
+      </main>
+    );
+  }
   return (
     <main className="gr-shell">
       <Top />
@@ -51,7 +61,7 @@ export function CoachPublic() {
         <Sheet label={`Train with ${first}`} onClose={() => setAsking(false)}>
           {sent
             ? <Sent first={first} onDone={() => setAsking(false)} />
-            : <RequestForm first={first} referred={!!ref} onSend={async (d) => { await api.request(page.slug, d, ref); setSent(true); }} />}
+            : <RequestForm first={first} modes={page.modes} referred={!!ref} onSend={send} />}
         </Sheet>
       )}
     </main>
@@ -67,8 +77,8 @@ function Top() {
   );
 }
 
-function RequestForm({ first, referred, onSend }: { first: string; referred: boolean; onSend: (d: JoinRequestDraft) => Promise<void> }) {
-  const [d, setD] = useState<JoinRequestDraft>({ name: "", email: "", goal: "", message: "" });
+function RequestForm({ first, modes, referred, onSend }: { first: string; modes: TrainingModeName[]; referred: boolean; onSend: (d: JoinRequestDraft) => Promise<void> }) {
+  const [d, setD] = useState<JoinRequestDraft>({ name: "", email: "", goal: "", message: "", phone: "", how: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof JoinRequestDraft, v: string) => { setD((x) => ({ ...x, [k]: v })); setError(null); };
@@ -83,16 +93,25 @@ function RequestForm({ first, referred, onSend }: { first: string; referred: boo
     <form className="stack" style={{ gap: 14 }} onSubmit={(e) => { e.preventDefault(); void send(); }}>
       <div>
         <EditorialTitle as="h2" text={`Train with ${first}`} caption={referred ? "A friend sent you" : "Ask, no strings"} className="gr-form-title" />
-        <p className="small" style={{ margin: "8px 0 0" }}>{first} reads every request and replies by email with your invite.</p>
+        <p className="small" style={{ margin: "8px 0 0" }}>{first} reads every request and replies personally.</p>
       </div>
       <label className="stack" style={{ gap: 6 }}><span className="tiny">Your name</span><input className="field" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} /></label>
       <label className="stack" style={{ gap: 6 }}><span className="tiny">Email</span><input className="field" type="email" autoComplete="email" inputMode="email" value={d.email} onChange={(e) => set("email", e.target.value)} /></label>
+      <label className="stack" style={{ gap: 6 }}><span className="tiny">Phone (optional, if you'd rather talk)</span><input className="field" type="tel" autoComplete="tel" inputMode="tel" value={d.phone} onChange={(e) => set("phone", e.target.value)} /></label>
       <div className="stack" style={{ gap: 6 }}>
         <span className="tiny">Your main goal</span>
         <div className="gr-chips" role="group" aria-label="Your main goal">
           {GOAL_CHOICES.map((g) => <button key={g} type="button" className="gr-chip" aria-pressed={d.goal === g} onClick={() => set("goal", d.goal === g ? "" : g)}>{g}</button>)}
         </div>
       </div>
+      {modes.length > 1 && (
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="tiny">How you'd like to train</span>
+          <div className="gr-chips" role="group" aria-label="How you'd like to train">
+            {modes.map((m) => <button key={m} type="button" className="gr-chip" aria-pressed={d.how === m} onClick={() => set("how", d.how === m ? "" : m)}>{MODE_LABEL[m]}</button>)}
+          </div>
+        </div>
+      )}
       <label className="stack" style={{ gap: 6 }}><span className="tiny">Anything {first} should know (optional)</span><textarea className="field" rows={3} maxLength={REQUEST_MESSAGE_MAX} value={d.message} onChange={(e) => set("message", e.target.value)} /></label>
       {error && <p className="small" role="alert" style={{ margin: 0, color: "var(--crit)" }}>{error}</p>}
       <button className="gr-cta" style={{ animation: "none" }} disabled={busy}>{busy ? "Sending…" : "Send my request"}</button>
@@ -101,14 +120,14 @@ function RequestForm({ first, referred, onSend }: { first: string; referred: boo
   );
 }
 
-function Sent({ first, onDone }: { first: string; onDone: () => void }) {
+function Sent({ first, onDone }: { first: string; onDone?: () => void }) {
   return (
     <div className="gr-sent">
       <Celebrate />
       <span className="gr-tick"><Icons.check width={24} height={24} /></span>
       <EditorialTitle as="h2" text="Request sent" caption={`${first} will be in touch`} />
-      <p>Look out for an email with your invite. It opens the APEX app and links you to {first} straight away.</p>
-      <button className="btn ghost block" onClick={onDone}>Done</button>
+      <p>Look out for an email from {first}. When you're invited, the link opens the APEX app and connects you to {first} straight away.</p>
+      {onDone && <button className="btn ghost block" onClick={onDone}>Done</button>}
     </div>
   );
 }
