@@ -12,6 +12,8 @@ import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
 import { TeamPeek } from "../../app/TeamParts";
 import { PushPrompt } from "../../app/PushParts";
+import { FirstWeek, useFirstWeek } from "../FirstWeek";
+import type { FirstWeekStepId } from "@apex/core";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -22,7 +24,7 @@ const WEEK_DATES = [20, 21, 22, 23, 24, 25, 26];
 /* Sample plan: which days have a session. */
 const PLANNED = [true, true, false, true, false, true, false];
 
-export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; say?: (m: string) => void }) {
+export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, go, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; go?: (id: FirstWeekStepId) => void; say?: (m: string) => void }) {
   const u = useUnits();
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
@@ -34,6 +36,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
   const [levels, setLevels] = useState(false);
   const lv = useLevels();
   const life = useLifestyle();
+  const firstWeek = useFirstWeek();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
   const doneCount = WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0);
@@ -89,6 +92,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
+      {go && <FirstWeek go={go} />}
       <section aria-label="Today's rings">
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
         <RingWeek days={rings.week} labels={ringLabels} />
@@ -98,7 +102,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         {openTeam && <TeamPeek onOpen={openTeam} />}
         {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
       </section>
-      <PushPrompt say={say ?? (() => {})} />
+      {!(go && firstWeek.visible) && <PushPrompt say={say ?? (() => {})} />}
 
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>
@@ -168,7 +172,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <button className="tile c3" onClick={openCheckIn}><span className="ic"><Icons.target /></span><b style={{ fontSize: 16, lineHeight: 1.25 }}>{due.due ? "Due" : (WEEKDAY_NAMES[progress.checkInDay] ?? "Weekly").slice(0, 3)}</b><span>Check-in</span></button>
       </div>
 
-      {life.status === "ready" && !life.intake && (
+      {life.status === "ready" && !life.intake && !(go && firstWeek.visible) && (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--act) 40%,var(--line))" }}>
           <div className="eyebrow" style={{ color: "var(--act)" }}>Before you start</div>
           <h2 className="h2" style={{ marginTop: 6 }}>Tell {coachName} about you</h2>

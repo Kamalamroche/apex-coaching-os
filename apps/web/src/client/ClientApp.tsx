@@ -53,7 +53,11 @@ export function ClientApp({ notice }: { notice?: string | null }) {
       <OfflineBanner />
       {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
       {intaking && <Intake onExit={() => setIntaking(false)} onDone={() => { setIntaking(false); setTab("today"); window.scrollTo(0, 0); say(`Sent · ${coachName} can see your answers`); }} />}
-      {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} />}
+      {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} go={(id) => {
+        const more = (view: "account" | "habits") => { setMoreStart((p) => ({ view, n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); };
+        if (id === "intake") openIntake(); else if (id === "checkin") openCheckIn(); else if (id === "notifications") more("account"); else if (id === "habit") more("habits");
+        else { setTab(id === "hello" ? "chat" : "train"); window.scrollTo(0, 0); }
+      }} />}
       {!checkingIn && !intaking && tab === "train" && <Train start={start} say={say} />}
       {!checkingIn && !intaking && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
       {!checkingIn && !intaking && tab === "chat" && <Chat />}
