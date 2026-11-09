@@ -4,6 +4,7 @@ import { Avatar, BackLink, Bar, Label, Spark, riskColor, useUnits } from "@apex/
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
+import { ClientReport } from "./Report";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
 import { ClientGoals } from "./Goals";
@@ -13,7 +14,7 @@ import { Transfer } from "./Transfer";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes";
+type ProfileTab = "Overview" | "Program" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes";
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
@@ -85,7 +86,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const) : (["Overview", "Program", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const) : (["Overview", "Program", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
@@ -117,6 +118,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         </div>
       )}
 
+      {tab === "Report" && c.id === DEMO_CLIENT_ID && <ClientReport clientName={c.name} say={say} />}
       {tab === "Check-ins" && c.id === DEMO_CLIENT_ID && <ClientCheckIns clientName={c.name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={c.name} say={say} />}
       {tab === "Goals" && <ClientGoals clientName={c.name} say={say} />}
