@@ -1,4 +1,4 @@
-import { RATINGS, parseNumber, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
+import { RATINGS, answersFor, parseNumber, type AnswerValues, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { BackLink, RatingPicker, WheelInput, useUnits } from "@apex/ui";
 import { useState } from "react";
@@ -24,6 +24,9 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
   const [showMeasures, setShowMeasures] = useState(false);
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
   const [words, setWords] = useState({ wins: "", struggles: "", note: "" });
+  const questions = progress.questions ?? [];
+  const [own, setOwn] = useState<AnswerValues>({});
+  const answers = answersFor(questions, own);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -32,12 +35,12 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
   const typed = parseNumber(weight);
   const weightKg = typed === null ? null : u.toKg(typed);
   const sleepHours = parseNumber(sleep);
-  const answered = weightKg !== null || sleepHours !== null || Object.values(ratings).some((v) => v !== null) || Object.values(words).some((w) => w.trim()) || photos.length > 0;
+  const answered = weightKg !== null || sleepHours !== null || Object.values(ratings).some((v) => v !== null) || Object.values(words).some((w) => w.trim()) || photos.length > 0 || answers.length > 0;
 
   const send = async () => {
     setSending(true);
     setErr(null);
-    const checkIn: CheckInInput = { weightKg, sleepHours, ...ratings, ...words };
+    const checkIn: CheckInInput = { weightKg, sleepHours, ...ratings, ...words, answers };
     try {
       await store.submitCheckIn(checkIn, { ...parseMeasures(measures, u), weightKg }, photos);
       onDone();
@@ -81,6 +84,29 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
           <RatingPicker key={r.key} label={r.label} low={r.low} high={r.high} value={ratings[r.key]} onChange={(v) => setRatings((s) => ({ ...s, [r.key]: v }))} />
         ))}
       </section>
+
+      {questions.length > 0 && (
+        <section className="card stack" aria-label={`Questions from ${coachName}`}>
+          <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">From {coachName}</h2><span className="tiny">{questions.length} question{questions.length === 1 ? "" : "s"}</span></div>
+          {questions.map((q) => q.kind === "scale" ? (
+            <RatingPicker key={q.id} label={q.text} low="Not at all" high="Very" value={typeof own[q.id] === "number" ? (own[q.id] as number) : null} onChange={(v) => setOwn((s) => ({ ...s, [q.id]: v }))} />
+          ) : q.kind === "yesno" ? (
+            <div key={q.id} role="group" aria-label={q.text}>
+              <div className="h3" style={{ marginBottom: 6 }}>{q.text}</div>
+              <div className="chips">
+                {([[true, "Yes"], [false, "No"]] as const).map(([v, label]) => (
+                  <button key={label} type="button" className={`chip ${own[q.id] === v ? "on" : ""}`} aria-pressed={own[q.id] === v} onClick={() => setOwn((s) => ({ ...s, [q.id]: s[q.id] === v ? null : v }))}>{label}</button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <label key={q.id} className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span className="h3">{q.text}</span>
+              <textarea className="field" rows={2} maxLength={2000} value={typeof own[q.id] === "string" ? (own[q.id] as string) : ""} onChange={(e) => setOwn((s) => ({ ...s, [q.id]: e.target.value }))} />
+            </label>
+          ))}
+        </section>
+      )}
 
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">In your words</h2></div>

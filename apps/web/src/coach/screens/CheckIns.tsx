@@ -1,7 +1,7 @@
-import { WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, newestFirst, shortDate, type CheckIn, type ProgressPhoto } from "@apex/core";
+import { QUESTION_IDEAS, QUESTION_KINDS, MAX_QUESTIONS, answerText, cleanQuestions, newQuestion, questionsProblem, type CheckInQuestion, type QuestionKind, WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, newestFirst, shortDate, type CheckIn, type ProgressPhoto } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Label, PhotoFrame, useUnits } from "@apex/ui";
-import { useState } from "react";
+import { Icons, Label, PhotoFrame, useUnits } from "@apex/ui";
+import { useEffect, useState } from "react";
 import { POSE_LABEL, ProgressNotice, ProgressSection } from "../../app/ProgressParts";
 import { useStore } from "../../data/StoreContext";
 
@@ -61,6 +61,8 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
           {WEEKDAY_NAMES.map((d, i) => <option key={d} value={i}>{d}</option>)}
         </select>
       </div>
+
+      <QuestionsEditor saved={progress.questions ?? []} say={say} />
     </>
   );
 }
@@ -122,6 +124,13 @@ function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { 
               ))}
             </div>
           )}
+          {(c.answers ?? []).length > 0 && (
+            <div className="stack" style={{ gap: 8 }} aria-label="Your questions">
+              {(c.answers ?? []).map((a) => (
+                <div key={a.id}><div className="tiny" style={{ fontWeight: 700 }}>{a.question}</div><div className="small" style={{ color: "var(--text)" }}>{a.kind === "text" ? `“${answerText(a)}”` : answerText(a)}</div></div>
+              ))}
+            </div>
+          )}
           {words.map(([label, text]) => (
             <div key={label}><div className="tiny" style={{ fontWeight: 700 }}>{label}</div><div className="small" style={{ color: "var(--text)" }}>“{text}”</div></div>
           ))}
@@ -143,5 +152,64 @@ function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { 
         </div>
       )}
     </div>
+  );
+}
+
+/** The coach's own questions, asked in every client's weekly check-in. */
+function QuestionsEditor({ saved, say }: { saved: CheckInQuestion[]; say: (m: string) => void }) {
+  const store = useStore();
+  const [list, setList] = useState<CheckInQuestion[]>(saved);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setList(saved), [saved]);
+  const changed = JSON.stringify(cleanQuestions(list)) !== JSON.stringify(saved);
+  const problem = questionsProblem(list);
+  const set = (i: number, q: Partial<CheckInQuestion>) => setList((l) => l.map((x, j) => (j === i ? { ...x, ...q } : x)));
+  const move = (i: number, by: number) => setList((l) => {
+    const j = i + by;
+    if (j < 0 || j >= l.length) return l;
+    const next = [...l];
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    return next;
+  });
+  const ideas = QUESTION_IDEAS.filter((q) => !list.some((x) => x.text.trim().toLowerCase() === q.text.toLowerCase())).slice(0, 4);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await store.saveCheckInQuestions(list);
+      say(cleanQuestions(list).length ? "Questions saved · clients see them in their next check-in" : "Questions removed");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+    setBusy(false);
+  };
+  return (
+    <section className="card stack" aria-label="Your check-in questions">
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Your own questions</h3><Label kind="dec">Coach decision</Label></div>
+      <div className="small">Added to the weekly check-in for all your clients, after the standard questions. Every one is optional for them.</div>
+      {list.map((q, i) => (
+        <div key={q.id} className="ciq">
+          <input className="field" maxLength={200} aria-label={`Question ${i + 1}`} placeholder="Type your question" value={q.text} onChange={(e) => set(i, { text: e.target.value })} />
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            <select className="field" style={{ width: "auto" }} aria-label={`Answer type for question ${i + 1}`} value={q.kind} onChange={(e) => set(i, { kind: e.target.value as QuestionKind })}>
+              {QUESTION_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.title}</option>)}
+            </select>
+            <span className="grow" />
+            <button className="iconbtn" disabled={i === 0} aria-label={`Move question ${i + 1} up`} onClick={() => move(i, -1)}>↑</button>
+            <button className="iconbtn" disabled={i === list.length - 1} aria-label={`Move question ${i + 1} down`} onClick={() => move(i, 1)}>↓</button>
+            <button className="iconbtn" aria-label={`Remove question ${i + 1}`} onClick={() => setList((l) => l.filter((_, j) => j !== i))}><Icons.trash width={14} height={14} /></button>
+          </div>
+        </div>
+      ))}
+      {list.length < MAX_QUESTIONS && (
+        <div className="chips">
+          <button className="chip" onClick={() => setList((l) => [...l, newQuestion()])}><Icons.plus width={12} height={12} /> Add a question</button>
+          {ideas.map((q) => <button key={q.text} className="chip" onClick={() => setList((l) => [...l, newQuestion(q.text, q.kind)])}>{q.text}</button>)}
+        </div>
+      )}
+      {(error ?? (changed ? problem : null)) && <div className="small" role="alert" style={{ color: "var(--crit)" }}>{error ?? problem}</div>}
+      {changed && <button className="btn act block" disabled={busy || !!problem} onClick={() => void save()}>{busy ? "Saving…" : "Save questions"}</button>}
+    </section>
   );
 }

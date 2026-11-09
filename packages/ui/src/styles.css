@@ -969,3 +969,19 @@ button.tile{font:inherit}
 .eatout-block.watch .h3 svg{color:var(--warn)}
 .eatout-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--text)}
 .eatout-tip{padding:12px 14px;border-radius:14px;border:1px solid var(--line);color:var(--text)}
+
+/* Push notifications prompt and iPhone steps */
+.push-prompt{border-color:color-mix(in srgb,var(--act) 35%,var(--line))}
+.push-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--act-soft);color:var(--act);flex:none}
+.push-steps{margin:4px 0 0;padding-left:20px;display:grid;gap:4px}
+
+/* Coach's own check-in questions */
+.ciq{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:14px}
+
+/* Offline in the gym */
+.offline-pill{display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--card2);border:1px solid var(--line);color:var(--text2);font-size:13px;line-height:1.35}
+.offline-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.cal-scrim{position:fixed;inset:0;z-index:60}
+.cal-menu{position:fixed;z-index:61;display:grid;min-width:170px;padding:6px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:var(--card-shadow)}
+.cal-menu button,.cal-menu a{all:unset;cursor:pointer;padding:10px 12px;border-radius:10px;font-size:14px;color:var(--text)}
+.cal-menu button:hover,.cal-menu a:hover,.cal-menu button:focus-visible,.cal-menu a:focus-visible{background:var(--card2)}

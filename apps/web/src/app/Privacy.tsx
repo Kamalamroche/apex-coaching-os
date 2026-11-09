@@ -6,6 +6,7 @@ import { Icons } from "@apex/ui";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { PRIVACY_NEEDS_UPDATE, usePrivacyApi, type PrivacyApi } from "../data/privacy";
 import { useAppInfo } from "./AppContext";
+import { NotificationsCard } from "./PushParts";
 import { Splash } from "./Gate";
 
 type Loaded = { status: "loading" } | { status: "ready"; given: ConsentRecord[] } | { status: "needs-update" } | { status: "error"; error: string };
@@ -244,6 +245,7 @@ export function AccountScreen({ say }: { say: (m: string) => void }) {
         </div>
       </section>
 
+      <NotificationsCard api={api} say={say} />
       <EmailAlerts api={api} />
 
       <section className="card stack full">
