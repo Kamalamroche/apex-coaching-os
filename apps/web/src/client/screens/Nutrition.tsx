@@ -1,4 +1,4 @@
-import { FOODS, HERO_IMAGES, MEALS, dayTotals, lastMeal, localDate, parseNumber, recentFoods, weekNutrition, weekDaysOf, type FoodEntry, type Meal } from "@apex/core";
+import { FOODS, HERO_IMAGES, MEALS, addDays, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal } from "@apex/core";
 import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
@@ -20,6 +20,8 @@ export function ClientNutrition() {
   const [day, setDay] = useState(today);
   const [meal, setMeal] = useState<Meal>(mealNow);
   const [tab, setTab] = useState<"search" | "recent">("search");
+  // The food picked from the list, waiting for its amount.
+  const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
   const [quick, setQuick] = useState(false);
   const [qa, setQa] = useState({ name: "", kcal: "", p: "", c: "", f: "" });
@@ -31,7 +33,11 @@ export function ClientNutrition() {
   const recent = recentFoods(s.food);
   const isToday = day === today;
   const dayName = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-  const hits = q ? FOODS.filter((f) => f.name.toLowerCase().includes(q.toLowerCase())) : [];
+  const hits = searchFoods(FOODS, q);
+  const streak = loggingStreak(s.food, today);
+  const yesterdayFood = todays.length ? [] : s.food.filter((f) => f.day === addDays(day, -1));
+  const split = macroSplit(eaten);
+  const planSplit = t ? macroSplit(t) : null;
 
   const add = (e: Omit<FoodEntry, "id" | "day" | "meal">) => store.addFood({ ...e, id: crypto.randomUUID(), day, meal });
   const qaKcal = parseNumber(qa.kcal);
@@ -62,7 +68,7 @@ export function ClientNutrition() {
       <section className="fuelboard">
         <img className="fb-bg" src={HERO_IMAGES.meal.src} alt="" />
         <div className="fb-head">
-          <span className="gpill caps">Nutrition · {isToday ? "today" : dayName(day)}</span>
+          <div className="gpills"><span className="gpill caps">Nutrition · {isToday ? "today" : dayName(day)}</span>{streak > 1 && <span className="gpill dim"><Icons.flame />{streak} days logged</span>}</div>
           {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">{isToday ? "for today" : `for ${new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" })}`}</ScriptTitle>}
         </div>
         {!t && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
@@ -78,6 +84,32 @@ export function ClientNutrition() {
         )}
         {t?.note && <div className="fb-glass fb-coach"><b>{coachName}:</b> {t.note}</div>}
       </section>
+
+      {t && (
+        <div className="card nut-sum" aria-label={`Goal ${t.kcal} minus food ${Math.round(eaten.kcal)} equals ${t.kcal - Math.round(eaten.kcal)} kcal left`}>
+          <div><b className="num">{t.kcal.toLocaleString("en-GB")}</b><span className="tiny">Goal</span></div>
+          <span className="nut-op">−</span>
+          <div><b className="num">{Math.round(eaten.kcal).toLocaleString("en-GB")}</b><span className="tiny">Food</span></div>
+          <span className="nut-op">=</span>
+          <div className={t.kcal - eaten.kcal < 0 ? "over" : "left"}><b className="num">{Math.abs(Math.round(t.kcal - eaten.kcal)).toLocaleString("en-GB")}</b><span className="tiny">{t.kcal - eaten.kcal < 0 ? "Over" : "Left"}</span></div>
+        </div>
+      )}
+
+      {split && (
+        <section className="card stack" style={{ gap: 10 }}>
+          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Where your calories come from</h3><span className="tiny">{isToday ? "Today" : dayName(day)}</span></div>
+          <SplitBar label="Eaten" s={split} />
+          {planSplit && <SplitBar label="Plan" s={planSplit} muted />}
+          <div className="rc-legend tiny"><span><i style={{ background: "var(--viz-1)" }} />Protein</span><span><i style={{ background: "var(--act)" }} />Carbs</span><span><i style={{ background: "var(--viz-3)" }} />Fat</span></div>
+        </section>
+      )}
+
+      {yesterdayFood.length > 0 && (
+        <div className="card nut-repeat">
+          <div className="grow"><div className="h3">Same day as {dayName(addDays(day, -1))}?</div><div className="tiny">{yesterdayFood.length} foods · <span className="num">{Math.round(yesterdayFood.reduce((a, f) => a + f.kcal, 0)).toLocaleString("en-GB")} kcal</span></div></div>
+          <button className="btn sm ghost" onClick={() => yesterdayFood.forEach((f) => store.addFood({ ...f, id: crypto.randomUUID(), day }))}>Copy day</button>
+        </div>
+      )}
 
       {MEALS.map((m) => {
         const list = todays.filter((f) => f.meal === m.key);
@@ -135,11 +167,20 @@ export function ClientNutrition() {
             {hits.length === 0 ? <div className="li small">Not in the list. Use quick add below.</div> : hits.map((f) => (
               <div key={f.id} className="li">
                 <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal · P {f.protein} · C {f.carbs} · F {f.fat}</div></div>
-                <button className="btn sm act" onClick={() => { add({ name: f.name, kcal: f.kcal, proteinG: f.protein, carbsG: f.carbs, fatG: f.fat }); setQ(""); }}>Add</button>
+                <button className="btn sm act" onClick={() => setPick({ food: f, portions: 1 })}>Add</button>
               </div>
             ))}
           </div>
         )}
+        {pick && <AmountPicker key={pick.food.id} food={pick.food} mealLabel={MEALS.find((m) => m.key === meal)?.label.toLowerCase() ?? ""}
+          onCancel={() => setPick(null)}
+          onAdd={(portions) => {
+            const base = { kcal: pick.food.kcal, proteinG: pick.food.protein, carbsG: pick.food.carbs, fatG: pick.food.fat };
+            const grams = pick.food.grams ? Math.round(pick.food.grams * portions) : null;
+            const name = portions === 1 ? pick.food.name : grams ? `${pick.food.name.replace(/,\s*[^,]*$/, "")}, ${grams} ${/ml\b/.test(pick.food.name) ? "ml" : "g"}` : `${pick.food.name} × ${portions}`;
+            add({ name, ...scalePortion(base, portions) });
+            setPick(null); setQ("");
+          }} />}
         {quick ? (
           <div className="stack" style={{ gap: 10 }}>
             <input id="qa-name" className="field" placeholder="What did you eat?" maxLength={120} value={qa.name} onChange={(e) => setQa({ ...qa, name: e.target.value })} />
@@ -170,5 +211,47 @@ export function ClientNutrition() {
         </section>
       )}
     </>
+  );
+}
+
+/** One stacked bar: the share of calories from protein, carbs and fat. */
+function SplitBar({ label, s, muted = false }: { label: string; s: { protein: number; carbs: number; fat: number }; muted?: boolean }) {
+  return (
+    <div className="nut-split">
+      <span className="tiny">{label}</span>
+      <div className="nut-split-bar" style={muted ? { opacity: 0.55 } : undefined} role="img" aria-label={`${label}: protein ${s.protein}%, carbs ${s.carbs}%, fat ${s.fat}%`}>
+        <i style={{ flexGrow: s.protein, background: "var(--viz-1)" }}>{s.protein >= 12 && `${s.protein}%`}</i>
+        <i style={{ flexGrow: s.carbs, background: "var(--act)" }}>{s.carbs >= 12 && `${s.carbs}%`}</i>
+        <i style={{ flexGrow: s.fat, background: "var(--viz-3)" }}>{s.fat >= 12 && `${s.fat}%`}</i>
+      </div>
+    </div>
+  );
+}
+
+/** Choose how much before adding: portions in half steps, or grams when the portion weight is known. Macros update as you go. */
+function AmountPicker({ food, mealLabel, onAdd, onCancel }: { food: Food; mealLabel: string; onAdd: (portions: number) => void; onCancel: () => void }) {
+  const [portions, setPortions] = useState(1);
+  const [grams, setGrams] = useState(food.grams ? String(food.grams) : "");
+  const unit = / ml\b/.test(food.name) ? "ml" : "g";
+  const set = (p: number) => { const v = Math.max(0.25, Math.min(10, Math.round(p * 4) / 4)); setPortions(v); if (food.grams) setGrams(String(Math.round(food.grams * v))); };
+  const fromGrams = (txt: string) => { setGrams(txt); const g = parseNumber(txt); if (food.grams && g !== null && g > 0) setPortions(Math.min(20, g / food.grams)); };
+  const m = scalePortion({ kcal: food.kcal, proteinG: food.protein, carbsG: food.carbs, fatG: food.fat }, portions);
+  return (
+    <div className="card nut-amount">
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{food.name}</h3><button className="iconbtn" aria-label="Cancel" onClick={onCancel}><Icons.close width={16} height={16} /></button></div>
+      <div className="nut-amount-row">
+        <div className="nut-step" role="group" aria-label="Portions">
+          <button type="button" aria-label="Less" onClick={() => set(portions - 0.5)}>−</button>
+          <b className="num">{Number.isInteger(portions) ? portions : portions.toFixed(2).replace(/0$/, "")}</b>
+          <button type="button" aria-label="More" onClick={() => set(portions + 0.5)}>+</button>
+        </div>
+        <span className="tiny">portion{portions === 1 ? "" : "s"}</span>
+        {food.grams ? <label className="tiny nut-grams">or <input className="field num" inputMode="decimal" value={grams} onChange={(e) => fromGrams(e.target.value)} aria-label={`Amount in ${unit}`} /> {unit}</label> : null}
+      </div>
+      <div className="nut-amount-macros num">
+        <span><b>{m.kcal}</b> kcal</span><span>P <b>{m.proteinG}</b></span><span>C <b>{m.carbsG}</b></span><span>F <b>{m.fatG}</b></span>
+      </div>
+      <button className="btn act block" onClick={() => onAdd(portions)}>Add to {mealLabel}</button>
+    </div>
   );
 }
