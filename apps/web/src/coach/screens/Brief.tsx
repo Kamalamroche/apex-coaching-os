@@ -63,7 +63,7 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
   const handle = (id: string) => setHandled((d) => ({ ...d, [id]: true }));
   const [calendar, setCalendar] = useState(false);
   const [twin, setTwin] = useState(false);
-  if (calendar) return <Calendar clients={clients} onBack={() => setCalendar(false)} say={say} />;
+  if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
 
   return (

@@ -1,18 +1,28 @@
 import {
-  EXPIRY_CHOICES, PACK_CHOICES, PAID_LABEL, chargeable, credits, creditsText, firstName, formatPrice, newPack, outcomeLabel, packProblem, packTitle, parsePrice, sessionMonth, timeLabel, toMark, whenLabel,
+  EXPIRY_CHOICES, PACK_CHOICES, sessionNudges, type Nudge, PAID_LABEL, chargeable, credits, creditsText, firstName, formatPrice, newPack, outcomeLabel, packProblem, packTitle, parsePrice, sessionMonth, timeLabel, toMark, whenLabel,
   type Booking, type PackPaidVia, type SessionPack,
 } from "@apex/core";
-import { Avatar, CreditBalance, Label, SessionMonthStats, SessionsHero, Sheet } from "@apex/ui";
-import { useMemo, useState } from "react";
+import { Avatar, CreditBalance, Icons, Label, SessionMonthStats, SessionsHero, Sheet } from "@apex/ui";
+import { useEffect, useMemo, useState } from "react";
 import type { BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
+import { useGrowApi } from "../../data/grow";
+import { useAppInfo } from "../../app/AppContext";
+import type { CoachLiveProps } from "../CoachApp";
+import { useSendToClient } from "../sendToClient";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 /** Coach: the 1:1 desk. This month's money and attendance, sessions to mark, late cancels to waive, and each client's packs. */
-export function SessionsDesk({ data, names, say }: { data: BookingData; names: Record<string, string>; say: (m: string) => void }) {
+export function SessionsDesk({ data, names, live, say }: { data: BookingData; names: Record<string, string>; live?: CoachLiveProps; say: (m: string) => void }) {
   const api = useBookingApi();
+  const grow = useGrowApi();
+  const send = useSendToClient(live);
+  const { coachName } = useAppInfo();
+  const [intro, setIntro] = useState(false);
+  const [sent, setSent] = useState<Record<string, boolean>>({});
+  useEffect(() => { grow?.offer().then((o) => setIntro(o.introOffer), () => setIntro(false)); }, [grow]);
   const [packFor, setPackFor] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const now = new Date();
@@ -27,6 +37,11 @@ export function SessionsDesk({ data, names, say }: { data: BookingData; names: R
     try { await fn(); say(done); } catch (e) { say(e instanceof Error ? e.message : String(e)); }
     await data.reload();
   };
+  const nudges = sessionNudges(ids.map((id) => {
+    const packs = data.packs.filter((p) => p.clientId === id);
+    const hist = data.history.filter((b) => b.clientId === id);
+    return { id, name: name(id), credits: credits(packs, hist, now), bookings: hist, hasPacks: packs.length > 0 };
+  }), firstName(coachName) || coachName, now).filter((n) => !sent[n.clientId]);
 
   return (
     <>
@@ -63,6 +78,13 @@ export function SessionsDesk({ data, names, say }: { data: BookingData; names: R
         </section>
       )}
 
+      {nudges.length > 0 && (
+        <section className="full card" aria-label="Keep them training">
+          <div className="sect"><h2 className="h3">Keep them training</h2><Label kind="insight">Insight</Label></div>
+          {nudges.map((n, i) => <NudgeRow key={n.clientId} n={n} i={i} send={async (body) => { await send(n.clientId, body); setSent((s) => ({ ...s, [n.clientId]: true })); say(`Sent to ${firstName(n.name)}`); }} />)}
+        </section>
+      )}
+
       <section className="full card">
         <div className="sect"><h2 className="h3">Clients and their sessions</h2><span className="tiny">Tap for packs</span></div>
         {ids.length === 0 && <div className="small">No clients yet.</div>}
@@ -85,6 +107,9 @@ export function SessionsDesk({ data, names, say }: { data: BookingData; names: R
                     <CreditBalance credits={c} caption={`${c.used} used so far${c.lapsed ? ` · ${c.lapsed} expired unused` : ""}`} />
                     {packs.slice().reverse().map((p) => <PackRow key={p.id} p={p} onRemove={() => void act(() => api.removePack(p.id), "Pack removed")} />)}
                     <SessionHistory list={hist} />
+                    {intro && !packs.some((p) => p.source === "intro") && !hist.some((b) => b.attendance === "attended") && (
+                      <button className="btn ghost block" onClick={() => void act(() => api.addPack(newPack(id, 1, 0, "free", 0, "First session free", "intro")), `${firstName(name(id))} has their free first session`)}><Icons.gift width={15} height={15} /> Give the free first session</button>
+                    )}
                     <button className="btn act block" onClick={() => setPackFor(id)}>Add a pack for {firstName(name(id))}</button>
                   </div>
                 )}
@@ -95,6 +120,37 @@ export function SessionsDesk({ data, names, say }: { data: BookingData; names: R
       </section>
       {packFor && <PackSheet first={firstName(name(packFor))} onClose={() => setPackFor(null)} onSave={async (p) => { await act(() => api.addPack({ ...p, clientId: packFor }), `${packTitle(p)} added for ${firstName(name(packFor))}`); setPackFor(null); }} />}
     </>
+  );
+}
+
+const NUDGE_TAG: Record<Nudge["kind"], string> = { owed: "To pay", renew: "Renew", book: "Not booked" };
+
+/** A ready-to-edit message for a client whose pack is running out, who owes sessions, or who has stopped booking. */
+function NudgeRow({ n, i, send }: { n: Nudge; i: number; send: (body: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState(n.message);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const go = async () => {
+    setBusy(true); setError(null);
+    try { await send(body.trim()); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    setBusy(false);
+  };
+  return (
+    <div className="ss-row" style={{ ["--i" as string]: i, flexWrap: "wrap" }}>
+      <Avatar initials={initials(n.name)} size={32} tone={n.kind === "owed" ? "var(--crit)" : n.kind === "renew" ? "var(--warn)" : undefined} />
+      <div className="grow"><div className="h3">{n.name}</div><div className="tiny">{n.why}</div></div>
+      <span className={`ss-tag${n.kind === "book" ? "" : " warn"}`}>{NUDGE_TAG[n.kind]}</span>
+      <button className="btn ghost sm" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Close" : "Message"}</button>
+      {open && (
+        <div className="stack" style={{ gap: 8, width: "100%" }}>
+          <div className="row" style={{ gap: 8 }}><Label kind="ai">AI suggestion</Label><span className="tiny">A rule-based draft. Edit it, then send.</span></div>
+          <textarea className="field" rows={3} maxLength={4000} aria-label={`Message to ${firstName(n.name)}`} value={body} onChange={(e) => setBody(e.target.value)} />
+          {error && <div className="small" role="alert" style={{ color: "var(--crit)" }}>{error}</div>}
+          <button className="btn act sm" disabled={busy || !body.trim()} onClick={() => void go()}>{busy ? "Sending…" : `Send to ${firstName(n.name)}`}</button>
+        </div>
+      )}
+    </div>
   );
 }
 

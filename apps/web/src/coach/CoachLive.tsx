@@ -14,6 +14,7 @@ import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
+import { GrowProvider, liveGrow } from "../data/grow";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
@@ -69,6 +70,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   clientsRef.current = clients ?? [];
   const twin = useMemo(() => liveTwin(db, profile.id, () => clientsRef.current), [db, profile.id]);
   const gym = useMemo(() => liveGym(db, profile.id), [db, profile.id]);
+  const grow = useMemo(() => liveGrow(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -81,7 +83,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}>
+                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
@@ -91,7 +93,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
                         </TwinProvider>
                       </NotesProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </GrowthProvider></TeamProvider>
+                    </GrowProvider></GrowthProvider></TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>

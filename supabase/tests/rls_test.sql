@@ -1606,3 +1606,69 @@ do $$ declare r record; begin
   assert not exists (select 1 from public.take_checkin_alerts() where kind = 'booking'), 'once, and none for a call booked inside 24 h';
 end $$;
 reset role;
+
+-- growth tools: offers, referral rewards, reviews
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update coach_pages set intro_offer = true, referral_reward = 1, google_review_url = 'https://g.page/r/grow/review' where coach_id = '00000000-0000-0000-0000-0000000000f1';
+insert into session_packs (id, coach_id, client_id, sessions, source, paid_via) values ('b2000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 1, 'referral', 'free');
+update join_requests set reward_pack_id = 'b2000000-0000-0000-0000-000000000001' where email = 'leo@example.com';
+do $$ begin
+  assert (select reward_pack_id is not null from join_requests where email = 'leo@example.com'), 'reward recorded once';
+  begin
+    update coach_pages set google_review_url = 'javascript:alert(1)' where coach_id = '00000000-0000-0000-0000-0000000000f1';
+    raise exception 'bad review link saved';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+insert into reviews (coach_id, client_id, stars, body) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 5, 'Brilliant coach, I am stronger than ever.');
+do $$ begin
+  assert (select referral_reward from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) = 1, 'client sees the reward';
+  assert (select google_review_url from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) like 'https://g.page/%', 'and the Google link';
+  begin
+    insert into reviews (coach_id, client_id, stars, body, approved) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f4', 5, 'Pretending to be someone else here.', false);
+    raise exception 'review written as someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into reviews (coach_id, client_id, stars, body) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000f2', 1, 'Reviewing a coach who is not mine.');
+    raise exception 'reviewed someone else''s coach';
+  exception when insufficient_privilege then null; end;
+  update reviews set approved = true;
+  assert not (select approved from reviews), 'client cannot approve their own review';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  assert jsonb_array_length(public.public_coach_extras('grow-coach') -> 'reviews') = 0, 'unapproved reviews stay hidden';
+  assert (public.public_coach_extras('grow-coach') ->> 'intro_offer')::boolean, 'intro offer is public';
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update reviews set approved = true, body = 'Coach rewrote this review to sound better.';
+do $$ begin
+  assert (select approved and body like 'Brilliant%' from reviews), 'coach approves but cannot change the words';
+  assert (select name from public.coach_reviews()) = 'Fiona C.', 'coach sees the short name';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+update reviews set body = 'Edited after approval, still a great coach.';
+do $$ begin
+  assert not (select approved from reviews), 'an edit goes back for approval';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update reviews set approved = true;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from reviews) = 0, 'rival sees no reviews';
+  assert (select count(*) from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) = 0, 'rival sees no offer';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; begin
+  r := public.public_coach_extras('grow-coach') -> 'reviews' -> 0;
+  assert r ->> 'name' = 'Fiona C.' and (r ->> 'stars')::int = 5, 'approved review is public with a short name';
+end $$;
+reset role;
