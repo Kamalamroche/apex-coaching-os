@@ -111,7 +111,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
     else {
       const pdf = parseProgramText(text);
       if (!pdf.days.length) return say("No exercises or table headers found in that text");
-      addSources([{ name: `Pasted program ${sources.length + 1}`, pdf }]);
+      addSources([{ name: `Pasted programme ${sources.length + 1}`, pdf }]);
     }
     setPaste("");
   }
@@ -208,7 +208,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <h2 className="h2">Bring your clients in</h2>
-          <p className="small" style={{ margin: "4px 0 0" }}>From another coaching app, a spreadsheet or a PDF program. Nothing is saved until you check it and press Import.</p>
+          <p className="small" style={{ margin: "4px 0 0" }}>From another coaching app, a spreadsheet or a PDF programme. Nothing is saved until you check it and press Import.</p>
         </div>
         <div className="chips" role="tablist" style={{ flexWrap: "wrap" }}>
           {([["file", "Upload CSV or PDF"], ["paste", "Paste from Google Sheets"], ["link", "Google Sheets link"]] as [Way, string][]).map(([id, label]) => (
@@ -224,12 +224,12 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
           >
             <input type="file" multiple accept=".csv,.tsv,.txt,.pdf,text/csv,application/pdf" onChange={(e) => { if (e.target.files) void readFiles(e.target.files); e.target.value = ""; }} />
             <b>Drop files here or choose files</b>
-            <span className="tiny">CSV or TSV exports, or a PDF program. Excel? Save as CSV first.</span>
+            <span className="tiny">CSV or TSV exports, or a PDF programme. Excel? Save as CSV first.</span>
           </label>
         )}
         {way === "paste" && (
           <>
-            <textarea className="field" rows={5} placeholder={"Select the cells in Google Sheets (headers included), copy, and paste here.\nOr paste a program as text: “Back squat 4 x 8 @ 60kg”."} value={paste} onChange={(e) => setPaste(e.target.value)} aria-label="Pasted cells or program text" />
+            <textarea className="field" rows={5} placeholder={"Select the cells in Google Sheets (headers included), copy, and paste here.\nOr paste a programme as text: “Back squat 4 x 8 @ 60kg”."} value={paste} onChange={(e) => setPaste(e.target.value)} aria-label="Pasted cells or programme text" />
             <button className="btn ghost" style={{ alignSelf: "flex-start" }} disabled={!paste.trim()} onClick={readPaste}>Read pasted text</button>
           </>
         )}
@@ -242,7 +242,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
             </div>
           </>
         )}
-        <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => download("apex-import-template.zip", zipFiles(templateFiles()), "application/zip")}>Download the template (clients, program, history, check-ins)</button>
+        <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => download("apex-import-template.zip", zipFiles(templateFiles()), "application/zip")}>Download the template (clients, programme, history, check-ins)</button>
         {busy && <div className="small" role="status">{busy}</div>}
       </section>
 
@@ -316,7 +316,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
             Import {bundle.clients.length} client{bundle.clients.length === 1 ? "" : "s"}
           </button>
           {!live && <p className="tiny" style={{ margin: 0 }}>This is the demo. Sign in as a coach to import for real.</p>}
-          {live && <p className="tiny" style={{ margin: 0 }}>New clients get an invite link. Their program and history appear in their app as soon as they join.</p>}
+          {live && <p className="tiny" style={{ margin: 0 }}>New clients get an invite link. Their programme and history appear in their app as soon as they join.</p>}
         </section>
       )}
 
@@ -327,7 +327,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
               <div className="grow">
                 <div className="h3">{r.name}</div>
                 <div className="small">
-                  {r.status === "added" && `Added to their history${r.keptProgram ? ". Their current program was kept" : ""}`}
+                  {r.status === "added" && `Added to their history${r.keptProgram ? ". Their current programme was kept" : ""}`}
                   {r.status === "invited" && "Send them this link. Their data is waiting for them"}
                   {r.status === "failed" && <span style={{ color: "var(--crit)" }}>{r.error}</span>}
                   {r.skipped > 0 && ` · ${r.skipped} exercise${r.skipped === 1 ? "" : "s"} left out`}

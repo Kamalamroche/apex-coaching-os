@@ -43,8 +43,8 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
           {REVENUE.map((v, i) => {
             const latest = i === REVENUE.length - 1;
             return (
-              <div key={MONTHS[i]} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
-                <span className="num tiny m-col-v" style={{ ["--i" as string]: i, color: latest ? "var(--act)" : "var(--text3)", fontWeight: 700 }}>£{(v / 1000).toFixed(2)}k</span>
+              <div key={MONTHS[i]} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: 6 }}>
+                <span className="num tiny m-col-v" style={{ ["--i" as string]: i, color: latest ? "var(--act)" : "var(--text3)", fontWeight: 700, whiteSpace: "nowrap", fontSize: "clamp(9px, 2.8vw, 12px)" }}>£{(v / 1000).toFixed(2)}k</span>
                 <div className="m-col" style={{ ["--i" as string]: i, width: "100%", height: `${(v / max) * 84}px`, borderRadius: "4px 4px 0 0", background: latest ? "var(--act)" : "var(--blue-soft)", borderTop: latest ? "none" : "2px solid var(--blue)" }} />
               </div>
             );

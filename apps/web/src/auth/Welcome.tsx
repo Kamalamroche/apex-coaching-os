@@ -21,7 +21,7 @@ export function Welcome({ onContinue, demo }: { onContinue: (mode: "signup" | "s
   return (
     <div className="wel">
       <picture className="wel-photo" aria-hidden="true">
-        <img src="/welcome/pilates.webp" srcSet="/welcome/pilates-720.webp 720w, /welcome/pilates.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" fetchPriority="high" />
+        <img src="/welcome/pilates.webp" srcSet="/welcome/pilates-720.webp 720w, /welcome/pilates.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" {...{ fetchpriority: "high" }} />
       </picture>
       <div className="wel-top">
         <span className="wel-logo"><Icons.logo width={22} height={22} /><b>APEX</b></span>

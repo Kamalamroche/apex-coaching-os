@@ -70,9 +70,9 @@ export function deletionEffects(role: PrivacyRole, coachName: string): string[] 
       ]
     : [
         "Your account and sign-in",
-        "The programs, templates, plans and notes you made",
+        "The programmes, templates, plans and notes you made",
         "Your messages with clients, your resources, challenges and calendar",
-        "Your clients keep their own accounts and logged history, but lose the programs you wrote for them",
+        "Your clients keep their own accounts and logged history, but lose the programmes you wrote for them",
       ];
 }
 
@@ -120,7 +120,7 @@ const PRIVACY: LegalSection[] = [
     heading: "What we collect",
     paragraphs: [
       "Account: your name, email address and whether you are a coach or a client.",
-      "Training: programs, workouts, sets, weights, personal bests, cardio sessions and maps of your routes.",
+      "Training: programmes, workouts, sets, weights, personal bests, cardio sessions and maps of your routes.",
       "Health information: body measurements, progress photos, check-ins (sleep, stress, energy, hunger), readiness, nutrition, habits, form check videos and your health questionnaire, including any injuries or conditions you tell your coach about.",
       "Messages, bookings, goals and challenge entries.",
       "If you connect a wearable or another app (for example Strava), the activities and recovery data you choose to share from it.",
@@ -190,13 +190,13 @@ const TERMS: LegalSection[] = [
     paragraphs: [
       "APEX is a tool that helps coaches and clients work together. It is not medical advice. Check with a doctor before starting a new exercise or nutrition plan, especially if you have an injury or a health condition.",
       "Stop exercising and get help if you feel pain, dizziness or chest discomfort. You train at your own risk, within what the law allows.",
-      "Suggestions marked AI suggestion are drafts for your coach. Only your coach decides what goes into your program.",
+      "Suggestions marked AI suggestion are drafts for your coach. Only your coach decides what goes into your programme.",
     ],
   },
   {
     heading: "Coaches",
     paragraphs: [
-      "Coaches are responsible for the programs, advice and messages they give, and for only adding clients who agreed to be coached.",
+      "Coaches are responsible for the programmes, advice and messages they give, and for only adding clients who agreed to be coached.",
       "Coaches must keep client information confidential and use it only to coach those clients.",
     ],
   },

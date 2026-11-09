@@ -46,10 +46,10 @@ export function Train({ start, say }: { start: () => void; say: (m: string) => v
   return (
     <>
       {modes}
-      <section className="hero cover short" aria-label="Your program">
+      <section className="hero cover short" aria-label="Your programme">
         <HeroBackdrop art={HERO_IMAGES[heroForWorkout(workout)]} word={null} />
         <div className="cv-title">
-          <EditorialTitle as="h1" text={program.name || "Your program"} caption={`Program · week ${workout.week} of ${workout.ofWeeks}`} />
+          <EditorialTitle as="h1" text={program.name || "Your programme"} caption={`Programme · week ${workout.week} of ${workout.ofWeeks}`} />
         </div>
         <div className="cv-weeks" role="img" aria-label={`Week ${workout.week} of ${workout.ofWeeks}`}>
           {Array.from({ length: workout.ofWeeks }, (_, k) => <i key={k} className={k < workout.week - 1 ? "done" : k === workout.week - 1 ? "now" : undefined} style={{ ["--i" as string]: k }} />)}

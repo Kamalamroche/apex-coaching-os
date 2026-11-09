@@ -250,7 +250,7 @@ export function AccountScreen({ say }: { say: (m: string) => void }) {
 
       <section className="card stack full">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Your data</h3></div>
-        <div className="small">Download a copy of everything stored about you{api.role === "client" ? ": workouts, check-ins, measurements, messages and more" : ": your programs, client list, messages and more"}, as a file you can keep or take elsewhere.{api.role === "client" ? " Photos and videos stay in the app; ask us if you want copies." : ""}</div>
+        <div className="small">Download a copy of everything stored about you{api.role === "client" ? ": workouts, check-ins, measurements, messages and more" : ": your programmes, client list, messages and more"}, as a file you can keep or take elsewhere.{api.role === "client" ? " Photos and videos stay in the app; ask us if you want copies." : ""}</div>
         <button className="btn ghost block" disabled={busy === "export"} onClick={() => void exportData()}><Icons.file width={15} height={15} /> {busy === "export" ? "Preparing…" : "Download my data"}</button>
       </section>
 

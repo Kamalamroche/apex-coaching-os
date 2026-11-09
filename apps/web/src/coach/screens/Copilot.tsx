@@ -29,9 +29,9 @@ export function Copilot({ onClose, say }: { onClose: () => void; say: (m: string
   const byDay = result ? [...new Set(result.changes.map((c) => c.day))] : [];
 
   return (
-    <Sheet onClose={onClose} label="Program Copilot">
+    <Sheet onClose={onClose} label="Programme Copilot">
       <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">You see every change before it applies</span></div>
-      <div><div className="eyebrow">{program.name} · {program.weeks} weeks</div><h2 className="h2">Program Copilot</h2></div>
+      <div><div className="eyebrow">{program.name} · {program.weeks} weeks</div><h2 className="h2">Programme Copilot</h2></div>
       <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); preview(); }}>
         <input className="field" value={text} onChange={(e) => { setText(e.target.value); setResult(null); setMiss(false); }} placeholder="Tell Copilot what to change…" aria-label="Instruction" autoFocus />
         <button className="btn act" disabled={!text.trim()}>Preview</button>
@@ -45,7 +45,7 @@ export function Copilot({ onClose, say }: { onClose: () => void; say: (m: string
       {result && (
         <>
           <div className="cop-sum"><b>{result.command.summary}</b><span className="tiny num">{result.changes.length} change{result.changes.length === 1 ? "" : "s"} across {byDay.length} day{byDay.length === 1 ? "" : "s"}</span></div>
-          {result.changes.length === 0 && <p className="small" style={{ margin: 0 }}>Nothing in the program matches, so nothing would change.</p>}
+          {result.changes.length === 0 && <p className="small" style={{ margin: 0 }}>Nothing in the programme matches, so nothing would change.</p>}
           {byDay.map((day) => (
             <div key={day}>
               <div className="eyebrow" style={{ marginBottom: 6 }}>{day}</div>

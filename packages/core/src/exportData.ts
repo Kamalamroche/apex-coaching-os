@@ -143,7 +143,7 @@ const readme = (data: ExportData) =>
     `Exported ${data.exportedAt.slice(0, 16).replace("T", " ")} UTC · ${data.clients.length} client${data.clients.length === 1 ? "" : "s"}`,
     "",
     "clients.csv    one row per client",
-    "program.csv    each client's current program, one row per exercise",
+    "program.csv    each client's current programme, one row per exercise",
     "history.csv    every logged set, one row per set",
     "checkins.csv   weekly check-ins",
     "messages.csv   your message threads",
@@ -177,7 +177,7 @@ export function buildReportHtml(data: ExportData): string {
         <table><thead><tr><th></th><th>Exercise</th><th>Sets × reps</th><th>kg</th><th>RPE</th><th>Rest</th></tr></thead><tbody>
         ${w.items.map((it) => `<tr><td>${esc(it.group)}</td><td>${esc(exerciseName(it.exerciseId))}</td><td>${it.sets} × ${esc(it.reps)}</td><td>${n(it.kg)}</td><td>${n(it.rpe)}</td><td>${it.restSeconds} s</td></tr>`).join("")}
         </tbody></table>`).join("")
-      : `<p class="muted">No program.</p>`;
+      : `<p class="muted">No programme.</p>`;
     const recent = [...c.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 12);
     const sessions = recent.length
       ? `<table><thead><tr><th>Date</th><th>Workout</th><th>Sets</th><th>Volume</th><th>RPE</th></tr></thead><tbody>
@@ -194,7 +194,7 @@ export function buildReportHtml(data: ExportData): string {
       <div class="eyebrow">${esc(MODE_NAMES[c.mode])} · since ${fmtDate(c.startedAt)}${c.status === "invited" ? " · invited, not joined yet" : ""}</div>
       <h2>${esc(c.name)}</h2>
       ${c.goal ? `<p><b>Goal:</b> ${esc(c.goal)}</p>` : ""}
-      <h3>${c.program ? esc(c.program.name) : "Program"}</h3>${program}
+      <h3>${c.program ? esc(c.program.name) : "Programme"}</h3>${program}
       <h3>Recent sessions</h3>${sessions}
       <h3>Check-ins</h3>${checkIns}
     </section>`;
