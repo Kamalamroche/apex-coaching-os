@@ -1,5 +1,5 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList, fridgeFoods, planDayFor, recipesFromFridge, workoutFuel,
+  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList, fridgeFoods, planDayFor, recipesFromFridge, workoutFuel, EATING_OUT, formatPence, isBudget, planCost, recipeCost,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
@@ -46,6 +46,7 @@ function RecipeImg({ r, small = false, className }: { r: Recipe; small?: boolean
 
 export function RecipeCard({ r, onOpen, fav = false }: { r: Recipe; onOpen: (r: Recipe) => void; fav?: boolean }) {
   const m = recipeMacros(r);
+  const cost = recipeCost(r);
   return (
     <button type="button" className="rcp-card" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }} onClick={() => onOpen(r)}>
       <span className="rcp-photo"><RecipeImg r={r} small /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span>{fav && <span className="rcp-fav-dot" aria-label="Favourite"><Icons.heart width={13} height={13} /></span>}</span>
@@ -53,6 +54,7 @@ export function RecipeCard({ r, onOpen, fav = false }: { r: Recipe; onOpen: (r: 
         <span className="tiny caps rcp-meal">{mealLabel(r.meal)}{r.byCoach && <span className="rcp-mine"> · Your coach</span>}</span>
         <b className="rcp-name">{r.name}</b>
         <span className="rcp-nums"><span><b className="num">{m.kcal}</b> kcal</span><span><b className="num">{m.proteinG}</b> g protein</span></span>
+        {cost !== null && <span className="rcp-cost tiny">About {formatPence(cost)} a serving</span>}
       </span>
     </button>
   );
@@ -67,7 +69,9 @@ export function RecipeShelf({ onOpen, diet = [], foodNotes = "" }: { onOpen: (r:
   const { recipes: coach } = useCoachRecipes();
   const { favs } = useFavouriteRecipes();
   const [onlyFavs, setOnlyFavs] = useState(false);
-  const list = filterRecipes(tags, meal ?? undefined, coach).filter((r) => !onlyFavs || favs.includes(r.id));
+  const [budget, setBudget] = useState(false);
+  const [eatOut, setEatOut] = useState(false);
+  const list = filterRecipes(tags, meal ?? undefined, coach).filter((r) => (!onlyFavs || favs.includes(r.id)) && (!budget || isBudget(r)));
   return (
     <section>
       <div className="sect"><h2 className="h2">Recipes</h2><span className="tiny">{list.length} of {RECIPES.length + coach.length}</span></div>
@@ -76,11 +80,18 @@ export function RecipeShelf({ onOpen, diet = [], foodNotes = "" }: { onOpen: (r:
         <span className="grow"><b>What's in my fridge?</b><span className="tiny">Tick what you have and see what you can make</span></span>
         <Icons.forward width={16} height={16} />
       </button>
+      <button type="button" className="fridge-cta" onClick={() => setEatOut(true)}>
+        <span className="fridge-ic"><Icons.food width={20} height={20} /></span>
+        <span className="grow"><b>Eating out?</b><span className="tiny">What to order at the pub, Indian, Italian and more</span></span>
+        <Icons.forward width={16} height={16} />
+      </button>
+      {eatOut && <EatingOutSheet onClose={() => setEatOut(false)} />}
       {fridge && <FridgeSheet coach={coach} diet={diet} notes={foodNotes} onClose={() => setFridge(false)} onOpen={(r) => { setFridge(false); onOpen(r); }} />}
       <div className="seg rcp-meals" role="radiogroup" aria-label="Meal">
         {[null, ...MEALS.map((m) => m.key)].map((k) => <button key={k ?? "all"} type="button" role="radio" aria-checked={meal === k} className={meal === k ? "on" : ""} onClick={() => setMeal(k)}>{k ? mealLabel(k) : "All"}</button>)}
       </div>
       <div className="chips rcp-tags" role="group" aria-label="Filter recipes">
+        <button className={`chip ${budget ? "on" : ""}`} aria-pressed={budget} onClick={() => setBudget(!budget)}>Under £2</button>
         {favs.length > 0 && <button className={`chip ${onlyFavs ? "on" : ""}`} aria-pressed={onlyFavs} onClick={() => setOnlyFavs(!onlyFavs)}><Icons.heart width={13} height={13} /> Favourites ({favs.length})</button>}
         {TAGS.map((t) => <button key={t} className={`chip ${tags.includes(t) ? "on" : ""}`} aria-pressed={tags.includes(t)} onClick={() => setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>)}
       </div>
@@ -102,7 +113,7 @@ export function RecipeSheet({ r, onClose, action, foodNotes = "", canFavourite =
       <div className="stack rcp-sheet" style={{ gap: 14 }}>
         <div className="rcp-hero" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }}>
           <RecipeImg r={r} className="rcp-hero-img" />
-          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{r.byCoach ? " · Your coach's recipe" : ""}</span>
+          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{recipeCost(r) !== null ? ` · about ${formatPence(recipeCost(r)!)}` : ""}{r.byCoach ? " · Your coach's recipe" : ""}</span>
           <div className="rcp-title-row">
             <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
             {canFavourite && <button type="button" className={`iconbtn rcp-fav${fav ? " on" : ""}`} aria-pressed={fav} aria-label={fav ? "Remove from favourites" : "Save to favourites"} onClick={() => toggle(r.id)}><Icons.heart width={18} height={18} /></button>}
@@ -153,6 +164,7 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
   };
   const groups = [...new Set(list.map((l) => l.group))];
   const done = list.filter((l) => ticks.includes(l.key)).length;
+  const cost = planCost(plan, days, recipes);
   return (
     <Sheet label="Shopping list" onClose={onClose}>
       <div className="stack" style={{ gap: 12 }}>
@@ -160,6 +172,7 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
         <div className="seg" role="radiogroup" aria-label="How many days">
           {[3, 7].map((d) => <button key={d} type="button" role="radio" aria-checked={days === d} className={days === d ? "on" : ""} onClick={() => setDays(d)}>{d} days</button>)}
         </div>
+        {cost.pence > 0 && <div className="shop-cost"><span className="tiny">Estimated cost</span><b className="num">{formatPence(cost.pence)}</b><span className="tiny">about {formatPence(cost.pence / days)} a day{cost.unpriced ? `, ${cost.unpriced} item${cost.unpriced === 1 ? "" : "s"} not priced` : ""}. Supermarket own-brand prices, so yours may differ.</span></div>}
         {groups.map((g) => (
           <div key={g}>
             <div className="tiny caps" style={{ margin: "6px 0" }}>{g}</div>
@@ -381,6 +394,37 @@ export function WorkoutFuelCard({ session, seed, diet = [], notes = "", onOpen }
         {row("After", "Within 2 hours after", fuel.after)}
       </div>
     </section>
+  );
+}
+
+/* ---------- Eating out ---------- */
+
+function EatingOutSheet({ onClose }: { onClose: () => void }) {
+  const [id, setId] = useState(EATING_OUT[0]!.id);
+  const g = EATING_OUT.find((x) => x.id === id) ?? EATING_OUT[0]!;
+  return (
+    <Sheet label="Eating out" onClose={onClose}>
+      <div className="stack eatout" style={{ gap: 14 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Eating out</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <div className="chips rcp-tags" role="tablist" aria-label="Where you're eating">
+          {EATING_OUT.map((x) => <button key={x.id} role="tab" aria-selected={x.id === g.id} className={`chip ${x.id === g.id ? "on" : ""}`} onClick={() => setId(x.id)}>{x.title}</button>)}
+        </div>
+        <div>
+          <h3 className="h1" style={{ margin: 0 }}>{g.title}</h3>
+          <div className="small">{g.lead}</div>
+        </div>
+        <div className="eatout-block good">
+          <div className="h3"><Icons.check width={16} height={16} /> Good picks</div>
+          <ul>{g.picks.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+        <div className="eatout-block watch">
+          <div className="h3"><Icons.info width={16} height={16} /> Watch out for</div>
+          <ul>{g.watch.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+        <div className="eatout-tip small"><b>Tip:</b> {g.tip}</div>
+        <div className="tiny">General guidance from APEX. Your coach's advice comes first, and ask staff about allergens.</div>
+      </div>
+    </Sheet>
   );
 }
 

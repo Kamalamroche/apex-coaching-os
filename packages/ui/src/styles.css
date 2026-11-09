@@ -960,3 +960,12 @@ button.tile{font:inherit}
 .nscore-stats b{font-size:20px}
 .nscore-stats .of{font-size:13px;color:var(--text3)}
 .nscore-msg{padding-top:4px;border-top:1px solid var(--line)}
+.rcp-cost{color:var(--text2);margin-top:2px}
+.shop-cost{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:14px;background:var(--bg2)}
+.shop-cost b{font-size:24px}
+.eatout-block{padding:12px 14px;border-radius:14px;background:var(--bg2)}
+.eatout-block .h3{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.eatout-block.good .h3 svg{color:var(--good)}
+.eatout-block.watch .h3 svg{color:var(--warn)}
+.eatout-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--text)}
+.eatout-tip{padding:12px 14px;border-radius:14px;border:1px solid var(--line);color:var(--text)}
