@@ -2,7 +2,8 @@ import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-/* One origin, six pages: landing (/), launcher (/start/), coach (/coach/), client (/client/), legal (/legal/)
+/* One origin. Marketing site: / plus /features/, /solutions/, /in-action/, /resources/, /pricing/ and /about/ (one shared bundle).
+   Apps: landing (/), launcher (/start/), coach (/coach/), client (/client/), legal (/legal/)
    and coach public pages (/c/?k=slug).
    Each page has its own bundle. Serving them from one origin lets the demo store
    sync coach and client tabs through localStorage until Supabase Realtime replaces it. */
@@ -17,6 +18,12 @@ export default defineConfig({
         client: resolve(import.meta.dirname, "client/index.html"),
         legal: resolve(import.meta.dirname, "legal/index.html"),
         page: resolve(import.meta.dirname, "c/index.html"),
+        "site-features": resolve(import.meta.dirname, "features/index.html"),
+        "site-solutions": resolve(import.meta.dirname, "solutions/index.html"),
+        "site-in-action": resolve(import.meta.dirname, "in-action/index.html"),
+        "site-resources": resolve(import.meta.dirname, "resources/index.html"),
+        "site-pricing": resolve(import.meta.dirname, "pricing/index.html"),
+        "site-about": resolve(import.meta.dirname, "about/index.html"),
       },
     },
   },
