@@ -1,4 +1,4 @@
-import { BOOKING_KINDS, bookingEvent, googleCalendarUrl, toIcs, callLink, callOpen, callService, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy } from "@apex/core";
+import { BOOKING_KINDS, REPEAT_CHOICES, bookingEvent, googleCalendarUrl, toIcs, callLink, callOpen, callService, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy, type SessionPack } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,12 +10,16 @@ export interface BookingData {
   settings: BookingSettings | null;
   bookings: Booking[];
   busy: Busy[];
+  /** Every training session, for credits and the register. */
+  history: Booking[];
+  packs: SessionPack[];
+  sessionsReady: boolean;
   reload: () => Promise<void>;
 }
 
 /** Loads the calendar, and again when the window comes back into focus so new bookings show up. */
 export function useBookings(api: BookingApi | null): BookingData {
-  const [s, setS] = useState<Omit<BookingData, "reload">>({ status: "loading", settings: null, bookings: [], busy: [] });
+  const [s, setS] = useState<Omit<BookingData, "reload">>({ status: "loading", settings: null, bookings: [], busy: [], history: [], packs: [], sessionsReady: false });
   const reload = useCallback(async () => {
     if (!api) return;
     try {
@@ -128,5 +132,32 @@ export function AddToCalendar({ booking, settings, withName }: { booking: Bookin
         document.body,
       )}
     </>
+  );
+}
+
+/** "Just once", "4 weeks"…: the same time each week. */
+export function RepeatChips({ weeks, onChange }: { weeks: number; onChange: (n: number) => void }) {
+  return (
+    <div>
+      <div className="tiny" style={{ marginBottom: 6 }}>Repeat weekly</div>
+      <div className="chips" role="group" aria-label="Repeat weekly" style={{ flexWrap: "wrap" }}>{REPEAT_CHOICES.map((n) => <button key={n} type="button" className={`chip ${weeks === n ? "on" : ""}`} aria-pressed={weeks === n} onClick={() => onChange(n)}>{n === 1 ? "Just once" : `${n} weeks`}</button>)}</div>
+    </div>
+  );
+}
+
+/** Pick a new free time for a booking and move it there, instead of cancelling. */
+export function MovePicker({ booking, settings, busy, onMove, onClose }: { booking: Booking; settings: BookingSettings; busy: Busy[]; onMove: (startsAt: string) => Promise<void>; onClose: () => void }) {
+  const [slot, setSlot] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const others = useMemo(() => busy.filter((b) => b.startsAt !== booking.startsAt), [busy, booking.startsAt]);
+  return (
+    <div className="stack" style={{ gap: 10, flexBasis: "100%", paddingTop: 6 }}>
+      <div className="tiny">Pick a new time. It stays {Math.round((Date.parse(booking.endsAt) - Date.parse(booking.startsAt)) / 60000)} minutes.</div>
+      <SlotPicker settings={settings} busy={others} value={slot} onChange={setSlot} />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn ghost sm" onClick={onClose}>Keep the time</button>
+        <button className="btn act sm" disabled={!slot || saving} onClick={async () => { if (!slot) return; setSaving(true); await onMove(slot); setSaving(false); }}>{slot ? `Move to ${new Date(slot).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} ${timeLabel(slot)}` : "Pick a time"}</button>
+      </div>
+    </div>
   );
 }

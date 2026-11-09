@@ -861,3 +861,18 @@ button.gy-client:hover{border-color:var(--line2)}
 .pu-list li+li{border-top:1px solid var(--line)}
 .pu-list li::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--act)}
 @media (prefers-reduced-motion:reduce){.pu-card,.pu-list li{animation:none}}
+
+/* 1:1 sessions: balance of sessions, the register rows and pack chips. */
+.ss-balance{display:flex;align-items:center;gap:16px;padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);animation:m-rise .5s var(--ease-out) backwards}
+.ss-balance>b{font:400 52px/1 var(--serif);letter-spacing:-.02em;color:var(--act);min-width:52px;text-align:center}
+.ss-balance.owed>b{color:var(--crit)}
+.ss-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);animation:m-rise .45s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .05s)}
+.ss-row:first-child{border-top:0}
+.ss-row .ss-when{font:600 12px/1.2 var(--mono,var(--ui));color:var(--text2);width:62px;flex:none}
+.ss-acts{display:flex;gap:6px;flex:none}
+.ss-tag{font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:var(--pill);border:1px solid var(--line2);color:var(--text2);white-space:nowrap}
+.ss-tag.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.ss-tag.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+.ss-warn{padding:12px 14px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft);font-size:13px;color:var(--text)}
+.ss-policy{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2)}
+.ss-policy svg{flex:none;margin-top:1px}

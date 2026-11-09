@@ -29,4 +29,5 @@ export { LeadCard, PipelineStrip, STAGE_TONE, StageChips, WelcomePreview } from 
 export { CoverPicker, IncludesList, ProgrammeCover, ProgrammeFacts, ProgrammePoster, ShopHero, WeekOutline, type PosterData } from "./programmes";
 export { ReportHero, ReportView } from "./report";
 export { FirstWeekCard } from "./firstWeek";
+export { CreditBalance, SessionMonthStats, SessionsHero } from "./sessions";
 export { PlanChangedCard } from "./planUpdate";
