@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FOODS } from "./data/foods";
-import { RECIPES, filterRecipes, fromCoachRecipeRow, fromMealPlanRow, newCoachRecipe, recipePhoto, recipeProblem, toCoachRecipeRow, mealLogged, planDayFor, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, sampleMealPlan, shoppingList, toMealPlanRow, type MealPlan } from "./mealPlans";
+import { RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, recipeHasTag, fromCoachRecipeRow, fromMealPlanRow, newCoachRecipe, recipePhoto, recipeProblem, toCoachRecipeRow, mealLogged, planDayFor, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, sampleMealPlan, shoppingList, toMealPlanRow, type MealPlan } from "./mealPlans";
 
 describe("recipes", () => {
   it("every ingredient is in the food list and ids are unique", () => {
@@ -116,5 +116,46 @@ describe("coach recipes", () => {
     const list = shoppingList(plan, 2, [mine]);
     expect(list.find((l) => l.name.startsWith("Chicken breast"))?.amount).toBe("200 g");
     expect(list.some((l) => l.group === "Other")).toBe(false);
+  });
+});
+
+describe("diet matching", () => {
+  const vegan = RECIPES.find((r) => r.tags.includes("Vegan"))!;
+  const meat = RECIPES.find((r) => !r.tags.includes("Vegetarian") && !r.tags.includes("Vegan"))!;
+  it("counts vegan recipes as vegetarian and dairy free", () => {
+    expect(recipeHasTag(vegan, "Vegetarian")).toBe(true);
+    expect(recipeHasTag(vegan, "Dairy free")).toBe(true);
+    expect(filterRecipes(["Vegetarian"])).toContain(vegan);
+  });
+  it("names what a recipe misses for the client's diet", () => {
+    expect(dietMisses(vegan, ["Vegetarian"])).toEqual([]);
+    expect(dietWarning(vegan, ["Vegetarian"])).toBeNull();
+    expect(dietWarning(meat, ["Vegetarian"])).toBe("Not vegetarian");
+    expect(dietWarning(meat, [])).toBeNull();
+  });
+  it("has vegetarian and gluten free options for every meal", () => {
+    for (const m of ["breakfast", "lunch", "dinner", "snack"] as const) {
+      expect(filterRecipes(["Vegetarian"], m).length).toBeGreaterThanOrEqual(3);
+      expect(filterRecipes(["Gluten free"], m).length).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
+
+describe("allergy notes", () => {
+  const shake = RECIPES.find((r) => r.name.toLowerCase().includes("peanut"))!;
+  it("flags a recipe with a food the client named", () => {
+    expect(notesClash(shake, "Peanut allergy. Not keen on mushrooms.")).toEqual(["peanut"]);
+    expect(notesClash(shake, "Nut allergy")).toEqual(["nut"]);
+  });
+  it("leaves recipes alone when nothing matches", () => {
+    expect(notesClash(shake, "")).toEqual([]);
+    expect(notesClash(shake, "I don't like fish")).toEqual([]);
+  });
+  it("understands plurals and groups", () => {
+    const salmon = RECIPES.find((r) => r.name.toLowerCase().includes("salmon"))!;
+    expect(notesClash(salmon, "no fish please")).toEqual(["fish"]);
+    const eggs = RECIPES.find((r) => r.id === "r-eggs-sourdough")!;
+    expect(notesClash(eggs, "Eggs make me ill")).toContain("egg");
+    expect(notesClash(eggs, "gluten intolerant")).toEqual(["gluten"]);
   });
 });

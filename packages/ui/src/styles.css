@@ -855,6 +855,7 @@ button.tile{font:inherit}
 /* Recipes and meal plans */
 .rcp-tags{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
 .rcp-tags .chip{flex:none}
+.rcp-diet{margin:-4px 0 10px;color:var(--text2)}
 .rcp-shelf{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
 .rcp-card{flex:none;width:184px;scroll-snap-align:start;display:flex;flex-direction:column;text-align:left;padding:0;border-radius:18px;border:1px solid var(--line);color:var(--text);cursor:pointer;overflow:hidden;background:var(--card)}
 .rcp-photo{position:relative;display:block;aspect-ratio:4/3;background:color-mix(in srgb,var(--tone) 18%,var(--bg2))}
@@ -891,6 +892,12 @@ button.tile{font:inherit}
 .plan-total b{color:var(--text);font-size:14px;font-family:var(--num)}
 .plan-total .of{font-family:inherit;color:var(--text3)}
 .plan-total.off span:first-child>b{color:var(--warn)}
+.plan-diet{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg2);color:var(--text)}
+.plan-diet svg{flex:none;margin-top:2px;color:var(--act)}
+.plan-warn{color:var(--warn)}
+.plan-warn.allergy{color:var(--crit);font-weight:600}
+.plan-diet.allergy{background:var(--crit-soft)}
+.plan-diet.allergy svg{color:var(--crit)}
 .plan-meal{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);border-left:4px solid var(--tone);background:var(--bg2)}
 .plan-meal.done{opacity:.72}
 .plan-meal-head{display:flex;justify-content:space-between;color:var(--text2)}

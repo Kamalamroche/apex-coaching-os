@@ -239,6 +239,10 @@ export const HEALTH_QUESTIONS: { key: string; text: string }[] = [
 
 export const EXPERIENCE = ["New to training", "Under a year", "1 to 3 years", "3 years or more"] as const;
 
+/** Diets a client can pick on the intake form. They match recipe tags, so recipes can be matched to the client. */
+export const DIETS = ["Vegetarian", "Vegan", "Gluten free", "Dairy free"] as const;
+export type DietNeed = (typeof DIETS)[number];
+
 export interface IntakeAnswers {
   /** Health question key → yes. */
   health: Record<string, boolean>;
@@ -254,6 +258,10 @@ export interface IntakeAnswers {
   equipment: string;
   /** Typical day: job, sleep, stress, food. */
   lifestyle: string;
+  /** How they eat. Empty means no special diet. */
+  diet: DietNeed[];
+  /** Allergies and foods they don't eat, in their words. */
+  foodNotes: string;
   /** I confirm the answers are true. */
   confirmed: boolean;
 }
@@ -265,7 +273,7 @@ export interface IntakeForm {
 
 export const blankIntake = (): IntakeAnswers => ({
   health: Object.fromEntries(HEALTH_QUESTIONS.map((q) => [q.key, false])),
-  healthDetail: "", goal: "", why: "", injuries: "", experience: "", daysPerWeek: null, equipment: "", lifestyle: "", confirmed: false,
+  healthDetail: "", goal: "", why: "", injuries: "", experience: "", daysPerWeek: null, equipment: "", lifestyle: "", diet: [], foodNotes: "", confirmed: false,
 });
 
 /** The health questions answered "yes", in question order. */

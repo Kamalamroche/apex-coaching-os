@@ -1,5 +1,5 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, filterRecipes, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
+  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
@@ -36,8 +36,9 @@ export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => vo
 }
 
 /** The recipe library: filter chips and a scrolling shelf of cards. */
-export function RecipeShelf({ onOpen }: { onOpen: (r: Recipe) => void }) {
-  const [tags, setTags] = useState<RecipeTag[]>([]);
+export function RecipeShelf({ onOpen, diet = [] }: { onOpen: (r: Recipe) => void; diet?: readonly RecipeTag[] }) {
+  const [tags, setTags] = useState<RecipeTag[]>(() => [...diet]);
+  const matched = diet.length > 0 && diet.every((t) => tags.includes(t));
   const [meal, setMeal] = useState<Meal | null>(null);
   const { recipes: coach } = useCoachRecipes();
   const list = filterRecipes(tags, meal ?? undefined, coach);
@@ -50,6 +51,7 @@ export function RecipeShelf({ onOpen }: { onOpen: (r: Recipe) => void }) {
       <div className="chips rcp-tags" role="group" aria-label="Filter recipes">
         {TAGS.map((t) => <button key={t} className={`chip ${tags.includes(t) ? "on" : ""}`} aria-pressed={tags.includes(t)} onClick={() => setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>)}
       </div>
+      {matched && <div className="tiny rcp-diet">Matched to your diet: {diet.join(", ").toLowerCase()}. Tap a filter to change it.</div>}
       {list.length ? (
         <div className="rcp-shelf">{list.map((r) => <RecipeCard key={r.id} r={r} onOpen={onOpen} />)}</div>
       ) : <div className="card small">No recipe has all of those. Take a filter off.</div>}
@@ -57,8 +59,9 @@ export function RecipeShelf({ onOpen }: { onOpen: (r: Recipe) => void }) {
   );
 }
 
-export function RecipeSheet({ r, onClose, action }: { r: Recipe; onClose: () => void; action?: { label: string; run: () => void } }) {
+export function RecipeSheet({ r, onClose, action, foodNotes = "" }: { r: Recipe; onClose: () => void; action?: { label: string; run: () => void }; foodNotes?: string }) {
   const m = recipeMacros(r);
+  const clash = notesClash(r, foodNotes);
   return (
     <Sheet label={r.name} onClose={onClose}>
       <div className="stack rcp-sheet" style={{ gap: 14 }}>
@@ -66,6 +69,7 @@ export function RecipeSheet({ r, onClose, action }: { r: Recipe; onClose: () => 
           <RecipeImg r={r} className="rcp-hero-img" />
           <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{r.byCoach ? " · Your coach's recipe" : ""}</span>
           <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
+          {clash.length > 0 && <div className="plan-diet small allergy"><Icons.info width={15} height={15} /><span>This has <b>{clash.join(", ")}</b> in it, and you told your coach about {clash.length === 1 ? "it" : "them"}. Check the ingredients.</span></div>}
           <div className="rcp-macros">
             <div><b className="num">{m.kcal}</b><span className="tiny">kcal</span></div>
             <div><b className="num">{m.proteinG}</b><span className="tiny">Protein g</span></div>
@@ -189,7 +193,7 @@ export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPl
 
 type Hit = { kind: "recipe"; r: Recipe } | { kind: "food"; f: (typeof FOODS)[number] };
 
-export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPlan | null; targets: NutritionTargets | null; name: string; onSave: (p: MealPlan | null) => void }) {
+export function CoachPlanEditor({ plan, targets, name, onSave, diet = [], foodNotes = "" }: { plan: MealPlan | null; targets: NutritionTargets | null; name: string; onSave: (p: MealPlan | null) => void; diet?: readonly RecipeTag[]; foodNotes?: string }) {
   const [draft, setDraft] = useState<MealPlan | null>(plan);
   const [dayId, setDayId] = useState(plan?.days[0]?.id ?? "");
   const [adding, setAdding] = useState<Meal | null>(null);
@@ -199,12 +203,29 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   const { recipes: coach, api: recipeApi, reload } = useCoachRecipes();
   const changed = JSON.stringify(draft) !== JSON.stringify(plan);
   const librarySheet = library && recipeApi ? <CoachRecipesSheet recipes={coach} api={recipeApi} onChanged={reload} onClose={() => setLibrary(false)} /> : null;
+  const dietNote = diet.length || foodNotes.trim() ? (
+    <div className="plan-diet small">
+      <Icons.info width={15} height={15} />
+      <span>From {name}'s questionnaire: {diet.length ? <b>{diet.join(", ")}</b> : null}{diet.length && foodNotes.trim() ? ". " : null}{foodNotes.trim() ? <>Avoids: {foodNotes.trim()}</> : null}</span>
+    </div>
+  ) : null;
+  const misfit = (r: Recipe) => dietMisses(r, diet).length + 2 * notesClash(r, foodNotes).length;
+  const fitsFirst = (a: Recipe, b: Recipe) => misfit(a) - misfit(b);
+  /** Allergy notes first (they matter most), then diet. */
+  const warnFor = (r: Recipe): { text: string; allergy: boolean } | null => {
+    const c = notesClash(r, foodNotes);
+    if (c.length) return { text: `Contains ${c.join(", ")}`, allergy: true };
+    const w = dietWarning(r, diet);
+    return w ? { text: w, allergy: false } : null;
+  };
+  const warnTag = (r: Recipe) => { const w = warnFor(r); return w ? <span className={`plan-warn tiny${w.allergy ? " allergy" : ""}`}> · {w.text}</span> : null; };
 
   if (!draft) {
     return (
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Meal plan</h3><Label kind="dec">Coach decision</Label></div>
         <div className="small">Give {name} a plan to follow: they tick meals off in one tap and get a shopping list.</div>
+        {dietNote}
         <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
           <button className="btn act" onClick={() => { const p = sampleMealPlan(); setDraft(p); setDayId(p.days[0]!.id); }}>Start from APEX starter plan</button>
           <button className="btn" onClick={() => { const d = newPlanDay(0); setDraft({ days: [d], note: "", updatedAt: new Date().toISOString() }); setDayId(d.id); }}>Blank plan</button>
@@ -220,8 +241,8 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   const setDay = (meals: typeof d.meals, nameText = d.name) => setDraft({ ...draft, days: draft.days.map((x) => (x.id === d.id ? { ...x, meals, name: nameText } : x)) });
   const ql = q.trim().toLowerCase();
   const hits: Hit[] = ql
-    ? [...[...coach, ...RECIPES].filter((r) => r.name.toLowerCase().includes(ql) || r.tags.some((t) => t.toLowerCase().includes(ql))).sort((a, b) => Number(b.meal === adding) - Number(a.meal === adding)).slice(0, 4).map((r) => ({ kind: "recipe" as const, r })), ...searchFoods(FOODS, q, 6).map((f) => ({ kind: "food" as const, f }))]
-    : adding ? filterRecipes([], adding, coach).map((r) => ({ kind: "recipe" as const, r })) : [];
+    ? [...[...coach, ...RECIPES].filter((r) => r.name.toLowerCase().includes(ql) || r.tags.some((t) => t.toLowerCase().includes(ql))).sort((a, b) => fitsFirst(a, b) || Number(b.meal === adding) - Number(a.meal === adding)).slice(0, 4).map((r) => ({ kind: "recipe" as const, r })), ...searchFoods(FOODS, q, 6).map((f) => ({ kind: "food" as const, f }))]
+    : adding ? filterRecipes([], adding, coach).sort(fitsFirst).map((r) => ({ kind: "recipe" as const, r })) : [];
   const add = (h: Hit) => {
     if (!adding) return;
     const item = h.kind === "recipe" ? planItemFromRecipe(h.r, amount) : planItemFromFood(h.f, amount);
@@ -233,6 +254,7 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   return (
     <section className="card stack">
       <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Meal plan</h3><Label kind="dec">Coach decision</Label></div>
+      {dietNote}
       {recipeApi && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setLibrary(true)}>My recipes ({coach.length})</button>}
       {librarySheet}
       <div className="chips" role="tablist" aria-label="Plan days">
@@ -249,12 +271,15 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
       {MEALS.map((m) => (
         <div key={m.key} className="plan-meal" style={{ ["--tone" as string]: MEAL_TONE[m.key] }}>
           <div className="plan-meal-head"><span className="tiny caps">{m.label}</span><span className="tiny num">{r0(mealTotals(d.meals[m.key]).kcal)} kcal</span></div>
-          {d.meals[m.key].map((i) => (
+          {d.meals[m.key].map((i) => {
+            const rec = i.recipeId ? recipeById(i.recipeId, coach) : undefined;
+            return (
             <div key={i.id} className="plan-item row" style={{ gap: 6 }}>
-              <span className="grow">{i.name}</span><span className="tiny num">{r0(i.kcal)}</span>
+              <span className="grow">{i.name}{rec && warnTag(rec)}</span><span className="tiny num">{r0(i.kcal)}</span>
               <button className="iconbtn" aria-label={`Remove ${i.name}`} onClick={() => setDay({ ...d.meals, [m.key]: d.meals[m.key].filter((x) => x.id !== i.id) })}><Icons.close width={14} height={14} /></button>
             </div>
-          ))}
+            );
+          })}
           {adding === m.key ? (
             <div className="stack plan-add" style={{ gap: 8 }}>
               <div className="row" style={{ gap: 6 }}>
@@ -269,7 +294,7 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
                   const kcal = h.kind === "recipe" ? recipeMacros(h.r).kcal : h.f.kcal;
                   return (
                     <button key={h.kind === "recipe" ? h.r.id : `f${h.f.id}`} type="button" className="li plan-hit" onClick={() => add(h)}>
-                      <span className="grow" style={{ textAlign: "left" }}>{label}{h.kind === "recipe" && <span className="tiny"> · Recipe</span>}</span><span className="tiny num">{r0(kcal * amount)} kcal</span><Icons.plus width={15} height={15} />
+                      <span className="grow" style={{ textAlign: "left" }}>{label}{h.kind === "recipe" && <span className="tiny"> · Recipe</span>}{h.kind === "recipe" && warnTag(h.r)}</span><span className="tiny num">{r0(kcal * amount)} kcal</span><Icons.plus width={15} height={15} />
                     </button>
                   );
                 }) : <div className="li small">Nothing matches. Try another word.</div>}

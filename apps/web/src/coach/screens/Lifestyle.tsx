@@ -152,7 +152,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
       {s.planReady
-        ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
+        ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
         : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
     </>
   );
@@ -227,7 +227,7 @@ export function IntakeView({ clientName }: { clientName: string }) {
   const yes = HEALTH_QUESTIONS.filter((q) => a.health[q.key]);
   const rows: [string, string][] = [
     ["Goal", a.goal], ["Why it matters", a.why], ["Training for", a.experience], ["Days a week", a.daysPerWeek ? String(a.daysPerWeek) : ""],
-    ["Where and with what", a.equipment], ["Injuries or niggles", a.injuries], ["A normal day", a.lifestyle],
+    ["Where and with what", a.equipment], ["Injuries or niggles", a.injuries], ["Diet", (a.diet ?? []).join(", ")], ["Allergies or foods to avoid", a.foodNotes ?? ""], ["A normal day", a.lifestyle],
   ];
   return (
     <>

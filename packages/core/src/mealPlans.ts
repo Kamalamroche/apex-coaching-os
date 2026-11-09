@@ -60,8 +60,55 @@ export function recipeMacros(r: Recipe): Macros {
 }
 
 /** Recipes with all of the tags (all recipes when none), optionally for one meal. The coach's own come first. */
+/** Does the recipe carry this tag? Vegan recipes also count as vegetarian and dairy free. */
+export function recipeHasTag(r: Recipe, t: RecipeTag): boolean {
+  if (r.tags.includes(t)) return true;
+  return (t === "Vegetarian" || t === "Dairy free") && r.tags.includes("Vegan");
+}
+
+/** The client's diet needs this recipe doesn't meet, e.g. ["Vegetarian"]. Empty means it fits. */
+export function dietMisses(r: Recipe, diet: readonly RecipeTag[]): RecipeTag[] {
+  return diet.filter((t) => !recipeHasTag(r, t));
+}
+
+/** A short label for a recipe that doesn't fit the client's diet, e.g. "Not vegetarian", or null when it fits. */
+export function dietWarning(r: Recipe, diet: readonly RecipeTag[]): string | null {
+  const miss = dietMisses(r, diet);
+  return miss.length ? `Not ${miss.map((t) => t.toLowerCase()).join(" or ")}` : null;
+}
+
+const NOTE_SKIP = new Set("allergy allergic allergies intolerant intolerance keen like likes dislike dislikes hate dont don't eat eats eating food foods avoid avoids really much very please never with without some any free nothing none also just bit lot love only from that this have can't cant make makes feel sick bloated mild severe not and the but for too get off all bad raw".split(" "));
+/** Everyday words a client writes, and the foods they cover. */
+const NOTE_GROUPS: Record<string, string[]> = {
+  nut: ["nut", "almond", "cashew", "walnut", "peanut", "hazelnut", "pecan", "pistachio"],
+  dairy: ["milk", "cheese", "yoghurt", "yogurt", "skyr", "cream", "feta", "halloumi", "mozzarella", "parmesan", "cottage", "quark", "whey"],
+  lactose: ["milk", "cheese", "yoghurt", "yogurt", "skyr", "cream", "quark", "cottage"],
+  gluten: ["bread", "pasta", "wrap", "sourdough", "couscous", "noodle", "tortilla", "bagel", "pitta", "flour", "spaghetti", "wholemeal"],
+  wheat: ["bread", "pasta", "wrap", "sourdough", "couscous", "noodle", "tortilla", "bagel", "pitta", "flour", "spaghetti", "wholemeal"],
+  fish: ["fish", "salmon", "cod", "tuna", "mackerel", "haddock", "sardine", "trout"],
+  shellfish: ["prawn", "shrimp", "crab", "mussel", "lobster"],
+  seafood: ["fish", "salmon", "cod", "tuna", "mackerel", "haddock", "sardine", "trout", "prawn", "shrimp", "crab", "mussel"],
+  pork: ["pork", "ham", "bacon", "chorizo", "sausage", "gammon"],
+  egg: ["egg"],
+  soy: ["soy", "soya", "tofu", "edamame", "tempeh"],
+  beef: ["beef", "steak", "burger"],
+};
+const singular = (w: string) => (w.length > 4 && w.endsWith("oes") ? w.slice(0, -2) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
+const wordsOf = (t: string) => t.toLowerCase().split(/[^a-z']+/).filter(Boolean).map(singular);
+
+/**
+ * Words from the client's allergy or food notes that this recipe contains, e.g. ["peanut"] for
+ * "Peanut allergy" and a peanut butter shake. A simple word match to prompt the coach, not a guarantee.
+ */
+export function notesClash(r: Recipe, notes: string): string[] {
+  const terms = [...new Set(wordsOf(notes).filter((w) => w.length >= 3 && !NOTE_SKIP.has(w)))];
+  if (!terms.length) return [];
+  const have = new Set([...wordsOf(r.name), ...r.ingredients.flatMap((i) => wordsOf(foodById.get(i.foodId)?.name ?? ""))]);
+  return terms.filter((t) => (NOTE_GROUPS[t] ?? [t]).some((w) => have.has(w)));
+}
+
 export function filterRecipes(tags: RecipeTag[], meal?: Meal, coach: Recipe[] = []): Recipe[] {
-  return [...coach, ...RECIPES].filter((r) => (!meal || r.meal === meal) && tags.every((t) => r.tags.includes(t)));
+  return [...coach, ...RECIPES].filter((r) => (!meal || r.meal === meal) && tags.every((t) => recipeHasTag(r, t)));
 }
 
 const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `i-${Math.random().toString(36).slice(2)}`);
