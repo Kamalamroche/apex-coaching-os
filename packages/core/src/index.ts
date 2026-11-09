@@ -68,4 +68,5 @@ export * from "./gym";
 export * from "./push";
 export * from "./checkInForm";
 export * from "./quiet";
+export * from "./report";
 export * from "./outbox";

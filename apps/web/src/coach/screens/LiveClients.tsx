@@ -16,6 +16,7 @@ import { useFormChecks } from "../../data/FormCheckContext";
 import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { Transfer } from "./Transfer";
+import { ClientReport } from "./Report";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {
@@ -85,7 +86,7 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Program" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Program");
+  const [tab, setTab] = useState<"Program" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Program");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -98,8 +99,9 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Program", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Program", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
+      {tab === "Report" && <ClientReport clientName={name} say={say} />}
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}
       {tab === "Goals" && <ClientGoals clientName={name} say={say} />}

@@ -27,3 +27,4 @@ export { WeightWheel, useConvertedText } from "./unitInputs";
 export { GymClientItem, GymHero, GymStat, RoleBadge, RoleGuide, TrainerRoster } from "./gym";
 export { LeadCard, PipelineStrip, STAGE_TONE, StageChips, WelcomePreview } from "./leads";
 export { CoverPicker, IncludesList, ProgrammeCover, ProgrammeFacts, ProgrammePoster, ShopHero, WeekOutline, type PosterData } from "./programmes";
+export { ReportHero, ReportView } from "./report";
