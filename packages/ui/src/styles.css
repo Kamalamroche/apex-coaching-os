@@ -918,3 +918,28 @@ button.tile{font:inherit}
 .scan-hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff}
 .scan-status{display:flex;align-items:center;gap:10px}
 .scan-dot{width:10px;height:10px;border-radius:50%;background:var(--act)}
+
+/* ---------- Nutrition: rest days, workout fuel, fridge ---------- */
+.rest-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:6px}
+.rest-toggle:disabled{opacity:.5;cursor:default}
+.rest-day{padding:12px;border-radius:14px;background:var(--bg2)}
+.fuel-card{gap:16px}
+.fuel-row{display:flex;flex-direction:column;gap:8px}
+.fuel-when{display:flex;align-items:baseline;gap:8px}
+.fuel-when b{font-size:15px}
+.fuel-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fuel-pick{display:flex;flex-direction:column;gap:4px;text-align:left;padding:0;border:0;background:none;color:var(--text);cursor:pointer;min-width:0}
+.fuel-img{display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--bg2)}
+.fuel-img img,.fuel-img .rcp-noimg{width:100%;height:100%;object-fit:cover;display:flex}
+.fuel-pick b{font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fuel-pick .tiny{color:var(--text2)}
+.fridge-cta{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:12px;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--text);text-align:left;cursor:pointer}
+.fridge-cta .grow{display:flex;flex-direction:column;gap:2px}
+.fridge-cta b{font-size:15px}
+.fridge-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--act-soft,var(--bg2));color:var(--act);flex:none}
+.fridge-hit{gap:12px;text-align:left}
+.fridge-hit .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fridge-thumb{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:var(--bg2)}
+.fridge-thumb img,.fridge-thumb .rcp-noimg{width:100%;height:100%;object-fit:cover;display:flex}
+.fridge-ok{color:var(--good)}
+.fridge-go{position:sticky;bottom:8px;z-index:2;order:0}

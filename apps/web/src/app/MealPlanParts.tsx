@@ -1,9 +1,9 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
+  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList, fridgeFoods, planDayFor, recipesFromFridge, workoutFuel,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { recipePhotoFromFile, useCoachRecipes } from "../data/coachRecipes";
 
 const TAGS: RecipeTag[] = ["High protein", "Under 15 min", "Vegetarian", "Vegan", "Gluten free", "Dairy free", "Batch cook"];
@@ -36,7 +36,8 @@ export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => vo
 }
 
 /** The recipe library: filter chips and a scrolling shelf of cards. */
-export function RecipeShelf({ onOpen, diet = [] }: { onOpen: (r: Recipe) => void; diet?: readonly RecipeTag[] }) {
+export function RecipeShelf({ onOpen, diet = [], foodNotes = "" }: { onOpen: (r: Recipe) => void; diet?: readonly RecipeTag[]; foodNotes?: string }) {
+  const [fridge, setFridge] = useState(false);
   const [tags, setTags] = useState<RecipeTag[]>(() => [...diet]);
   const matched = diet.length > 0 && diet.every((t) => tags.includes(t));
   const [meal, setMeal] = useState<Meal | null>(null);
@@ -45,6 +46,12 @@ export function RecipeShelf({ onOpen, diet = [] }: { onOpen: (r: Recipe) => void
   return (
     <section>
       <div className="sect"><h2 className="h2">Recipes</h2><span className="tiny">{list.length} of {RECIPES.length + coach.length}</span></div>
+      <button type="button" className="fridge-cta" onClick={() => setFridge(true)}>
+        <span className="fridge-ic"><Icons.fridge width={20} height={20} /></span>
+        <span className="grow"><b>What's in my fridge?</b><span className="tiny">Tick what you have and see what you can make</span></span>
+        <Icons.forward width={16} height={16} />
+      </button>
+      {fridge && <FridgeSheet coach={coach} diet={diet} notes={foodNotes} onClose={() => setFridge(false)} onOpen={(r) => { setFridge(false); onOpen(r); }} />}
       <div className="seg rcp-meals" role="radiogroup" aria-label="Meal">
         {[null, ...MEALS.map((m) => m.key)].map((k) => <button key={k ?? "all"} type="button" role="radio" aria-checked={meal === k} className={meal === k ? "on" : ""} onClick={() => setMeal(k)}>{k ? mealLabel(k) : "All"}</button>)}
       </div>
@@ -143,8 +150,9 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
 
 /* ---------- Client: today's plan ---------- */
 
-export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPlan; food: FoodEntry[]; day: string; coachName: string; onLog: (meal: Meal, items: PlanItem[]) => void }) {
-  const [dayId, setDayId] = useState(plan.days[0]?.id ?? "");
+export function ClientPlan({ plan, food, day, coachName, onLog, training = null }: { plan: MealPlan; food: FoodEntry[]; day: string; coachName: string; onLog: (meal: Meal, items: PlanItem[]) => void; training?: boolean | null }) {
+  // Opens on "Training day" when there's a workout that day, "Rest day" when not (if the coach named the days that way).
+  const [dayId, setDayId] = useState(planDayFor(plan, training)?.id ?? plan.days[0]?.id ?? "");
   const [shop, setShop] = useState(false);
   const [open, setOpen] = useState<Recipe | null>(null);
   const { recipes: coach } = useCoachRecipes();
@@ -309,6 +317,113 @@ export function CoachPlanEditor({ plan, targets, name, onSave, diet = [], foodNo
       {plan && <button className="link" style={{ alignSelf: "flex-start", color: "var(--crit)" }} onClick={() => { if (confirm(`Remove ${name}'s meal plan?`)) { onSave(null); setDraft(null); } }}>Remove plan</button>}
       {!plan && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDraft(null)}>Cancel</button>}
     </section>
+  );
+}
+
+/* ---------- Food around a workout ---------- */
+
+/** Training days: what to eat before and after the session, from the recipes, within the client's diet. */
+export function WorkoutFuelCard({ session, seed, diet = [], notes = "", onOpen }: { session: string; seed: number; diet?: readonly RecipeTag[]; notes?: string; onOpen: (r: Recipe) => void }) {
+  const { recipes: coach } = useCoachRecipes();
+  const fuel = useMemo(() => workoutFuel({ coach, diet, notes, seed }), [coach, diet, notes, seed]);
+  if (!fuel.before.length && !fuel.after.length) return null;
+  const row = (title: string, when: string, picks: typeof fuel.before) => picks.length > 0 && (
+    <div className="fuel-row">
+      <div className="fuel-when"><b>{title}</b><span className="tiny">{when}</span></div>
+      <div className="fuel-picks">
+        {picks.map(({ r, why }) => (
+          <button key={r.id} type="button" className="fuel-pick" onClick={() => onOpen(r)}>
+            <span className="fuel-img"><RecipeImg r={r} small /></span>
+            <b>{r.name}</b>
+            <span className="tiny">{why}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <section>
+      <div className="sect"><h2 className="h2">Fuel your session</h2><Label kind="insight">Insight</Label></div>
+      <div className="card stack fuel-card">
+        <div className="small">Today is <b style={{ color: "var(--text)" }}>{session}</b>. Carbs before give you energy to train, and protein after helps you recover.</div>
+        {row("Before", "1 to 3 hours before", fuel.before)}
+        {row("After", "Within 2 hours after", fuel.after)}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- What's in my fridge ---------- */
+
+const FRIDGE_KEY = "apex.fridge";
+function readFridge(): number[] {
+  try { const v = JSON.parse(localStorage.getItem(FRIDGE_KEY) ?? "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "number") : []; } catch { return []; }
+}
+
+/** The client ticks the foods they have; recipes they can make (or nearly make) show underneath. */
+function FridgeSheet({ coach, diet, notes, onOpen, onClose }: { coach: Recipe[]; diet: readonly RecipeTag[]; notes: string; onOpen: (r: Recipe) => void; onClose: () => void }) {
+  const foods = useMemo(() => fridgeFoods(coach), [coach]);
+  const [have, setHave] = useState<Set<number>>(() => new Set(readFridge()));
+  const save = (next: Set<number>) => {
+    setHave(next);
+    try { localStorage.setItem(FRIDGE_KEY, JSON.stringify([...next])); } catch { /* this visit only */ }
+  };
+  const toggle = (ids: number[]) => {
+    const next = new Set(have);
+    const on = ids.some((id) => have.has(id));
+    ids.forEach((id) => (on ? next.delete(id) : next.add(id)));
+    save(next);
+  };
+  const matches = useMemo(() => recipesFromFridge(have, { coach, diet, notes }), [have, coach, diet, notes]);
+  const groups = [...new Set(foods.map((f) => f.group))];
+  const ready = matches.filter((m) => !m.missing.length).length;
+  const results = useRef<HTMLDivElement>(null);
+  return (
+    <Sheet label="What's in my fridge?" onClose={onClose}>
+      <div className="stack fridge" style={{ gap: 14 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">What's in my fridge?</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <div className="small">Tick what you have. Oil, salt, spices and other cupboard basics are already counted.{diet.length ? ` Only ${diet.join(", ").toLowerCase()} recipes are shown.` : ""}</div>
+        {groups.map((g) => (
+          <div key={g}>
+            <div className="tiny caps" style={{ marginBottom: 6 }}>{g}</div>
+            <div className="chips" style={{ flexWrap: "wrap" }}>
+              {foods.filter((f) => f.group === g).map((f) => { const on = f.ids.some((id) => have.has(id)); return <button key={f.name} type="button" className={`chip ${on ? "on" : ""}`} aria-pressed={on} onClick={() => toggle(f.ids)}>{f.name}</button>; })}
+            </div>
+          </div>
+        ))}
+        <div className="fridge-results" aria-live="polite" ref={results}>
+          <div className="sect" style={{ marginBottom: 6 }}>
+            <h3 className="h3">{have.size ? (ready ? `${ready} you can make now` : matches.length ? `${matches.length} you can nearly make` : "Nothing yet") : "Your recipes"}</h3>
+            {have.size > 0 && <button className="link" onClick={() => save(new Set())}>Clear</button>}
+          </div>
+          {!have.size && <div className="small">Tick a few foods above to see what you can cook.</div>}
+          {have.size > 0 && !matches.length && <div className="small">Tick a few more foods. Recipes show up when you're missing two things or fewer.</div>}
+          {matches.length > 0 && (
+            <>
+              {ready > 0 && ready < matches.length && <div className="tiny" style={{ marginBottom: 6 }}>Then {matches.length - ready} more that need just one or two things.</div>}
+              {!ready && <div className="tiny" style={{ marginBottom: 6 }}>Each needs just one or two more things.</div>}
+              <div className="card flat list">
+                {matches.slice(0, 20).map(({ r, missing }) => (
+                  <button key={r.id} type="button" className="li fridge-hit" onClick={() => onOpen(r)}>
+                    <span className="fridge-thumb"><RecipeImg r={r} small /></span>
+                    <span className="grow" style={{ textAlign: "left" }}>
+                      <b>{r.name}</b>
+                      <span className={`tiny ${missing.length ? "" : "fridge-ok"}`}>{missing.length ? `Missing: ${missing.join(", ")}` : "You have everything"} · {r.minutes} min</span>
+                    </span>
+                    <Icons.forward width={15} height={15} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        {matches.length > 0 && (
+          <button type="button" className="btn act block fridge-go" onClick={() => results.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+            {ready ? `See ${ready} you can make now` : `See ${matches.length} you can nearly make`}
+          </button>
+        )}
+      </div>
+    </Sheet>
   );
 }
 
