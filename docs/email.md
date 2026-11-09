@@ -55,6 +55,17 @@ $job$);
 
 To stop it: `select cron.unschedule('apex-email-alerts');`
 
+## 4. New enquiries (lead tools)
+
+The same `email-alerts` function and cron job also send two emails for each new enquiry from a coach's form:
+
+- **A welcome email to the person who asked**, in the coach's own words (Messages → Train with me → Enquiry form). It comes from `EMAIL_FROM`, is signed by the coach, and replies go to the coach's sign-in email.
+- **An alert to the coach** with the person's goal, message and phone, and a link to their leads.
+
+Steps: run `supabase/migrations/20261118090000_leads.sql`, then deploy the function again (`npx supabase functions deploy email-alerts --project-ref ptxtshirthnzovfbdyav`). No new secrets. Leads a coach adds by hand are never emailed, and enquiries older than two days are skipped, so switching this on never emails old leads. Both emails can be switched off per coach.
+
+Until the domain is verified in Resend, these emails only reach your own Resend sign-up address; the pipeline and form work either way.
+
 ## How it fits together
 
 - `supabase/migrations/20261107090000_email_alerts.sql`:

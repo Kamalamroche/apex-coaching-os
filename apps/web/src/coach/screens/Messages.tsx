@@ -11,7 +11,7 @@ import { GroupMessage } from "./GroupMessage";
 import { CoachResources } from "./CoachResources";
 import { CoachTeam } from "./CoachTeam";
 import { useTeamApi } from "../../data/team";
-import { useGrowthApi } from "../../data/growth";
+import { openedForLeads, useGrowthApi } from "../../data/growth";
 import { CoachGrow } from "./CoachGrow";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
@@ -23,7 +23,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
-  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | null>(null);
+  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | null>(() => (openedForLeads() ? "grow" : null));
   const teamApi = useTeamApi();
   const growApi = useGrowthApi();
   const [on, setOn] = useState<number | null>(null);
@@ -64,7 +64,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
       {growApi && (
         <button className="li" onClick={() => setExtra("grow")}>
           <Icons.globe width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Your public page, your link and requests from new people</div></div>
+          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Leads, your enquiry form and welcome email, your public page</div></div>
           <span className="tiny">›</span>
         </button>
       )}

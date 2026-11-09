@@ -1,5 +1,5 @@
 import { useApexState } from "@apex/core/react";
-import { Shell, useToast, type TabDef } from "@apex/ui";
+import { Shell, useT, useToast, type TabDef } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { OfflineBanner, useAppInfo } from "../app/AppContext";
 import { useOpenFromNotification } from "../app/PushParts";
@@ -28,6 +28,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   // Opens More straight on a screen, e.g. Team from Today.
   const [moreStart, setMoreStart] = useState<{ view: MoreView; n: number } | null>(null);
   const [toast, say] = useToast();
+  const t = useT();
   const tabs: TabDef<Tab>[] = [
     { id: "today", icon: "today", label: "Today" },
     { id: "train", icon: "train", label: "Train" },
@@ -48,7 +49,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}>
       <OfflineBanner />
       {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
       {intaking && <Intake onExit={() => setIntaking(false)} onDone={() => { setIntaking(false); setTab("today"); window.scrollTo(0, 0); say(`Sent · ${coachName} can see your answers`); }} />}
@@ -56,7 +57,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
       {!checkingIn && !intaking && tab === "train" && <Train start={start} say={say} />}
       {!checkingIn && !intaking && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
       {!checkingIn && !intaking && tab === "chat" && <Chat />}
-      {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} />}
+      {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} goTrain={() => { setTab("train"); window.scrollTo(0, 0); }} />}
       {toast}
     </Shell>
   );

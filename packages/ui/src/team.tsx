@@ -1,4 +1,5 @@
 import { HERO_IMAGES, LEVELS, agoText, feedDay, heroForPost, postFigure, rankEffort, type EffortLine, type TeamDraft, type TeamPost, type TeamPostKind } from "@apex/core";
+import { useUnits } from "./prefs";
 import { useState, type ReactNode } from "react";
 import { Icons, type IconName } from "./icons";
 import { CountUp, Rolling } from "./motion";
@@ -85,7 +86,10 @@ function LevelLadder({ level }: { level: number }) {
 }
 
 /** One post, drawn for its kind. */
-export function TeamPostItem({ p, onFive, onRemove, now, i = 0 }: { p: TeamPost; onFive?: () => void; onRemove?: () => void; now?: Date; i?: number }) {
+export function TeamPostItem({ p: saved, onFive, onRemove, now, i = 0 }: { p: TeamPost; onFive?: () => void; onRemove?: () => void; now?: Date; i?: number }) {
+  // Posts are saved in kg and km; each teammate reads them in their own units.
+  const u = useUnits();
+  const p = { ...saved, title: u.kt(saved.title), ...(saved.detail ? { detail: u.kt(saved.detail) } : {}) };
   const hero = heroForPost(p);
   const fig = postFigure(p);
   const [icon, label] = KIND[p.kind];

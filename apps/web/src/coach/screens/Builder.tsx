@@ -4,7 +4,7 @@ import {
   type Exercise, type Workout, type WorkoutItem,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, Sheet } from "@apex/ui";
+import { Icons, Sheet, useUnits } from "@apex/ui";
 import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
@@ -32,6 +32,7 @@ const highlight = (name: string, q: string) => {
 };
 
 export function Builder({ say, onInvite, live }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps }) {
+  const u = useUnits();
   const store = useStore();
   const { clientName, mode } = useAppInfo();
   const { status, error } = useStoreStatus();
@@ -69,11 +70,12 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   /* "75%" in the kg box loads 75% of the estimated 1RM from the last logged set. */
   const setKg = (it: WorkoutItem, raw: string) => {
     const pct = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(raw.trim());
-    if (!pct) return upd(it.key, { kg: Number(raw.replace(",", ".")) || 0 });
+    // Typed in the coach's unit (kg or lb), stored in kg.
+    if (!pct) return upd(it.key, { kg: u.toKg(Number(raw.replace(",", ".")) || 0) });
     const kg = kgFromPercent(it, Number(pct[1]?.replace(",", ".")));
     if (kg === null) return say("No logged sets yet, so there's no 1RM to work from");
     upd(it.key, { kg });
-    say(`${pct[1]}% of the estimated 1RM = ${kg} kg`);
+    say(`${pct[1]}% of the estimated 1RM = ${u.fw(kg)}`);
   };
 
   /* Where a drop at this pointer height lands: before the first row whose middle is below it. */
@@ -262,7 +264,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
               <div className="mini">
                 <label>{circuit ? "Rounds" : "Sets"}<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => { const n = Math.min(20, Number(e.target.value.replace(/\D/g, "")) || 1); edit((w) => (circuit ? setRounds(w, it.key, n) : updateItem(w, it.key, { sets: n }))); }} /></label>
                 <label>{circuit ? "Reps / time" : "Reps"}<input id={`r-${it.key}`} value={vary ? "per set" : it.reps} disabled={vary} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
-                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={vary ? "per set" : it.kg} disabled={vary} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
+                <label>{u.weight}<input id={`k-${it.key}`} inputMode="decimal" value={vary ? "per set" : u.w(it.kg)} disabled={vary} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
                 <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={(e) => upd(it.key, { rpe: Number(e.target.value) || 0 })} /></label>
                 <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.restSeconds} onChange={(e) => upd(it.key, { restSeconds: Number(e.target.value) || 0 })} /></label>
               </div>
@@ -272,14 +274,14 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
                     <div key={n} className="bld-set">
                       <span className="tiny num">Set {n + 1}</span>
                       <label>Reps<input value={t.reps} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { reps: e.target.value })))} aria-label={`Set ${n + 1} reps`} /></label>
-                      <label>kg<input inputMode="decimal" value={t.kg} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { kg: Number(e.target.value.replace(",", ".")) || 0 })))} aria-label={`Set ${n + 1} kg`} /></label>
+                      <label>{u.weight}<input inputMode="decimal" value={u.w(t.kg)} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { kg: u.toKg(Number(e.target.value.replace(",", ".")) || 0) })))} aria-label={`Set ${n + 1} ${u.weight}`} /></label>
                     </div>
                   ))}
                 </div>
               )}
               {plateauOpen === it.exerciseId && stalled && <PlateauFixes plateau={stalled} say={say} onDone={() => setPlateauOpen(null)} />}
               <div className="bld-foot">
-                <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
+                <span className="tiny">Last time: <span className="num">{u.kt(it.lastTime)}</span>{e1rm ? <> · e1RM <span className="num">{u.fw(e1rm)}</span></> : null}</span>
                 <span className="row" style={{ gap: 6 }}>
                   {stalled && <button className="chip plat-chip" aria-expanded={plateauOpen === it.exerciseId} onClick={() => setPlateauOpen(plateauOpen === it.exerciseId ? null : it.exerciseId)} title={stalled.reason}>Stalled</button>}
                   <button className={`chip bld-ss ${vary ? "on" : ""}`} aria-pressed={vary} onClick={() => edit((w) => updateItem(w, it.key, setVarySets(it, !vary)))} title="Different reps and kg on each set: pyramids, top set and back-offs">{vary ? "Per set ✓" : "Per set"}</button>

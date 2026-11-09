@@ -1,12 +1,12 @@
 import {
-  ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
+  feetInches, fromFeetInches, ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
   weekDaysOf, weekNutrition, restDayProblem, suggestRestDay, nutritionNudge, nutritionScore, targetsFor, workoutOn,
   type NutritionTargets,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { useStore } from "../../data/StoreContext";
-import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
+import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel, useUnits, useConvertedText } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { CoachPlanEditor } from "../../app/MealPlanParts";
@@ -206,7 +206,13 @@ function TargetCalculator({ name, onUse }: { name: string; onUse: (t: SuggestedT
     setC(next);
     try { localStorage.setItem(CALC_KEY, JSON.stringify(next)); } catch { /* private mode: fine */ }
   };
+  const u = useUnits();
+  const [weightText, setWeightText] = useConvertedText(c.weight, (v) => set({ weight: v }), u.toKg, (kg) => u.w(kg), u.weight === "kg");
   if (!open) return <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setOpen(true)}><Icons.target width={14} height={14} style={{ verticalAlign: -2, marginRight: 4 }} />Work out targets for me</button>;
+  // The form keeps cm and kg; the boxes show feet, inches and lb when the coach uses them.
+  const heightCm = parseNumber(c.height);
+  const ftIn = heightCm ? feetInches(heightCm) : null;
+  const setFtIn = (ft: string, inch: string) => set({ height: ft || inch ? String(fromFeetInches(parseNumber(ft) ?? 0, parseNumber(inch) ?? 0)) : "" });
   const inputs = { sex: c.sex, age: parseNumber(c.age) ?? undefined, heightCm: parseNumber(c.height) ?? undefined, weightKg: parseNumber(c.weight) ?? undefined, activity: c.activity, goal: c.goal };
   const filled = c.age && c.height && c.weight;
   const problem = filled ? targetInputsProblem(inputs) : null;
@@ -218,10 +224,13 @@ function TargetCalculator({ name, onUse }: { name: string; onUse: (t: SuggestedT
       <div className="seg" role="radiogroup" aria-label="Sex">
         {(["female", "male"] as const).map((x) => <button key={x} type="button" role="radio" aria-checked={c.sex === x} className={c.sex === x ? "on" : ""} onClick={() => set({ sex: x })}>{x === "female" ? "Female" : "Male"}</button>)}
       </div>
-      <div className="nut-calc-grid">
+      <div className="nut-calc-grid" style={u.length === "in" ? { gridTemplateColumns: "repeat(2,minmax(0,1fr))" } : undefined}>
         <NumberField id="calc-age" label="Age" unit="yrs" value={c.age} onChange={(v) => set({ age: v })} />
-        <NumberField id="calc-h" label="Height" unit="cm" value={c.height} onChange={(v) => set({ height: v })} />
-        <NumberField id="calc-w" label="Weight" unit="kg" value={c.weight} onChange={(v) => set({ weight: v })} />
+        {u.length === "cm" ? <NumberField id="calc-h" label="Height" unit="cm" value={c.height} onChange={(v) => set({ height: v })} /> : <>
+          <NumberField id="calc-h" label="Height" unit="ft" value={ftIn ? String(ftIn.ft) : ""} onChange={(v) => setFtIn(v, ftIn ? String(ftIn.in) : "")} />
+          <NumberField id="calc-hi" label="and" unit="in" value={ftIn ? String(ftIn.in) : ""} onChange={(v) => setFtIn(ftIn ? String(ftIn.ft) : "", v)} />
+        </>}
+        <NumberField id="calc-w" label="Weight" unit={u.weight} value={weightText} onChange={setWeightText} />
       </div>
       <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>Activity
         <select id="calc-act" className="field" value={c.activity} onChange={(e) => set({ activity: e.target.value as ActivityLevel })}>

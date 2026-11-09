@@ -1,6 +1,6 @@
 import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, BackLink, Bar, Label, Spark, riskColor } from "@apex/ui";
+import { Avatar, BackLink, Bar, Label, Spark, riskColor, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
@@ -72,6 +72,7 @@ export function Clients({ id, setId, say, goBuild }: Props) {
 }
 
 function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; onBack: () => void; say: (m: string) => void; goBuild: () => void }) {
+  const u = useUnits();
   const store = useStore();
   const { workout } = useApexState(store);
   const [tab, setTab] = useState<ProfileTab>("Overview");
@@ -90,12 +91,12 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         <>
           <div className="kpis">
             <div className="kpi"><b style={{ color: riskColor(c.risk) }}>{c.adherence}%</b><small>Adherence, 4 wks</small></div>
-            <div className="kpi"><b>{c.weightKg}</b><small>Weight, kg</small></div>
+            <div className="kpi"><b>{u.w(c.weightKg)}</b><small>Weight, {u.weight}</small></div>
             <div className="kpi"><b>{c.streak}</b><small>Day streak</small></div>
           </div>
           <div className="card">
             <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Squat e1RM, 8 weeks</h3><Label kind="data">Data</Label></div>
-            <Spark data={[88, 90, 91, 94, 94, 97, 99, 101]} unit="kg" />
+            <Spark data={[88, 90, 91, 94, 94, 97, 99, 101].map((kg) => u.w(kg))} unit={u.weight} />
           </div>
           <div className="row" style={{ flexWrap: "wrap" }}>
             <button className="btn act" style={{ flex: 1 }} onClick={() => say(`Message thread opened with ${firstName(c.name)}`)}>Message</button>
@@ -109,7 +110,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
           {workout.items.map((it) => (
             <div key={it.key} className="ex">
               <span className="grp">{it.group}</span>
-              <div className="grow"><div className="h3">{exerciseFor(it).name}</div><div className="small num">{it.sets}×{it.reps}{it.kg ? ` · ${it.kg} kg` : ""} · RPE {it.rpe}</div></div>
+              <div className="grow"><div className="h3">{exerciseFor(it).name}</div><div className="small num">{it.sets}×{it.reps}{it.kg ? ` · ${u.fw(it.kg)}` : ""} · RPE {it.rpe}</div></div>
               <span className="tiny num">{it.restSeconds ? formatRest(it.restSeconds) : "→"}</span>
             </div>
           ))}
@@ -126,12 +127,12 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
       {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
         <div className="card flat list">
           {CHECK_INS.map((r) => (
-            <div key={r.date} className="li"><div className="grow"><div className="h3">{r.date} · <span className="num">{r.weight}</span></div><div className="small">{r.stats}</div><div className="tiny">“{r.note}”</div></div></div>
+            <div key={r.date} className="li"><div className="grow"><div className="h3">{r.date} · <span className="num">{u.kt(r.weight)}</span></div><div className="small">{r.stats}</div><div className="tiny">“{r.note}”</div></div></div>
           ))}
           <div style={{ padding: 12 }}>
             <div className="row" style={{ alignItems: "flex-start" }}>
               <Label kind="ai">AI summary</Label>
-              <span className="small">Weight down 0.5 kg over 3 weeks, energy steady, one mention of hip tightness. Suggest asking about the hip before progressing RDLs.</span>
+              <span className="small">Weight down {u.fw(0.5)} over 3 weeks, energy steady, one mention of hip tightness. Suggest asking about the hip before progressing RDLs.</span>
             </div>
           </div>
         </div>

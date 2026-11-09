@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icons, type IconName } from "./icons";
 import { ThemeButton } from "./ThemeButton";
+import { useT } from "./prefs";
 
 export interface TabDef<T extends string> {
   id: T;
@@ -24,6 +25,7 @@ interface ShellProps<T extends string> {
 /** App frame: top bar with logo and theme, content, floating tab bar (the open tab shows its name, the rest are icons). */
 export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, wide, actions, children }: ShellProps<T>) {
   const nav = useRef<HTMLElement>(null);
+  const tr = useT();
   const pill = useRef<HTMLSpanElement>(null);
   // The dark pill behind the open tab slides to the tab you pick and stretches to its width.
   useLayoutEffect(() => {
@@ -46,7 +48,7 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
   return (
     <div className={`shell ${wide ? "wide" : ""}`}>
       <div className="top">
-        <a className="iconbtn" href={switchHref} aria-label="Switch app" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>← Switch</a>
+        <a className="iconbtn" href={switchHref} aria-label="Switch app" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>{tr("← Switch")}</a>
         <div className="wordmark" style={{ gap: 7 }}>
           <Icons.logo width={22} height={22} />
           <b style={{ fontSize: 19 }}>APEX</b>
@@ -59,9 +61,9 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
         {tabs.map((t) => {
           const Icon = Icons[t.icon];
           return (
-            <button key={t.id} className={`tab ${tab === t.id ? "on" : ""}`} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }} aria-current={tab === t.id ? "page" : undefined} aria-label={t.label} title={t.label}>
+            <button key={t.id} className={`tab ${tab === t.id ? "on" : ""}`} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }} aria-current={tab === t.id ? "page" : undefined} aria-label={tr(t.label)} title={tr(t.label)}>
               <i className="ic"><Icon /></i>
-              <span>{t.label}</span>
+              <span>{tr(t.label)}</span>
               {t.dot && <i className="dot" />}
             </button>
           );

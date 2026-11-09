@@ -1,11 +1,16 @@
 import { CLIENTS } from "@apex/core";
-import { Avatar, CountUp, Label } from "@apex/ui";
+import { Avatar, CountUp, Icons, Label } from "@apex/ui";
+import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import type { CoachLiveProps } from "../CoachApp";
+import { CoachProgrammes } from "./CoachProgrammes";
 
 const MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
 const REVENUE = [920, 1010, 1080, 1150, 1170, 1220];
 
-export function Business() {
+export function Business({ live, say = () => {}, openGym }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void }) {
+  const [shop, setShop] = useState(false);
+  if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   const max = Math.max(...REVENUE);
   const total = CLIENTS.reduce((a, c) => a + c.monthlyRevenue, 0);
   return (
@@ -14,6 +19,22 @@ export function Business() {
         <div className="eyebrow">Business</div>
         <h1 className="h1">£<CountUp value={total} duration={1200} /> monthly recurring</h1>
         <p className="sub">Sample figures. Real numbers come from Stripe once billing is connected.</p>
+      </div>
+      {openGym && (
+        <div className="card flat list full">
+          <button className="li" onClick={openGym}>
+            <Icons.clients width={18} height={18} style={{ color: "var(--act)" }} />
+            <div className="grow"><div className="h3">Gym</div><div className="tiny">Your trainers, their roles and every client in one place</div></div>
+            <span className="tiny">›</span>
+          </button>
+        </div>
+      )}
+      <div className="card flat list full">
+        <button className="li" onClick={() => setShop(true)}>
+          <span className="mi c2"><Icons.train /></span>
+          <div className="grow"><div className="h3">Programmes</div><div className="small">Sell ready-made plans to many clients at once, free or paid</div></div>
+          <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
+        </button>
       </div>
       <SampleNote />
       <div className="card">

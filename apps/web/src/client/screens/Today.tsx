@@ -1,6 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
@@ -23,6 +23,7 @@ const WEEK_DATES = [20, 21, 22, 23, 24, 25, 26];
 const PLANNED = [true, true, false, true, false, true, false];
 
 export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; say?: (m: string) => void }) {
+  const u = useUnits();
   const store = useStore();
   const { clientName, coachName } = useAppInfo();
   const { status } = useStoreStatus();
@@ -146,7 +147,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               <li key={it.key} className="row small" style={{ gap: 8 }}>
                 <span className="grp" style={{ width: 28, fontSize: 11 }}>{it.group}</span>
                 <span style={{ color: "var(--text)" }}>{exerciseFor(it).name}</span>
-                <span className="num" style={{ marginLeft: "auto" }}>{it.sets}×{it.reps}{it.kg ? ` · ${it.kg} kg` : ""}</span>
+                <span className="num" style={{ marginLeft: "auto" }}>{it.sets}×{it.reps}{it.kg ? ` · ${u.fw(it.kg)}` : ""}</span>
               </li>
             ))}
             </ul>
@@ -156,7 +157,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
-          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
+          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {u.fw(log.volumeKg, 0)} · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}

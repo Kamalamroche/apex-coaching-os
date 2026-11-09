@@ -1,6 +1,9 @@
 /* Draws the workout share card onto a 1080 × 1920 canvas (story size), so it can be saved or shared as an image.
    The card always sits on a photo, so it uses the dark Athletic Tech tokens whatever the app theme. */
 
+import { metricTextIn, weightFromKg } from "@apex/core";
+import { getPrefs } from "./prefs";
+
 export const SHARE_W = 1080;
 export const SHARE_H = 1920;
 
@@ -43,7 +46,9 @@ export async function loadShareFonts(): Promise<void> {
 }
 
 type Ctx = CanvasRenderingContext2D;
-const kg = (n: number) => Math.round(n).toLocaleString("en-GB");
+/** A kg figure in the person's unit, whole numbers. */
+const kg = (n: number) => Math.round(weightFromKg(n, getPrefs().units.weight)).toLocaleString("en-GB");
+const WU = () => getPrefs().units.weight;
 
 function font(c: Ctx, f: string, spacing = 0, wide = false) {
   c.font = f;
@@ -151,7 +156,7 @@ function strip(c: Ctx, d: ShareCanvasData) {
   fit(c, d.workoutName.toUpperCase(), 60, 960, (s) => font(c, `500 ${s}px ${T.serif}`, s * 0.09));
   c.fillText(d.workoutName.toUpperCase(), 60, y0 + 75);
 
-  const stats: [string, string][] = [[kg(d.totalKg), "KG LIFTED"], [String(d.sets), "SETS"], [String(d.minutes), "MIN"]];
+  const stats: [string, string][] = [[kg(d.totalKg), `${WU().toUpperCase()} LIFTED`], [String(d.sets), "SETS"], [String(d.minutes), "MIN"]];
   stats.forEach(([v, l], i) => {
     const x = 60 + i * 330;
     if (i) {
@@ -214,8 +219,8 @@ function crownCard(c: Ctx, d: ShareCanvasData, crown: CrownPlacement) {
 
   font(c, `400 33px ${T.head}`);
   c.fillStyle = T.text;
-  fit(c, `${d.reward.reason} · ${kg(d.totalKg)} kg today`, 33, 960, (s) => font(c, `400 ${s}px ${T.head}`));
-  c.fillText(`${d.reward.reason} · ${kg(d.totalKg)} kg today`, cx, 1720);
+  fit(c, `${metricTextIn(d.reward.reason, getPrefs().units)} · ${kg(d.totalKg)} ${WU()} today`, 33, 960, (s) => font(c, `400 ${s}px ${T.head}`));
+  c.fillText(`${metricTextIn(d.reward.reason, getPrefs().units)} · ${kg(d.totalKg)} ${WU()} today`, cx, 1720);
 
   font(c, `700 39px ${T.num}`);
   c.fillStyle = T.warn;
@@ -282,7 +287,7 @@ function sticker(c: Ctx, d: ShareCanvasData, photo: ShareDraw["photo"], site: st
   const nw = c.measureText(kg(d.totalKg)).width;
   font(c, `700 36px ${T.num}`);
   c.fillStyle = T.text2;
-  c.fillText("kg", px + nw + 10, cy);
+  c.fillText(WU(), px + nw + 10, cy);
 
   cy += 54;
   font(c, `700 31px ${T.num}`);
@@ -291,7 +296,7 @@ function sticker(c: Ctx, d: ShareCanvasData, photo: ShareDraw["photo"], site: st
     c.fillText("First session logged", px, cy);
   } else {
     c.fillStyle = d.vsLastKg >= 0 ? T.good : T.warn;
-    c.fillText(`${d.vsLastKg >= 0 ? "▲" : "▼"} ${kg(Math.abs(d.vsLastKg))} kg vs last time`, px, cy);
+    c.fillText(`${d.vsLastKg >= 0 ? "▲" : "▼"} ${kg(Math.abs(d.vsLastKg))} ${WU()} vs last time`, px, cy);
   }
 
   if (hasBars && d.lastKg !== null) {

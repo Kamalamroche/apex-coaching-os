@@ -1,5 +1,5 @@
 import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
-import { Avatar, BackLink, Icons, type IconName, ScriptTitle } from "@apex/ui";
+import { Avatar, BackLink, Icons, type IconName, ScriptTitle, useT, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { useAppInfo } from "../../app/AppContext";
@@ -16,6 +16,8 @@ import { Goals } from "./Goals";
 import { Book } from "./Book";
 import { Challenges } from "./Challenges";
 import { Resources } from "./Resources";
+import { Programmes } from "./Programmes";
+import { useProgrammesApi } from "../../app/ProgrammeParts";
 import { Team } from "./Team";
 import { useTeamApi } from "../../data/team";
 import { InviteFriend, useFriendInvite } from "../../app/GrowthParts";
@@ -25,13 +27,15 @@ import { useBookingApi } from "../../data/bookings";
 import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
+import { UnitsAndLanguage } from "../../app/Settings";
 
-type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
+type View = "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
 
 export type MoreView = View;
 
-export function More({ say, start }: { say: (m: string) => void; start?: View | null }) {
+export function More({ say, start, goTrain }: { say: (m: string) => void; start?: View | null; goTrain?: () => void }) {
   const [view, setView] = useState<View | null>(start ?? null);
+  const t = useT();
   const teamApi = useTeamApi();
   const friend = useFriendInvite();
   const { coachName } = useAppInfo();
@@ -43,6 +47,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   const bookingApi = useBookingApi();
   const challengeApi = useChallengeApi();
   const resourceApi = useResourceApi();
+  const programmeApi = useProgrammesApi("client");
   const bookingData = useBookings(bookingApi);
   const nextBooking = bookingApi ? upcomingBookings(bookingData.bookings.filter((b) => b.clientId === bookingApi.me), new Date())[0] : undefined;
   const reached = goals.goals.filter((g) => goalProgress(g, inputs).achieved).length;
@@ -54,6 +59,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
     ...(teamApi ? [["team", "Team", `${coachName}'s private team: high fives and the weekly effort board`] as [View, string, string]] : []),
     ...(friend ? [["invite", "Invite a friend", friend.summary.joined ? `${friend.summary.joined} joined ${coachName} through you` : `Bring a friend to train with ${coachName}`] as [View, string, string]] : []),
     ...(challengeApi ? [["challenges", "Challenges", `Join ${coachName}'s challenges and climb the leaderboard`] as [View, string, string]] : []),
+    ...(programmeApi ? [["programmes", "Programmes", `Ready-made plans from ${coachName}. Start any time`] as [View, string, string]] : []),
     ...(resourceApi ? [["resources", "Resources", `Guides, videos and links from ${coachName}`] as [View, string, string]] : []),
     ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
@@ -63,19 +69,20 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
     ...(teamApi ? [] : [["community", "Community", "Leaderboard and team feed"] as [View, string, string]]),
   ];
   const ICON: Record<View, [IconName, string]> = {
-    book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
+    book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
   if (view) {
     return (
       <>
-        <BackLink onClick={() => setView(null)}>More</BackLink>
+        <BackLink onClick={() => setView(null)}>{t("More")}</BackLink>
         {view === "book" && <Book say={say} />}
         {view === "team" && <Team say={say} />}
         {view === "invite" && <InviteFriend say={say} />}
         {view === "challenges" && <Challenges say={say} />}
+        {view === "programmes" && <Programmes say={say} onTrain={goTrain} />}
         {view === "resources" && <Resources />}
         {view === "goals" && <Goals say={say} />}
         {view === "food" && <ClientNutrition />}
@@ -84,21 +91,20 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "account" && <AccountScreen say={say} />}
+        {view === "settings" && <UnitsAndLanguage />}
       </>
     );
   }
   return (
     <>
-      <div><p className="sub" style={{ margin: 0 }}>More</p><ScriptTitle script="Everything" className="sm">else</ScriptTitle></div>
+      <div><p className="sub" style={{ margin: 0 }}>{t("More")}</p><ScriptTitle script={t("Everything")} className="sm">{t("else")}</ScriptTitle></div>
       <div className="card flat list">
-        {MENU.map(([k, t, s]) => (
-          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        {MENU.map(([k, title, s]) => (
+          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t(title)}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         ))}
-        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">Privacy and account</div><div className="small">Your agreements, download your data, delete your account</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        {[["Settings", "Units and notifications"]].map(([t, s]) => (
-          <div key={t} className="li"><span className="mi"><Icons.more /></span><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
-        ))}
+        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">{t("Connected apps")}</div><div className="small">{t("Strava, watch files, and what's coming next")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">{t("Privacy and account")}</div><div className="small">{t("Your agreements, download your data, delete your account")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        <button className="li" onClick={() => setView("settings")}>{chip("settings")}<div className="grow"><div className="h3">{t("Settings")}</div><div className="small">{t("Units and language")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
       </div>
     </>
   );
@@ -110,6 +116,7 @@ const POSTS = [
 ];
 
 function Community() {
+  const u = useUnits();
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   const board = [...CLIENTS].sort((a, b) => b.adherence - a.adherence).slice(0, 4);
   return (
@@ -131,7 +138,7 @@ function Community() {
       {POSTS.map((p, i) => (
         <div key={p.user} className="card">
           <div className="h3">{p.user}</div>
-          <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{p.text}</p>
+          <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{u.kt(p.text)}</p>
           <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}><Icons.heart width={13} height={13} fill={liked[i] ? "currentColor" : "none"} /> {p.likes + (liked[i] ? 1 : 0)}</button>
         </div>
       ))}

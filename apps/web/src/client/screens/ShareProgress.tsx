@@ -1,6 +1,6 @@
 import { MEASURES, POSES, beforeAfterPair, bodyChange, measurementSeries, recentBests, shortDate, signedUnit, storyCaption, type MeasureKey, type Pose } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Sheet, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, loadStoryFonts, type CardFormat } from "@apex/ui";
+import { Sheet, cardHeight, drawBeforeAfter, drawBestCard, drawMeasureCard, loadStoryFonts, type CardFormat, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { PlaceDrag, SizeSlider } from "../../app/PlaceDrag";
@@ -15,6 +15,7 @@ type Kind = "photos" | "body" | "best";
  * Body numbers stay off the card unless the client switches them on, and the face can be left out of photos.
  */
 export function ShareProgress({ onClose, openWeek }: { onClose: () => void; openWeek: () => void }) {
+  const u = useUnits();
   const store = useStore();
   const { progress, history } = useApexState(store);
   const { coachName } = useAppInfo();
@@ -57,7 +58,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
     if (kind === "photos" && pair) {
       const lines = numbers.flatMap((k) => {
         const c = bodyChange(progress.measurements, k);
-        return c ? [`${signedUnit(c.delta, c.unit)} ${c.label.toLowerCase()}`] : [];
+        return c ? [`${signedUnit(u.show(c.delta, c.unit), u.unit(c.unit))} ${c.label.toLowerCase()}`] : [];
       });
       drawBeforeAfter(cv, { format, before: imgs.before, after: imgs.after, beforeDate: shortDate(pair.before.takenAt), afterDate: shortDate(pair.after.takenAt), weeks: pair.weeks, numbers: lines, hideFace, coach, site, t });
     } else if (kind === "body" && change) {
@@ -141,7 +142,7 @@ export function ShareProgress({ onClose, openWeek }: { onClose: () => void; open
       )}
       {kind === "best" && bests.length > 1 && (
         <div className="chips" role="radiogroup" aria-label="Personal best" style={{ flexWrap: "wrap" }}>
-          {bests.slice(0, 6).map((b, i) => <button key={`${b.exerciseId}-${b.at}`} role="radio" aria-checked={bestIdx === i} className={`chip ${bestIdx === i ? "on" : ""}`} onClick={() => setBestIdx(i)}>{b.exercise} {b.kg} kg</button>)}
+          {bests.slice(0, 6).map((b, i) => <button key={`${b.exerciseId}-${b.at}`} role="radio" aria-checked={bestIdx === i} className={`chip ${bestIdx === i ? "on" : ""}`} onClick={() => setBestIdx(i)}>{b.exercise} {u.fw(b.kg)}</button>)}
         </div>
       )}
       {kind !== "photos" && <div className="sp-photo"><PhotoPick photo={photo} onPhoto={setPhoto} /><span className="tiny">{photo ? "Drag to move, pinch to resize" : "Your picture behind the numbers"}</span></div>}

@@ -1,6 +1,6 @@
 import { RATINGS, answersFor, parseNumber, type AnswerValues, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, RatingPicker, WheelInput } from "@apex/ui";
+import { BackLink, RatingPicker, WheelInput, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, PoseSlots, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -14,7 +14,9 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
   const store = useStore();
   const { coachName } = useAppInfo();
   const { progress } = useApexState(store);
-  const lastWeight = progress.checkIns.find((c) => c.weightKg !== null)?.weightKg;
+  const u = useUnits();
+  const lastKg = progress.checkIns.find((c) => c.weightKg !== null)?.weightKg;
+  const lastWeight = lastKg == null ? lastKg : u.w(Number(lastKg));
   const [weight, setWeight] = useState("");
   const [sleep, setSleep] = useState("");
   const [ratings, setRatings] = useState<Ratings>(noRatings);
@@ -29,7 +31,9 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  const weightKg = parseNumber(weight);
+  // Typed in the person's unit, saved in kg.
+  const typed = parseNumber(weight);
+  const weightKg = typed === null ? null : u.toKg(typed);
   const sleepHours = parseNumber(sleep);
   const answered = weightKg !== null || sleepHours !== null || Object.values(ratings).some((v) => v !== null) || Object.values(words).some((w) => w.trim()) || photos.length > 0 || answers.length > 0;
 
@@ -38,7 +42,7 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
     setErr(null);
     const checkIn: CheckInInput = { weightKg, sleepHours, ...ratings, ...words, answers };
     try {
-      await store.submitCheckIn(checkIn, { ...parseMeasures(measures), weightKg }, photos);
+      await store.submitCheckIn(checkIn, { ...parseMeasures(measures, u), weightKg }, photos);
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Couldn't send your check-in. Check your connection and try again.");
@@ -55,8 +59,8 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Body</h2></div>
         <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          Weight this morning, kg
-          <WheelInput id="ci-weight" title="Weight this morning" unit="kg" min={30} max={250} step={0.1} fallback={lastWeight ? Number(lastWeight) : 70} placeholder={lastWeight ? `Last time ${lastWeight}` : "e.g. 72.4"} value={weight} onChange={setWeight} />
+          Weight this morning, {u.weight}
+          <WheelInput id="ci-weight" title="Weight this morning" unit={u.weight} min={Math.round(u.w(30))} max={Math.round(u.w(250))} step={0.1} fallback={lastWeight ? Number(lastWeight) : 70} placeholder={lastWeight ? `Last time ${lastWeight}` : u.weight === "lb" ? "e.g. 160.4" : "e.g. 72.4"} value={weight} onChange={setWeight} />
         </label>
         {showMeasures ? (
           <MeasureInputs value={measures} onChange={setMeasures} last={progress.measurements} skip={["weightKg"]} />

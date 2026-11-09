@@ -2,7 +2,7 @@ import {
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WheelInput } from "@apex/ui";
+import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -20,6 +20,7 @@ const RPE_SCALE = [6, 7, 8, 9, 10];
     move station to station and rest after the round; timed stations get a work countdown. */
 export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
   const store = useStore();
+  const u = useUnits();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
   const [w, setW] = useState(() => store.get().workout);
   /** Undefined until the client answers or skips the readiness check. */
@@ -111,6 +112,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const circuit = it.blockStyle === "circuit";
   const targets = setTargets(it);
   const hasKg = targets.some((t) => t.kg > 0);
+  const showKg = (raw: string | number) => { const n = Number(String(raw).replace(",", ".")); return Number.isFinite(n) ? u.w(n) : raw; };
   const workSecs = timedSeconds(it.reps);
   const round = itemSets.filter((s) => s.done).length + 1;
 
@@ -145,12 +147,12 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         <div className="tiles">
           <div className="tile mid"><b>{Math.min(itemSets.filter((x) => x.done).length + 1, it.sets)}<small> / {it.sets}</small></b><span>{circuit ? "Round" : "Set"}</span></div>
           <div className="tile mid"><b>{workSecs ? `${workSecs}s` : (nextSet?.reps || it.reps)}</b><span>{workSecs ? "Work" : distanceMetres(it.reps) ? "Metres" : "Reps"}</span></div>
-          <div className="tile mid"><b>{hasKg ? (nextSet?.kg || it.kg) : "BW"}{hasKg && <small> kg</small>}</b><span>{hasKg ? "Weight" : "Bodyweight"}</span></div>
+          <div className="tile mid"><b>{hasKg ? showKg(nextSet?.kg || it.kg) : "BW"}{hasKg && <small> {u.weight}</small>}</b><span>{hasKg ? "Weight" : "Bodyweight"}</span></div>
         </div>
         <div>
           <div className="small num">
             {circuit ? `Round ${Math.min(round, it.sets)} of ${it.sets} · ${it.reps}` : `Target ${it.sets}×${it.setPlan ? targets.map((t) => t.reps).join("/") : it.reps}`}
-            {it.kg ? ` @ ${it.setPlan ? `up to ${Math.max(...targets.map((t) => t.kg))}` : it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
+            {it.kg ? ` @ ${it.setPlan ? `up to ${u.w(Math.max(...targets.map((t) => t.kg)))}` : u.w(it.kg)} ${u.weight}` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
           </div>
           {inBlock && (
             <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -165,22 +167,22 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
         <div className="card" style={{ padding: "10px 12px" }}>
-          <div className="small">Last time: <b className="num" style={{ color: "var(--text)" }}>{it.lastTime}</b></div>
+          <div className="small">Last time: <b className="num" style={{ color: "var(--text)" }}>{u.kt(it.lastTime)}</b></div>
         </div>
         <div>
           <div className="sets" style={{ marginBottom: 6 }}>
-            {[circuit ? "Rnd" : "Set", hasKg ? "kg" : "—", workSecs ? "Secs" : distanceMetres(it.reps) ? "Metres" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
+            {[circuit ? "Rnd" : "Set", hasKg ? u.weight : "—", workSecs ? "Secs" : distanceMetres(it.reps) ? "Metres" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
           </div>
           {itemSets.map((s, i) => (
             <div key={i} className="sets" style={{ marginBottom: 8, opacity: s.done ? 0.75 : 1 }}>
               <span className="num" style={{ textAlign: "center", fontWeight: 800, color: s.done ? "var(--good)" : "var(--text2)" }}>{i + 1}</span>
               {hasKg ? (
-                <WheelInput id={`pk-${it.key}-${i}`} className="cell" title={`Set ${i + 1} weight`} unit="kg" min={0} max={400} step={0.25} fallback={targets[i]?.kg || it.kg || 20} value={s.kg} onChange={(v) => patchSet(i, { kg: v })} />
+                <WeightWheel id={`pk-${it.key}-${i}`} className="cell" title={`Set ${i + 1} weight`} min={0} max={400} step={0.25} fallback={targets[i]?.kg || it.kg || 20} value={s.kg} onChange={(v) => patchSet(i, { kg: v })} />
               ) : (
                 <span className="tiny" style={{ textAlign: "center" }}>BW</span>
               )}
               <WheelInput id={`pr-${it.key}-${i}`} className="cell" title={`Set ${i + 1} ${workSecs ? "seconds" : distanceMetres(it.reps) ? "metres" : "reps"}`} unit={workSecs ? "s" : distanceMetres(it.reps) ? "m" : "reps"} min={0} max={distanceMetres(it.reps) ? 5000 : workSecs ? 600 : 100} step={distanceMetres(it.reps) ? 10 : workSecs ? 5 : 1} fallback={Number(targets[i]?.reps ?? it.reps) || 8} value={s.reps} onChange={(v) => patchSet(i, { reps: v })} />
-              <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{targets[i]?.kg} kg</> : null}</span>
+              <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{u.fw(targets[i]?.kg ?? 0)}</> : null}</span>
               <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}><Icons.check width={20} height={20} strokeWidth={2.25} /></button>
             </div>
           ))}
@@ -240,6 +242,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
 
 function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; minutes: () => number; onDone: () => void }) {
   const store = useStore();
+  const u = useUnits();
   const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [note, setNote] = useState("");
@@ -268,7 +271,7 @@ function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { wor
         <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">
           <div className="kpi"><b><CountUp value={count} /></b><small>Sets · {summary.totalReps ?? 0} reps</small></div>
-          <div className="kpi"><b><CountUp value={volume} duration={1400} /></b><small>kg lifted</small></div>
+          <div className="kpi"><b><CountUp value={u.w(volume, 0)} duration={1400} /></b><small>{u.weight} lifted</small></div>
           <div className="kpi"><b><CountUp value={mins} /></b><small>Minutes</small></div>
         </div>
         <WorkoutSummaryCard summary={summary} />

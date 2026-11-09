@@ -22,3 +22,8 @@ export { DailyRings, RingWeek, RING_COLOURS, type RingView } from "./rings";
 export { LevelCard, LevelRow, MilestoneList, MilestoneMoment, type LevelView, type MilestoneView } from "./levels";
 export { EffortBoard, TEAM_ART, TeamDraftPreview, TeamFeed, TeamHero, TeamPostItem, teamInitials } from "./team";
 export { CoachPageView, GrowHero, InviteFriendCard, RequestItem } from "./growth";
+export { getPrefs, onPrefsChange, setPrefs, unitsFor, usePrefs, useT, useUnits, type Prefs, type Units } from "./prefs";
+export { WeightWheel, useConvertedText } from "./unitInputs";
+export { GymClientItem, GymHero, GymStat, RoleBadge, RoleGuide, TrainerRoster } from "./gym";
+export { LeadCard, PipelineStrip, STAGE_TONE, StageChips, WelcomePreview } from "./leads";
+export { CoverPicker, IncludesList, ProgrammeCover, ProgrammeFacts, ProgrammePoster, ShopHero, WeekOutline, type PosterData } from "./programmes";

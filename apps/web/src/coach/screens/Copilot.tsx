@@ -1,13 +1,14 @@
 import { COPILOT_EXAMPLES, exerciseById, formatRest, parseCommand, runCommand, type CopilotResult, type WorkoutItem } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Label, Sheet } from "@apex/ui";
+import { Label, Sheet, useUnits, type Units } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 
-const line = (it: WorkoutItem) => `${it.sets}×${it.reps}${it.kg ? ` · ${it.kg} kg` : ""} · ${formatRest(it.restSeconds)}`;
+const line = (it: WorkoutItem, u: Units) => `${it.sets}×${it.reps}${it.kg ? ` · ${u.fw(it.kg)}` : ""} · ${formatRest(it.restSeconds)}`;
 
 /** One instruction for the whole program, shown as a diff. Nothing changes until the coach accepts. */
 export function Copilot({ onClose, say }: { onClose: () => void; say: (m: string) => void }) {
+  const u = useUnits();
   const store = useStore();
   const { program, activeDay } = useApexState(store);
   const [text, setText] = useState("");
@@ -56,7 +57,7 @@ export function Copilot({ onClose, say }: { onClose: () => void; say: (m: string
                       {c.before.exerciseId !== c.after.exerciseId ? (
                         <><s>{exerciseById(c.before.exerciseId).name}</s> → <b style={{ color: "var(--text)" }}>{exerciseById(c.after.exerciseId).name}</b></>
                       ) : <b style={{ color: "var(--text)" }}>{exerciseById(c.after.exerciseId).name}</b>}
-                      <div className="num tiny" style={{ marginTop: 3 }}><s>{line(c.before)}</s> → {line(c.after)}</div>
+                      <div className="num tiny" style={{ marginTop: 3 }}><s>{line(c.before, u)}</s> → {line(c.after, u)}</div>
                     </div>
                   </div>
                 ))}

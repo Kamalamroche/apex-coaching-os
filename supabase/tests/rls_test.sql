@@ -977,7 +977,7 @@ insert into auth.users values ('00000000-0000-0000-0000-0000000000f1'),('0000000
 insert into profiles values ('00000000-0000-0000-0000-0000000000f1','coach','Grow Coach'),('00000000-0000-0000-0000-0000000000f2','client','Fiona Client'),('00000000-0000-0000-0000-0000000000f3','client','Not Theirs');
 insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2');
 grant execute on function public.public_coach_page(text) to anon;
-grant execute on function public.request_to_train(text, text, text, text, text, text) to anon;
+grant execute on function public.request_to_train(text, text, text, text, text, text, text, text, text) to anon;
 grant usage on schema public to anon;
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
@@ -1069,6 +1069,329 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- gyms: owner a1, manager a2, trainers a3 and a4, outside coach a5. Clients b1 (a1's), b2 (a3's), b3 (a5's).
+insert into auth.users values ('00000000-0000-0000-0000-0000000009a1'),('00000000-0000-0000-0000-0000000009a2'),('00000000-0000-0000-0000-0000000009a3'),('00000000-0000-0000-0000-0000000009a4'),('00000000-0000-0000-0000-0000000009a5'),('00000000-0000-0000-0000-0000000009b1'),('00000000-0000-0000-0000-0000000009b2'),('00000000-0000-0000-0000-0000000009b3');
+insert into profiles values ('00000000-0000-0000-0000-0000000009a1','coach','Gym Owner'),('00000000-0000-0000-0000-0000000009a2','coach','Gym Manager'),('00000000-0000-0000-0000-0000000009a3','coach','Trainer Three'),('00000000-0000-0000-0000-0000000009a4','coach','Trainer Four'),('00000000-0000-0000-0000-0000000009a5','coach','Outside Coach'),('00000000-0000-0000-0000-0000000009b1','client','Bea One'),('00000000-0000-0000-0000-0000000009b2','client','Ben Two'),('00000000-0000-0000-0000-0000000009b3','client','Bo Three');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1'),('00000000-0000-0000-0000-0000000009a3','00000000-0000-0000-0000-0000000009b2'),('00000000-0000-0000-0000-0000000009a5','00000000-0000-0000-0000-0000000009b3');
+insert into programs (coach_id, client_id, name) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1','Gym plan');
+insert into sessions (client_id, started_at, finished_at) values ('00000000-0000-0000-0000-0000000009b2', now() - interval '2 days', now() - interval '2 days');
+set role authenticated;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009b1');
+do $$ begin
+  begin perform public.create_gym('Client Gym'); raise exception 'a client started a gym'; exception when insufficient_privilege then null; end;
+end $$;
+
+create temp table gym_tokens (role text, token uuid);
+grant all on gym_tokens to authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
+select public.create_gym('Test Gym');
+insert into gym_tokens select 'manager', public.create_gym_invite('manager');
+insert into gym_tokens select 'trainer3', public.create_gym_invite('trainer');
+insert into gym_tokens select 'trainer4', public.create_gym_invite('trainer');
+do $$ begin
+  assert (select my_role from public.my_gym()) = 'owner', 'creator owns the gym';
+  assert (select count(*) from gym_invites) = 3, 'owner sees open invites';
+  begin perform public.create_gym('Second'); raise exception 'joined two gyms'; exception when unique_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a2');
+select public.accept_gym_invite((select token from gym_tokens where role = 'manager'));
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a3');
+select public.accept_gym_invite((select token from gym_tokens where role = 'trainer3'));
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a4');
+select public.accept_gym_invite((select token from gym_tokens where role = 'trainer4'));
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a5');
+do $$ begin
+  begin perform public.accept_gym_invite((select token from gym_tokens where role = 'trainer3')); raise exception 'used invite worked twice'; exception when no_data_found then null; end;
+  assert (select count(*) from public.gym_clients()) = 0, 'outside coach sees no gym clients';
+  assert (select count(*) from public.gym_team()) = 0, 'outside coach sees no team';
+  assert (select count(*) from gyms) = 0, 'outside coach sees no gym';
+  assert (select count(*) from gym_members) = 0, 'outside coach sees no members';
+  begin perform public.hand_over_gym_client('00000000-0000-0000-0000-0000000009b1','00000000-0000-0000-0000-0000000009a5'); raise exception 'outsider handed a client over'; exception when insufficient_privilege then null; end;
+end $$;
+
+-- trainer: own clients only, can't invite, can't hand over, can't read invites
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a3');
+do $$ begin
+  assert (select my_role from public.my_gym()) = 'trainer', 'joined as trainer';
+  assert (select count(*) from public.gym_team()) = 4, 'trainer sees the team';
+  assert (select count(*) from public.gym_clients()) = 1, 'trainer sees own client only';
+  assert (select sessions_7 from public.gym_clients()) = 1, 'session counted';
+  assert (select count(*) from gym_invites) = 0, 'trainer reads no invites';
+  begin perform public.create_gym_invite('trainer'); raise exception 'trainer invited'; exception when insufficient_privilege then null; end;
+  begin perform public.hand_over_gym_client('00000000-0000-0000-0000-0000000009b2','00000000-0000-0000-0000-0000000009a4'); raise exception 'trainer handed over'; exception when insufficient_privilege then null; end;
+  begin perform public.share_gym_client('00000000-0000-0000-0000-0000000009b1','00000000-0000-0000-0000-0000000009a3', true); raise exception 'trainer shared someone else''s client'; exception when insufficient_privilege then null; end;
+  begin perform public.remove_gym_member('00000000-0000-0000-0000-0000000009a4'); raise exception 'trainer removed a teammate'; exception when insufficient_privilege then null; end;
+  assert (select count(*) from profiles where full_name = 'Bea One') = 0, 'gym does not open other trainers'' client profiles';
+end $$;
+-- trainer shares own client with a teammate, who then sees them
+select public.share_gym_client('00000000-0000-0000-0000-0000000009b2','00000000-0000-0000-0000-0000000009a4', true);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a4');
+do $$ begin
+  assert (select count(*) from public.gym_clients()) = 1, 'shared trainer sees the shared client';
+  assert (select client_name from public.gym_clients()) = 'Ben Two', 'the right one';
+  assert (select count(*) from programs) = 0, 'sharing does not open the programme tables';
+  assert (select count(*) from sessions where client_id = '00000000-0000-0000-0000-0000000009b2') = 0, 'or raw sessions';
+end $$;
+
+-- manager: every client, invites trainers but not managers, can't change roles or remove the owner
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a2');
+do $$ begin
+  assert (select count(*) from public.gym_clients()) = 2, 'manager sees every trainer''s clients';
+  assert (select jsonb_array_length(shared_with) from public.gym_clients() where client_name = 'Ben Two') = 1, 'manager sees the share';
+  perform public.create_gym_invite('trainer');
+  begin perform public.create_gym_invite('manager'); raise exception 'manager made a manager'; exception when insufficient_privilege then null; end;
+  begin perform public.set_gym_role('00000000-0000-0000-0000-0000000009a3','manager'); raise exception 'manager changed a role'; exception when insufficient_privilege then null; end;
+  begin perform public.remove_gym_member('00000000-0000-0000-0000-0000000009a1'); raise exception 'manager removed the owner'; exception when insufficient_privilege then null; end;
+  begin perform public.hand_over_gym_client('00000000-0000-0000-0000-0000000009b3','00000000-0000-0000-0000-0000000009a3'); raise exception 'manager took an outside client'; exception when no_data_found then null; end;
+end $$;
+-- manager hands b1 from the owner to trainer a3: a3 becomes their coach and owns the programme
+select public.hand_over_gym_client('00000000-0000-0000-0000-0000000009b1','00000000-0000-0000-0000-0000000009a3');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a3');
+do $$ begin
+  assert (select count(*) from public.gym_clients()) = 2, 'new trainer sees the handed-over client';
+  assert (select count(*) from programs where name = 'Gym plan') = 1, 'new trainer owns the programme';
+  assert public.is_coach_of('00000000-0000-0000-0000-0000000009b1'), 'new trainer coaches them';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
+do $$ begin
+  assert not public.is_coach_of('00000000-0000-0000-0000-0000000009b1'), 'old trainer no longer coaches them';
+  assert (select count(*) from programs where name = 'Gym plan') = 0, 'old trainer no longer edits the programme';
+  assert (select count(*) from public.gym_clients()) = 2, 'owner still sees both through the gym';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009b1');
+do $$ begin
+  assert (select coach_id from coach_clients where status <> 'ended') = '00000000-0000-0000-0000-0000000009a3', 'client now has the new trainer';
+  assert (select count(*) from programs) = 1, 'client still trains from the same programme';
+end $$;
+
+-- owner: changes a role, removes a trainer (shares end), can't leave, closes the gym
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
+select public.set_gym_role('00000000-0000-0000-0000-0000000009a4','manager');
+select public.remove_gym_member('00000000-0000-0000-0000-0000000009a3');
+do $$ begin
+  assert (select role from public.gym_team() where full_name = 'Trainer Four') = 'manager', 'role changed';
+  assert (select count(*) from public.gym_team()) = 3, 'trainer removed';
+  assert (select count(*) from gym_client_shares) = 0, 'their shares ended';
+  assert (select count(*) from public.gym_clients()) = 0, 'their clients left with them';
+  begin perform public.remove_gym_member('00000000-0000-0000-0000-0000000009a1'); raise exception 'owner left'; exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a3');
+do $$ begin
+  assert (select count(*) from public.my_gym()) = 0, 'removed trainer is out';
+  assert public.is_coach_of('00000000-0000-0000-0000-0000000009b2'), 'and keeps their own client';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
+select public.close_gym();
+do $$ begin
+  assert (select count(*) from public.my_gym()) = 0, 'gym closed';
+end $$;
+reset role;
+
+reset role;
+
+-- Leads: stages, hand-added leads, enquiry details, welcome emails
+reset role;
+update auth.users set email = 'grow@example.com' where id = '00000000-0000-0000-0000-0000000000f1';
+grant select on lead_settings to authenticated;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ begin
+  assert (select stage from public.coach_join_requests() where email = 'leo@example.com') = 'client', 'accepted invite moves the lead to client';
+  assert (select stage from public.coach_join_requests() where email = 'hana@example.com') = 'new', 'new enquiry starts on new';
+  assert (select source from public.coach_join_requests() where email = 'leo@example.com') = 'referral', 'friend link counts as a referral';
+end $$;
+update join_requests set stage = 'lost' where email = 'hana@example.com';
+do $$ begin
+  assert (select status from join_requests where email = 'hana@example.com') = 'declined', 'lost declines the request';
+end $$;
+update join_requests set stage = 'trial', notes = 'Trial week', follow_up = current_date + 2 where email = 'hana@example.com';
+do $$ begin
+  assert (select status from join_requests where email = 'hana@example.com') = 'new', 'back from lost reopens it';
+  assert (select notes from public.coach_join_requests() where email = 'hana@example.com') = 'Trial week', 'coach keeps notes';
+end $$;
+insert into join_requests (coach_id, name, email, phone, source, notes, added_by_coach) values ('00000000-0000-0000-0000-0000000000f1', 'Dev Patel', '', '07700 900123', 'instagram', 'DM', true);
+do $$ begin
+  begin
+    insert into join_requests (coach_id, name, email) values ('00000000-0000-0000-0000-0000000000f1', 'Sneaky', 'x@example.com');
+    raise exception 'coach added a lead that would be emailed';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into join_requests (coach_id, name, email, added_by_coach) values ('00000000-0000-0000-0000-00000000000d', 'Theirs', '', true);
+    raise exception 'coach added a lead for someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.pending_lead_emails();
+    raise exception 'coach read the email queue';
+  exception when insufficient_privilege then null; end;
+end $$;
+insert into lead_settings (coach_id, welcome_text) values ('00000000-0000-0000-0000-0000000000f1', 'Hi {first}!');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from lead_settings) = 0, 'rival sees no lead settings';
+  update join_requests set stage = 'lost';
+  assert (select count(*) from public.coach_join_requests()) = 0, 'rival sees no leads';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  begin
+    insert into join_requests (coach_id, name, email, added_by_coach) values ('00000000-0000-0000-0000-0000000000f1', 'Client', '', true);
+    raise exception 'a client added a lead';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  perform public.request_to_train('grow-coach', 'Ola Nowak', 'ola@example.com', 'Lose fat', '', null, '+44 7700 900456', 'hybrid', 'Instagram');
+  perform public.request_to_train('grow-coach', 'Ben Cole', 'ben@example.com', '', '', null, '', 'sofa', '<bad>');
+  begin
+    perform public.request_to_train('grow-coach', 'Ola', 'ola@example.com');
+    raise exception 'asked twice';
+  exception when unique_violation then null; end;
+  begin
+    perform public.request_to_train('grow-coach', 'Bad Phone', 'bp@example.com', '', '', null, 'call me');
+    raise exception 'bad phone saved';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select source || '/' || how || '/' || phone from join_requests where email = 'ola@example.com') = 'instagram/hybrid/+44 7700 900456', 'enquiry details saved';
+  assert (select source || '/' || how from join_requests where email = 'ben@example.com') = 'page/', 'bad source and mode cleaned';
+end $$;
+set role service_role;
+do $$ declare ids uuid[]; begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 4, 'four welcomes due (not the hand-added lead)';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'coach told about each enquiry';
+  assert (select welcome_text from public.pending_lead_emails() where kind = 'welcome' limit 1) = 'Hi {first}!', 'coach''s own words';
+  select array_agg(request_id) into ids from public.pending_lead_emails() where kind = 'welcome';
+  perform public.mark_lead_emails_sent(ids, '{}');
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 0, 'welcome sent once';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'alerts still due';
+  assert (select count(*) from public.pending_lead_emails(now() + interval '3 days')) = 0, 'old enquiries are never emailed';
+end $$;
+reset role;
+update lead_settings set notify_on = false;
+set role service_role;
+do $$ begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 0, 'coach switched alerts off';
+end $$;
+reset role;
+
+reset role;
+
+-- On-demand programmes: clients see their own coach's live programmes, start free ones, ask for paid ones;
+-- the coach unlocks them. Nobody else sees any of it; the public page shows only live programmes it lists.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into programme_listings (id, title, status, price_pence, weeks, days) values
+  ('a0000000-0000-0000-0000-000000000001', 'First six weeks', 'live', 0, 2,
+   '[{"week":1,"dayIndex":0,"name":"Full body A","minutes":45,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":40,"rpe":7,"restSeconds":120},{"group":"B1","exerciseId":2,"sets":3,"reps":"10","kg":0,"rpe":7,"restSeconds":60,"setPlan":[{"reps":"10","kg":0},{"reps":"8","kg":0},{"reps":"6","kg":0}]}]},
+     {"week":2,"dayIndex":0,"name":"Full body A","minutes":45,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":42.5,"rpe":7,"restSeconds":120}]}]'),
+  ('a0000000-0000-0000-0000-000000000002', 'Strong in 8', 'live', 4900, 1,
+   '[{"week":1,"dayIndex":2,"name":"Lower","minutes":50,"items":[{"group":"A","exerciseId":1,"sets":5,"reps":"5","kg":60,"rpe":8,"restSeconds":180}]}]'),
+  ('a0000000-0000-0000-0000-000000000003', 'Draft idea', 'draft', 0, 1,
+   '[{"week":1,"dayIndex":0,"name":"Day","minutes":30,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":0,"rpe":7,"restSeconds":90}]}]');
+do $$ begin
+  begin
+    insert into programme_listings (title, weeks, days, price_pence) values ('Too cheap', 1, '[{"week":1}]', 50);
+    raise exception 'a 50p programme was accepted';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ declare v_program uuid; begin
+  assert (select count(*) from programme_listings) = 2, 'client sees live programmes only';
+  begin
+    insert into programme_listings (coach_id, title, weeks, days) values ('00000000-0000-0000-0000-0000000000f2', 'Mine', 1, '[{"week":1}]');
+    raise exception 'client created a programme';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into programme_enrolments (listing_id, coach_id, client_id, status, paid_pence, paid_via)
+    values ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000f2', 'active', 0, 'manual');
+    raise exception 'client unlocked a paid programme themselves';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000002');
+    raise exception 'client started a paid programme without paying';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000003');
+    raise exception 'client started a draft';
+  exception when no_data_found then null; end;
+
+  v_program := public.start_programme('a0000000-0000-0000-0000-000000000001');
+  assert (select name from programs where id = v_program) = 'First six weeks', 'free programme copied into a program';
+  assert (select count(*) from workouts w join program_versions v on v.id = w.program_version_id where v.program_id = v_program) = 2, 'every day copied';
+  assert (select count(*) from workout_items i join workouts w on w.id = i.workout_id join program_versions v on v.id = w.program_version_id where v.program_id = v_program) = 3, 'every exercise copied';
+  assert (select jsonb_array_length(i.set_plan) from workout_items i join workouts w on w.id = i.workout_id join program_versions v on v.id = w.program_version_id where v.program_id = v_program and i.group_label = 'B1') = 3, 'set plans kept';
+  assert (select status from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000001') = 'active', 'free start enrols';
+
+  perform public.request_programme('a0000000-0000-0000-0000-000000000002');
+  perform public.request_programme('a0000000-0000-0000-0000-000000000002');
+  assert (select status from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 'requested', 'asked for the paid one';
+  begin
+    update programme_enrolments set status = 'active';
+    assert (select count(*) from programme_enrolments where status = 'requested') = 1, 'client cannot unlock by update';
+  end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from programme_listings) = 0, 'rival sees no programmes';
+  assert (select count(*) from programme_enrolments) = 0, 'rival sees no enrolments';
+  update programme_enrolments set status = 'active';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  assert (select count(*) from programme_listings) = 0, 'another coach''s client sees nothing';
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000001');
+    raise exception 'not their coach, still started';
+  exception when no_data_found then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ begin
+  assert (select count(*) from programme_enrolments) = 2, 'coach sees both enrolments';
+  assert (select p.full_name from programme_enrolments e join profiles p on p.id = e.client_id where e.status = 'requested') = 'Fiona Client', 'coach sees who asked';
+  update programme_enrolments set status = 'active', paid_pence = 4900, paid_via = 'manual' where listing_id = 'a0000000-0000-0000-0000-000000000002';
+  begin
+    delete from programme_listings where id = 'a0000000-0000-0000-0000-000000000001';
+    raise exception 'deleted a programme people had joined';
+  exception when foreign_key_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  assert public.start_programme('a0000000-0000-0000-0000-000000000002') is not null, 'unlocked programme starts';
+  assert (select paid_pence from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 4900, 'payment kept after starting';
+  assert (select paid_via from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 'manual', 'payment method kept';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update programme_listings set on_page = false;
+insert into programme_listings (title, status, weeks, days, on_page) values
+  ('Grow strong', 'live', 4, '[{"week":1,"dayIndex":0,"name":"A","minutes":40,"items":[]},{"week":1,"dayIndex":3,"name":"B","minutes":40,"items":[]}]', true),
+  ('Hidden', 'live', 4, '[{"week":1,"dayIndex":0,"name":"A","minutes":40,"items":[]}]', false);
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  assert (select count(*) from public.public_programmes('grow-coach')) = 1, 'public page lists only shown programmes';
+  assert (select per_week from public.public_programmes('grow-coach')) = 2, 'days a week counted';
+  assert (select count(*) from public.public_programmes('nobody-here')) = 0, 'no page, no programmes';
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000001');
+    raise exception 'anon started a programme';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+reset role;
 
 -- Push notifications: people manage only their own devices; the sending functions are service-role only.
 insert into auth.users values ('00000000-0000-0000-0000-0000000000a1'),('00000000-0000-0000-0000-0000000000a2'),('00000000-0000-0000-0000-0000000000a3');

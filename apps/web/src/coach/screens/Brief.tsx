@@ -1,6 +1,6 @@
 import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -46,6 +46,7 @@ const clientById = (id: number): Client => {
 };
 
 export function Brief({ openClient, say, clientCount, clients, live }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
+  const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
   const clientFirst = firstName(clientName);
@@ -91,7 +92,7 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
             {log ? (
               <>
                 <span className="gpill num">{log.sets} sets</span>
-                <span className="gpill num">{log.volumeKg.toLocaleString("en-GB")} kg</span>
+                <span className="gpill num">{u.fw(log.volumeKg, 0)}</span>
                 {log.prs ? <span className="gpill num">{log.prs} PR</span> : <span className="gpill num">RPE {log.rpe}</span>}
               </>
             ) : (
@@ -127,7 +128,7 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
                   <div className="row" style={{ gap: 10 }}><Avatar initials={c.initials} size={32} tone={tone} /><div className="grow"><div className="h3">{it.title}</div></div></div>
                   <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <Label kind={it.label === "Data" ? "data" : "insight"}>{it.label}</Label>
-                    <span className="small">{it.evidence}</span>
+                    <span className="small">{u.kt(it.evidence)}</span>
                   </div>
                   <div className="acts">
                     <button className="btn act sm" onClick={() => (it.draft ? setDraft(it) : openClient(it.clientId))}>{it.action}</button>
@@ -149,7 +150,7 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
               <input type="checkbox" checked={!!selected[p.clientId]} onChange={(e) => setSelected((s) => ({ ...s, [p.clientId]: e.target.checked }))} style={{ width: 20, height: 20, accentColor: "var(--act)" }} />
               <div className="grow">
                 <div className="h3">{firstName(clientById(p.clientId).name)} · {p.exercise}</div>
-                <div className="small"><span className="num">{p.from} → <b style={{ color: "var(--act)" }}>{p.to}</b></span> · {p.why}</div>
+                <div className="small"><span className="num">{u.kt(p.from)} → <b style={{ color: "var(--act)" }}>{u.kt(p.to)}</b></span> · {p.why}</div>
               </div>
             </label>
           ))}
@@ -181,7 +182,7 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
               <Avatar initials={clientInitials} size={34} tone="var(--good)" />
               <div className="grow">
                 <div className="h3">{clientFirst} finished {log.workoutName}</div>
-                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {u.fw(log.volumeKg, 0)} · {log.minutes} min · RPE {log.rpe}</span>{log.prs > 0 ? ` · ${log.prs} PR` : ""}</div>
                 {log.note && <div className="small" style={{ marginTop: 4, color: "var(--text)" }}><Icons.note width={13} height={13} style={{ verticalAlign: -2, color: "var(--text3)" }} /> "{log.note}"</div>}
               </div>
               <span className="tiny">Today</span>
@@ -193,14 +194,14 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
               <Avatar initials={clientInitials} size={34} />
               <div className="grow">
                 <div className="h3">{clientFirst} sent a check-in</div>
-                <div className="small"><Label kind="data">Data</Label> <span className="num">{[newCheckIn.sleepHours !== null && `Sleep ${newCheckIn.sleepHours} h`, newCheckIn.energy && `energy ${newCheckIn.energy}/5`, newCheckIn.weightKg !== null && `weight ${newCheckIn.weightKg} kg`].filter(Boolean).join(" · ")}</span></div>
+                <div className="small"><Label kind="data">Data</Label> <span className="num">{[newCheckIn.sleepHours !== null && `Sleep ${newCheckIn.sleepHours} h`, newCheckIn.energy && `energy ${newCheckIn.energy}/5`, newCheckIn.weightKg !== null && `weight ${u.fw(newCheckIn.weightKg)}`].filter(Boolean).join(" · ")}</span></div>
               </div>
               <span className="tiny">Clients › Check-ins</span>
             </div>
           )}
           {mode === "demo" && <>
-          <div className="li"><Avatar initials="OT" size={34} tone="var(--good)" /><div className="grow"><div className="h3">Omar hit a 100 kg squat PR</div><div className="small">Send a congratulations?</div></div><button className="btn ghost sm" onClick={() => say("Message sent to Omar")}>Send</button></div>
-          <div className="li"><Avatar initials="PS" size={34} /><div className="grow"><div className="h3">Priya submitted a check-in</div><div className="small">Sleep 7.5 h · energy 4/5 · weight 62.3 kg</div></div><button className="btn ghost sm" onClick={() => openClient(5)}>View</button></div>
+          <div className="li"><Avatar initials="OT" size={34} tone="var(--good)" /><div className="grow"><div className="h3">{u.kt("Omar hit a 100 kg squat PR")}</div><div className="small">Send a congratulations?</div></div><button className="btn ghost sm" onClick={() => say("Message sent to Omar")}>Send</button></div>
+          <div className="li"><Avatar initials="PS" size={34} /><div className="grow"><div className="h3">Priya submitted a check-in</div><div className="small">{u.kt("Sleep 7.5 h · energy 4/5 · weight 62.3 kg")}</div></div><button className="btn ghost sm" onClick={() => openClient(5)}>View</button></div>
           </>}
           {mode === "live" && !log && !newCheckIn && <div className="li"><div className="small">Nothing yet today. Finished sessions show up here as soon as they are saved.</div></div>}
         </div>

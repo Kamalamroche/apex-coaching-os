@@ -1,7 +1,8 @@
-import { fitView, formatDuration, formatPace, HR_ZONES, TILE, tilesFor, viewPx, type Activity, type ProfilePoint, type Sport, type Split, type TileRef } from "@apex/core";
+import { distanceFrom, fitView, formatDuration, formatPace, HR_ZONES, metresPer, speedUnit, splitsIn, type DistanceUnit, TILE, tilesFor, viewPx, type Activity, type ProfilePoint, type Sport, type Split, type TileRef } from "@apex/core";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { niceTicks } from "./chartKit";
 import { Icons } from "./icons";
+import { usePrefs } from "./prefs";
 
 /* Cardio visuals: the route on a street map, the pace / heart rate / elevation analysis, splits,
    heart-rate zones and weekly bars. Plain SVG over map tiles; colours from the --viz tokens. */
@@ -86,8 +87,8 @@ function mapSeries(profile: ProfilePoint[], mode: Metric): number[] {
 }
 
 /** The key's end labels in the client's units: "5:12" pace, "24.1" km/h, "148" bpm, "31 m". */
-function mapLabel(mode: Metric, v: number, a: Activity): string {
-  if (mode === "pace") return a.sport === "ride" ? `${(v * 3.6).toFixed(1)} km/h` : formatPace(1000, 1000 / v, a.sport);
+function mapLabel(mode: Metric, v: number, a: Activity, du: DistanceUnit): string {
+  if (mode === "pace") return formatPace(1000, 1000 / v, a.sport, du);
   return mode === "hr" ? `${Math.round(v)} bpm` : `${Math.round(v)} m`;
 }
 
@@ -103,6 +104,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
   const profile = activity.detail?.profile;
   const themeDark = useDarkTheme();
   const poster = look === "mode";
+  const du = usePrefs().units.distance;
   const dark = poster || themeDark;
   const [box, width] = useWidth<HTMLDivElement>();
   const [failed, setFailed] = useState(0);
@@ -139,15 +141,16 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
     }
     const full = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("");
     // A marker every km (every 500 m on a short route, 5 km on a ride), placed by share of distance.
-    const every = activity.sport === "ride" ? 5000 : activity.sport === "swim" ? 500 : activity.metres > 3000 ? 1000 : 500;
+    const unitM = activity.sport === "swim" ? 1000 : metresPer(du);
+    const every = activity.sport === "ride" ? 5 * unitM : activity.sport === "swim" ? 500 : activity.metres > 3 * unitM ? unitM : unitM / 2;
     const marks = Array.from({ length: Math.floor(activity.metres / every) }, (_, j) => {
       const f = ((j + 1) * every) / activity.metres;
       const p = pts[Math.min(pts.length - 1, Math.round(f * (pts.length - 1)))]!;
-      return { x: p[0], y: p[1], label: String(((j + 1) * every) / 1000) };
+      return { x: p[0], y: p[1], label: String(((j + 1) * every) / unitM) };
     }).filter((_, j, all) => all.length <= 10 || (j + 1) % Math.ceil(all.length / 10) === 0);
     const loop = Math.hypot(pts[0]![0] - pts.at(-1)![0], pts[0]![1] - pts.at(-1)![1]) < 14;
     return { view, pts, tiles: tilesFor(view), segs, full, start: pts[0]!, end: pts.at(-1)!, marks, loop, range: series && hi > lo ? ([lo, hi] as const) : null };
-  }, [route, profile, activity.metres, activity.sport, width, height, mode, poster]);
+  }, [route, profile, activity.metres, activity.sport, width, height, mode, poster, du]);
 
   const dot = drawn && at !== null ? drawn.pts[Math.round(Math.min(1, Math.max(0, at)) * (drawn.pts.length - 1))] : null;
   const showTiles = drawn && failed < 3;
@@ -171,7 +174,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
               ))}
               {drawn.marks.map((m) => <circle key={m.label} cx={m.x} cy={m.y} r="3.5" fill="var(--act)" stroke="#FFFFFF" strokeWidth="1.5" />)}
               {drawn.marks.filter((_, j, all) => all.length <= 3 || j === Math.floor(all.length / 3) - 1 || j === Math.floor((2 * all.length) / 3) - 1 || j === all.length - 1).map((m) => {
-                const label = `${m.label} km`;
+                const label = `${m.label} ${activity.sport === "swim" ? "km" : du}`;
                 const w = 14 + label.length * 6.4;
                 const left = m.x + 10 + w > drawn.view.width - 8;
                 return (
@@ -227,7 +230,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
         {drawn && !drawn.loop && <span><i style={{ background: poster ? "var(--act)" : "var(--crit)" }} />Finish</span>}
         {drawn?.range && (
           <span className="cx-heat">
-            <b className="num">{mapLabel(mode, drawn.range[0], activity)}</b><i /><b className="num">{mapLabel(mode, drawn.range[1], activity)}</b>
+            <b className="num">{mapLabel(mode, drawn.range[0], activity, du)}</b><i /><b className="num">{mapLabel(mode, drawn.range[1], activity, du)}</b>
           </span>
         )}
       </div>
@@ -239,6 +242,7 @@ export function RouteMap({ activity, height = 260, at = null, look = "plain" }: 
 
 /** Pace, heart rate or elevation against distance. Drag a finger or the mouse along it to read a point. */
 export function ProfileChart({ activity }: { activity: Activity }) {
+  const du = usePrefs().units.distance;
   const profile = activity.detail?.profile ?? [];
   const has: Record<Metric, boolean> = {
     pace: profile.length > 2,
@@ -275,7 +279,7 @@ export function ProfileChart({ activity }: { activity: Activity }) {
   const fmt = (i: number) => {
     const v = series[i]!;
     if (!Number.isFinite(v)) return "–";
-    if (metric === "pace") return activity.sport === "ride" ? `${(v * 3.6).toFixed(1)} km/h` : formatPace(1000, 1000 / v, activity.sport);
+    if (metric === "pace") return formatPace(1000, 1000 / v, activity.sport, du);
     return metric === "hr" ? `${Math.round(v)} bpm` : `${Math.round(v)} m`;
   };
   const onMove = (e: PointerEvent<SVGSVGElement>) => {
@@ -283,20 +287,20 @@ export function ProfileChart({ activity }: { activity: Activity }) {
     const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
     setAt(Math.round(f * (profile.length - 1)));
   };
-  const avgLabel = metric === "pace" ? formatPace(activity.metres, activity.movingSeconds, activity.sport) : metric === "hr" ? (activity.avgHr ? `${activity.avgHr} bpm avg` : "") : `${activity.elevationGainM ?? 0} m climbed`;
+  const avgLabel = metric === "pace" ? formatPace(activity.metres, activity.movingSeconds, activity.sport, du) : metric === "hr" ? (activity.avgHr ? `${activity.avgHr} bpm avg` : "") : `${activity.elevationGainM ?? 0} m climbed`;
   return (
     <div className="card cx-chart">
       <div className="sect" style={{ marginBottom: 6 }}>
         <div className="chips">
           {options.map((m) => <button key={m} className={`chip ${metric === m ? "on" : ""}`} onClick={() => setMetric(m)}>{m === "pace" ? (activity.sport === "ride" ? "Speed" : "Pace") : m === "hr" ? "Heart rate" : "Elevation"}</button>)}
         </div>
-        <span className="num small" style={{ fontWeight: 700 }}>{p ? `${fmt(at!)} · ${(p.m / 1000).toFixed(2)} km` : avgLabel}</span>
+        <span className="num small" style={{ fontWeight: 700 }}>{p ? `${fmt(at!)} · ${distanceFrom(p.m, du).toFixed(2)} ${du}` : avgLabel}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setAt(null)} role="img" aria-label={`${metric === "pace" ? "Pace" : metric === "hr" ? "Heart rate" : "Elevation"} over the distance`}>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={W} y1={top + f * (H - top - bottom)} y2={top + f * (H - top - bottom)} stroke="var(--line)" strokeDasharray="3 5" />)}
         <path d={area} fill={colour} fillOpacity=".1" />
         <path d={line} fill="none" stroke={colour} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        {ticks.map((m, k) => <text key={k} x={Math.min(W - 2, Math.max(2, x(m)))} y={H - 6} fontSize="11" fill="var(--text3)" textAnchor={k === 0 ? "start" : k === 4 ? "end" : "middle"} fontFamily="var(--num)">{(m / 1000).toFixed(m < 10000 ? 1 : 0)} km</text>)}
+        {ticks.map((m, k) => <text key={k} x={Math.min(W - 2, Math.max(2, x(m)))} y={H - 6} fontSize="11" fill="var(--text3)" textAnchor={k === 0 ? "start" : k === 4 ? "end" : "middle"} fontFamily="var(--num)">{distanceFrom(m, du).toFixed(distanceFrom(m, du) < 10 ? 1 : 0)} {du}</text>)}
         {p && Number.isFinite(series[at!]!) && (
           <g>
             <line x1={x(p.m)} x2={x(p.m)} y1={top - 6} y2={H - bottom} stroke="var(--text2)" strokeWidth="1" />
@@ -317,6 +321,7 @@ type Panel = { key: Metric; label: string; colour: string; h: number; series: nu
  * crosshair through all three, reads every number at that point and moves the dot on the map (`onAt`).
  */
 export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f: number | null) => void }) {
+  const du = usePrefs().units.distance;
   const profile = activity.detail?.profile ?? [];
   const [at, setAtRaw] = useState<number | null>(null);
   const setAt = (i: number | null) => { setAtRaw(i); onAt?.(i === null ? null : i / Math.max(1, profile.length - 1)); };
@@ -333,17 +338,18 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
       if (hi - lo < 0.2) { lo -= 0.1; hi += 0.1; }
       const pad = (hi - lo) * 0.12;
       const avg = activity.movingSeconds ? activity.metres / activity.movingSeconds : undefined;
-      const fmt = (v: number) => (ride ? `${(v * 3.6).toFixed(1)}` : formatPace(1000, 1000 / v, activity.sport).replace(/ \/.*$/, ""));
-      // Ticks on round paces (every 10, 15, 30 or 60 s per km), or round speeds on a ride.
-      const per = activity.sport === "swim" ? 100 : 1000;
-      const ticks = ride ? niceTicks((lo - pad) * 3.6, (hi + pad) * 3.6, 3).map((v) => v / 3.6) : (() => {
+      const fmt = (v: number) => formatPace(1000, 1000 / v, activity.sport, du).replace(/ \S*$/, "");
+      // Ticks on round paces (every 10, 15, 30 or 60 s per km or mile), or round speeds on a ride.
+      const per = activity.sport === "swim" ? 100 : metresPer(du);
+      const toSpeed = 3600 / metresPer(du);
+      const ticks = ride ? niceTicks((lo - pad) * toSpeed, (hi + pad) * toSpeed, 3).map((v) => v / toSpeed) : (() => {
         const slowS = per / (lo - pad), fastS = per / (hi + pad);
         const step = [10, 15, 30, 60, 120].find((k) => (slowS - fastS) / k <= 3.5) ?? 300;
         const out: number[] = [];
         for (let t = Math.ceil(fastS / step) * step; t <= slowS; t += step) out.push(per / t);
         return out;
       })();
-      out.push({ key: "pace", label: ride ? "Speed km/h" : `Pace ${activity.sport === "swim" ? "/100 m" : "/km"}`, colour: "var(--viz-1)", h: 96, series: speed, lo: lo - pad, hi: hi + pad, ticks, fmt, avg, avgLabel: avg ? `avg ${fmt(avg)}` : undefined });
+      out.push({ key: "pace", label: ride ? `Speed ${speedUnit(du)}` : `Pace ${activity.sport === "swim" ? "/100 m" : `/${du}`}`, colour: "var(--viz-1)", h: 96, series: speed, lo: lo - pad, hi: hi + pad, ticks, fmt, avg, avgLabel: avg ? `avg ${fmt(avg)}` : undefined });
     }
     const hr = profile.map((p) => p.hr ?? NaN);
     const hv = hr.filter(Number.isFinite);
@@ -360,7 +366,7 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
       out.push({ key: "ele", label: "Elevation m", colour: "var(--viz-3)", h: 70, series: ele, lo, hi, ticks: niceTicks(lo, hi, 2), fmt: (v) => String(Math.round(v)) });
     }
     return out;
-  }, [profile, activity, ride]);
+  }, [profile, activity, ride, du]);
   if (!panels.length) return null;
 
   const W = 340, left = 2, right = 34, gap = 22, head = 16, axis = 18;
@@ -372,7 +378,8 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
   const H = yAt - gap + axis;
   const yOf = (pn: Panel, top: number, v: number) => top + (1 - (Math.min(pn.hi, Math.max(pn.lo, v)) - pn.lo) / (pn.hi - pn.lo)) * pn.h;
   const p = at !== null ? profile[at] : null;
-  const kmStep = ride ? 5000 : activity.sport === "swim" ? 100 : total > 15000 ? 5000 : total > 6000 ? 2000 : 1000;
+  const um = activity.sport === "swim" ? 1000 : metresPer(du);
+  const kmStep = activity.sport === "swim" ? 100 : (ride ? 5 : total > 15 * um ? 5 : total > 6 * um ? 2 : 1) * um;
   const kms = Array.from({ length: Math.floor(total / kmStep) }, (_, k) => (k + 1) * kmStep).filter((m) => m < total - kmStep * 0.3);
   const maxHr = activity.detail?.zonesMaxHr;
   const onMove = (e: PointerEvent<SVGSVGElement>) => {
@@ -387,7 +394,7 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
   return (
     <div className="card cx-analysis">
       <div className="cx-readout">
-        <div><span>Dist</span><b className="num">{p ? (activity.sport === "swim" ? `${Math.round(p.m)} m` : `${(p.m / 1000).toFixed(2)} km`) : "–"}</b></div>
+        <div><span>Dist</span><b className="num">{p ? (activity.sport === "swim" ? `${Math.round(p.m)} m` : `${distanceFrom(p.m, du).toFixed(2)} ${du}`) : "–"}</b></div>
         <div><span>Time</span><b className="num">{p ? formatDuration(p.s) : "–"}</b></div>
         {panels.map((pn) => <div key={pn.key}><span>{pn.key === "pace" ? (ride ? "Speed" : "Pace") : pn.key === "hr" ? "HR" : "Elev"}</span><b className="num" style={{ color: p ? undefined : "var(--text3)" }}>{readout(pn)}</b></div>)}
       </div>
@@ -431,7 +438,7 @@ export function RunAnalysis({ activity, onAt }: { activity: Activity; onAt?: (f:
         })}
         {[0, ...kms.filter((m) => m < total - kmStep * 0.9), total].map((m, k, all) => (
           <text key={k} x={x(m)} y={H - 4} fontSize="10" fill="var(--text3)" textAnchor={k === 0 ? "start" : k === all.length - 1 ? "end" : "middle"} fontFamily="var(--num)">
-            {k === all.length - 1 ? (activity.sport === "swim" ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`) : activity.sport === "swim" ? Math.round(m) : m / 1000}
+            {k === all.length - 1 ? (activity.sport === "swim" ? `${Math.round(m)} m` : `${distanceFrom(m, du).toFixed(1)} ${du}`) : activity.sport === "swim" ? Math.round(m) : Math.round(m / um)}
           </text>
         ))}
         {p && <line x1={x(p.m)} x2={x(p.m)} y1={tops[0]! - 4} y2={H - axis} stroke="var(--text)" strokeWidth="1" opacity=".6" />}
@@ -465,7 +472,8 @@ export function LoadCompare({ load, usual, pct, sportName }: { load: number; usu
  * Tap or drag to read a split.
  */
 export function SplitsChart({ activity }: { activity: Activity }) {
-  const splits: Split[] = activity.detail?.splits ?? [];
+  const du = usePrefs().units.distance;
+  const splits: Split[] = useMemo(() => splitsIn(activity, du), [activity, du]);
   const [at, setAt] = useState<number | null>(null);
   if (splits.length < 2) return null;
   const full = (sp: Split) => sp.metres >= (splits[0]?.metres ?? 0) * 0.9;
@@ -483,12 +491,12 @@ export function SplitsChart({ activity }: { activity: Activity }) {
   const col = (W - right) / splits.length;
   const bw = Math.min(26, col * 0.68);
   const y = (v: number) => labelH + barH - ((v - floor) / (top - floor)) * barH;
-  const short = (x: Split) => formatPace(x.metres, x.seconds, activity.sport).replace(/ \/.*$/, "");
-  const fmtSpeed = (v: number) => (activity.sport === "ride" ? (v * 3.6).toFixed(1) : formatPace(1000, 1000 / v, activity.sport).replace(/ \/.*$/, ""));
+  const short = (x: Split) => formatPace(x.metres, x.seconds, activity.sport, du).replace(/ \S*$/, "");
+  const fmtSpeed = (v: number) => formatPace(1000, 1000 / v, activity.sport, du).replace(/ \S*$/, "");
   const every = splits.length > 14 ? Math.ceil(splits.length / 10) : 1;
   const shown = at !== null ? splits[at]! : null;
-  const unit = activity.sport === "swim" ? "100 m" : activity.sport === "row" ? "500 m" : activity.sport === "ride" ? "5 km" : "km";
-  const name = (x: Split) => (full(x) ? `${unit === "km" ? "Km" : unit} ${x.n}` : `Last ${activity.sport === "swim" || activity.sport === "row" ? `${x.metres} m` : `${(x.metres / 1000).toFixed(2)} km`}`);
+  const unit = activity.sport === "swim" ? "100 m" : activity.sport === "row" ? "500 m" : activity.sport === "ride" ? `5 ${du}` : du;
+  const name = (x: Split) => (full(x) ? `${unit === "km" ? "Km" : unit === "mi" ? "Mile" : unit} ${x.n}` : `Last ${activity.sport === "swim" || activity.sport === "row" ? `${x.metres} m` : `${distanceFrom(x.metres, du).toFixed(2)} ${du}`}`);
   const pick = (e: PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     setAt(Math.max(0, Math.min(splits.length - 1, Math.floor((((e.clientX - r.left) / r.width) * W) / col))));
@@ -499,7 +507,7 @@ export function SplitsChart({ activity }: { activity: Activity }) {
       <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
         <span className="tiny">{shown ? name(shown) : `${splits.length} splits · tap one`}</span>
         <span className="num small" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-          {shown ? `${formatPace(shown.metres, shown.seconds, activity.sport)}${shown.avgHr ? ` · ${shown.avgHr} bpm` : ""}${shown.elevationM !== undefined ? ` · ${shown.elevationM > 0 ? "+" : ""}${shown.elevationM} m` : ""}` : avg ? `avg ${formatPace(activity.metres, activity.movingSeconds, activity.sport)}` : ""}
+          {shown ? `${formatPace(shown.metres, shown.seconds, activity.sport, du)}${shown.avgHr ? ` · ${shown.avgHr} bpm` : ""}${shown.elevationM !== undefined ? ` · ${shown.elevationM > 0 ? "+" : ""}${shown.elevationM} m` : ""}` : avg ? `avg ${formatPace(activity.metres, activity.movingSeconds, activity.sport, du)}` : ""}
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={pick} onPointerDown={pick} onPointerLeave={() => setAt(null)} role="img" aria-label={`Splits: ${splits.map(short).join(", ")}`}>
@@ -535,24 +543,25 @@ export function SplitsChart({ activity }: { activity: Activity }) {
 
 /** One row per split; the bar is longer the quicker it was, and the quickest is picked out. */
 export function SplitsTable({ activity }: { activity: Activity }) {
-  const splits: Split[] = activity.detail?.splits ?? [];
+  const du = usePrefs().units.distance;
+  const splits: Split[] = splitsIn(activity, du);
   if (!splits.length) return null;
   const per = (s: Split) => s.seconds / Math.max(1, s.metres);
   const full = splits.filter((s) => s.metres >= (splits[0]?.metres ?? 0) * 0.9);
   const best = full.length ? Math.min(...full.map(per)) : 0;
   const worst = full.length ? Math.max(...full.map(per)) : 0;
-  const unit = activity.sport === "swim" ? "100 m" : activity.sport === "row" ? "500 m" : activity.sport === "ride" ? "5 km" : "km";
+  const unit = activity.sport === "swim" ? "100 m" : activity.sport === "row" ? "500 m" : activity.sport === "ride" ? `5 ${du}` : du;
   const ele = splits.some((s) => s.elevationM !== undefined);
   return (
     <div className={`card flat cx-splits ${ele ? "" : "no-ele"}`}>
-      <div className="cx-split cx-split-head"><span>{unit === "km" ? "Km" : unit}</span><span>{activity.sport === "ride" ? "Speed" : "Pace"}</span><span /><span>HR</span>{ele && <span>Elev</span>}</div>
+      <div className="cx-split cx-split-head"><span>{unit === "km" ? "Km" : unit === "mi" ? "Mile" : unit}</span><span>{activity.sport === "ride" ? "Speed" : "Pace"}</span><span /><span>HR</span>{ele && <span>Elev</span>}</div>
       {splits.map((s) => {
         const quickest = per(s) === best && s.metres >= (splits[0]?.metres ?? 0) * 0.9;
         const w = worst > best ? 35 + 65 * ((worst - per(s)) / (worst - best)) : 100;
         return (
           <div key={s.n} className={`cx-split ${quickest ? "best" : ""}`}>
-            <span className="num">{s.metres < (splits[0]?.metres ?? 0) * 0.9 ? (activity.sport === "swim" || activity.sport === "row" ? `${s.metres} m` : (s.metres / 1000).toFixed(2)) : s.n}</span>
-            <span className="num">{formatPace(s.metres, s.seconds, activity.sport).replace(/ \/.*$/, "")}</span>
+            <span className="num">{s.metres < (splits[0]?.metres ?? 0) * 0.9 ? (activity.sport === "swim" || activity.sport === "row" ? `${s.metres} m` : distanceFrom(s.metres, du).toFixed(2)) : s.n}</span>
+            <span className="num">{formatPace(s.metres, s.seconds, activity.sport, du).replace(/ \S*$/, "")}</span>
             <span className="cx-split-bar"><i style={{ width: `${Math.max(8, Math.min(100, w))}%` }} /></span>
             <span className="num">{s.avgHr ?? "–"}</span>
             {ele && <span className="num">{s.elevationM === undefined ? "–" : `${s.elevationM > 0 ? "+" : ""}${s.elevationM}`}</span>}
@@ -590,9 +599,9 @@ export function HrZones({ activity }: { activity: Activity }) {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Distance per week, this week in orange. Bars are labelled with the Monday; the month shows where it changes. */
-export function WeekBars({ weeks, unit = "km" }: { weeks: { week: Date; metres: number }[]; unit?: "km" | "m" }) {
+export function WeekBars({ weeks, unit = "km" }: { weeks: { week: Date; metres: number }[]; unit?: "km" | "mi" | "m" }) {
   const max = Math.max(1, ...weeks.map((w) => w.metres));
-  const label = (m: number) => (unit === "m" ? `${Math.round(m).toLocaleString("en-GB")}` : m >= 100000 ? (m / 1000).toFixed(0) : (m / 1000).toFixed(1));
+  const label = (m: number) => (unit === "m" ? `${Math.round(m).toLocaleString("en-GB")}` : distanceFrom(m, unit) >= 100 ? distanceFrom(m, unit).toFixed(0) : distanceFrom(m, unit).toFixed(1));
   return (
     <div className="cx-weeks" role="img" aria-label={`Distance per week, last ${weeks.length} weeks`}>
       {weeks.map((w, i) => {

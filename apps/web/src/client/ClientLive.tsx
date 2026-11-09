@@ -22,6 +22,7 @@ import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
 import { ResourceProvider, liveResources } from "../data/resources";
 import { CoachRecipeProvider, liveCoachRecipes } from "../data/coachRecipes";
+import { ProgrammeProvider, liveProgrammes } from "../data/programmes";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 
@@ -56,6 +57,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const challenges = useMemo(() => (coach ? liveChallenges(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const resources = useMemo(() => (coach ? liveResources(db, coach.id) : null), [db, coach]);
   const coachRecipes = useMemo(() => (coach ? liveCoachRecipes(db, coach.id) : null), [db, coach]);
+  const programmes = useMemo(() => (coach ? liveProgrammes(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const growth = useMemo(() => (coach ? liveGrowth(db, { side: "client", coachId: coach.id, coachName: coach.name, me: profile.id }) : null), [db, coach, profile.id]);
   const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
@@ -83,7 +85,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
                   <ChallengeProvider value={challenges}>
                     <TeamProvider value={team}><GrowthProvider value={growth}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
-                      <ClientApp notice={notice} />
+                      <ProgrammeProvider value={programmes}><ClientApp notice={notice} /></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
                     </GrowthProvider></TeamProvider>
                   </ChallengeProvider>

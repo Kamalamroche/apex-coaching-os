@@ -1,5 +1,5 @@
-import { HERO_IMAGES, heroForSport, activityFromFile, formatDistance, formatDuration, manualActivity, newKey, SPORTS, weeklyMetres, weekTotals, type Activity, type Sport } from "@apex/core";
-import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { HERO_IMAGES, heroForSport, activityFromFile, formatDuration, manualActivity, newKey, SPORTS, weeklyMetres, weekTotals, type Activity, type Sport } from "@apex/core";
+import { BackLink, Icons, Label, Sheet, SportIcon, WeekBars, ScriptTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ActivityRow, ActivityView } from "../../app/ActivityView";
 import { useAppInfo } from "../../app/AppContext";
@@ -11,6 +11,7 @@ const STALE_MS = 15 * 60 * 1000;
 const FILTERS: ("all" | Sport)[] = ["all", "run", "swim", "ride", "row", "walk"];
 
 export function Cardio({ say }: { say: (m: string) => void }) {
+  const u = useUnits();
   const { store, strava } = useActivityContext();
   const { activities, connections, status } = useActivities();
   const { coachName } = useAppInfo();
@@ -70,7 +71,7 @@ export function Cardio({ say }: { say: (m: string) => void }) {
         <HeroBackdrop art={HERO_IMAGES[heroForSport(week[0]?.sport)]} />
         <div className="hero-body">
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>Cardio · this week</span>
-          <ScriptTitle script="Keep moving"><span className="num">{formatDuration(weekSeconds)}</span>{weekMetres > 0 && <><br /><span className="num">{formatDistance(weekMetres)}</span></>}</ScriptTitle>
+          <ScriptTitle script="Keep moving"><span className="num">{formatDuration(weekSeconds)}</span>{weekMetres > 0 && <><br /><span className="num">{u.dist(weekMetres)}</span></>}</ScriptTitle>
         </div>
       </div>
       {status === "needs-update" && <div className="card small" style={{ borderColor: "var(--warn)" }}>Cardio needs a one-off database update before it can save. Ask {coachName} to run it.</div>}
@@ -79,7 +80,7 @@ export function Cardio({ say }: { say: (m: string) => void }) {
           {week.slice(0, 4).map((w) => (
             <div key={w.sport} className="kpi">
               <SportIcon sport={w.sport} size={18} />
-              <b style={{ fontSize: 18 }}>{w.metres ? formatDistance(w.metres, w.sport) : formatDuration(w.seconds)}</b>
+              <b style={{ fontSize: 18 }}>{w.metres ? u.dist(w.metres, w.sport) : formatDuration(w.seconds)}</b>
               <small>{w.count} {SPORTS.find((s) => s.id === w.sport)?.label.toLowerCase()}{w.count > 1 ? "s" : ""} · {formatDuration(w.seconds)}</small>
             </div>
           ))}
@@ -100,7 +101,7 @@ export function Cardio({ say }: { say: (m: string) => void }) {
           <div className="chips" style={{ marginBottom: 12 }}>
             {filters.map((f) => <button key={f} className={`chip ${filter === f ? "on" : ""}`} onClick={() => setFilter(f)}>{f === "all" ? "All" : SPORTS.find((s) => s.id === f)?.label}</button>)}
           </div>
-          <WeekBars weeks={weeklyMetres(activities, filter)} unit={filter === "swim" ? "m" : "km"} />
+          <WeekBars weeks={weeklyMetres(activities, filter)} unit={filter === "swim" ? "m" : u.distance} />
         </div>
       </section>
       <section>
@@ -147,6 +148,7 @@ const localNow = () => {
 };
 
 function LogSheet({ onClose, onSave }: { onClose: () => void; onSave: (a: Activity) => void }) {
+  const u = useUnits();
   const [sport, setSport] = useState<Sport>("run");
   const [distance, setDistance] = useState("");
   const [h, setH] = useState("");
@@ -161,7 +163,7 @@ function LogSheet({ onClose, onSave }: { onClose: () => void; onSave: (a: Activi
   const valid = seconds > 0 && (sport === "other" || dist > 0);
   const save = () => {
     if (!valid) return;
-    onSave(manualActivity({ id: newKey(), sport, name, startedAt: new Date(when).toISOString(), distance: dist || 0, seconds, avgHr: Number(hr) || undefined, rpe: rpe ?? undefined }));
+    onSave(manualActivity({ id: newKey(), sport, name, startedAt: new Date(when).toISOString(), distance: sport === "swim" || u.distance === "km" ? dist || 0 : (dist || 0) * 1.609344, seconds, avgHr: Number(hr) || undefined, rpe: rpe ?? undefined }));
   };
   return (
     <Sheet onClose={onClose} label="Log activity">
@@ -170,7 +172,7 @@ function LogSheet({ onClose, onSave }: { onClose: () => void; onSave: (a: Activi
         {SPORTS.map((x) => <button key={x.id} className={`chip ${sport === x.id ? "on" : ""}`} onClick={() => setSport(x.id)}><SportIcon sport={x.id} size={14} /> {x.label}</button>)}
       </div>
       <div style={{ display: "grid", gap: 10 }}>
-        <label className="small">Distance ({sport === "swim" ? "metres" : "km"})
+        <label className="small">Distance ({sport === "swim" ? "metres" : u.distance === "mi" ? "miles" : "km"})
           <input className="field num" inputMode="decimal" placeholder={sport === "swim" ? "1500" : "5.0"} value={distance} onChange={(e) => setDistance(e.target.value)} />
         </label>
         <div className="small">Time
