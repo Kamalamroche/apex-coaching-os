@@ -1,6 +1,6 @@
 import {
-  addDays, fromFoodRow, fromWaterRow, toWaterRow, fromHabitRow, fromIntakeRow, fromTargetsRow, fromTickRow, healthFlags, localDate, toFoodRow, toggleTick, toHabitRow, toTargetsRow,
-  type FoodEntryRow, type HabitRow, type HabitTickRow, type IntakeRow, type LifestyleState, type LifestyleStore, type NutritionTargetsRow, type WaterRow,
+  addDays, fromMealPlanRow, toMealPlanRow, fromFoodRow, fromWaterRow, toWaterRow, fromHabitRow, fromIntakeRow, fromTargetsRow, fromTickRow, healthFlags, localDate, toFoodRow, toggleTick, toHabitRow, toTargetsRow,
+  type FoodEntryRow, type HabitRow, type HabitTickRow, type IntakeRow, type LifestyleState, type MealPlanRow, type LifestyleStore, type NutritionTargetsRow, type WaterRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -9,7 +9,7 @@ const isMissingTable = (e: { code?: string } | null) => e?.code === "42P01" || e
 const TICK_DAYS = 60;
 const FOOD_DAYS = 31;
 const WATER_DAYS = 14;
-const TABLES = ["client_habits", "habit_ticks", "nutrition_targets", "food_entries", "intake_forms", "water_entries"];
+const TABLES = ["client_habits", "habit_ticks", "nutrition_targets", "food_entries", "intake_forms", "water_entries", "meal_plans"];
 
 export interface LiveLifestyleStore extends LifestyleStore {
   close(): void;
@@ -17,7 +17,7 @@ export interface LiveLifestyleStore extends LifestyleStore {
 
 /** LifestyleStore backed by the habits, nutrition and questionnaire tables, kept live with Realtime. */
 export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): LiveLifestyleStore {
-  let state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, status: "loading" };
+  let state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, status: "loading" };
   let channel: RealtimeChannel | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let seq = 0;
@@ -36,21 +36,25 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
   async function load() {
     const mine = ++seq;
     const today = localDate(new Date());
-    const [h, t, n, f, i, wa] = await Promise.all([
+    const [h, t, n, f, i, wa, mp] = await Promise.all([
       db.from("client_habits").select("*").eq("client_id", clientId).order("created_at").returns<HabitRow[]>(),
       db.from("habit_ticks").select("*").eq("client_id", clientId).gte("day", addDays(today, -TICK_DAYS)).returns<HabitTickRow[]>(),
       db.from("nutrition_targets").select("*").eq("client_id", clientId).maybeSingle<NutritionTargetsRow>(),
       db.from("food_entries").select("*").eq("client_id", clientId).gte("day", addDays(today, -FOOD_DAYS)).order("created_at").returns<FoodEntryRow[]>(),
       db.from("intake_forms").select("*").eq("client_id", clientId).maybeSingle<IntakeRow>(),
       db.from("water_entries").select("*").eq("client_id", clientId).gte("day", addDays(today, -WATER_DAYS)).order("created_at").returns<WaterRow[]>(),
+      db.from("meal_plans").select("*").eq("client_id", clientId).maybeSingle<MealPlanRow>(),
     ]);
     if (mine !== seq) return;
     const err = h.error ?? t.error ?? n.error ?? f.error ?? i.error;
     if (err) return fail(err);
     // Water came later: without its table the tracker says so, and everything else still works.
     if (wa.error && !isMissingTable(wa.error)) return fail(wa.error);
+    // Same for meal plans: without the table the plan section says the update is needed.
+    if (mp.error && !isMissingTable(mp.error)) return fail(mp.error);
     set({
       water: wa.error ? [] : (wa.data ?? []).map(fromWaterRow), waterReady: !wa.error,
+      mealPlan: mp.error || !mp.data ? null : fromMealPlanRow(mp.data), planReady: !mp.error,
       habits: (h.data ?? []).map(fromHabitRow), ticks: (t.data ?? []).map(fromTickRow), targets: n.data ? fromTargetsRow(n.data) : null,
       food: (f.data ?? []).map(fromFoodRow), intake: i.data ? fromIntakeRow(i.data) : null, status: "ready", error: undefined,
     });
@@ -93,6 +97,10 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
     setTargets(t) {
       set({ targets: t });
       write(db.from("nutrition_targets").upsert({ ...toTargetsRow(t, clientId), updated_at: new Date().toISOString() }));
+    },
+    setMealPlan(p) {
+      set({ mealPlan: p });
+      write(p ? db.from("meal_plans").upsert(toMealPlanRow(p, clientId)) : db.from("meal_plans").delete().eq("client_id", clientId));
     },
     addFood(f) {
       set({ food: [...state.food, f] });

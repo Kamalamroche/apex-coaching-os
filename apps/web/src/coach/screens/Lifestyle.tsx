@@ -1,11 +1,12 @@
 import {
-  EVERY_DAY, HABIT_PRESETS, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
-  type Habit, type HabitKind,
+  ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
+  type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
   weekDaysOf, weekNutrition,
 } from "@apex/core";
 import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
+import { CoachPlanEditor } from "../../app/MealPlanParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -146,10 +147,73 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         {fromMacros !== null && vals.kcal !== null && Math.abs(fromMacros - vals.kcal) > Math.max(50, vals.kcal * 0.05) && (
           <div className="tiny" style={{ color: "var(--warn)" }}>These macros add up to {fromMacros.toLocaleString()} kcal, not {vals.kcal.toLocaleString()}.</div>
         )}
+        <TargetCalculator name={name} onUse={(r) => setForm({ ...form, kcal: String(r.kcal), p: String(r.proteinG), c: String(r.carbsG), f: String(r.fatG) })} />
         <input id="nt-note" className="field" maxLength={500} placeholder={`A tip for ${name}, e.g. 30 g of protein at breakfast`} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
+      {s.planReady
+        ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
+        : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
     </>
+  );
+}
+
+const CALC_KEY = "apex.targetCalc";
+type CalcForm = { sex: Sex; age: string; height: string; weight: string; activity: ActivityLevel; goal: NutritionGoal };
+const blankCalc: CalcForm = { sex: "female", age: "", height: "", weight: "", activity: "moderate", goal: "maintain" };
+function loadCalc(): CalcForm {
+  try { return { ...blankCalc, ...JSON.parse(localStorage.getItem(CALC_KEY) ?? "{}") }; } catch { return blankCalc; }
+}
+
+/** Coach: suggested calories and macros from body stats, activity and goal. Fills the target fields; the coach still saves. */
+function TargetCalculator({ name, onUse }: { name: string; onUse: (t: SuggestedTargets) => void }) {
+  const [open, setOpen] = useState(false);
+  const [c, setC] = useState(loadCalc);
+  const set = (patch: Partial<CalcForm>) => {
+    const next = { ...c, ...patch };
+    setC(next);
+    try { localStorage.setItem(CALC_KEY, JSON.stringify(next)); } catch { /* private mode: fine */ }
+  };
+  if (!open) return <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setOpen(true)}><Icons.target width={14} height={14} style={{ verticalAlign: -2, marginRight: 4 }} />Work out targets for me</button>;
+  const inputs = { sex: c.sex, age: parseNumber(c.age) ?? undefined, heightCm: parseNumber(c.height) ?? undefined, weightKg: parseNumber(c.weight) ?? undefined, activity: c.activity, goal: c.goal };
+  const filled = c.age && c.height && c.weight;
+  const problem = filled ? targetInputsProblem(inputs) : null;
+  const r = filled && !problem ? suggestTargets(inputs as Parameters<typeof suggestTargets>[0]) : null;
+  const act = ACTIVITY_LEVELS.find((a) => a.key === c.activity);
+  return (
+    <div className="card flat stack" style={{ gap: 12, padding: 14 }}>
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Target calculator</h3><button className="iconbtn" aria-label="Close calculator" onClick={() => setOpen(false)}><Icons.close width={16} height={16} /></button></div>
+      <div className="seg" role="radiogroup" aria-label="Sex">
+        {(["female", "male"] as const).map((x) => <button key={x} type="button" role="radio" aria-checked={c.sex === x} className={c.sex === x ? "on" : ""} onClick={() => set({ sex: x })}>{x === "female" ? "Female" : "Male"}</button>)}
+      </div>
+      <div className="nut-calc-grid">
+        <NumberField id="calc-age" label="Age" unit="yrs" value={c.age} onChange={(v) => set({ age: v })} />
+        <NumberField id="calc-h" label="Height" unit="cm" value={c.height} onChange={(v) => set({ height: v })} />
+        <NumberField id="calc-w" label="Weight" unit="kg" value={c.weight} onChange={(v) => set({ weight: v })} />
+      </div>
+      <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>Activity
+        <select id="calc-act" className="field" value={c.activity} onChange={(e) => set({ activity: e.target.value as ActivityLevel })}>
+          {ACTIVITY_LEVELS.map((a) => <option key={a.key} value={a.key}>{a.label}: {a.hint.toLowerCase()}</option>)}
+        </select>
+      </label>
+      <div className="chips" role="group" aria-label="Goal">
+        {NUTRITION_GOALS.map((g) => <button key={g.key} className={`chip ${c.goal === g.key ? "on" : ""}`} aria-pressed={c.goal === g.key} onClick={() => set({ goal: g.key })}>{g.label}</button>)}
+      </div>
+      {problem && <div className="tiny" style={{ color: "var(--warn)" }}>{problem}</div>}
+      {r && (
+        <>
+          <div className="sect" style={{ marginBottom: 0 }}><span className="small">Maintenance about <b className="num" style={{ color: "var(--text)" }}>{r.maintenance.toLocaleString("en-GB")} kcal</b></span><Label kind="insight">Insight</Label></div>
+          <div key={`${r.kcal}-${r.proteinG}`} className="nut-calc-out">
+            <div><span className="tiny">Calories</span><span className="num"><b>{r.kcal.toLocaleString("en-GB")}</b></span></div>
+            <div><span className="tiny">Protein</span><span className="num"><b>{r.proteinG}</b> g</span></div>
+            <div><span className="tiny">Carbs</span><span className="num"><b>{r.carbsG}</b> g</span></div>
+            <div><span className="tiny">Fat</span><span className="num"><b>{r.fatG}</b> g</span></div>
+          </div>
+          <div className="tiny">Mifflin-St Jeor, {act?.label.toLowerCase()} activity{c.goal === "lose" ? ", 20% under maintenance, protein 2 g per kg" : c.goal === "gain" ? ", 10% over maintenance, protein 1.8 g per kg" : ", protein 1.8 g per kg"}. A starting point: check {name}'s weight trend after 2 to 3 weeks and adjust.</div>
+          <button className="btn block" onClick={() => { onUse(r); setOpen(false); }}>Use these targets</button>
+        </>
+      )}
+    </div>
   );
 }
 

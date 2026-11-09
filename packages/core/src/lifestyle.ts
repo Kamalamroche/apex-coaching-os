@@ -1,3 +1,4 @@
+import { sampleMealPlan, type MealPlan } from "./mealPlans";
 /* Habits, nutrition targets with a food log, and the onboarding questionnaire.
    The coach sets habits and targets; the client ticks habits, logs food and fills in the questionnaire once.
    Behind one interface like ApexStore: the demo keeps it in localStorage, the live app in the tables of
@@ -292,6 +293,10 @@ export interface LifestyleState {
   water: WaterEntry[];
   /** False when the live database doesn't have the water table yet: the tracker says so and habits keep working. */
   waterReady: boolean;
+  /** The coach's meal plan, if there is one. */
+  mealPlan: MealPlan | null;
+  /** False when the live database doesn't have the meal plan table yet. */
+  planReady: boolean;
   /** "needs-update": the database doesn't have these tables yet (the SQL hasn't run). */
   status: "loading" | "ready" | "needs-update" | "error";
   error?: string;
@@ -311,6 +316,8 @@ export interface LifestyleStore {
   /** Client. */
   addFood(f: FoodEntry): void;
   removeFood(id: string): void;
+  /** Coach: write or replace the meal plan (null removes it). */
+  setMealPlan(p: MealPlan | null): void;
   /** Client: log a drink. */
   addWater(e: WaterEntry): void;
   removeWater(id: string): void;
@@ -380,7 +387,7 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
     sip(1, 500, 8, 5, addDays(today, -1)), sip(2, 500, 11, 30, addDays(today, -1)), sip(3, 750, 14, 10, addDays(today, -1)), sip(4, 750, 18, 40, addDays(today, -1)),
     sip(5, 250, 7, 40), sip(6, 500, 10, 15), sip(7, 250, 12, 30),
   ];
-  return { habits, ticks, water, waterReady: true, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null };
+  return { habits, ticks, water, waterReady: true, mealPlan: sampleMealPlan(now), planReady: true, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null };
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
@@ -410,8 +417,8 @@ export function createDemoLifestyleStore(
   const update = (fn: (s: LifestyleState) => LifestyleState) => {
     state = fn(state);
     try {
-      const { habits, ticks, targets, food, intake, water } = state;
-      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake, water }));
+      const { habits, ticks, targets, food, intake, water, mealPlan } = state;
+      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake, water, mealPlan }));
     } catch {
       /* storage full or blocked: the change still shows in this tab */
     }
@@ -436,6 +443,7 @@ export function createDemoLifestyleStore(
     removeHabit: (id) => update((s) => ({ ...s, habits: s.habits.filter((h) => h.id !== id), ticks: s.ticks.filter((t) => t.habitId !== id) })),
     setHabitDone: (habitId, day, done) => update((s) => ({ ...s, ticks: toggleTick(s.ticks, habitId, day, done) })),
     setTargets: (t) => update((s) => ({ ...s, targets: t })),
+    setMealPlan: (p) => update((s) => ({ ...s, mealPlan: p })),
     addFood: (f) => update((s) => ({ ...s, food: [...s.food, f] })),
     removeFood: (id) => update((s) => ({ ...s, food: s.food.filter((f) => f.id !== id) })),
     addWater: (e) => update((s) => ({ ...s, water: [...s.water, e] })),
@@ -448,9 +456,9 @@ export function createDemoLifestyleStore(
 
 /** A store with nothing in it, for a coach with no clients yet. */
 export function emptyLifestyleStore(): LifestyleStore {
-  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, status: "ready" };
+  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, status: "ready" };
   const noop = () => {};
-  return { get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, addFood: noop, removeFood: noop, addWater: noop, removeWater: noop, submitIntake: async () => {} };
+  return { get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, setMealPlan: noop, addFood: noop, removeFood: noop, addWater: noop, removeWater: noop, submitIntake: async () => {} };
 }
 
 function safeStorage(): StorageLike | null {
