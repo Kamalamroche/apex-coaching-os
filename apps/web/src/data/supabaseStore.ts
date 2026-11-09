@@ -1,4 +1,5 @@
 import {
+  cleanQuestions, questionsProblem, readQuestions, type CheckInQuestion,
   INITIAL_WORKOUT, bestKgByExercise, emptyProgress, hasMeasurements, latestSetByExercise, newKey, nextDayKey, nextHistory, photoPath, programFromWorkout, stateForWorkout,
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
   withDayWorkout, withProgram,
@@ -204,11 +205,18 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         measurements: (ms.data ?? []).map(toMeasurement),
         photos: photos.map((r) => toPhoto(r, urls.get(r.storage_path) ?? null)),
         checkInDay: rel.data?.check_in_day ?? 0,
+        questions: await loadQuestions(),
       };
     } catch (e) {
       progressError = message(e);
       return state.progress ?? emptyProgress();
     }
+  }
+
+  /** The coach's own check-in questions. None until the questions SQL is run. */
+  async function loadQuestions(): Promise<CheckInQuestion[]> {
+    const { data, error: e } = await db.from("coach_check_in_forms").select("questions").eq("coach_id", ids.coachId).maybeSingle<{ questions: unknown }>();
+    return e ? [] : readQuestions(data?.questions);
   }
 
   async function reloadProgress() {
@@ -476,6 +484,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       const { data, error: e1 } = await db.from("check_ins").update({ coach_reply: reply.trim() || null, reviewed_at: new Date().toISOString() }).eq("id", id).select("id");
       if (e1) throw e1;
       if (!data?.length) throw new Error("Couldn't save the reply. Check the database update has been run.");
+      await reloadProgress();
+    },
+    async saveCheckInQuestions(questions) {
+      const problem = questionsProblem(questions);
+      if (problem) throw new Error(problem);
+      const { error: e1 } = await db.from("coach_check_in_forms").upsert({ coach_id: ids.coachId, questions: cleanQuestions(questions), updated_at: new Date().toISOString() });
+      if (e1) throw new Error(e1.code === "42P01" || e1.code === "PGRST205" ? "Your own questions need the check-in questions SQL in Supabase first." : e1.message);
       await reloadProgress();
     },
     async setCheckInDay(day) {

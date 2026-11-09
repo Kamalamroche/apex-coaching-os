@@ -2,6 +2,7 @@ import { useApexState } from "@apex/core/react";
 import { Shell, useToast, type TabDef } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { useAppInfo } from "../app/AppContext";
+import { useOpenFromNotification } from "../app/PushParts";
 import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
 import { CheckIn } from "./screens/CheckIn";
@@ -34,6 +35,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     { id: "chat", icon: "chat", label: "Messages", dot: messages.at(-1)?.from === "coach" },
     { id: "more", icon: "more", label: "More" },
   ];
+  useOpenFromNotification("chat", (t: Tab) => { setCheckingIn(false); setIntaking(false); setTab(t); });
   const start = () => setPlaying(true);
   const openCheckIn = () => { setCheckingIn(true); window.scrollTo(0, 0); };
   const openIntake = () => { setIntaking(true); window.scrollTo(0, 0); };

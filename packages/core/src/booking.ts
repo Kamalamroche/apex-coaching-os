@@ -27,6 +27,8 @@ export interface BookingSettings {
   /** IANA time zone the hours are in. */
   timezone: string;
   windows: HoursWindow[];
+  /** The coach's own meeting room (Zoom, Google Meet, Teams…). Empty: each call gets its own free Jitsi room. */
+  videoLink?: string;
 }
 
 export interface Booking {
@@ -156,6 +158,8 @@ export const kindTitle = (k: BookingKind): string => BOOKING_KINDS.find((x) => x
 
 /** What stops the hours from saving, or null. */
 export function hoursProblem(s: BookingSettings): string | null {
+  const video = videoLinkProblem(s.videoLink ?? "");
+  if (video) return video;
   if (!SLOT_CHOICES.includes(s.slotMin)) return "Pick a slot length.";
   if (s.noticeHours < 0 || s.noticeHours > 168) return "Pick a notice period.";
   for (const w of s.windows) {
@@ -180,6 +184,8 @@ export interface BookingSettingsRow {
   notice_hours: number;
   timezone: string;
   windows: { weekday: number; start_min: number; end_min: number }[];
+  /** Added by 20261116090000_video_calls.sql; absent before it is run. */
+  video_link?: string | null;
 }
 
 export interface BookingRow {
@@ -197,12 +203,54 @@ export interface BookingRow {
 export const toSettingsRow = (s: BookingSettings, coachId: string): BookingSettingsRow => ({
   coach_id: coachId, slot_min: s.slotMin, notice_hours: s.noticeHours, timezone: s.timezone,
   windows: s.windows.map((w) => ({ weekday: w.weekday, start_min: w.startMin, end_min: w.endMin })),
+  video_link: s.videoLink?.trim() || null,
 });
 
 export const fromSettingsRow = (r: BookingSettingsRow): BookingSettings => ({
   slotMin: Number(r.slot_min), noticeHours: Number(r.notice_hours), timezone: r.timezone,
   windows: (r.windows ?? []).map((w) => ({ weekday: Number(w.weekday), startMin: Number(w.start_min), endMin: Number(w.end_min) })),
+  videoLink: r.video_link ?? "",
 });
+
+/* ---------- Video calls ---------- */
+
+/** Free video rooms, no account needed to join. Room names come from the booking's random id, so they can't be guessed. */
+export const JITSI_BASE = "https://meet.jit.si/";
+
+/** The link for a booked call: the coach's own room if they set one, otherwise a private Jitsi room for this booking. In-person sessions have none. */
+export function callLink(b: Pick<Booking, "id" | "kind">, s: Pick<BookingSettings, "videoLink"> | null): string | null {
+  if (b.kind !== "call") return null;
+  const own = s?.videoLink?.trim();
+  if (own) return own;
+  const room = b.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 32);
+  return `${JITSI_BASE}APEX-${room}`;
+}
+
+/** Where the link goes, for the button: "Zoom", "Google Meet", "Teams" or "Jitsi". */
+export function callService(link: string): string {
+  const host = (() => { try { return new URL(link).hostname; } catch { return ""; } })();
+  if (/zoom\.us$/.test(host)) return "Zoom";
+  if (host === "meet.google.com") return "Google Meet";
+  if (/teams\.(microsoft|live)\.com$/.test(host)) return "Teams";
+  if (/jit\.si$|jitsi/.test(host)) return "Jitsi";
+  if (/whereby\.com$/.test(host)) return "Whereby";
+  return "video call";
+}
+
+/** The call can be joined from 10 minutes before it starts until it ends. */
+export const callOpen = (b: Pick<Booking, "startsAt" | "endsAt">, now: Date) =>
+  now.getTime() >= new Date(b.startsAt).getTime() - 10 * 60000 && now.getTime() <= new Date(b.endsAt).getTime();
+
+/** What the coach typed as their meeting link, or why it can't be saved. */
+export function videoLinkProblem(link: string): string | null {
+  const v = link.trim();
+  if (!v) return null;
+  if (v.length > 300) return "That link is too long.";
+  let u: URL;
+  try { u = new URL(v); } catch { return "Paste the full link, starting with https://"; }
+  if (u.protocol !== "https:") return "The link should start with https://";
+  return null;
+}
 
 export const toBookingRow = (b: Booking, coachId: string): Omit<BookingRow, "created_at"> => ({
   id: b.id, coach_id: coachId, client_id: b.clientId, starts_at: b.startsAt, ends_at: b.endsAt, kind: b.kind, note: b.note || null, status: b.status,

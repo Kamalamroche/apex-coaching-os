@@ -1,4 +1,5 @@
-import { BOOKING_KINDS, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy } from "@apex/core";
+import { BOOKING_KINDS, callLink, callOpen, callService, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy } from "@apex/core";
+import { Icons } from "@apex/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BOOKINGS_NEED_UPDATE, type BookingApi } from "../data/bookings";
 
@@ -69,5 +70,23 @@ export function SlotPicker({ settings, busy, value, onChange }: { settings: Book
         {open?.slots.map((iso) => <button key={iso} className={`chip num ${value === iso ? "on" : ""}`} aria-pressed={value === iso} onClick={() => onChange(value === iso ? null : iso)}>{timeLabel(iso)}</button>)}
       </div>
     </div>
+  );
+}
+
+/** "Join call" on a booked call: bright from 10 minutes before the start, a quiet link before that. */
+export function JoinCall({ booking, settings, now = new Date() }: { booking: Booking; settings: BookingSettings | null; now?: Date }) {
+  const link = callLink(booking, settings);
+  if (!link) return null;
+  const open = callOpen(booking, now);
+  const service = callService(link);
+  const label = `${open ? "Join" : "Open"} the ${service === "video call" ? "" : `${service} `}video call`;
+  return open ? (
+    <a className="btn sm act" style={{ textDecoration: "none", flex: "none" }} href={link} target="_blank" rel="noopener noreferrer" aria-label={label} title={link}>
+      <Icons.video width={14} height={14} /> Join
+    </a>
+  ) : (
+    <a className="iconbtn" style={{ textDecoration: "none", flex: "none", display: "inline-grid", placeItems: "center" }} href={link} target="_blank" rel="noopener noreferrer" aria-label={label} title={`${service === "video call" ? "Video call" : service} link · opens 10 minutes before`}>
+      <Icons.video width={16} height={16} />
+    </a>
   );
 }

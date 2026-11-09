@@ -17,7 +17,19 @@ export interface PrivacyApi {
   /** Whether to email this person when a message waits unread (on unless they switched it off). */
   emailAlerts(): Promise<boolean>;
   setEmailAlerts(on: boolean): Promise<void>;
+  /** Push notifications: the server's public key, or null in the demo (which shows notifications on this device only). */
+  pushKey(): Promise<string | null>;
+  savePush(s: PushDevice): Promise<void>;
+  removePush(endpoint: string): Promise<void>;
+  /** Sends a test notification to every device of this person; how many it reached. */
+  testPush(): Promise<number>;
 }
+
+export interface PushDevice { endpoint: string; p256dh: string; auth: string; device: string }
+
+/** The push function isn't deployed yet (or the push SQL isn't run). */
+export const PUSH_NOT_READY = "push-not-ready";
+
 
 const isMissing = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202" || e?.code === "42883";
 export const PRIVACY_NEEDS_UPDATE = "needs-update";
@@ -80,6 +92,24 @@ export function livePrivacy(db: SupabaseClient, me: { id: string; role: PrivacyR
       const { error } = await db.from("email_prefs").upsert({ user_id: me.id, messages_on: on, updated_at: new Date().toISOString() });
       if (error) throw err(error);
     },
+    async pushKey() {
+      const { data, error } = await db.functions.invoke<{ publicKey?: string }>("push", { body: { action: "key" } });
+      if (error || !data?.publicKey) throw new Error(PUSH_NOT_READY);
+      return data.publicKey;
+    },
+    async savePush(d) {
+      const { error } = await db.rpc("save_push_subscription", { p_endpoint: d.endpoint, p_p256dh: d.p256dh, p_auth: d.auth, p_device: d.device });
+      if (error) throw isMissing(error) ? new Error(PUSH_NOT_READY) : new Error(error.message);
+    },
+    async removePush(endpoint) {
+      const { error } = await db.rpc("remove_push_subscription", { p_endpoint: endpoint });
+      if (error && !isMissing(error)) throw new Error(error.message);
+    },
+    async testPush() {
+      const { data, error } = await db.functions.invoke<{ sent?: number; error?: string }>("push", { body: { action: "test" } });
+      if (error) throw new Error(PUSH_NOT_READY);
+      return data?.sent ?? 0;
+    },
   };
 }
 
@@ -140,6 +170,14 @@ export function demoPrivacy(role: PrivacyRole, name: string): PrivacyApi {
     },
     async setEmailAlerts(on) {
       try { localStorage.setItem(`${key}-email`, on ? "on" : "off"); } catch { /* this visit only */ }
+    },
+    async pushKey() {
+      return null;
+    },
+    async savePush() { /* the demo keeps nothing */ },
+    async removePush() { /* the demo keeps nothing */ },
+    async testPush() {
+      return 0;
     },
   };
 }

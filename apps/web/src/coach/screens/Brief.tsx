@@ -10,6 +10,7 @@ import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
 import type { LiveClient } from "../../data/coach";
+import { PushPrompt } from "../../app/PushParts";
 
 interface TriageItem {
   id: string;
@@ -78,6 +79,7 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
         </div>
       </section>
       <SampleNote />
+      <PushPrompt say={say} full />
       <div className="hero side short">
         <HeroBackdrop art={hero} />
         <div className="hero-body" style={{ maxWidth: 280 }}>

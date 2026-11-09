@@ -14,6 +14,7 @@ import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
 import { AccountScreen } from "../app/Privacy";
+import { useOpenFromNotification } from "../app/PushParts";
 import { BackLink } from "@apex/ui";
 
 type Tab = "brief" | "clients" | "chat" | "build" | "food" | "money";
@@ -38,6 +39,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const [account, setAccount] = useState(false);
   const [toast, say] = useToast();
   useFinishedAlert(say);
+  useOpenFromNotification("chat", (t: Tab) => { setAccount(false); setTab(t); });
   const openClient = (id: number) => { setClientId(id); setTab("clients"); };
   const goBuild = () => setTab("build");
   const changeTab = (t: Tab) => { setAccount(false); setTab(t); if (t !== "clients") setClientId(null); };

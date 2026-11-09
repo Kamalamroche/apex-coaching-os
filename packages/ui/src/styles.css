@@ -969,3 +969,11 @@ button.tile{font:inherit}
 .eatout-block.watch .h3 svg{color:var(--warn)}
 .eatout-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--text)}
 .eatout-tip{padding:12px 14px;border-radius:14px;border:1px solid var(--line);color:var(--text)}
+
+/* Push notifications prompt and iPhone steps */
+.push-prompt{border-color:color-mix(in srgb,var(--act) 35%,var(--line))}
+.push-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--act-soft);color:var(--act);flex:none}
+.push-steps{margin:4px 0 0;padding-left:20px;display:grid;gap:4px}
+
+/* Coach's own check-in questions */
+.ciq{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:14px}

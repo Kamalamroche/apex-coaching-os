@@ -1069,3 +1069,86 @@ do $$ begin
 end $$;
 reset role;
 
+
+-- Push notifications: people manage only their own devices; the sending functions are service-role only.
+insert into auth.users values ('00000000-0000-0000-0000-0000000000a1'),('00000000-0000-0000-0000-0000000000a2'),('00000000-0000-0000-0000-0000000000a3');
+insert into profiles values ('00000000-0000-0000-0000-0000000000a1','coach','Push Coach'),('00000000-0000-0000-0000-0000000000a2','client','Priya Push'),('00000000-0000-0000-0000-0000000000a3','client','Other Push');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2');
+insert into messages (coach_id, client_id, sender_id, body) values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a2','Hip felt fine');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.save_push_subscription('https://push.example.com/coach-phone', repeat('p', 87), repeat('a', 22), 'iPhone');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.save_push_subscription('https://push.example.com/priya-phone', repeat('p', 87), repeat('a', 22), 'Android');
+do $$ begin
+  assert (select count(*) from push_subscriptions) = 1, 'client sees only own device';
+  assert (select count(*) from push_config) = 0, 'nobody reads the signing keys';
+  perform public.remove_push_subscription('https://push.example.com/coach-phone');
+  begin
+    perform public.pending_push_alerts();
+    raise exception 'client called a sending function';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.push_config_get();
+    raise exception 'client read the push config';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- A shared phone moves to whoever turns notifications on last.
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a3');
+select public.save_push_subscription('https://push.example.com/priya-phone', repeat('q', 87), repeat('b', 22), 'Android');
+reset role;
+do $$ begin
+  assert (select count(*) from push_subscriptions where endpoint = 'https://push.example.com/coach-phone') = 1, 'someone else could not remove the coach''s device';
+  assert (select user_id from push_subscriptions where endpoint = 'https://push.example.com/priya-phone') = '00000000-0000-0000-0000-0000000000a3', 'shared device moved';
+end $$;
+set role service_role;
+do $$ declare r record; begin
+  select * into r from public.pending_push_alerts() where user_id = '00000000-0000-0000-0000-0000000000a1';
+  assert r.unread >= 1, 'coach has an unread message to hear about';
+  assert 'Priya' = any(r.senders), 'sender named';
+  assert jsonb_array_length(r.subscriptions) = 1, 'sent to the coach''s phone';
+  perform public.mark_push_sent(r.message_ids);
+  assert not exists (select 1 from public.pending_push_alerts() where user_id = '00000000-0000-0000-0000-0000000000a1'), 'never pushed twice';
+  assert (select public_key from public.push_config_set_keys('pub1', 'priv1')) = 'pub1', 'keys saved';
+  assert (select public_key from public.push_config_set_keys('pub2', 'priv2')) = 'pub1', 'keys never swapped once set';
+  assert length((select cron_secret from public.push_config_get())) = 64, 'cron secret made';
+end $$;
+reset role;
+
+-- Video calls: the coach's own meeting link must be https.
+insert into coach_booking_settings (coach_id, video_link) values ('00000000-0000-0000-0000-0000000000a1', 'https://zoom.us/j/123');
+do $$ begin
+  begin
+    update coach_booking_settings set video_link = 'javascript:alert(1)' where coach_id = '00000000-0000-0000-0000-0000000000a1';
+    raise exception 'saved a non-https link';
+  exception when check_violation then null; end;
+end $$;
+
+-- Custom check-in questions: the coach writes them, their client reads and answers, nobody else sees them.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into coach_check_in_forms (coach_id, questions) values ('00000000-0000-0000-0000-0000000000a1', '[{"id":"q-1","text":"Steps ok?","kind":"yesno"}]');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+insert into check_ins (id, client_id, weight_kg, answers) values ('c0000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000a2', 60, '[{"id":"q-1","question":"Steps ok?","kind":"yesno","value":true}]');
+do $$ begin
+  assert (select jsonb_array_length(questions) from coach_check_in_forms) = 1, 'client reads own coach''s questions';
+  begin
+    update coach_check_in_forms set questions = '[]';
+    assert (select jsonb_array_length(questions) from coach_check_in_forms) = 1, 'client cannot change the questions';
+  end;
+  begin
+    insert into coach_check_in_forms (coach_id) values ('00000000-0000-0000-0000-0000000000a2');
+    raise exception 'client made a question form';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a3');
+do $$ begin
+  assert (select count(*) from coach_check_in_forms) = 0, 'other clients see nothing';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update check_ins set answers = '[]', coach_reply = 'Great' where id = 'c0000000-0000-0000-0000-0000000000a2';
+do $$ begin
+  assert (select answers->0->>'value' from check_ins where id = 'c0000000-0000-0000-0000-0000000000a2') = 'true', 'coach cannot change answers';
+  assert (select coach_reply from check_ins where id = 'c0000000-0000-0000-0000-0000000000a2') = 'Great', 'coach can still reply';
+end $$;
+reset role;
