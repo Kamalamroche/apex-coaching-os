@@ -610,6 +610,79 @@ do $$ begin
 end $$;
 reset role;
 
+-- 1:1 sessions: policy, late cancels, packs, register, booking reminders
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+update coach_booking_settings set cancel_hours = 24 where coach_id = '00000000-0000-0000-0000-00000000000c';
+insert into session_packs (id, coach_id, client_id, sessions, price_pence, paid_via, expires_at)
+values ('b1000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', 10, 40000, 'bank', now() + interval '90 days');
+do $$ begin
+  begin
+    insert into session_packs (coach_id, client_id, sessions) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c2', 5);
+    raise exception 'coach gave a pack to someone else''s client';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into bookings (id, coach_id, client_id, starts_at, ends_at, kind) values
+  ('91000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '10 hours', date_trunc('hour', now()) + interval '11 hours', 'session'),
+  ('91000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '4 days', date_trunc('hour', now()) + interval '4 days 1 hour', 'session'),
+  ('91000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '6 days', date_trunc('hour', now()) + interval '6 days 1 hour', 'session');
+update bookings set status = 'cancelled', waived = true, attendance = 'attended' where id in ('91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000002');
+do $$ begin
+  assert (select late and cancelled_by = 'client' and not waived and attendance is null from bookings where id = '91000000-0000-0000-0000-000000000001'), 'cancel inside 24 h is late, and the client cannot waive it';
+  assert (select not late and cancelled_at is not null from bookings where id = '91000000-0000-0000-0000-000000000002'), 'cancel 4 days ahead is free';
+  assert (select count(*) from session_packs) = 1, 'client sees own pack';
+  begin
+    insert into bookings (coach_id, client_id, starts_at, ends_at, kind, waived) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', now() + interval '8 days', now() + interval '8 days 1 hour', 'session', true);
+    raise exception 'client booked with a waiver';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into session_packs (coach_id, client_id, sessions) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', 50);
+    raise exception 'client gave themselves sessions';
+  exception when insufficient_privilege then null; end;
+  update session_packs set sessions = 99;
+  assert (select sessions from session_packs) = 10, 'client cannot change a pack';
+end $$;
+
+insert into bookings (id, coach_id, client_id, starts_at, ends_at, kind) values
+  ('91000000-0000-0000-0000-000000000006','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '7 days', date_trunc('hour', now()) + interval '7 days 1 hour', 'session'),
+  ('91000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1', date_trunc('hour', now()) + interval '5 hours', date_trunc('hour', now()) + interval '6 hours', 'session');
+select public.move_booking('91000000-0000-0000-0000-000000000006', date_trunc('hour', now()) + interval '8 days');
+do $$ begin
+  assert (select starts_at = date_trunc('hour', now()) + interval '8 days' and ends_at - starts_at = interval '1 hour' from bookings where id = '91000000-0000-0000-0000-000000000006'), 'client moves a session a week ahead';
+  begin
+    perform public.move_booking('91000000-0000-0000-0000-000000000007', date_trunc('hour', now()) + interval '9 days');
+    raise exception 'client moved inside the cancel window';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.move_booking('91000000-0000-0000-0000-000000000006', date_trunc('hour', now()) + interval '6 days');
+    raise exception 'moved onto a taken slot';
+  exception when unique_violation then null; end;
+  update bookings set starts_at = now() + interval '20 days' where id = '91000000-0000-0000-0000-000000000006';
+  assert (select starts_at = date_trunc('hour', now()) + interval '8 days' from bookings where id = '91000000-0000-0000-0000-000000000006'), 'plain updates still cannot move';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+update bookings set waived = true where id = '91000000-0000-0000-0000-000000000001';
+select public.move_booking('91000000-0000-0000-0000-000000000007', date_trunc('hour', now()) + interval '9 days');
+do $$ begin
+  assert (select starts_at = date_trunc('hour', now()) + interval '9 days' from bookings where id = '91000000-0000-0000-0000-000000000007'), 'coach moves any time';
+end $$;
+update bookings set status = 'cancelled' where id = '91000000-0000-0000-0000-000000000003';
+update bookings set attendance = 'no_show' where kind = 'session' and status = 'booked' and starts_at < now();
+do $$ begin
+  assert (select waived from bookings where id = '91000000-0000-0000-0000-000000000001'), 'coach waives a late cancel';
+  assert (select cancelled_by = 'coach' and not late from bookings where id = '91000000-0000-0000-0000-000000000003'), 'coach cancel is never late';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from session_packs) = 0, 'rival sees no packs';
+end $$;
+reset role;
+
+
 -- challenges
 reset role;
 update profiles set full_name = 'Priya Sharma' where id = '00000000-0000-0000-0000-0000000000c1';
@@ -1517,5 +1590,19 @@ do $$ declare r record; begin
   assert r.title = 'Priya sent a check-in', 'coach told';
   assert r.body like 'Weight 61.5%', 'with the weight';
   assert not exists (select 1 from public.take_checkin_alerts() where user_id = '00000000-0000-0000-0000-0000000000a1'), 'once per check-in';
+end $$;
+reset role;
+
+-- 1:1 session booking reminders
+insert into bookings (id, coach_id, client_id, starts_at, ends_at, kind, created_at) values
+  ('91000000-0000-0000-0000-000000000004','00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2', now() + interval '90 minutes', now() + interval '150 minutes', 'session', now() - interval '2 days'),
+  ('91000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2', now() + interval '20 hours', now() + interval '21 hours', 'call', now() - interval '1 hour');
+set role service_role;
+do $$ declare r record; begin
+  select * into r from public.take_checkin_alerts() where kind = 'booking';
+  assert r.user_id = '00000000-0000-0000-0000-0000000000a2', 'client reminded';
+  assert r.title like 'Session % at %', 'says when: ' || r.title;
+  assert r.body like 'With %. See you soon.', 'says who: ' || r.body;
+  assert not exists (select 1 from public.take_checkin_alerts() where kind = 'booking'), 'once, and none for a call booked inside 24 h';
 end $$;
 reset role;

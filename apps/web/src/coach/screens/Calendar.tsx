@@ -1,11 +1,12 @@
 import {
-  DEMO_BOOKING_NAMES, NOTICE_CHOICES, SLOT_CHOICES, byLocalDay, callOpen, videoLinkProblem, dayLabel, firstName, hoursProblem, kindTitle, minutesLabel, newBooking, safeZone, timeLabel, upcomingBookings, whenLabel,
+  CANCEL_CHOICES, DEMO_BOOKING_NAMES, NOTICE_CHOICES, SLOT_CHOICES, hoursText, policyText, weeklyStarts, byLocalDay, callOpen, videoLinkProblem, dayLabel, firstName, hoursProblem, kindTitle, minutesLabel, newBooking, safeZone, timeLabel, upcomingBookings, whenLabel,
   type BookingKind, type BookingSettings, type HoursWindow,
 } from "@apex/core";
 import { Avatar, BackLink, Icons, Label } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
-import { AddToCalendar, BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
+import { AddToCalendar, BookingStatus, JoinCall, KindChips, MovePicker, RepeatChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
+import { SessionsDesk } from "./Sessions";
 import type { LiveClient } from "../../data/coach";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -44,7 +45,8 @@ const nameMap = (clients?: LiveClient[] | null): Record<string, string> => (clie
 export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | null; onBack: () => void; say: (m: string) => void }) {
   const api = useBookingApi();
   const data = useBookings(api);
-  const [mode, setMode] = useState<"list" | "hours">("list");
+  const [mode, setMode] = useState<"list" | "sessions" | "hours">("list");
+  const [moving, setMoving] = useState<string | null>(null);
   const names = nameMap(clients);
   if (!api) return null;
   const next = upcomingBookings(data.bookings, new Date());
@@ -59,12 +61,24 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
     await data.reload();
   };
 
+  const move = async (id: string, at: string) => {
+    try {
+      await api.move(id, at);
+      setMoving(null);
+      say(`Moved to ${whenLabel(at)}`);
+    } catch (e) {
+      say(e instanceof Error ? e.message : String(e));
+    }
+    await data.reload();
+  };
+
   return (
     <>
       <div className="full"><BackLink onClick={onBack}>Brief</BackLink></div>
       <div className="full"><div className="eyebrow">Calendar</div><h1 className="h1">Bookings</h1></div>
       <div className="chips full" role="tablist">
         <button role="tab" aria-selected={mode === "list"} className={`chip ${mode === "list" ? "on" : ""}`} onClick={() => setMode("list")}>Upcoming</button>
+        <button role="tab" aria-selected={mode === "sessions"} className={`chip ${mode === "sessions" ? "on" : ""}`} onClick={() => setMode("sessions")}>Sessions and packs</button>
         <button role="tab" aria-selected={mode === "hours"} className={`chip ${mode === "hours" ? "on" : ""}`} onClick={() => setMode("hours")}>Your hours</button>
       </div>
       <div className="full"><BookingStatus data={data} /></div>
@@ -79,13 +93,17 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
                   {g.items.map((b) => {
                     const name = names[b.clientId] ?? "Client";
                     return (
-                      <div key={b.id} className="li">
+                      <div key={b.id} className="li" style={{ flexWrap: "wrap" }}>
                         <span className="num small" style={{ width: 46, fontWeight: 700, color: "var(--text)" }}>{timeLabel(b.startsAt)}</span>
                         <Avatar initials={initials(name)} size={32} />
                         <div className="grow"><div className="h3">{name}</div><div className="tiny">{kindTitle(b.kind)} · until {timeLabel(b.endsAt)}{b.note ? ` · ${b.note}` : ""}</div></div>
+                        <div className="row" style={{ gap: 6, flex: "1 0 100%", justifyContent: "flex-end" }}>
                         <JoinCall booking={b} settings={data.settings} />
                         <AddToCalendar booking={b} settings={data.settings} withName={name} />
+                        <button className="iconbtn" aria-expanded={moving === b.id} onClick={() => setMoving(moving === b.id ? null : b.id)} aria-label={`Move ${name}'s booking`}>Move</button>
                         <button className="iconbtn" onClick={() => void cancel(b.id)} aria-label={`Cancel ${name}'s booking`}>Cancel</button>
+                        </div>
+                        {moving === b.id && data.settings && <MovePicker booking={b} settings={data.settings} busy={data.busy} onMove={(at) => move(b.id, at)} onClose={() => setMoving(null)} />}
                       </div>
                     );
                   })}
@@ -96,7 +114,8 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
           {data.settings.windows.length > 0 && <BookFor data={data} names={names} say={say} />}
         </>
       )}
-      {data.status === "ready" && data.settings && mode === "hours" && <Hours initial={data.settings} onSaved={async () => { await data.reload(); say("Hours saved · clients can book them now"); setMode("list"); }} />}
+      {data.status === "ready" && mode === "sessions" && <SessionsDesk data={data} names={names} say={say} />}
+      {data.status === "ready" && data.settings && mode === "hours" && <Hours initial={data.settings} onSaved={async () => { await data.reload(); say("Saved · clients can book these hours"); setMode("list"); }} />}
     </>
   );
 }
@@ -107,15 +126,18 @@ function BookFor({ data, names, say }: { data: BookingData; names: Record<string
   const [clientId, setClientId] = useState(ids[0] ?? "");
   const [kind, setKind] = useState<BookingKind>("session");
   const [slot, setSlot] = useState<string | null>(null);
+  const [weeks, setWeeks] = useState(1);
   const [error, setError] = useState<string | null>(null);
   if (!api || !data.settings || !ids.length) return null;
   const book = async () => {
     if (!slot || !data.settings) return;
     setError(null);
     try {
-      await api.book(newBooking(clientId, slot, data.settings.slotMin, kind, ""));
+      const { starts, skipped } = weeklyStarts(slot, kind === "session" ? weeks : 1, data.busy);
+      const repeatId = starts.length > 1 ? crypto.randomUUID() : null;
+      await api.bookMany(starts.map((at) => ({ ...newBooking(clientId, at, data.settings!.slotMin, kind, ""), repeatId })));
       setSlot(null);
-      say(`Booked ${firstName(names[clientId] ?? "")} · ${whenLabel(slot)}`);
+      say(`Booked ${firstName(names[clientId] ?? "")} · ${whenLabel(slot)}${starts.length > 1 ? ` and ${starts.length - 1} more week${starts.length === 2 ? "" : "s"}` : ""}${skipped.length ? ` · ${skipped.length} taken, skipped` : ""}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -129,6 +151,7 @@ function BookFor({ data, names, say }: { data: BookingData; names: Record<string
       </select>
       <KindChips value={kind} onChange={setKind} />
       <SlotPicker settings={data.settings} busy={data.busy} value={slot} onChange={setSlot} />
+      {kind === "session" && <RepeatChips weeks={weeks} onChange={setWeeks} />}
       {error && <div className="small" role="alert" style={{ color: "var(--crit)" }}>{error}</div>}
       <button className="btn act block" disabled={!slot || !clientId} onClick={() => void book()}>{slot ? `Book ${firstName(names[clientId] ?? "")} · ${whenLabel(slot)}` : "Pick a time"}</button>
     </section>
@@ -204,8 +227,18 @@ function Hours({ initial, onSaved }: { initial: BookingSettings; onSaved: () => 
         <input className="field" type="url" inputMode="url" maxLength={300} aria-label="Your video call link" placeholder="Your Zoom, Google Meet or Teams link (optional)" value={s.videoLink ?? ""} onChange={(e) => setS({ ...s, videoLink: e.target.value })} />
         <div className="tiny" style={{ marginTop: 6 }}>{videoLinkProblem(s.videoLink ?? "") ?? (s.videoLink?.trim() ? "Every call uses this link." : "Leave it empty and APEX gives each call its own private room on Jitsi, free. Whoever joins first may be asked to sign in to open the room.")}</div>
       </div>
+      <div>
+        <div className="tiny" style={{ marginBottom: 6 }}>Training sessions: free cancels until</div>
+        <div className="chips" style={{ flexWrap: "wrap" }}>{CANCEL_CHOICES.map((h) => <button key={h} className={`chip ${(s.cancelHours ?? 24) === h ? "on" : ""}`} aria-pressed={(s.cancelHours ?? 24) === h} onClick={() => setS({ ...s, cancelHours: h })}>{h ? `${hoursText(h)} before` : "Any time"}</button>)}</div>
+        <label className="row" style={{ gap: 10, marginTop: 10, alignItems: "flex-start" }}>
+          <input type="checkbox" checked={!!s.requireCredits} onChange={(e) => setS({ ...s, requireCredits: e.target.checked })} style={{ marginTop: 3 }} />
+          <span className="small">Clients need a session left in a pack to book a training session</span>
+        </label>
+        <div className="tiny" style={{ marginTop: 6 }}>Clients see: “{policyText({ cancelHours: s.cancelHours ?? 24, requireCredits: !!s.requireCredits })}”</div>
+      </div>
       {error && <div className="small" role="alert" style={{ color: "var(--crit)" }}>{error}</div>}
-      <button className="btn act block" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Save hours"}</button>
+      <button className="btn act block" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Save hours and policy"}</button>
     </section>
   );
 }
+

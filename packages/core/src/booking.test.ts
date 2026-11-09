@@ -61,10 +61,11 @@ describe("bookings", () => {
   });
 
   it("round-trips rows", () => {
-    expect(fromSettingsRow(toSettingsRow(hours, "coach"))).toEqual({ ...hours, videoLink: "" });
+    expect(fromSettingsRow(toSettingsRow(hours, "coach"))).toEqual({ ...hours, videoLink: "", cancelHours: 24, requireCredits: false });
+    expect(fromSettingsRow(toSettingsRow({ ...hours, cancelHours: 48, requireCredits: true }, "coach"))).toMatchObject({ cancelHours: 48, requireCredits: true });
     expect(fromSettingsRow(toSettingsRow({ ...hours, videoLink: " https://zoom.us/j/123 " }, "coach")).videoLink).toBe("https://zoom.us/j/123");
     const a = newBooking("c", "2026-11-03T09:00:00.000Z", 30, "call", "", NOW);
-    expect(fromBookingRow({ ...toBookingRow(a, "coach"), starts_at: "2026-11-03 09:00:00+00", created_at: a.createdAt })).toEqual(a);
+    expect(fromBookingRow({ ...toBookingRow(a, "coach"), starts_at: "2026-11-03 09:00:00+00", created_at: a.createdAt })).toEqual({ ...a, attendance: null, cancelledBy: null, late: false, waived: false, repeatId: null });
   });
 
   it("gives the demo a few bookings in free slots", () => {

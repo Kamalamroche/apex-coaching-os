@@ -29,6 +29,10 @@ export interface BookingSettings {
   windows: HoursWindow[];
   /** The coach's own meeting room (Zoom, Google Meet, Teams…). Empty: each call gets its own free Jitsi room. */
   videoLink?: string;
+  /** Free cancels until this many hours before a training session (sessions SQL). Default 24. */
+  cancelHours?: number;
+  /** Clients need a session left in a pack to book a training session. */
+  requireCredits?: boolean;
 }
 
 export interface Booking {
@@ -40,6 +44,16 @@ export interface Booking {
   note: string;
   status: "booked" | "cancelled";
   createdAt: string;
+  /* 1:1 session fields (20261119090000_sessions.sql); absent before it is run. */
+  /** Set by the coach after a training session. */
+  attendance?: "attended" | "no_show" | null;
+  cancelledBy?: "client" | "coach" | null;
+  /** The client cancelled inside the coach's cancellation window. */
+  late?: boolean;
+  /** The coach let a late cancel or no-show off: it doesn't use a session. */
+  waived?: boolean;
+  /** Bookings made together as a weekly slot share this. */
+  repeatId?: string | null;
 }
 
 /** A taken slot. Clients see only these for other people's bookings, never who booked. */
@@ -186,6 +200,9 @@ export interface BookingSettingsRow {
   windows: { weekday: number; start_min: number; end_min: number }[];
   /** Added by 20261116090000_video_calls.sql; absent before it is run. */
   video_link?: string | null;
+  /** Added by 20261119090000_sessions.sql. */
+  cancel_hours?: number | null;
+  require_credits?: boolean | null;
 }
 
 export interface BookingRow {
@@ -198,18 +215,25 @@ export interface BookingRow {
   note: string | null;
   status: "booked" | "cancelled";
   created_at: string;
+  attendance?: "attended" | "no_show" | null;
+  cancelled_by?: "client" | "coach" | null;
+  late?: boolean | null;
+  waived?: boolean | null;
+  repeat_id?: string | null;
 }
 
 export const toSettingsRow = (s: BookingSettings, coachId: string): BookingSettingsRow => ({
   coach_id: coachId, slot_min: s.slotMin, notice_hours: s.noticeHours, timezone: s.timezone,
   windows: s.windows.map((w) => ({ weekday: w.weekday, start_min: w.startMin, end_min: w.endMin })),
   video_link: s.videoLink?.trim() || null,
+  cancel_hours: s.cancelHours ?? 24, require_credits: !!s.requireCredits,
 });
 
 export const fromSettingsRow = (r: BookingSettingsRow): BookingSettings => ({
   slotMin: Number(r.slot_min), noticeHours: Number(r.notice_hours), timezone: r.timezone,
   windows: (r.windows ?? []).map((w) => ({ weekday: Number(w.weekday), startMin: Number(w.start_min), endMin: Number(w.end_min) })),
   videoLink: r.video_link ?? "",
+  cancelHours: r.cancel_hours ?? 24, requireCredits: !!r.require_credits,
 });
 
 /* ---------- Video calls ---------- */
@@ -254,10 +278,12 @@ export function videoLinkProblem(link: string): string | null {
 
 export const toBookingRow = (b: Booking, coachId: string): Omit<BookingRow, "created_at"> => ({
   id: b.id, coach_id: coachId, client_id: b.clientId, starts_at: b.startsAt, ends_at: b.endsAt, kind: b.kind, note: b.note || null, status: b.status,
+  ...(b.repeatId ? { repeat_id: b.repeatId } : {}),
 });
 
 export const fromBookingRow = (r: BookingRow): Booking => ({
   id: r.id, clientId: r.client_id, startsAt: new Date(r.starts_at).toISOString(), endsAt: new Date(r.ends_at).toISOString(), kind: r.kind, note: r.note ?? "", status: r.status, createdAt: r.created_at,
+  attendance: r.attendance ?? null, cancelledBy: r.cancelled_by ?? null, late: !!r.late, waived: !!r.waived, repeatId: r.repeat_id ?? null,
 });
 
 /* ---------- Demo ---------- */

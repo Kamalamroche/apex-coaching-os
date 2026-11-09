@@ -27,6 +27,7 @@ export * from "./automations";
 export * from "./formChecks";
 export * from "./goals";
 export * from "./booking";
+export * from "./sessions";
 export * from "./challenges";
 export * from "./resources";
 export * from "./clientNotes";
