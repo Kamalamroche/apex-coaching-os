@@ -144,3 +144,63 @@ export function recipesFromFridge(have: ReadonlySet<number>, opts: { coach?: Rec
   }
   return out.sort((a, b) => a.missing.length - b.missing.length || b.have - a.have || a.r.minutes - b.r.minutes);
 }
+
+/* ---------- Weekly nutrition score (coach) ---------- */
+
+export interface NutritionScore {
+  /** 0 to 100. */
+  score: number;
+  band: "on" | "mixed" | "slipping";
+  /** Out of `days`. */
+  logged: number;
+  onCalories: number;
+  onProtein: number;
+  days: number;
+  /** What to talk about first. */
+  focus: "logging" | "protein" | "calories" | "praise";
+}
+
+/**
+ * How the client's last full week went against their targets: days logged (30%), days within 10% of
+ * calories (35%) and days hitting 90% of protein (35%). Today is left out because it isn't over.
+ * `targetFor` gives each day's targets, so rest days are judged against rest-day numbers.
+ */
+export function nutritionScore(food: FoodEntryLike[], targetFor: (day: string) => DayTargets, today: string, days = 7): NutritionScore {
+  const list = Array.from({ length: days }, (_, i) => shiftDay(today, -(i + 1)));
+  let logged = 0, onCalories = 0, onProtein = 0;
+  for (const d of list) {
+    const eaten = food.filter((f) => f.day === d);
+    if (!eaten.length) continue;
+    logged++;
+    const kcal = eaten.reduce((a, f) => a + f.kcal, 0);
+    const protein = eaten.reduce((a, f) => a + f.proteinG, 0);
+    const t = targetFor(d);
+    if (t.kcal && Math.abs(kcal - t.kcal) <= t.kcal * 0.1) onCalories++;
+    if (t.proteinG && protein >= t.proteinG * 0.9) onProtein++;
+  }
+  const score = Math.round(100 * (0.3 * logged + 0.35 * onCalories + 0.35 * onProtein) / days);
+  const focus = logged < Math.ceil(days * 0.6) ? "logging" : onProtein <= onCalories && onProtein < logged ? "protein" : onCalories < logged ? "calories" : "praise";
+  return { score, band: score >= 75 ? "on" : score >= 45 ? "mixed" : "slipping", logged, onCalories, onProtein, days, focus };
+}
+
+/** A short, friendly message the coach can send as it is or edit. UK English, no pressure. */
+export function nutritionNudge(s: NutritionScore, firstName: string, proteinG: number): string {
+  const name = firstName || "there";
+  switch (s.focus) {
+    case "logging":
+      return `Hi ${name}, you logged food on ${s.logged} of the last ${s.days} days. Even a quick log of your main meals helps me plan for you. Could you aim for 5 days this week?`;
+    case "protein":
+      return `Hi ${name}, good work logging this week. Protein is the one to push: ${s.onProtein ? `you hit it on ${s.onProtein} of ${s.logged} days` : "it was a little low every day"}. Try adding a portion at breakfast, like Greek yogurt or eggs, to get closer to ${Math.round(proteinG)} g.`;
+    case "calories":
+      return `Hi ${name}, thanks for logging this week. Your calories were on target on ${s.onCalories} of ${s.logged} days. Planning tomorrow's meals the night before can make that easier. Want me to set you a meal plan?`;
+    default:
+      return `Hi ${name}, great week! You logged ${s.logged} days and hit your targets most of them. Keep it going.`;
+  }
+}
+
+type FoodEntryLike = { day: string; kcal: number; proteinG: number };
+const shiftDay = (day: string, n: number) => {
+  const [y, m, d] = day.split("-").map(Number);
+  const t = new Date(y!, (m ?? 1) - 1, (d ?? 1) + n);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+};

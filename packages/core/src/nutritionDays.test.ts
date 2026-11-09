@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RECIPES } from "./data/recipes";
 import { fromTargetsRow, toTargetsRow, type NutritionTargets } from "./lifestyle";
 import { dietMisses, notesClash, recipeMacros } from "./mealPlans";
-import { fridgeFoods, recipesFromFridge, restDayProblem, suggestRestDay, targetsFor, weekdayOf, workoutFuel, workoutOn } from "./nutritionDays";
+import { fridgeFoods, nutritionNudge, nutritionScore, recipesFromFridge, restDayProblem, suggestRestDay, targetsFor, weekdayOf, workoutFuel, workoutOn } from "./nutritionDays";
 import type { Program } from "./types";
 
 const T: NutritionTargets = { kcal: 2200, proteinG: 150, carbsG: 250, fatG: 65, note: "" };
@@ -78,5 +78,33 @@ describe("what's in my fridge", () => {
     expect(hits.some((h) => h.r.id === r.id)).toBe(true);
     for (let i = 1; i < hits.length; i++) expect(hits[i]!.missing.length).toBeGreaterThanOrEqual(hits[i - 1]!.missing.length);
     expect(recipesFromFridge(new Set())).toEqual([]);
+  });
+});
+
+describe("weekly nutrition score", () => {
+  const day = (d: string, kcal: number, proteinG: number) => ({ day: d, kcal, proteinG });
+  const flat = () => ({ kcal: 2000, proteinG: 150, carbsG: 200, fatG: 60 });
+  it("scores a perfect week 100 and praises", () => {
+    const food = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08"].map((d) => day(d, 2000, 150));
+    const s = nutritionScore(food, flat, "2026-11-09");
+    expect(s).toMatchObject({ score: 100, band: "on", logged: 7, focus: "praise" });
+    expect(nutritionNudge(s, "Priya", 150)).toMatch(/great week/);
+  });
+  it("leaves today out and asks for logging when days are missing", () => {
+    const s = nutritionScore([day("2026-11-09", 2000, 150), day("2026-11-08", 2000, 150)], flat, "2026-11-09");
+    expect(s.logged).toBe(1);
+    expect(s.focus).toBe("logging");
+    expect(s.band).toBe("slipping");
+  });
+  it("points at protein when that's the weak spot", () => {
+    const food = ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08"].map((d) => day(d, 2000, 90));
+    const s = nutritionScore(food, flat, "2026-11-09");
+    expect(s.focus).toBe("protein");
+    expect(nutritionNudge(s, "Priya", 150)).toMatch(/150 g/);
+  });
+  it("judges rest days against rest-day targets", () => {
+    const food = [day("2026-11-08", 1600, 150)];
+    expect(nutritionScore(food, () => ({ kcal: 1600, proteinG: 150, carbsG: 0, fatG: 0 }), "2026-11-09").onCalories).toBe(1);
+    expect(nutritionScore(food, flat, "2026-11-09").onCalories).toBe(0);
   });
 });

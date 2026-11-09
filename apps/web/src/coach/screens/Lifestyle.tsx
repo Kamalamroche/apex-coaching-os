@@ -1,8 +1,11 @@
 import {
   ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
-  weekDaysOf, weekNutrition, restDayProblem, suggestRestDay,
+  weekDaysOf, weekNutrition, restDayProblem, suggestRestDay, nutritionNudge, nutritionScore, targetsFor, workoutOn,
+  type NutritionTargets,
 } from "@apex/core";
+import { useApexState } from "@apex/core/react";
+import { useStore } from "../../data/StoreContext";
 import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
@@ -130,6 +133,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           </div>
         </div>
       )}
+      {t && <NutritionScoreCard name={name} targets={t} food={s.food} today={today} />}
       {weekView.loggedDays > 0 && (
         <div className="card stack">
           <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">This week · {weekView.loggedDays} of 7 days logged</h3><Label kind="data">Data</Label></div>
@@ -242,6 +246,34 @@ function TargetCalculator({ name, onUse }: { name: string; onUse: (t: SuggestedT
         </>
       )}
     </div>
+  );
+}
+
+/** Coach: one number for how the client's last week of eating went, and a message to send about it. */
+function NutritionScoreCard({ name, targets, food, today }: { name: string; targets: NutritionTargets; food: Parameters<typeof nutritionScore>[0]; today: string }) {
+  const store = useStore();
+  const { program, workout } = useApexState(store);
+  const score = nutritionScore(food, (d) => targetsFor(targets, !!workoutOn(program, workout.week, d)), today);
+  const suggested = nutritionNudge(score, name, targets.proteinG);
+  const [text, setText] = useState(suggested);
+  const [sent, setSent] = useState(false);
+  useEffect(() => { setText(suggested); setSent(false); }, [suggested]);
+  const word = score.band === "on" ? "On track" : score.band === "mixed" ? "Mixed week" : "Slipping";
+  const stat = (label: string, v: number) => <div><b className="num">{v}<span className="of">/{score.days}</span></b><span className="tiny">{label}</span></div>;
+  return (
+    <section className={`card stack nscore ${score.band}`}>
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Last 7 days</h3><Label kind="data">Data</Label></div>
+      <div className="nscore-top">
+        <div className="nscore-ring" style={{ ["--p" as string]: `${score.score}%` }}><b className="num">{score.score}</b></div>
+        <div className="grow"><div className="nscore-word">{word}</div><div className="tiny">Days logged, calories within 10% and protein hit, against each day's targets.</div></div>
+      </div>
+      <div className="nscore-stats">{stat("Days logged", score.logged)}{stat("Calories on target", score.onCalories)}{stat("Protein hit", score.onProtein)}</div>
+      <div className="nscore-msg stack" style={{ gap: 8 }}>
+        <div className="row" style={{ justifyContent: "space-between" }}><span className="h3">Message for {name}</span><Label kind="ai">AI suggestion</Label></div>
+        <textarea id="nscore-text" className="field" rows={4} maxLength={600} value={text} onChange={(e) => { setText(e.target.value); setSent(false); }} />
+        <button className="btn act" disabled={!text.trim() || sent} onClick={() => { store.sendMessage("coach", text.trim()); setSent(true); }}>{sent ? `Sent to ${name}` : `Send to ${name}`}</button>
+      </div>
+    </section>
   );
 }
 
