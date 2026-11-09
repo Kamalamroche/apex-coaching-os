@@ -1,8 +1,8 @@
-import { kindTitle, newBooking, timeLabel, upcomingBookings, whenLabel, type BookingKind } from "@apex/core";
+import { callLink, kindTitle, newBooking, timeLabel, upcomingBookings, whenLabel, type BookingKind } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
-import { BookingStatus, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
+import { AddToCalendar, BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
 import { useStore } from "../../data/StoreContext";
 
@@ -28,7 +28,8 @@ export function Book({ say }: { say: (m: string) => void }) {
     try {
       const b = newBooking(api.me, slot, settings.slotMin, kind, note);
       await api.book(b);
-      store.sendMessage("client", `Booked a ${kindTitle(kind).toLowerCase()} for ${whenLabel(slot)}${b.note ? `. ${b.note}` : ""}`);
+      const link = callLink(b, settings);
+      store.sendMessage("client", `Booked a ${kindTitle(kind).toLowerCase()} for ${whenLabel(slot)}${b.note ? `. ${b.note}` : ""}${link ? `. Video link: ${link}` : ""}`);
       setSlot(null);
       setNote("");
       say(`Booked · ${whenLabel(slot)}`);
@@ -62,7 +63,11 @@ export function Book({ say }: { say: (m: string) => void }) {
               <div key={b.id} className="li">
                 <span className="hb-ico" aria-hidden>{b.kind === "call" ? <Icons.chat /> : <Icons.train />}</span>
                 <div className="grow"><div className="h3">{whenLabel(b.startsAt)}</div><div className="tiny">{kindTitle(b.kind)} · until {timeLabel(b.endsAt)}{b.note ? ` · ${b.note}` : ""}</div></div>
-                <button className="iconbtn" onClick={() => void cancel(b.id)}>Cancel</button>
+                <div className="row" style={{ gap: 6, flex: "none" }}>
+                  <JoinCall booking={b} settings={settings} />
+                  <AddToCalendar booking={b} settings={settings} withName={coachName} />
+                  <button className="iconbtn" onClick={() => void cancel(b.id)}>Cancel</button>
+                </div>
               </div>
             ))}
           </div>
@@ -87,6 +92,7 @@ function BookForm({ data, kind, setKind, slot, setSlot, children }: { data: Book
     <section className="card stack">
       <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Book a time</h3><span className="tiny">{data.settings.slotMin} minutes</span></div>
       <KindChips value={kind} onChange={setKind} />
+      {kind === "call" && <div className="tiny"><Icons.video width={12} height={12} style={{ verticalAlign: -2 }} /> You'll get a video link to join from here when it's time.</div>}
       <SlotPicker settings={data.settings} busy={data.busy} value={slot} onChange={setSlot} />
       {children}
     </section>

@@ -1,5 +1,7 @@
-import { BOOKING_KINDS, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy } from "@apex/core";
+import { BOOKING_KINDS, bookingEvent, googleCalendarUrl, toIcs, callLink, callOpen, callService, dayLabel, freeSlots, timeLabel, type Booking, type BookingKind, type BookingSettings, type Busy } from "@apex/core";
+import { Icons } from "@apex/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { BOOKINGS_NEED_UPDATE, type BookingApi } from "../data/bookings";
 
 export interface BookingData {
@@ -69,5 +71,62 @@ export function SlotPicker({ settings, busy, value, onChange }: { settings: Book
         {open?.slots.map((iso) => <button key={iso} className={`chip num ${value === iso ? "on" : ""}`} aria-pressed={value === iso} onClick={() => onChange(value === iso ? null : iso)}>{timeLabel(iso)}</button>)}
       </div>
     </div>
+  );
+}
+
+/** "Join call" on a booked call: bright from 10 minutes before the start, a quiet link before that. */
+export function JoinCall({ booking, settings, now = new Date() }: { booking: Booking; settings: BookingSettings | null; now?: Date }) {
+  const link = callLink(booking, settings);
+  if (!link) return null;
+  const open = callOpen(booking, now);
+  const service = callService(link);
+  const label = `${open ? "Join" : "Open"} the ${service === "video call" ? "" : `${service} `}video call`;
+  return open ? (
+    <a className="btn sm act" style={{ textDecoration: "none", flex: "none" }} href={link} target="_blank" rel="noopener noreferrer" aria-label={label} title={link}>
+      <Icons.video width={14} height={14} /> Join
+    </a>
+  ) : (
+    <a className="iconbtn" style={{ textDecoration: "none", flex: "none", display: "inline-grid", placeItems: "center" }} href={link} target="_blank" rel="noopener noreferrer" aria-label={label} title={`${service === "video call" ? "Video call" : service} link · opens 10 minutes before`}>
+      <Icons.video width={16} height={16} />
+    </a>
+  );
+}
+
+/** Puts the booking in the phone's calendar: an .ics file (Apple Calendar, Outlook) or Google Calendar. */
+export function AddToCalendar({ booking, settings, withName }: { booking: Booking; settings: BookingSettings | null; withName: string }) {
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const e = bookingEvent(booking, settings, withName);
+  const ics = () => {
+    const url = URL.createObjectURL(new Blob([toIcs(e)], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `apex-${booking.kind}-${booking.startsAt.slice(0, 10)}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setPos(null);
+  };
+  const toggle = (el: HTMLElement) => {
+    if (pos) return setPos(null);
+    const r = el.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+  };
+  return (
+    <>
+      <button className="iconbtn" aria-label="Add to calendar" aria-expanded={!!pos} title="Add to calendar" onClick={(ev) => toggle(ev.currentTarget)} style={{ display: "inline-grid", placeItems: "center", flex: "none" }}>
+        <Icons.calendar width={16} height={16} />
+      </button>
+      {pos && createPortal(
+        <>
+          <div className="cal-scrim" onClick={() => setPos(null)} />
+          <span className="cal-menu" role="menu" style={{ top: pos.top, right: pos.right }}>
+            <button role="menuitem" onClick={ics}>Apple or Outlook</button>
+            <a role="menuitem" href={googleCalendarUrl(e)} target="_blank" rel="noopener noreferrer" onClick={() => setPos(null)}>Google Calendar</a>
+          </span>
+        </>,
+        document.body,
+      )}
+    </>
   );
 }

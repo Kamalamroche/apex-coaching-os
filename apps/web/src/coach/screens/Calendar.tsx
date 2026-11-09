@@ -1,10 +1,10 @@
 import {
-  DEMO_BOOKING_NAMES, NOTICE_CHOICES, SLOT_CHOICES, byLocalDay, dayLabel, firstName, hoursProblem, kindTitle, minutesLabel, newBooking, safeZone, timeLabel, upcomingBookings, whenLabel,
+  DEMO_BOOKING_NAMES, NOTICE_CHOICES, SLOT_CHOICES, byLocalDay, callOpen, videoLinkProblem, dayLabel, firstName, hoursProblem, kindTitle, minutesLabel, newBooking, safeZone, timeLabel, upcomingBookings, whenLabel,
   type BookingKind, type BookingSettings, type HoursWindow,
 } from "@apex/core";
 import { Avatar, BackLink, Icons, Label } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
-import { BookingStatus, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
+import { AddToCalendar, BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
 import type { LiveClient } from "../../data/coach";
 
@@ -31,6 +31,9 @@ export function CalendarCard({ clients, onOpen }: { clients?: LiveClient[] | nul
         </div>
         <span className="tiny">›</span>
       </button>
+      {first && callOpen(first, new Date()) && first.kind === "call" && (
+        <div className="li"><Icons.video width={18} height={18} style={{ color: "var(--act)" }} /><div className="grow small">Your call with {firstName(names[first.clientId] ?? "your client")} is starting</div><JoinCall booking={first} settings={data.settings} /></div>
+      )}
     </div>
   );
 }
@@ -80,6 +83,8 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
                         <span className="num small" style={{ width: 46, fontWeight: 700, color: "var(--text)" }}>{timeLabel(b.startsAt)}</span>
                         <Avatar initials={initials(name)} size={32} />
                         <div className="grow"><div className="h3">{name}</div><div className="tiny">{kindTitle(b.kind)} · until {timeLabel(b.endsAt)}{b.note ? ` · ${b.note}` : ""}</div></div>
+                        <JoinCall booking={b} settings={data.settings} />
+                        <AddToCalendar booking={b} settings={data.settings} withName={name} />
                         <button className="iconbtn" onClick={() => void cancel(b.id)} aria-label={`Cancel ${name}'s booking`}>Cancel</button>
                       </div>
                     );
@@ -193,6 +198,11 @@ function Hours({ initial, onSaved }: { initial: BookingSettings; onSaved: () => 
       <div>
         <div className="tiny" style={{ marginBottom: 6 }}>Clients book at least</div>
         <div className="chips">{NOTICE_CHOICES.map((h) => <button key={h} className={`chip ${s.noticeHours === h ? "on" : ""}`} aria-pressed={s.noticeHours === h} onClick={() => setS({ ...s, noticeHours: h })}>{h} hours ahead</button>)}</div>
+      </div>
+      <div>
+        <div className="tiny" style={{ marginBottom: 6 }}>Video calls</div>
+        <input className="field" type="url" inputMode="url" maxLength={300} aria-label="Your video call link" placeholder="Your Zoom, Google Meet or Teams link (optional)" value={s.videoLink ?? ""} onChange={(e) => setS({ ...s, videoLink: e.target.value })} />
+        <div className="tiny" style={{ marginTop: 6 }}>{videoLinkProblem(s.videoLink ?? "") ?? (s.videoLink?.trim() ? "Every call uses this link." : "Leave it empty and APEX gives each call its own private room on Jitsi, free. Whoever joins first may be asked to sign in to open the room.")}</div>
       </div>
       {error && <div className="small" role="alert" style={{ color: "var(--crit)" }}>{error}</div>}
       <button className="btn act block" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Save hours"}</button>
