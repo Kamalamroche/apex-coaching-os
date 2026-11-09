@@ -1,3 +1,4 @@
+import { readAnswers, type CheckInAnswer, type CheckInQuestion } from "./checkInForm";
 /* Weekly check-ins, body measurements and progress photos: types, rules and row converters.
    Mirrors supabase/migrations/20261026120000_check_ins_measurements_photos.sql. Pure, so it is unit tested. */
 
@@ -21,6 +22,8 @@ export interface CheckIn {
   wins: string;
   struggles: string;
   note: string;
+  /** Answers to the coach's own questions. */
+  answers?: CheckInAnswer[];
   coachReply: string | null;
   reviewedAt: string | null;
 }
@@ -60,6 +63,8 @@ export interface ProgressState {
   photos: ProgressPhoto[];
   /** 0 = Monday … 6 = Sunday. */
   checkInDay: number;
+  /** The coach's own check-in questions (empty when they haven't written any). */
+  questions?: CheckInQuestion[];
 }
 
 export const emptyProgress = (): ProgressState => ({ checkIns: [], measurements: [], photos: [], checkInDay: 0 });
@@ -241,6 +246,8 @@ export interface CheckInRow {
   note: string | null;
   coach_reply: string | null;
   reviewed_at: string | null;
+  /** Added by the check-in questions SQL. */
+  answers?: unknown;
 }
 
 export interface MeasurementRow {
@@ -285,6 +292,7 @@ export const toCheckIn = (r: CheckInRow): CheckIn => ({
   wins: text(r.wins),
   struggles: text(r.struggles),
   note: text(r.note),
+  answers: readAnswers(r.answers),
   coachReply: r.coach_reply,
   reviewedAt: r.reviewed_at,
 });
@@ -303,6 +311,8 @@ export const toCheckInRow = (c: CheckInInput, clientId: string, id: string): Omi
   wins: textOrNull(c.wins),
   struggles: textOrNull(c.struggles),
   note: textOrNull(c.note),
+  // Only sent when there are answers, so check-ins keep working before the questions SQL is run.
+  ...(c.answers?.length ? { answers: c.answers } : {}),
 });
 
 const COLUMNS: Record<MeasureKey, keyof MeasurementRow> = {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_BOOKING_SETTINGS, byLocalDay, dayIn, freeSlots, fromBookingRow, fromSettingsRow, hoursProblem, minutesLabel, newBooking, sampleBookings, toBookingRow, toSettingsRow,
-  upcomingBookings, zoneOffsetMin, zonedTime, type BookingSettings,
+  upcomingBookings, zoneOffsetMin, zonedTime, type BookingSettings, callLink, callOpen, callService, videoLinkProblem, bookingEvent, toIcs, googleCalendarUrl,
 } from "./booking";
 
 // Monday 2 Nov 2026, 06:00 UTC (06:00 in London: winter time).
@@ -61,7 +61,8 @@ describe("bookings", () => {
   });
 
   it("round-trips rows", () => {
-    expect(fromSettingsRow(toSettingsRow(hours, "coach"))).toEqual(hours);
+    expect(fromSettingsRow(toSettingsRow(hours, "coach"))).toEqual({ ...hours, videoLink: "" });
+    expect(fromSettingsRow(toSettingsRow({ ...hours, videoLink: " https://zoom.us/j/123 " }, "coach")).videoLink).toBe("https://zoom.us/j/123");
     const a = newBooking("c", "2026-11-03T09:00:00.000Z", 30, "call", "", NOW);
     expect(fromBookingRow({ ...toBookingRow(a, "coach"), starts_at: "2026-11-03 09:00:00+00", created_at: a.createdAt })).toEqual(a);
   });
@@ -70,5 +71,58 @@ describe("bookings", () => {
     const { settings, bookings } = sampleBookings(NOW);
     expect(bookings).toHaveLength(3);
     expect(freeSlots(settings, bookings, NOW).flatMap((d) => d.slots)).not.toContain(bookings[0]?.startsAt);
+  });
+});
+
+describe("video calls", () => {
+  const b = { id: "3f2a9c1e-77d0-4b8e-9a51-0c6e2d4f8b17", kind: "call" as const, startsAt: "2026-11-10T09:00:00.000Z", endsAt: "2026-11-10T09:30:00.000Z" };
+  it("gives every call its own private room unless the coach has one", () => {
+    expect(callLink(b, null)).toBe("https://meet.jit.si/APEX-3f2a9c1e77d04b8e9a510c6e2d4f8b17");
+    expect(callLink(b, { videoLink: "https://meet.google.com/abc-defg-hij" })).toBe("https://meet.google.com/abc-defg-hij");
+    expect(callLink({ ...b, kind: "session" }, null)).toBeNull();
+  });
+  it("names the service", () => {
+    expect(callService("https://us02web.zoom.us/j/123")).toBe("Zoom");
+    expect(callService("https://meet.google.com/abc")).toBe("Google Meet");
+    expect(callService("https://meet.jit.si/APEX-1")).toBe("Jitsi");
+    expect(callService("https://example.com/room")).toBe("video call");
+  });
+  it("opens 10 minutes before", () => {
+    expect(callOpen(b, new Date("2026-11-10T08:45:00Z"))).toBe(false);
+    expect(callOpen(b, new Date("2026-11-10T08:51:00Z"))).toBe(true);
+    expect(callOpen(b, new Date("2026-11-10T09:31:00Z"))).toBe(false);
+  });
+  it("checks the coach's link", () => {
+    expect(videoLinkProblem("")).toBeNull();
+    expect(videoLinkProblem("zoom.us/j/1")).toMatch(/https/);
+    expect(videoLinkProblem("http://zoom.us/j/1")).toMatch(/https/);
+    expect(videoLinkProblem("https://zoom.us/j/1")).toBeNull();
+    expect(hoursProblem({ ...DEFAULT_BOOKING_SETTINGS, videoLink: "nope" })).toMatch(/https/);
+  });
+});
+
+describe("add to calendar", () => {
+  const b = { ...newBooking("c", "2026-11-10T09:00:00.000Z", 30, "call", "Talk, plan; review", NOW), id: "abc" };
+  const e = bookingEvent(b, null, "Kamal");
+  it("makes an event with the call link", () => {
+    expect(e.title).toBe("Call with Kamal");
+    expect(e.location).toBe("https://meet.jit.si/APEX-abc");
+    expect(e.details).toContain("Join the call: https://meet.jit.si/APEX-abc");
+  });
+  it("writes a valid .ics", () => {
+    const ics = toIcs(e, NOW);
+    expect(ics).toContain("DTSTART:20261110T090000Z\r\n");
+    expect(ics).toContain("DTEND:20261110T093000Z");
+    expect(ics).toContain("Talk\\, plan\\; review");
+    expect(ics).toContain("TRIGGER:-PT30M");
+    expect(ics.split("\r\n").every((l) => l.length <= 75)).toBe(true);
+  });
+  it("links to Google Calendar", () => {
+    const u = new URL(googleCalendarUrl(e));
+    expect(u.searchParams.get("dates")).toBe("20261110T090000Z/20261110T093000Z");
+    expect(u.searchParams.get("text")).toBe("Call with Kamal");
+  });
+  it("leaves the place empty for an in-person session", () => {
+    expect(bookingEvent({ ...b, kind: "session" }, null, "Kamal").location).toBe("");
   });
 });

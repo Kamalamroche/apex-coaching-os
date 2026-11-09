@@ -11,6 +11,7 @@ import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
 import { TeamPeek } from "../../app/TeamParts";
+import { PushPrompt } from "../../app/PushParts";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
 /* 1 = done, 2 = today, 0 = rest or not yet */
@@ -96,6 +97,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         {openTeam && <TeamPeek onOpen={openTeam} />}
         {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
       </section>
+      <PushPrompt say={say ?? (() => {})} />
 
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>

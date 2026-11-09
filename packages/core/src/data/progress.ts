@@ -1,4 +1,5 @@
 import type { CheckIn, Measurement, Pose, ProgressPhoto, ProgressState } from "../checkins";
+import { SAMPLE_QUESTIONS } from "../checkInForm";
 
 /* Priya's last ten weeks for the demo: weekly check-ins (due Saturdays), measurements and a photo set every
    two weeks. The photos are drawn here as simple silhouettes, so the demo shows the library without real people. */
@@ -6,7 +7,7 @@ import type { CheckIn, Measurement, Pose, ProgressPhoto, ProgressState } from ".
 const base = { stress: 2, hunger: 3, wins: "", struggles: "", note: "", coachReply: null, reviewedAt: null };
 
 const CHECK_INS: CheckIn[] = [
-  { ...base, id: "demo-ci-3", submittedAt: "2026-10-18T09:12:00Z", weightKg: 62.6, sleepHours: 7, energy: 4, mood: 4, training: 4, nutrition: 4, wins: "Hit every session", struggles: "Hip a little tight after RDLs", coachReply: "Nice week. Let's add a hip warm-up before Lower A.", reviewedAt: "2026-10-18T12:40:00Z" },
+  { ...base, id: "demo-ci-3", submittedAt: "2026-10-18T09:12:00Z", weightKg: 62.6, sleepHours: 7, energy: 4, mood: 4, training: 4, nutrition: 4, wins: "Hit every session", struggles: "Hip a little tight after RDLs", answers: [{ id: "q-steps", question: "Did you hit your step goal most days?", kind: "yesno", value: true }, { id: "q-confidence", question: "How confident do you feel about next week?", kind: "scale", value: 4 }], coachReply: "Nice week. Let's add a hip warm-up before Lower A.", reviewedAt: "2026-10-18T12:40:00Z" },
   { ...base, id: "demo-ci-2", submittedAt: "2026-10-11T08:40:00Z", weightKg: 62.9, sleepHours: 6, energy: 3, mood: 3, stress: 4, training: 3, nutrition: 3, struggles: "Busy week at work", coachReply: "Busy weeks happen. Two good sessions still counts.", reviewedAt: "2026-10-11T18:05:00Z" },
   { ...base, id: "demo-ci-1", submittedAt: "2026-10-04T10:02:00Z", weightKg: 63.1, sleepHours: 7.5, energy: 4, mood: 5, training: 5, nutrition: 4, wins: "Loving the new program", coachReply: "Great start, Priya.", reviewedAt: "2026-10-04T16:30:00Z" },
   { ...base, id: "demo-ci-0", submittedAt: "2026-09-20T09:30:00Z", weightKg: 63.6, sleepHours: 7, energy: 3, mood: 4, training: 4, nutrition: 3, coachReply: "Solid. Protein is the focus this fortnight.", reviewedAt: "2026-09-20T15:00:00Z" },
@@ -44,4 +45,4 @@ const PHOTOS: ProgressPhoto[] = PHOTO_DAYS.flatMap((day, i) =>
   })),
 );
 
-export const INITIAL_PROGRESS: ProgressState = { checkIns: CHECK_INS, measurements: MEASUREMENTS, photos: PHOTOS, checkInDay: 5 };
+export const INITIAL_PROGRESS: ProgressState = { checkIns: CHECK_INS, measurements: MEASUREMENTS, photos: PHOTOS, checkInDay: 5, questions: SAMPLE_QUESTIONS };
