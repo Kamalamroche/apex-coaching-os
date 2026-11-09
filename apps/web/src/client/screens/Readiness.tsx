@@ -2,13 +2,13 @@ import {
   BAND_ADVICE, BAND_LABEL, READINESS_QUESTIONS, RECOVERY_SOURCES, describeLighter, localDate, readinessFromWatch, exerciseFor, lighterSession, readinessOf, vsUsual,
   type Readiness, type ReadinessAnswers, type ReadinessPoint, type Workout, type WorkoutItem,
 } from "@apex/core";
-import { CountUp, Gauge, Icons, Label } from "@apex/ui";
+import { CountUp, Gauge, Icons, Label, useUnits, type Units } from "@apex/ui";
 import { useMemo, useState, type CSSProperties } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { ContributorRows, FACTOR_COLOUR, QUESTION_ICON, ReadinessTrend, answerColour, bandColour } from "../../app/ReadinessViz";
 
-const line = (it: WorkoutItem) => `${it.sets}×${it.reps}${it.kg ? ` · ${it.kg} kg` : ""}`;
+const line = (it: WorkoutItem, u: Units) => `${it.sets}×${it.reps}${it.kg ? ` · ${u.fw(it.kg)}` : ""}`;
 
 /** Before the first set: four taps, then a score screen (score, advice, what's driving it, the week, today's plan).
     On a low day the client can pick a lighter version of today; the program stays as the coach wrote it. */
@@ -80,11 +80,12 @@ export function ReadinessCheck({ workout, history, onStart, onExit }: { workout:
 }
 
 function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness; workout: Workout; history: ReadinessPoint[] | undefined; onBack: () => void; onStart: (readiness: Readiness | null, session: Workout) => void; onExit: () => void }) {
+  const u = useUnits();
   const colour = bandColour(r.band);
   const advice = BAND_ADVICE[r.band];
   const usual = vsUsual(history, r.score);
   const lighter = r.band !== "ready" ? lighterSession(workout, r.band) : null;
-  const changed = lighter ? workout.items.map((it, i) => [it, lighter.items[i]!] as const).filter(([b, l]) => line(b) !== line(l)) : [];
+  const changed = lighter ? workout.items.map((it, i) => [it, lighter.items[i]!] as const).filter(([b, l]) => line(b, u) !== line(l, u)) : [];
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   return (
@@ -131,7 +132,7 @@ function Score({ r, workout, history, onBack, onStart, onExit }: { r: Readiness;
                 <div className="list">
                   {changed.slice(0, 4).map(([b, l]) => (
                     <div key={b.key} className="tiny num cop-row" style={{ padding: "5px 0", borderTop: "1px solid var(--line)" }}>
-                      <span style={{ color: "var(--text)" }}>{exerciseFor(b).name}</span> <s>{line(b)}</s> → {line(l)}
+                      <span style={{ color: "var(--text)" }}>{exerciseFor(b).name}</span> <s>{line(b, u)}</s> → {line(l, u)}
                     </div>
                   ))}
                   {changed.length > 4 && <div className="tiny" style={{ paddingTop: 4 }}>and {changed.length - 4} more</div>}

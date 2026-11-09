@@ -1,3 +1,4 @@
+import { distanceFrom, type DistanceUnit } from "./units";
 import { MEASURES, changeOver, measurementSeries, type MeasureKey, type Measurement, type Pose, type ProgressPhoto } from "./checkins";
 import { sportLabel, type Activity, type Sport } from "./activity";
 import { addDays, habitDays, type Habit, type HabitTick } from "./lifestyle";
@@ -111,11 +112,11 @@ export interface CardioWeek {
   lastWeekMetres: number;
 }
 
-/** "12.4 km" for most sports, "1,500 m" for a swim under 10 km. */
-export function distanceText(metres: number, sport: Sport): string {
+/** "12.4 km" (or "7.7 mi") for most sports, "1,500 m" for a swim under 10 km. */
+export function distanceText(metres: number, sport: Sport, unit: DistanceUnit = "km"): string {
   if (sport === "swim" && metres < 10000) return `${Math.round(metres).toLocaleString("en-GB")} m`;
-  const km = metres / 1000;
-  return `${km >= 100 ? Math.round(km).toLocaleString("en-GB") : (Math.round(km * 10) / 10).toLocaleString("en-GB")} km`;
+  const d = distanceFrom(metres, unit);
+  return `${d >= 100 ? Math.round(d).toLocaleString("en-GB") : (Math.round(d * 10) / 10).toLocaleString("en-GB")} ${unit}`;
 }
 
 /** Distance per sport in the week starting `monday`, with the week before. Sports with no distance are left out. */

@@ -1,10 +1,11 @@
 import { SHARE_STYLES, shareCaption, type ShareCardData, type ShareStyle } from "@apex/core";
-import { DEFAULT_CROWN, SHARE_H, SHARE_W, Sheet, drawShareCard, loadShareFonts, type CrownPlacement } from "@apex/ui";
+import { DEFAULT_CROWN, SHARE_H, SHARE_W, Sheet, drawShareCard, loadShareFonts, type CrownPlacement, useUnits } from "@apex/ui";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 /** Share card after a workout: the client's photo with a small stats graphic, saved or shared as an image.
     The photo never leaves the phone: it is drawn on a canvas here and only goes where the client shares it. */
 export function ShareWorkout({ data, onClose }: { data: ShareCardData; onClose: () => void }) {
+  const u = useUnits();
   const canvas = useRef<HTMLCanvasElement>(null);
   const [style, setStyle] = useState<ShareStyle>(data.reward.xp >= 100 ? "crown" : "strip");
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
@@ -37,7 +38,7 @@ export function ShareWorkout({ data, onClose }: { data: ShareCardData; onClose: 
   };
 
   const blob = () => new Promise<Blob | null>((res) => canvas.current?.toBlob(res, "image/png"));
-  const caption = shareCaption(card, `https://${site}`);
+  const caption = u.kt(shareCaption(card, `https://${site}`));
 
   const share = async () => {
     const b = await blob();

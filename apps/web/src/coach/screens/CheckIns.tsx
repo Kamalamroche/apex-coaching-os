@@ -1,6 +1,6 @@
 import { WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, newestFirst, shortDate, type CheckIn, type ProgressPhoto } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Label, PhotoFrame } from "@apex/ui";
+import { Label, PhotoFrame, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { POSE_LABEL, ProgressNotice, ProgressSection } from "../../app/ProgressParts";
 import { useStore } from "../../data/StoreContext";
@@ -66,6 +66,7 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
 }
 
 function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { checkIn: CheckIn; previous?: CheckIn; photos: ProgressPhoto[]; first: string; say: (m: string) => void; startOpen: boolean }) {
+  const u = useUnits();
   const store = useStore();
   const [open, setOpen] = useState(startOpen);
   const [reply, setReply] = useState("");
@@ -92,7 +93,7 @@ function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { 
     <div className="card flat">
       <button className="li" onClick={() => setOpen(!open)} aria-expanded={open}>
         <div className="grow">
-          <div className="h3">{shortDate(c.submittedAt)}{c.weightKg !== null && <> · <span className="num">{c.weightKg} kg</span></>}</div>
+          <div className="h3">{shortDate(c.submittedAt)}{c.weightKg !== null && <> · <span className="num">{u.fw(c.weightKg)}</span></>}</div>
           <div className="small">{flags.length ? `${flags.length} thing${flags.length === 1 ? "" : "s"} to look at` : "Nothing flagged"}{photos.length ? ` · ${photos.length} photo${photos.length === 1 ? "" : "s"}` : ""}</div>
         </div>
         {c.reviewedAt ? <Label kind="dec">Reviewed</Label> : <Label kind="crit">New</Label>}

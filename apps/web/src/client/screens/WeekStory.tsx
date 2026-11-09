@@ -1,6 +1,6 @@
 import { biggestChange, distanceText, storyCaption, storySlides, weeklyStory, type StorySlide, type WeekStory as Story } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, drawStorySlide, loadStoryFonts } from "@apex/ui";
+import { Icons, drawStorySlide, loadStoryFonts, useUnits, type Units } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppInfo } from "../../app/AppContext";
@@ -28,11 +28,11 @@ export function useWeekStory(includeBody = false): { story: Story | null; slides
 }
 
 /** "4 workouts · 10,090 kg · 12.4 km run · new best", leaving out what's zero. */
-function weekLine(s: Story): string {
+function weekLine(s: Story, u: Units): string {
   const parts = [
     s.workouts ? `${s.workouts} workout${s.workouts === 1 ? "" : "s"}` : "",
-    s.kg ? `${s.kg.toLocaleString("en-GB")} kg` : "",
-    ...s.cardio.slice(0, 2).map((c) => `${distanceText(c.metres, c.sport)} ${c.label.toLowerCase()}`),
+    s.kg ? u.fw(s.kg, 0) : "",
+    ...s.cardio.slice(0, 2).map((c) => `${distanceText(c.metres, c.sport, u.distance)} ${c.label.toLowerCase()}`),
     s.best ? "new best" : "",
   ].filter(Boolean);
   return parts.join(" · ") || "Your week in training";
@@ -40,6 +40,7 @@ function weekLine(s: Story): string {
 
 /** The small card on Today that opens the story. */
 export function WeekStoryCard({ onOpen }: { onOpen: () => void }) {
+  const u = useUnits();
   const { story } = useWeekStory();
   if (!story) return null;
   return (
@@ -48,7 +49,7 @@ export function WeekStoryCard({ onOpen }: { onOpen: () => void }) {
       <span className="grow">
         <span className="wk-eyebrow">{story.soFar ? "Your week so far" : "Your week"}</span>
         <b>{story.label}</b>
-        <span className="wk-sub">{weekLine(story)}</span>
+        <span className="wk-sub">{weekLine(story, u)}</span>
       </span>
       <Icons.forward width={18} height={18} />
     </button>

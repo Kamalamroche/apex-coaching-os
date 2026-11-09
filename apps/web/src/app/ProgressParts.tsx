@@ -2,7 +2,7 @@ import {
   MEASURES, POSES, blockDates, changeOver, defaultPair, fortnights, measurementSeries, parseNumber, shortDate, signed,
   type Fortnight, type MeasureKey, type Measurement, type MeasurementInput, type PhotoUpload, type Pose, type ProgressState,
 } from "@apex/core";
-import { Icons, Label, PhotoFrame, Sheet, Spark } from "@apex/ui";
+import { Icons, Label, PhotoFrame, Sheet, Spark, useUnits, type Units } from "@apex/ui";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { preparePhoto } from "../data/photos";
 import { useProgressError } from "./AppContext";
@@ -25,18 +25,20 @@ export function ProgressNotice() {
 }
 
 export function WeightTrend({ measurements }: { measurements: Measurement[] }) {
+  const u = useUnits();
   const series = measurementSeries(measurements, "weightKg");
   if (series.length < 2) return null;
   return (
     <div className="card">
       <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Weight</h3><Label kind="data">Data</Label></div>
-      <Spark data={series.map((p) => p.value)} unit="kg" />
+      <Spark data={series.map((p) => u.w(p.value))} unit={u.weight} />
     </div>
   );
 }
 
 /** Start, latest and change for every measurement that has been taken at least once. */
 export function MeasurementTable({ measurements }: { measurements: Measurement[] }) {
+  const u = useUnits();
   const rows = MEASURES.flatMap((m) => {
     const series = measurementSeries(measurements, m.key);
     const c = changeOver(series);
@@ -48,8 +50,8 @@ export function MeasurementTable({ measurements }: { measurements: Measurement[]
       {rows.map((r) => (
         <div key={r.key} className="li">
           <div className="grow"><div className="h3">{r.label}</div><div className="tiny">{r.count > 1 ? `Since ${shortDate(r.since)}` : `Taken ${shortDate(r.since)}`}</div></div>
-          <span className="num small">{r.count > 1 ? `${r.first} → ` : ""}<b style={{ color: "var(--text)" }}>{r.last}</b> {r.unit}</span>
-          {r.count > 1 && <span className="num small" style={{ minWidth: 48, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{signed(r.delta)}</span>}
+          <span className="num small">{r.count > 1 ? `${u.show(r.first, r.unit)} → ` : ""}<b style={{ color: "var(--text)" }}>{u.show(r.last, r.unit)}</b> {u.unit(r.unit)}</span>
+          {r.count > 1 && <span className="num small" style={{ minWidth: 48, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{signed(u.show(r.delta, r.unit))}</span>}
         </div>
       ))}
     </>
@@ -58,14 +60,16 @@ export function MeasurementTable({ measurements }: { measurements: Measurement[]
 
 /** Text inputs for each measurement. Shows the last value as a hint. */
 export function MeasureInputs({ value, onChange, last, skip = [] }: { value: Record<MeasureKey, string>; onChange: (v: Record<MeasureKey, string>) => void; last: Measurement[]; skip?: MeasureKey[] }) {
+  // The boxes hold what the person typed, in their unit; parseMeasures turns it back into kg and cm.
+  const u = useUnits();
   return (
     <div className="measures">
       {MEASURES.filter((m) => !skip.includes(m.key)).map((m) => {
         const prev = measurementSeries(last, m.key).at(-1)?.value;
         return (
           <label key={m.key}>
-            {m.label}, {m.unit}
-            <input className="cell" inputMode="decimal" placeholder={prev !== undefined ? String(prev) : "–"} value={value[m.key]} onChange={(e) => onChange({ ...value, [m.key]: e.target.value })} />
+            {m.label}, {u.unit(m.unit)}
+            <input className="cell" inputMode="decimal" placeholder={prev !== undefined ? String(u.show(prev, m.unit)) : "–"} value={value[m.key]} onChange={(e) => onChange({ ...value, [m.key]: e.target.value })} />
           </label>
         );
       })}
@@ -76,8 +80,12 @@ export function MeasureInputs({ value, onChange, last, skip = [] }: { value: Rec
 export const blankMeasures = (): Record<MeasureKey, string> =>
   Object.fromEntries(MEASURES.map((m) => [m.key, ""])) as Record<MeasureKey, string>;
 
-export const parseMeasures = (v: Record<MeasureKey, string>): MeasurementInput =>
-  Object.fromEntries(MEASURES.map((m) => [m.key, parseNumber(v[m.key])])) as MeasurementInput;
+/** Typed values (in the person's units when `u` is given) → the kg and cm the database keeps. */
+export const parseMeasures = (v: Record<MeasureKey, string>, u?: Units): MeasurementInput =>
+  Object.fromEntries(MEASURES.map((m) => {
+    const n = parseNumber(v[m.key]);
+    return [m.key, n === null || !u ? n : u.store(n, m.unit)];
+  })) as MeasurementInput;
 
 /** Front, side and back slots. Tapping one opens the camera on a phone, or the file picker elsewhere. */
 export function PoseSlots({ value, onChange }: { value: PhotoUpload[]; onChange: (v: PhotoUpload[]) => void }) {
@@ -123,10 +131,10 @@ export function PoseSlots({ value, onChange }: { value: PhotoUpload[]; onChange:
 
 type Side = "before" | "after";
 
-const blockLine = (b: Fortnight) => {
+const blockLine = (b: Fortnight, u: Units) => {
   const w = b.latest.weightKg;
   const dw = b.change.weightKg;
-  return [w !== undefined ? `${w} kg${dw ? ` (${signed(dw)})` : ""}` : null, blockDates(b)].filter(Boolean).join(" · ");
+  return [w !== undefined ? `${u.fw(w)}${dw ? ` (${signed(u.w(dw))})` : ""}` : null, blockDates(b)].filter(Boolean).join(" · ");
 };
 
 /**
@@ -134,6 +142,7 @@ const blockLine = (b: Fortnight) => {
  * slider to wipe between them. Starts on the first block and the latest one.
  */
 export function BeforeAfter({ blocks, measurements, pick, onPick }: { blocks: Fortnight[]; measurements: Measurement[]; pick: { pose: Pose; before?: number; after?: number }; onPick: (p: { pose: Pose; before?: number; after?: number }) => void }) {
+  const u = useUnits();
   const [view, setView] = useState<"side" | "slider">("side");
   const [wipe, setWipe] = useState(50);
   const pose = pick.pose;
@@ -149,7 +158,7 @@ export function BeforeAfter({ blocks, measurements, pick, onPick }: { blocks: Fo
   const delta = (k: MeasureKey, unit: string) => {
     const a = valueAt(k, before?.byPose[pose]?.takenAt);
     const b = valueAt(k, after?.byPose[pose]?.takenAt);
-    return a !== undefined && b !== undefined ? `${MEASURES.find((m) => m.key === k)!.label} ${signed(b - a)} ${unit}` : null;
+    return a !== undefined && b !== undefined ? `${MEASURES.find((m) => m.key === k)!.label} ${signed(u.show(b - a, unit))} ${u.unit(unit)}` : null;
   };
 
   return (
@@ -175,8 +184,8 @@ export function BeforeAfter({ blocks, measurements, pick, onPick }: { blocks: Fo
           </div>
           {view === "side" ? (
             <div className="compare">
-              <PhotoFrame url={before.byPose[pose]?.url} label={blockLine(before)} />
-              <PhotoFrame url={after.byPose[pose]?.url} label={blockLine(after)} highlight />
+              <PhotoFrame url={before.byPose[pose]?.url} label={blockLine(before, u)} />
+              <PhotoFrame url={after.byPose[pose]?.url} label={blockLine(after, u)} highlight />
             </div>
           ) : (
             <figure style={{ margin: 0 }}>
@@ -203,6 +212,7 @@ export function BeforeAfter({ blocks, measurements, pick, onPick }: { blocks: Fo
  * step through the rest, or send it to the before/after view.
  */
 export function PhotoLibrary({ blocks, onCompare, onDelete }: { blocks: Fortnight[]; onCompare: (p: { pose: Pose; side: Side; index: number }) => void; onDelete?: (id: string) => void }) {
+  const u = useUnits();
   const [pose, setPose] = useState<Pose | "all">("all");
   const [open, setOpen] = useState<string | null>(null);
   const shown = blocks.map((b) => ({ b, photos: b.photos.filter((p) => pose === "all" || p.pose === pose) })).filter((x) => x.photos.length);
@@ -220,7 +230,7 @@ export function PhotoLibrary({ blocks, onCompare, onDelete }: { blocks: Fortnigh
       </div>
       {shown.map(({ b, photos }) => (
         <section key={b.index}>
-          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{b.label}</h3><span className="tiny num">{blockLine(b)}</span></div>
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{b.label}</h3><span className="tiny num">{blockLine(b, u)}</span></div>
           <div className="library">
             {photos.map((p) => (
               <button key={p.id} className="thumb" onClick={() => setOpen(p.id)} aria-label={`${POSE_LABEL[p.pose]} photo, ${shortDate(p.takenAt)}`}>
@@ -255,11 +265,12 @@ export function PhotoLibrary({ blocks, onCompare, onDelete }: { blocks: Fortnigh
 
 /** One row per two-week block: front photo, weight, waist and how the weeks felt. */
 export function FortnightTable({ blocks }: { blocks: Fortnight[] }) {
+  const u = useUnits();
   if (!blocks.length) return <div className="small">Nothing recorded yet.</div>;
   const cell = (b: Fortnight, k: MeasureKey, unit: string) => {
     const v = b.latest[k];
     const d = b.change[k];
-    return v === undefined ? <span className="tiny">–</span> : <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{v}</b> {unit}{d ? <span style={{ color: "var(--data)", marginLeft: 4 }}>{signed(d)}</span> : null}</span>;
+    return v === undefined ? <span className="tiny">–</span> : <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{u.show(v, unit)}</b> {u.unit(unit)}{d ? <span style={{ color: "var(--data)", marginLeft: 4 }}>{signed(u.show(d, unit))}</span> : null}</span>;
   };
   return (
     <div className="list" style={{ margin: "-14px" }}>
@@ -316,6 +327,7 @@ type ProgressData = Pick<ProgressState, "checkIns" | "measurements" | "photos">;
  * the block before, then how many check-ins came in.
  */
 export function EveryTwoWeeks({ progress, photos = true }: { progress: ProgressData; photos?: boolean }) {
+  const u = useUnits();
   const blocks = useMemo(() => fortnights(progress).filter((b) => Object.keys(b.latest).length || (photos && b.photos.length)), [progress, photos]);
   const taken = MEASURES.filter((m) => measurementSeries(progress.measurements, m.key).length);
   if (!blocks.length) return <div className="card small">Nothing recorded yet.</div>;
@@ -326,7 +338,7 @@ export function EveryTwoWeeks({ progress, photos = true }: { progress: ProgressD
           <tr>
             <th scope="col">Block</th>
             {photos && <th scope="col" style={{ textAlign: "center" }}>Front</th>}
-            {taken.map((m) => <th key={m.key} scope="col">{m.label}<small>{m.unit}</small></th>)}
+            {taken.map((m) => <th key={m.key} scope="col">{m.label}<small>{u.unit(m.unit)}</small></th>)}
             <th scope="col">Check-ins</th>
           </tr>
         </thead>
@@ -344,7 +356,7 @@ export function EveryTwoWeeks({ progress, photos = true }: { progress: ProgressD
               {taken.map((m) => {
                 const v = b.latest[m.key];
                 const d = b.change[m.key];
-                return <td key={m.key}>{v === undefined ? <span className="tiny">–</span> : <><b>{v}</b>{d ? <small style={{ color: "var(--data)" }}>{signed(d)}</small> : null}</>}</td>;
+                return <td key={m.key}>{v === undefined ? <span className="tiny">–</span> : <><b>{u.show(v, m.unit)}</b>{d ? <small style={{ color: "var(--data)" }}>{signed(u.show(d, m.unit))}</small> : null}</>}</td>;
               })}
               <td><b>{b.checkIns.length}</b>{b.avgSleep !== null && <small>sleep {b.avgSleep} h</small>}</td>
             </tr>
@@ -357,6 +369,7 @@ export function EveryTwoWeeks({ progress, photos = true }: { progress: ProgressD
 
 /** One measurement at a time: its chart and every entry, grouped by two-week block. */
 export function MeasureOneByOne({ progress }: { progress: ProgressData }) {
+  const u = useUnits();
   const taken = MEASURES.filter((m) => measurementSeries(progress.measurements, m.key).length);
   const [key, setKey] = useState<MeasureKey>("weightKg");
   const active = taken.find((m) => m.key === key) ?? taken[0];
@@ -365,7 +378,7 @@ export function MeasureOneByOne({ progress }: { progress: ProgressData }) {
   return (
     <div className="card stack" style={{ gap: 12 }}>
       <div className="chips">{taken.map((m) => <button key={m.key} className={`chip ${active.key === m.key ? "on" : ""}`} onClick={() => setKey(m.key)}>{m.label}</button>)}</div>
-      {series.length > 1 ? <Spark data={series.map((p) => p.value)} unit={active.unit} /> : <div className="small">One entry so far. The trend starts with the next one.</div>}
+      {series.length > 1 ? <Spark data={series.map((p) => u.show(p.value, active.unit))} unit={u.unit(active.unit)} /> : <div className="small">One entry so far. The trend starts with the next one.</div>}
       <div className="list" style={{ margin: "0 -14px -14px" }}>
         {fortnights(progress).filter((b) => b.latest[active.key] !== undefined).map((b) => {
           const entries = series.filter((p) => { const t = Date.parse(p.at); return t >= b.from.getTime() && t < b.to.getTime() + 86400000; });
@@ -374,10 +387,10 @@ export function MeasureOneByOne({ progress }: { progress: ProgressData }) {
             <div key={b.index} className="li" style={{ alignItems: "flex-start" }}>
               <div className="grow">
                 <div className="h3">{b.label}</div>
-                <div className="tiny num">{entries.map((p) => `${new Date(p.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${p.value}`).join(" · ")}</div>
+                <div className="tiny num">{entries.map((p) => `${new Date(p.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}: ${u.show(p.value, active.unit)}`).join(" · ")}</div>
               </div>
-              <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{b.latest[active.key]}</b> {active.unit}</span>
-              <span className="num small" style={{ minWidth: 44, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{d ? signed(d) : ""}</span>
+              <span className="num small" style={{ whiteSpace: "nowrap" }}><b style={{ color: "var(--text)" }}>{u.show(b.latest[active.key] ?? 0, active.unit)}</b> {u.unit(active.unit)}</span>
+              <span className="num small" style={{ minWidth: 44, textAlign: "right", fontWeight: 700, color: "var(--data)" }}>{d ? signed(u.show(d, active.unit)) : ""}</span>
             </div>
           );
         })}

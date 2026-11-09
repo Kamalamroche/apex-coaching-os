@@ -6,6 +6,7 @@ import { Onboarding } from "../auth/Onboarding";
 import { SignIn, type SignInMode } from "../auth/SignIn";
 import { Welcome, welcomeSeen } from "../auth/Welcome";
 import { useAuth, type Profile } from "../auth/useAuth";
+import { useAccountPrefs } from "../data/prefs";
 import { ActivityProvider } from "../data/ActivityContext";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
@@ -96,11 +97,12 @@ function LiveGate({ db, side, live, welcome, mode }: { db: SupabaseClient; side:
       </Splash>
     );
   }
-  return <LiveReady db={db} profile={auth.profile} email={auth.session.user.email ?? ""} signOut={signOut} live={live} />;
+  return <LiveReady db={db} profile={auth.profile} email={auth.session.user.email ?? ""} metadata={auth.session.user.user_metadata} signOut={signOut} live={live} />;
 }
 
 /** Signed in with the right kind of account: check the person's agreements, then open the app. */
-function LiveReady({ db, profile, email, signOut, live }: { db: SupabaseClient; profile: Profile; email: string; signOut: () => void; live: (l: Live) => ReactNode }) {
+function LiveReady({ db, profile, email, metadata, signOut, live }: { db: SupabaseClient; profile: Profile; email: string; metadata?: Record<string, unknown>; signOut: () => void; live: (l: Live) => ReactNode }) {
+  useAccountPrefs(db, metadata);
   const privacy = useMemo(() => livePrivacy(db, { id: profile.id, role: profile.role, name: profile.full_name, email }), [db, profile.id, profile.role, profile.full_name, email]);
   return (
     <AppInfoProvider info={{ mode: "live", coachName: "", clientName: "", signOut }}>

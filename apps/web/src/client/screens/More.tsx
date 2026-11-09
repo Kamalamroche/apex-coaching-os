@@ -1,5 +1,5 @@
 import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
-import { Avatar, BackLink, Icons, type IconName, ScriptTitle } from "@apex/ui";
+import { Avatar, BackLink, Icons, type IconName, ScriptTitle, useT } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { useAppInfo } from "../../app/AppContext";
@@ -25,13 +25,15 @@ import { useBookingApi } from "../../data/bookings";
 import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
+import { UnitsAndLanguage } from "../../app/Settings";
 
-type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
+type View = "account" | "settings" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
 
 export type MoreView = View;
 
 export function More({ say, start }: { say: (m: string) => void; start?: View | null }) {
   const [view, setView] = useState<View | null>(start ?? null);
+  const t = useT();
   const teamApi = useTeamApi();
   const friend = useFriendInvite();
   const { coachName } = useAppInfo();
@@ -64,14 +66,14 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
   if (view) {
     return (
       <>
-        <BackLink onClick={() => setView(null)}>More</BackLink>
+        <BackLink onClick={() => setView(null)}>{t("More")}</BackLink>
         {view === "book" && <Book say={say} />}
         {view === "team" && <Team say={say} />}
         {view === "invite" && <InviteFriend say={say} />}
@@ -84,21 +86,20 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "account" && <AccountScreen say={say} />}
+        {view === "settings" && <UnitsAndLanguage />}
       </>
     );
   }
   return (
     <>
-      <div><p className="sub" style={{ margin: 0 }}>More</p><ScriptTitle script="Everything" className="sm">else</ScriptTitle></div>
+      <div><p className="sub" style={{ margin: 0 }}>{t("More")}</p><ScriptTitle script={t("Everything")} className="sm">{t("else")}</ScriptTitle></div>
       <div className="card flat list">
-        {MENU.map(([k, t, s]) => (
-          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        {MENU.map(([k, title, s]) => (
+          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t(title)}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
         ))}
-        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">Connected apps</div><div className="small">Strava, watch files, and what's coming next</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">Privacy and account</div><div className="small">Your agreements, download your data, delete your account</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        {[["Settings", "Units and notifications"]].map(([t, s]) => (
-          <div key={t} className="li"><span className="mi"><Icons.more /></span><div className="grow"><div className="h3">{t}</div><div className="small">{s}</div></div></div>
-        ))}
+        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">{t("Connected apps")}</div><div className="small">{t("Strava, watch files, and what's coming next")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">{t("Privacy and account")}</div><div className="small">{t("Your agreements, download your data, delete your account")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+        <button className="li" onClick={() => setView("settings")}>{chip("settings")}<div className="grow"><div className="h3">{t("Settings")}</div><div className="small">{t("Units and language")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
       </div>
     </>
   );

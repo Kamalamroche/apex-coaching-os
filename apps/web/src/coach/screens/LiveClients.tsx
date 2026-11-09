@@ -1,6 +1,6 @@
 import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, BackLink } from "@apex/ui";
+import { Avatar, BackLink, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useStoreStatus } from "../../app/AppContext";
 import { createInviteLink } from "../../data/coach";
@@ -81,6 +81,7 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
 }
 
 function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }: { clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
+  const u = useUnits();
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
@@ -114,7 +115,7 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
             {workout.items.map((it) => (
               <div key={it.key} className="ex">
                 <span className="grp">{it.group}</span>
-                <div className="grow"><div className="h3">{exerciseFor(it).name}</div><div className="small num">{it.sets}×{it.reps}{it.kg ? ` · ${it.kg} kg` : ""} · RPE {it.rpe}</div></div>
+                <div className="grow"><div className="h3">{exerciseFor(it).name}</div><div className="small num">{it.sets}×{it.reps}{it.kg ? ` · ${u.fw(it.kg)}` : ""} · RPE {it.rpe}</div></div>
                 <span className="tiny num">{it.restSeconds ? formatRest(it.restSeconds) : "→"}</span>
               </div>
             ))}
