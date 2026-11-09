@@ -918,3 +918,54 @@ button.tile{font:inherit}
 .scan-hint{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff}
 .scan-status{display:flex;align-items:center;gap:10px}
 .scan-dot{width:10px;height:10px;border-radius:50%;background:var(--act)}
+
+/* ---------- Nutrition: rest days, workout fuel, fridge ---------- */
+.rest-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:6px}
+.rest-toggle:disabled{opacity:.5;cursor:default}
+.rest-day{padding:12px;border-radius:14px;background:var(--bg2)}
+.fuel-card{gap:16px}
+.fuel-row{display:flex;flex-direction:column;gap:8px}
+.fuel-when{display:flex;align-items:baseline;gap:8px}
+.fuel-when b{font-size:15px}
+.fuel-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fuel-pick{display:flex;flex-direction:column;gap:4px;text-align:left;padding:0;border:0;background:none;color:var(--text);cursor:pointer;min-width:0}
+.fuel-img{display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--bg2)}
+.fuel-img img,.fuel-img .rcp-noimg{width:100%;height:100%;object-fit:cover;display:flex}
+.fuel-pick b{font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fuel-pick .tiny{color:var(--text2)}
+.fridge-cta{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:12px;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--text);text-align:left;cursor:pointer}
+.fridge-cta .grow{display:flex;flex-direction:column;gap:2px}
+.fridge-cta b{font-size:15px}
+.fridge-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--act-soft,var(--bg2));color:var(--act);flex:none}
+.fridge-hit{gap:12px;text-align:left}
+.fridge-hit .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fridge-thumb{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:var(--bg2)}
+.fridge-thumb img,.fridge-thumb .rcp-noimg{width:100%;height:100%;object-fit:cover;display:flex}
+.fridge-ok{color:var(--good)}
+.fridge-go{position:sticky;bottom:8px;z-index:2;order:0}
+.rcp-title-row{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.rcp-fav{flex:none}
+.rcp-fav.on{color:var(--crit);border-color:var(--crit)}
+.rcp-fav.on svg{fill:currentColor}
+.rcp-fav-dot{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--card);color:var(--crit)}
+.rcp-fav-dot svg{fill:currentColor}
+.nscore-top{display:flex;align-items:center;gap:14px}
+.nscore-ring{--c:var(--good);width:76px;height:76px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(var(--c) var(--p),var(--bg2) 0)}
+.nscore-ring b{display:grid;place-items:center;width:60px;height:60px;border-radius:50%;background:var(--card);font-size:24px}
+.nscore.mixed .nscore-ring{--c:var(--warn)}
+.nscore.slipping .nscore-ring{--c:var(--crit)}
+.nscore-word{font-size:18px;font-weight:700}
+.nscore-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nscore-stats>div{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:var(--bg2)}
+.nscore-stats b{font-size:20px}
+.nscore-stats .of{font-size:13px;color:var(--text3)}
+.nscore-msg{padding-top:4px;border-top:1px solid var(--line)}
+.rcp-cost{color:var(--text2);margin-top:2px}
+.shop-cost{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:14px;background:var(--bg2)}
+.shop-cost b{font-size:24px}
+.eatout-block{padding:12px 14px;border-radius:14px;background:var(--bg2)}
+.eatout-block .h3{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.eatout-block.good .h3 svg{color:var(--good)}
+.eatout-block.watch .h3 svg{color:var(--warn)}
+.eatout-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--text)}
+.eatout-tip{padding:12px 14px;border-radius:14px;border:1px solid var(--line);color:var(--text)}

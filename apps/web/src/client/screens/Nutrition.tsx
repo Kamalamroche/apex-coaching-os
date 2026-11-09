@@ -1,7 +1,9 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe } from "@apex/core";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe } from "@apex/core";
 import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
 import { useState } from "react";
-import { ClientPlan, RecipeSheet, RecipeShelf } from "../../app/MealPlanParts";
+import { useApexState } from "@apex/core/react";
+import { ClientPlan, RecipeSheet, RecipeShelf, WorkoutFuelCard } from "../../app/MealPlanParts";
+import { useStore } from "../../data/StoreContext";
 import { BarcodeScan } from "./BarcodeScan";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
@@ -30,8 +32,12 @@ export function ClientNutrition() {
   const [q, setQ] = useState("");
   const [quick, setQuick] = useState(false);
   const [qa, setQa] = useState({ name: "", kcal: "", p: "", c: "", f: "" });
+  const { program, workout } = useApexState(useStore());
   const eaten = dayTotals(s.food, day);
-  const t = s.targets;
+  // Training day or rest day, from the client's program for this week.
+  const session = workoutOn(program, workout.week, day);
+  const hasProgram = program.days.length > 0;
+  const t = s.targets ? targetsFor(s.targets, !!session) : null;
   const days = weekDaysOf(today);
   const week = weekNutrition(s.food, days);
   const todays = s.food.filter((f) => f.day === day);
@@ -73,7 +79,7 @@ export function ClientNutrition() {
       <section className="fuelboard">
         <img className="fb-bg" src={HERO_IMAGES.meal.src} alt="" />
         <div className="fb-head">
-          <div className="gpills"><span className="gpill caps">Nutrition · {isToday ? "today" : dayName(day)}</span>{streak > 1 && <span className="gpill dim"><Icons.flame />{streak} days logged</span>}</div>
+          <div className="gpills"><span className="gpill caps">Nutrition · {isToday ? "today" : dayName(day)}</span>{hasProgram && <span className="gpill dim">{session ? <><Icons.train />Training day</> : <><Icons.sleep />Rest day</>}</span>}{streak > 1 && <span className="gpill dim"><Icons.flame />{streak} days logged</span>}</div>
           {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">{isToday ? "for today" : `for ${new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" })}`}</ScriptTitle>}
         </div>
         {!t && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
@@ -87,6 +93,7 @@ export function ClientNutrition() {
             { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
           ]} />
         )}
+        {t?.kind === "rest" && <p className="fb-note">Rest day targets from {coachName}: fewer carbs, same protein.</p>}
         {t?.note && <div className="fb-glass fb-coach"><b>{coachName}:</b> {t.note}</div>}
       </section>
 
@@ -110,8 +117,12 @@ export function ClientNutrition() {
       )}
 
       {s.mealPlan && s.mealPlan.days.length > 0 && (
-        <ClientPlan plan={s.mealPlan} food={s.food} day={day} coachName={coachName}
+        <ClientPlan key={`${day}-${!!session}`} plan={s.mealPlan} food={s.food} day={day} coachName={coachName} training={hasProgram ? !!session : null}
           onLog={(m, items) => items.forEach((i) => store.addFood({ id: crypto.randomUUID(), day, meal: m, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }))} />
+      )}
+
+      {session && day >= today && (
+        <WorkoutFuelCard session={session.name} seed={Number(day.slice(8))} diet={s.intake?.answers.diet ?? []} notes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
       )}
 
       {yesterdayFood.length > 0 && (
@@ -215,8 +226,8 @@ export function ClientNutrition() {
         )}
       </section>
 
-      <RecipeShelf key={(s.intake?.answers.diet ?? []).join()} diet={s.intake?.answers.diet ?? []} onOpen={setRecipe} />
-      {recipe && <RecipeSheet r={recipe} foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
+      <RecipeShelf key={(s.intake?.answers.diet ?? []).join()} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
+      {recipe && <RecipeSheet r={recipe} canFavourite foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
         label: `Log to ${MEALS.find((m) => m.key === recipe.meal)?.label.toLowerCase()}${isToday ? "" : `, ${dayName(day)}`}`,
         run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
       }} />}

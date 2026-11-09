@@ -333,6 +333,17 @@ do $$ begin
   assert (select kcal from nutrition_targets) = 1900, 'client cannot change targets';
 end $$;
 
+-- rest-day targets: the coach sets them, bad numbers are refused
+update nutrition_targets set rest_day = '{"kcal":1600,"protein_g":120,"carbs_g":145,"fat_g":60}';
+do $$ begin
+  assert (select (rest_day->>'carbs_g')::int from nutrition_targets) = 145, 'coach sets rest-day targets';
+  begin
+    update nutrition_targets set rest_day = '{"kcal":99999,"protein_g":1,"carbs_g":1,"fat_g":1}';
+    raise exception 'bad rest day accepted';
+  exception when check_violation then null;
+  end;
+end $$;
+
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
 do $$ begin
   assert (select count(*) from habit_ticks) = 0, 'rival sees no ticks';

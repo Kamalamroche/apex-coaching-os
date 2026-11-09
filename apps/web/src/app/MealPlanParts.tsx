@@ -1,9 +1,9 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
+  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, dietMisses, dietWarning, filterRecipes, notesClash, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList, fridgeFoods, planDayFor, recipesFromFridge, workoutFuel, EATING_OUT, formatPence, isBudget, planCost, recipeCost,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { recipePhotoFromFile, useCoachRecipes } from "../data/coachRecipes";
 
 const TAGS: RecipeTag[] = ["High protein", "Under 15 min", "Vegetarian", "Vegan", "Gluten free", "Dairy free", "Batch cook"];
@@ -13,6 +13,29 @@ const r0 = (v: number) => Math.round(v);
 
 /* ---------- Recipes ---------- */
 
+/** The client's favourite recipes, kept on this device. Every screen using the hook stays in step. */
+const FAV_KEY = "apex.favRecipes";
+const FAV_EVENT = "apex-fav-recipes";
+function readFavs(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; }
+}
+export function useFavouriteRecipes(): { favs: string[]; isFav: (id: string) => boolean; toggle: (id: string) => void } {
+  const [favs, setFavs] = useState<string[]>(readFavs);
+  useEffect(() => {
+    const sync = () => setFavs(readFavs());
+    window.addEventListener(FAV_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => { window.removeEventListener(FAV_EVENT, sync); window.removeEventListener("storage", sync); };
+  }, []);
+  const toggle = (id: string) => {
+    const next = favs.includes(id) ? favs.filter((x) => x !== id) : [id, ...favs];
+    setFavs(next);
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(next)); } catch { /* this visit only */ }
+    window.dispatchEvent(new Event(FAV_EVENT));
+  };
+  return { favs, isFav: (id) => favs.includes(id), toggle };
+}
+
 /** The recipe's photo, or a plain tile with the meal colour when a coach recipe has none. */
 function RecipeImg({ r, small = false, className }: { r: Recipe; small?: boolean; className?: string }) {
   const src = recipePhoto(r, small);
@@ -21,54 +44,80 @@ function RecipeImg({ r, small = false, className }: { r: Recipe; small?: boolean
     : <span className={`rcp-noimg ${className ?? ""}`} aria-hidden="true"><Icons.food width={small ? 22 : 30} height={small ? 22 : 30} /></span>;
 }
 
-export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => void }) {
+export function RecipeCard({ r, onOpen, fav = false }: { r: Recipe; onOpen: (r: Recipe) => void; fav?: boolean }) {
   const m = recipeMacros(r);
+  const cost = recipeCost(r);
   return (
     <button type="button" className="rcp-card" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }} onClick={() => onOpen(r)}>
-      <span className="rcp-photo"><RecipeImg r={r} small /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span></span>
+      <span className="rcp-photo"><RecipeImg r={r} small /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span>{fav && <span className="rcp-fav-dot" aria-label="Favourite"><Icons.heart width={13} height={13} /></span>}</span>
       <span className="rcp-body">
         <span className="tiny caps rcp-meal">{mealLabel(r.meal)}{r.byCoach && <span className="rcp-mine"> · Your coach</span>}</span>
         <b className="rcp-name">{r.name}</b>
         <span className="rcp-nums"><span><b className="num">{m.kcal}</b> kcal</span><span><b className="num">{m.proteinG}</b> g protein</span></span>
+        {cost !== null && <span className="rcp-cost tiny">About {formatPence(cost)} a serving</span>}
       </span>
     </button>
   );
 }
 
 /** The recipe library: filter chips and a scrolling shelf of cards. */
-export function RecipeShelf({ onOpen, diet = [] }: { onOpen: (r: Recipe) => void; diet?: readonly RecipeTag[] }) {
+export function RecipeShelf({ onOpen, diet = [], foodNotes = "" }: { onOpen: (r: Recipe) => void; diet?: readonly RecipeTag[]; foodNotes?: string }) {
+  const [fridge, setFridge] = useState(false);
   const [tags, setTags] = useState<RecipeTag[]>(() => [...diet]);
   const matched = diet.length > 0 && diet.every((t) => tags.includes(t));
   const [meal, setMeal] = useState<Meal | null>(null);
   const { recipes: coach } = useCoachRecipes();
-  const list = filterRecipes(tags, meal ?? undefined, coach);
+  const { favs } = useFavouriteRecipes();
+  const [onlyFavs, setOnlyFavs] = useState(false);
+  const [budget, setBudget] = useState(false);
+  const [eatOut, setEatOut] = useState(false);
+  const list = filterRecipes(tags, meal ?? undefined, coach).filter((r) => (!onlyFavs || favs.includes(r.id)) && (!budget || isBudget(r)));
   return (
     <section>
       <div className="sect"><h2 className="h2">Recipes</h2><span className="tiny">{list.length} of {RECIPES.length + coach.length}</span></div>
+      <button type="button" className="fridge-cta" onClick={() => setFridge(true)}>
+        <span className="fridge-ic"><Icons.fridge width={20} height={20} /></span>
+        <span className="grow"><b>What's in my fridge?</b><span className="tiny">Tick what you have and see what you can make</span></span>
+        <Icons.forward width={16} height={16} />
+      </button>
+      <button type="button" className="fridge-cta" onClick={() => setEatOut(true)}>
+        <span className="fridge-ic"><Icons.food width={20} height={20} /></span>
+        <span className="grow"><b>Eating out?</b><span className="tiny">What to order at the pub, Indian, Italian and more</span></span>
+        <Icons.forward width={16} height={16} />
+      </button>
+      {eatOut && <EatingOutSheet onClose={() => setEatOut(false)} />}
+      {fridge && <FridgeSheet coach={coach} diet={diet} notes={foodNotes} onClose={() => setFridge(false)} onOpen={(r) => { setFridge(false); onOpen(r); }} />}
       <div className="seg rcp-meals" role="radiogroup" aria-label="Meal">
         {[null, ...MEALS.map((m) => m.key)].map((k) => <button key={k ?? "all"} type="button" role="radio" aria-checked={meal === k} className={meal === k ? "on" : ""} onClick={() => setMeal(k)}>{k ? mealLabel(k) : "All"}</button>)}
       </div>
       <div className="chips rcp-tags" role="group" aria-label="Filter recipes">
+        <button className={`chip ${budget ? "on" : ""}`} aria-pressed={budget} onClick={() => setBudget(!budget)}>Under £2</button>
+        {favs.length > 0 && <button className={`chip ${onlyFavs ? "on" : ""}`} aria-pressed={onlyFavs} onClick={() => setOnlyFavs(!onlyFavs)}><Icons.heart width={13} height={13} /> Favourites ({favs.length})</button>}
         {TAGS.map((t) => <button key={t} className={`chip ${tags.includes(t) ? "on" : ""}`} aria-pressed={tags.includes(t)} onClick={() => setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>)}
       </div>
       {matched && <div className="tiny rcp-diet">Matched to your diet: {diet.join(", ").toLowerCase()}. Tap a filter to change it.</div>}
       {list.length ? (
-        <div className="rcp-shelf">{list.map((r) => <RecipeCard key={r.id} r={r} onOpen={onOpen} />)}</div>
+        <div className="rcp-shelf">{list.map((r) => <RecipeCard key={r.id} r={r} onOpen={onOpen} fav={favs.includes(r.id)} />)}</div>
       ) : <div className="card small">No recipe has all of those. Take a filter off.</div>}
     </section>
   );
 }
 
-export function RecipeSheet({ r, onClose, action, foodNotes = "" }: { r: Recipe; onClose: () => void; action?: { label: string; run: () => void }; foodNotes?: string }) {
+export function RecipeSheet({ r, onClose, action, foodNotes = "", canFavourite = false }: { r: Recipe; onClose: () => void; action?: { label: string; run: () => void }; foodNotes?: string; canFavourite?: boolean }) {
   const m = recipeMacros(r);
+  const { isFav, toggle } = useFavouriteRecipes();
+  const fav = isFav(r.id);
   const clash = notesClash(r, foodNotes);
   return (
     <Sheet label={r.name} onClose={onClose}>
       <div className="stack rcp-sheet" style={{ gap: 14 }}>
         <div className="rcp-hero" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }}>
           <RecipeImg r={r} className="rcp-hero-img" />
-          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{r.byCoach ? " · Your coach's recipe" : ""}</span>
-          <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
+          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{recipeCost(r) !== null ? ` · about ${formatPence(recipeCost(r)!)}` : ""}{r.byCoach ? " · Your coach's recipe" : ""}</span>
+          <div className="rcp-title-row">
+            <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
+            {canFavourite && <button type="button" className={`iconbtn rcp-fav${fav ? " on" : ""}`} aria-pressed={fav} aria-label={fav ? "Remove from favourites" : "Save to favourites"} onClick={() => toggle(r.id)}><Icons.heart width={18} height={18} /></button>}
+          </div>
           {clash.length > 0 && <div className="plan-diet small allergy"><Icons.info width={15} height={15} /><span>This has <b>{clash.join(", ")}</b> in it, and you told your coach about {clash.length === 1 ? "it" : "them"}. Check the ingredients.</span></div>}
           <div className="rcp-macros">
             <div><b className="num">{m.kcal}</b><span className="tiny">kcal</span></div>
@@ -115,6 +164,7 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
   };
   const groups = [...new Set(list.map((l) => l.group))];
   const done = list.filter((l) => ticks.includes(l.key)).length;
+  const cost = planCost(plan, days, recipes);
   return (
     <Sheet label="Shopping list" onClose={onClose}>
       <div className="stack" style={{ gap: 12 }}>
@@ -122,6 +172,7 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
         <div className="seg" role="radiogroup" aria-label="How many days">
           {[3, 7].map((d) => <button key={d} type="button" role="radio" aria-checked={days === d} className={days === d ? "on" : ""} onClick={() => setDays(d)}>{d} days</button>)}
         </div>
+        {cost.pence > 0 && <div className="shop-cost"><span className="tiny">Estimated cost</span><b className="num">{formatPence(cost.pence)}</b><span className="tiny">about {formatPence(cost.pence / days)} a day{cost.unpriced ? `, ${cost.unpriced} item${cost.unpriced === 1 ? "" : "s"} not priced` : ""}. Supermarket own-brand prices, so yours may differ.</span></div>}
         {groups.map((g) => (
           <div key={g}>
             <div className="tiny caps" style={{ margin: "6px 0" }}>{g}</div>
@@ -143,8 +194,9 @@ export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan;
 
 /* ---------- Client: today's plan ---------- */
 
-export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPlan; food: FoodEntry[]; day: string; coachName: string; onLog: (meal: Meal, items: PlanItem[]) => void }) {
-  const [dayId, setDayId] = useState(plan.days[0]?.id ?? "");
+export function ClientPlan({ plan, food, day, coachName, onLog, training = null }: { plan: MealPlan; food: FoodEntry[]; day: string; coachName: string; onLog: (meal: Meal, items: PlanItem[]) => void; training?: boolean | null }) {
+  // Opens on "Training day" when there's a workout that day, "Rest day" when not (if the coach named the days that way).
+  const [dayId, setDayId] = useState(planDayFor(plan, training)?.id ?? plan.days[0]?.id ?? "");
   const [shop, setShop] = useState(false);
   const [open, setOpen] = useState<Recipe | null>(null);
   const { recipes: coach } = useCoachRecipes();
@@ -309,6 +361,144 @@ export function CoachPlanEditor({ plan, targets, name, onSave, diet = [], foodNo
       {plan && <button className="link" style={{ alignSelf: "flex-start", color: "var(--crit)" }} onClick={() => { if (confirm(`Remove ${name}'s meal plan?`)) { onSave(null); setDraft(null); } }}>Remove plan</button>}
       {!plan && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDraft(null)}>Cancel</button>}
     </section>
+  );
+}
+
+/* ---------- Food around a workout ---------- */
+
+/** Training days: what to eat before and after the session, from the recipes, within the client's diet. */
+export function WorkoutFuelCard({ session, seed, diet = [], notes = "", onOpen }: { session: string; seed: number; diet?: readonly RecipeTag[]; notes?: string; onOpen: (r: Recipe) => void }) {
+  const { recipes: coach } = useCoachRecipes();
+  const fuel = useMemo(() => workoutFuel({ coach, diet, notes, seed }), [coach, diet, notes, seed]);
+  if (!fuel.before.length && !fuel.after.length) return null;
+  const row = (title: string, when: string, picks: typeof fuel.before) => picks.length > 0 && (
+    <div className="fuel-row">
+      <div className="fuel-when"><b>{title}</b><span className="tiny">{when}</span></div>
+      <div className="fuel-picks">
+        {picks.map(({ r, why }) => (
+          <button key={r.id} type="button" className="fuel-pick" onClick={() => onOpen(r)}>
+            <span className="fuel-img"><RecipeImg r={r} small /></span>
+            <b>{r.name}</b>
+            <span className="tiny">{why}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <section>
+      <div className="sect"><h2 className="h2">Fuel your session</h2><Label kind="insight">Insight</Label></div>
+      <div className="card stack fuel-card">
+        <div className="small">Today is <b style={{ color: "var(--text)" }}>{session}</b>. Carbs before give you energy to train, and protein after helps you recover.</div>
+        {row("Before", "1 to 3 hours before", fuel.before)}
+        {row("After", "Within 2 hours after", fuel.after)}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Eating out ---------- */
+
+function EatingOutSheet({ onClose }: { onClose: () => void }) {
+  const [id, setId] = useState(EATING_OUT[0]!.id);
+  const g = EATING_OUT.find((x) => x.id === id) ?? EATING_OUT[0]!;
+  return (
+    <Sheet label="Eating out" onClose={onClose}>
+      <div className="stack eatout" style={{ gap: 14 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Eating out</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <div className="chips rcp-tags" role="tablist" aria-label="Where you're eating">
+          {EATING_OUT.map((x) => <button key={x.id} role="tab" aria-selected={x.id === g.id} className={`chip ${x.id === g.id ? "on" : ""}`} onClick={() => setId(x.id)}>{x.title}</button>)}
+        </div>
+        <div>
+          <h3 className="h1" style={{ margin: 0 }}>{g.title}</h3>
+          <div className="small">{g.lead}</div>
+        </div>
+        <div className="eatout-block good">
+          <div className="h3"><Icons.check width={16} height={16} /> Good picks</div>
+          <ul>{g.picks.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+        <div className="eatout-block watch">
+          <div className="h3"><Icons.info width={16} height={16} /> Watch out for</div>
+          <ul>{g.watch.map((t) => <li key={t}>{t}</li>)}</ul>
+        </div>
+        <div className="eatout-tip small"><b>Tip:</b> {g.tip}</div>
+        <div className="tiny">General guidance from APEX. Your coach's advice comes first, and ask staff about allergens.</div>
+      </div>
+    </Sheet>
+  );
+}
+
+/* ---------- What's in my fridge ---------- */
+
+const FRIDGE_KEY = "apex.fridge";
+function readFridge(): number[] {
+  try { const v = JSON.parse(localStorage.getItem(FRIDGE_KEY) ?? "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "number") : []; } catch { return []; }
+}
+
+/** The client ticks the foods they have; recipes they can make (or nearly make) show underneath. */
+function FridgeSheet({ coach, diet, notes, onOpen, onClose }: { coach: Recipe[]; diet: readonly RecipeTag[]; notes: string; onOpen: (r: Recipe) => void; onClose: () => void }) {
+  const foods = useMemo(() => fridgeFoods(coach), [coach]);
+  const [have, setHave] = useState<Set<number>>(() => new Set(readFridge()));
+  const save = (next: Set<number>) => {
+    setHave(next);
+    try { localStorage.setItem(FRIDGE_KEY, JSON.stringify([...next])); } catch { /* this visit only */ }
+  };
+  const toggle = (ids: number[]) => {
+    const next = new Set(have);
+    const on = ids.some((id) => have.has(id));
+    ids.forEach((id) => (on ? next.delete(id) : next.add(id)));
+    save(next);
+  };
+  const matches = useMemo(() => recipesFromFridge(have, { coach, diet, notes }), [have, coach, diet, notes]);
+  const groups = [...new Set(foods.map((f) => f.group))];
+  const ready = matches.filter((m) => !m.missing.length).length;
+  const results = useRef<HTMLDivElement>(null);
+  return (
+    <Sheet label="What's in my fridge?" onClose={onClose}>
+      <div className="stack fridge" style={{ gap: 14 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">What's in my fridge?</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <div className="small">Tick what you have. Oil, salt, spices and other cupboard basics are already counted.{diet.length ? ` Only ${diet.join(", ").toLowerCase()} recipes are shown.` : ""}</div>
+        {groups.map((g) => (
+          <div key={g}>
+            <div className="tiny caps" style={{ marginBottom: 6 }}>{g}</div>
+            <div className="chips" style={{ flexWrap: "wrap" }}>
+              {foods.filter((f) => f.group === g).map((f) => { const on = f.ids.some((id) => have.has(id)); return <button key={f.name} type="button" className={`chip ${on ? "on" : ""}`} aria-pressed={on} onClick={() => toggle(f.ids)}>{f.name}</button>; })}
+            </div>
+          </div>
+        ))}
+        <div className="fridge-results" aria-live="polite" ref={results}>
+          <div className="sect" style={{ marginBottom: 6 }}>
+            <h3 className="h3">{have.size ? (ready ? `${ready} you can make now` : matches.length ? `${matches.length} you can nearly make` : "Nothing yet") : "Your recipes"}</h3>
+            {have.size > 0 && <button className="link" onClick={() => save(new Set())}>Clear</button>}
+          </div>
+          {!have.size && <div className="small">Tick a few foods above to see what you can cook.</div>}
+          {have.size > 0 && !matches.length && <div className="small">Tick a few more foods. Recipes show up when you're missing two things or fewer.</div>}
+          {matches.length > 0 && (
+            <>
+              {ready > 0 && ready < matches.length && <div className="tiny" style={{ marginBottom: 6 }}>Then {matches.length - ready} more that need just one or two things.</div>}
+              {!ready && <div className="tiny" style={{ marginBottom: 6 }}>Each needs just one or two more things.</div>}
+              <div className="card flat list">
+                {matches.slice(0, 20).map(({ r, missing }) => (
+                  <button key={r.id} type="button" className="li fridge-hit" onClick={() => onOpen(r)}>
+                    <span className="fridge-thumb"><RecipeImg r={r} small /></span>
+                    <span className="grow" style={{ textAlign: "left" }}>
+                      <b>{r.name}</b>
+                      <span className={`tiny ${missing.length ? "" : "fridge-ok"}`}>{missing.length ? `Missing: ${missing.join(", ")}` : "You have everything"} · {r.minutes} min</span>
+                    </span>
+                    <Icons.forward width={15} height={15} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        {matches.length > 0 && (
+          <button type="button" className="btn act block fridge-go" onClick={() => results.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+            {ready ? `See ${ready} you can make now` : `See ${matches.length} you can nearly make`}
+          </button>
+        )}
+      </div>
+    </Sheet>
   );
 }
 

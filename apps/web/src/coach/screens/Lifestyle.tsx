@@ -1,8 +1,11 @@
 import {
   ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
-  weekDaysOf, weekNutrition,
+  weekDaysOf, weekNutrition, restDayProblem, suggestRestDay, nutritionNudge, nutritionScore, targetsFor, workoutOn,
+  type NutritionTargets,
 } from "@apex/core";
+import { useApexState } from "@apex/core/react";
+import { useStore } from "../../data/StoreContext";
 import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
@@ -81,19 +84,32 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
   const today = localDate(new Date());
   const name = firstName(clientName) || "Your client";
   const t = s.targets;
-  const fromTargets = () => ({ kcal: t ? String(t.kcal) : "", p: t ? String(t.proteinG) : "", c: t ? String(t.carbsG) : "", f: t ? String(t.fatG) : "", note: t?.note ?? "" });
+  const r = t?.restDay;
+  const fromTargets = () => ({
+    kcal: t ? String(t.kcal) : "", p: t ? String(t.proteinG) : "", c: t ? String(t.carbsG) : "", f: t ? String(t.fatG) : "", note: t?.note ?? "",
+    rest: !!r, rk: r ? String(r.kcal) : "", rp: r ? String(r.proteinG) : "", rc: r ? String(r.carbsG) : "", rf: r ? String(r.fatG) : "",
+  });
   const [form, setForm] = useState(fromTargets);
   // A different client, or the targets arriving from the database: start from what's saved.
-  useEffect(() => setForm(fromTargets()), [t?.kcal, t?.proteinG, t?.carbsG, t?.fatG, t?.note]);
+  useEffect(() => setForm(fromTargets()), [t?.kcal, t?.proteinG, t?.carbsG, t?.fatG, t?.note, JSON.stringify(r ?? null)]);
   if (s.status !== "ready") return <LifestyleStatus state={s} />;
 
   const vals = { kcal: parseNumber(form.kcal), p: parseNumber(form.p), c: parseNumber(form.c), f: parseNumber(form.f) };
-  const ok = Object.values(vals).every((v) => v !== null && v >= 0);
+  const restVals = { kcal: parseNumber(form.rk) ?? -1, proteinG: parseNumber(form.rp) ?? -1, carbsG: parseNumber(form.rc) ?? -1, fatG: parseNumber(form.rf) ?? -1 };
+  const restProblem = form.rest ? restDayProblem(restVals) : null;
+  const ok = Object.values(vals).every((v) => v !== null && v >= 0) && !restProblem;
+  const toggleRest = () => {
+    if (form.rest) { setForm({ ...form, rest: false }); return; }
+    const s0 = form.rk ? null : suggestRestDay({ kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0 });
+    setForm({ ...form, rest: true, ...(s0 ? { rk: String(s0.kcal), rp: String(s0.proteinG), rc: String(s0.carbsG), rf: String(s0.fatG) } : {}) });
+  };
   const fromMacros = ok ? kcalFromMacros({ proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0 }) : null;
   const changed = JSON.stringify(form) !== JSON.stringify(fromTargets());
   const save = () => {
     if (!ok) return;
-    store.setTargets({ kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0, note: form.note });
+    // Leave restDay out entirely when it was never used, so targets keep saving before the rest-day SQL runs.
+    const restDay = form.rest ? restVals : r ? null : undefined;
+    store.setTargets({ kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0, note: form.note, ...(restDay !== undefined ? { restDay } : {}) });
     say(`Targets saved · ${name} sees them now`);
   };
   const eaten = dayTotals(s.food, today);
@@ -117,6 +133,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           </div>
         </div>
       )}
+      {t && <NutritionScoreCard name={name} targets={t} food={s.food} today={today} />}
       {weekView.loggedDays > 0 && (
         <div className="card stack">
           <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">This week · {weekView.loggedDays} of 7 days logged</h3><Label kind="data">Data</Label></div>
@@ -137,7 +154,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         </div>
       )}
       <section className="card stack">
-        <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{t ? "Daily targets" : `Set ${name}'s daily targets`}</h3><Label kind="dec">Coach decision</Label></div>
+        <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{t ? (form.rest ? "Training-day targets" : "Daily targets") : `Set ${name}'s daily targets`}</h3><Label kind="dec">Coach decision</Label></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(88px,1fr))", gap: 10 }}>
           <NumberField id="nt-kcal" label="Calories" unit="kcal" value={form.kcal} onChange={(v) => setForm({ ...form, kcal: v })} />
           <NumberField id="nt-p" label="Protein" unit="g" value={form.p} onChange={(v) => setForm({ ...form, p: v })} />
@@ -146,6 +163,21 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         </div>
         {fromMacros !== null && vals.kcal !== null && Math.abs(fromMacros - vals.kcal) > Math.max(50, vals.kcal * 0.05) && (
           <div className="tiny" style={{ color: "var(--warn)" }}>These macros add up to {fromMacros.toLocaleString()} kcal, not {vals.kcal.toLocaleString()}.</div>
+        )}
+        <button type="button" className={`chip rest-toggle ${form.rest ? "on" : ""}`} aria-pressed={form.rest} disabled={!form.rest && !Object.values(vals).every((v) => v !== null && v > 0)} onClick={toggleRest}>
+          <Icons.sleep width={14} height={14} /> {form.rest ? "Different targets on rest days" : "Set different targets for rest days"}
+        </button>
+        {form.rest && (
+          <div className="stack rest-day" style={{ gap: 8 }}>
+            <div className="small">Rest days are the days with no workout in {name}'s program, and {name}'s Nutrition screen switches to these on its own. We started from the same protein and fat with about a third fewer carbs. Change anything you like.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(88px,1fr))", gap: 10 }}>
+              <NumberField id="nt-rkcal" label="Calories" unit="kcal" value={form.rk} onChange={(v) => setForm({ ...form, rk: v })} />
+              <NumberField id="nt-rp" label="Protein" unit="g" value={form.rp} onChange={(v) => setForm({ ...form, rp: v })} />
+              <NumberField id="nt-rc" label="Carbs" unit="g" value={form.rc} onChange={(v) => setForm({ ...form, rc: v })} />
+              <NumberField id="nt-rf" label="Fat" unit="g" value={form.rf} onChange={(v) => setForm({ ...form, rf: v })} />
+            </div>
+            {restProblem && <div className="tiny" style={{ color: "var(--warn)" }}>{restProblem}</div>}
+          </div>
         )}
         <TargetCalculator name={name} onUse={(r) => setForm({ ...form, kcal: String(r.kcal), p: String(r.proteinG), c: String(r.carbsG), f: String(r.fatG) })} />
         <input id="nt-note" className="field" maxLength={500} placeholder={`A tip for ${name}, e.g. 30 g of protein at breakfast`} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
@@ -214,6 +246,34 @@ function TargetCalculator({ name, onUse }: { name: string; onUse: (t: SuggestedT
         </>
       )}
     </div>
+  );
+}
+
+/** Coach: one number for how the client's last week of eating went, and a message to send about it. */
+function NutritionScoreCard({ name, targets, food, today }: { name: string; targets: NutritionTargets; food: Parameters<typeof nutritionScore>[0]; today: string }) {
+  const store = useStore();
+  const { program, workout } = useApexState(store);
+  const score = nutritionScore(food, (d) => targetsFor(targets, !!workoutOn(program, workout.week, d)), today);
+  const suggested = nutritionNudge(score, name, targets.proteinG);
+  const [text, setText] = useState(suggested);
+  const [sent, setSent] = useState(false);
+  useEffect(() => { setText(suggested); setSent(false); }, [suggested]);
+  const word = score.band === "on" ? "On track" : score.band === "mixed" ? "Mixed week" : "Slipping";
+  const stat = (label: string, v: number) => <div><b className="num">{v}<span className="of">/{score.days}</span></b><span className="tiny">{label}</span></div>;
+  return (
+    <section className={`card stack nscore ${score.band}`}>
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Last 7 days</h3><Label kind="data">Data</Label></div>
+      <div className="nscore-top">
+        <div className="nscore-ring" style={{ ["--p" as string]: `${score.score}%` }}><b className="num">{score.score}</b></div>
+        <div className="grow"><div className="nscore-word">{word}</div><div className="tiny">Days logged, calories within 10% and protein hit, against each day's targets.</div></div>
+      </div>
+      <div className="nscore-stats">{stat("Days logged", score.logged)}{stat("Calories on target", score.onCalories)}{stat("Protein hit", score.onProtein)}</div>
+      <div className="nscore-msg stack" style={{ gap: 8 }}>
+        <div className="row" style={{ justifyContent: "space-between" }}><span className="h3">Message for {name}</span><Label kind="ai">AI suggestion</Label></div>
+        <textarea id="nscore-text" className="field" rows={4} maxLength={600} value={text} onChange={(e) => { setText(e.target.value); setSent(false); }} />
+        <button className="btn act" disabled={!text.trim() || sent} onClick={() => { store.sendMessage("coach", text.trim()); setSent(true); }}>{sent ? `Sent to ${name}` : `Send to ${name}`}</button>
+      </div>
+    </section>
   );
 }
 

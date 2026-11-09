@@ -161,7 +161,15 @@ export interface NutritionTargets {
   fatG: number;
   /** A line from the coach, e.g. "Aim for 40 g protein at breakfast". */
   note: string;
+  /**
+   * Rest-day targets, used on days with no workout in the client's program. Null or missing: same every day.
+   * Missing (not null) also means "don't touch the column", so targets still save before the rest-day SQL runs.
+   */
+  restDay?: DayTargets | null;
 }
+
+/** Calories and macros for one kind of day. */
+export interface DayTargets { kcal: number; proteinG: number; carbsG: number; fatG: number }
 
 export type Meal = "breakfast" | "lunch" | "dinner" | "snack";
 export const MEALS: { key: Meal; label: string }[] = [
@@ -337,7 +345,7 @@ export interface LifestyleStore {
 
 export interface HabitRow { id: string; client_id: string; kind: HabitKind; title: string; days: number[]; created_at: string }
 export interface HabitTickRow { client_id: string; habit_id: string; day: string }
-export interface NutritionTargetsRow { client_id: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; note: string | null }
+export interface NutritionTargetsRow { client_id: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; note: string | null; rest_day?: { kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null }
 export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number }
 export interface WaterRow { id: string; client_id: string; day: string; ml: number; created_at: string }
 export interface IntakeRow { client_id: string; answers: IntakeAnswers; health_flags: number; submitted_at: string }
@@ -347,8 +355,16 @@ export const fromHabitRow = (r: HabitRow): Habit => ({ id: r.id, kind: r.kind, t
 export const fromTickRow = (r: HabitTickRow): HabitTick => ({ habitId: r.habit_id, day: r.day.slice(0, 10) });
 
 const num = (v: number | string) => Number(v) || 0;
-export const toTargetsRow = (t: NutritionTargets, clientId: string): NutritionTargetsRow => ({ client_id: clientId, kcal: Math.round(t.kcal), protein_g: Math.round(t.proteinG), carbs_g: Math.round(t.carbsG), fat_g: Math.round(t.fatG), note: t.note.trim() || null });
-export const fromTargetsRow = (r: NutritionTargetsRow): NutritionTargets => ({ kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g), note: r.note ?? "" });
+export const toTargetsRow = (t: NutritionTargets, clientId: string): NutritionTargetsRow => {
+  const row: NutritionTargetsRow = { client_id: clientId, kcal: Math.round(t.kcal), protein_g: Math.round(t.proteinG), carbs_g: Math.round(t.carbsG), fat_g: Math.round(t.fatG), note: t.note.trim() || null };
+  if (t.restDay !== undefined) row.rest_day = t.restDay ? { kcal: Math.round(t.restDay.kcal), protein_g: Math.round(t.restDay.proteinG), carbs_g: Math.round(t.restDay.carbsG), fat_g: Math.round(t.restDay.fatG) } : null;
+  return row;
+};
+export const fromTargetsRow = (r: NutritionTargetsRow): NutritionTargets => {
+  const t: NutritionTargets = { kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g), note: r.note ?? "" };
+  if ("rest_day" in r) t.restDay = r.rest_day ? { kcal: num(r.rest_day.kcal), proteinG: num(r.rest_day.protein_g), carbsG: num(r.rest_day.carbs_g), fatG: num(r.rest_day.fat_g) } : null;
+  return t;
+};
 
 export const toFoodRow = (f: FoodEntry, clientId: string): FoodEntryRow => ({ id: f.id, client_id: clientId, day: f.day, meal: f.meal, name: f.name.slice(0, 120), kcal: Math.round(f.kcal), protein_g: f.proteinG, carbs_g: f.carbsG, fat_g: f.fatG });
 export const fromFoodRow = (r: FoodEntryRow): FoodEntry => ({ id: r.id, day: r.day.slice(0, 10), meal: r.meal, name: r.name, kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g) });
