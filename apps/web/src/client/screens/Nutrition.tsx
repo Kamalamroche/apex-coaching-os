@@ -1,4 +1,4 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal } from "@apex/core";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal, type MealItem } from "@apex/core";
 import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
@@ -19,7 +19,8 @@ export function ClientNutrition() {
   // The day being looked at or logged: today by default, any day of this week from the strip.
   const [day, setDay] = useState(today);
   const [meal, setMeal] = useState<Meal>(mealNow);
-  const [tab, setTab] = useState<"search" | "recent">("search");
+  const [tab, setTab] = useState<"search" | "recent" | "describe">("search");
+  const [said, setSaid] = useState("");
   // The food picked from the list, waiting for its amount.
   const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
@@ -145,12 +146,13 @@ export function ClientNutrition() {
         <div className="chips" role="group" aria-label="Meal">
           {MEALS.map((m) => <button key={m.key} className={`chip ${meal === m.key ? "on" : ""}`} aria-pressed={meal === m.key} onClick={() => setMeal(m.key)}>{m.label}</button>)}
         </div>
-        {recent.length > 0 && (
-          <div className="seg" role="tablist" aria-label="Find food">
-            <button type="button" role="tab" aria-selected={tab === "search"} className={tab === "search" ? "on" : ""} onClick={() => setTab("search")}>Search</button>
-            <button type="button" role="tab" aria-selected={tab === "recent"} className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recent</button>
-          </div>
-        )}
+        <div className="seg" role="tablist" aria-label="Find food">
+          <button type="button" role="tab" aria-selected={tab === "search"} className={tab === "search" ? "on" : ""} onClick={() => setTab("search")}>Search</button>
+          {recent.length > 0 && <button type="button" role="tab" aria-selected={tab === "recent"} className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recent</button>}
+          <button type="button" role="tab" aria-selected={tab === "describe"} className={tab === "describe" ? "on" : ""} onClick={() => { setTab("describe"); setTimeout(() => document.getElementById("mealtext")?.focus(), 0); }}>Describe</button>
+        </div>
+        {tab === "describe" && <DescribeMeal text={said} setText={setSaid} mealLabel={MEALS.find((m) => m.key === meal)?.label.toLowerCase() ?? ""}
+          onAdd={(items) => { items.forEach((i) => add({ name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG })); setSaid(""); }} />}
         {tab === "recent" && recent.length > 0 && (
           <div className="card flat list">
             {recent.map((f) => (
@@ -161,8 +163,8 @@ export function ClientNutrition() {
             ))}
           </div>
         )}
-        {(tab === "search" || recent.length === 0) && <input id="foodsearch" className="field" placeholder="Search common foods" value={q} onChange={(e) => setQ(e.target.value)} />}
-        {(tab === "search" || recent.length === 0) && q && (
+        {(tab === "search" || (tab === "recent" && recent.length === 0)) && <input id="foodsearch" className="field" placeholder="Search common foods" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {(tab === "search" || (tab === "recent" && recent.length === 0)) && q && (
           <div className="card flat list">
             {hits.length === 0 ? <div className="li small">Not in the list. Use quick add below.</div> : hits.map((f) => (
               <div key={f.id} className="li">
@@ -215,6 +217,34 @@ export function ClientNutrition() {
 }
 
 /** One stacked bar: the share of calories from protein, carbs and fat. */
+/** Type a meal in plain words; the foods it finds can be checked, removed, then added in one go. */
+function DescribeMeal({ text, setText, mealLabel, onAdd }: { text: string; setText: (v: string) => void; mealLabel: string; onAdd: (items: MealItem[]) => void }) {
+  const [dropped, setDropped] = useState<number[]>([]);
+  const parsed = parseMeal(text, FOODS);
+  const items = parsed.items.filter((_, i) => !dropped.includes(i));
+  const total = items.reduce((a, i) => ({ kcal: a.kcal + i.kcal, p: a.p + i.proteinG, c: a.c + i.carbsG, f: a.f + i.fatG }), { kcal: 0, p: 0, c: 0, f: 0 });
+  const r = (v: number) => Math.round(v);
+  return (
+    <div className="stack nut-say" style={{ gap: 10 }}>
+      <textarea id="mealtext" className="field" rows={2} maxLength={400} placeholder="e.g. 2 eggs, 2 slices of toast and a banana" value={text}
+        onChange={(e) => { setText(e.target.value); setDropped([]); }} />
+      {parsed.items.length > 0 && (
+        <div className="card flat list">
+          {parsed.items.map((i, n) => dropped.includes(n) ? null : (
+            <div key={`${n}-${i.food.id}`} className="li nut-say-item">
+              <div className="grow"><div className="h3">{i.name}</div><div className="tiny num">{i.kcal} kcal · P {i.proteinG} · C {i.carbsG} · F {i.fatG}</div>{i.guess && <div className="tiny" style={{ color: "var(--warn)" }}>Best guess for “{i.text}”</div>}</div>
+              <button className="iconbtn" aria-label={`Remove ${i.name}`} onClick={() => setDropped([...dropped, n])}><Icons.close width={16} height={16} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {parsed.unmatched.length > 0 && <div className="tiny" style={{ color: "var(--warn)" }}>Not found: {parsed.unmatched.join(", ")}. Try Search or quick add.</div>}
+      {items.length > 0 && <div className="tiny">Typical values. Total <b className="num" style={{ color: "var(--text)" }}>{r(total.kcal)} kcal</b> · <span className="num">P {r(total.p)} · C {r(total.c)} · F {r(total.f)}</span></div>}
+      <button className="btn act block" disabled={!items.length} onClick={() => onAdd(items)}>{items.length > 1 ? `Add ${items.length} foods to ${mealLabel}` : `Add to ${mealLabel}`}</button>
+    </div>
+  );
+}
+
 function SplitBar({ label, s, muted = false }: { label: string; s: { protein: number; carbs: number; fat: number }; muted?: boolean }) {
   return (
     <div className="nut-split">

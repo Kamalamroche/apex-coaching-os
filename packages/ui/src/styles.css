@@ -848,3 +848,7 @@ button.tile{font:inherit}
 .nut-grams .field{width:78px;padding:8px 10px;text-align:right}
 .nut-amount-macros{display:flex;gap:14px;font-size:13px;color:var(--text2)}
 .nut-amount-macros b{color:var(--text)}
+.nut-calc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nut-calc-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
+.nut-calc-out div{display:flex;flex-direction:column;gap:2px}
+.nut-calc-out b{font:700 18px/1.1 var(--num);color:var(--text)}

@@ -17,6 +17,7 @@ export * from "./store";
 export * from "./db";
 export * from "./checkins";
 export * from "./lifestyle";
+export * from "./nutritionTools";
 export * from "./automations";
 export * from "./formChecks";
 export * from "./goals";
