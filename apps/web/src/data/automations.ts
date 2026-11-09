@@ -25,7 +25,14 @@ export function liveAutomations(db: SupabaseClient, coachId: string): Automation
       return { settings: a.data ? fromAutomationRow(a.data) : DEFAULT_AUTOMATIONS, sends: (s.data ?? []).map(fromSendRow) };
     },
     async save(settings) {
-      const { error } = await db.from("coach_automations").upsert({ ...toAutomationRow(settings, coachId), updated_at: new Date().toISOString() });
+      const row = { ...toAutomationRow(settings, coachId), updated_at: new Date().toISOString() };
+      let { error } = await db.from("coach_automations").upsert(row);
+      // Before the nutrition nudge SQL has run the protein columns don't exist: save the rest, and say so if the nudge was turned on.
+      if (error?.code === "PGRST204" && /protein_/.test(error.message)) {
+        const { protein_on: _on, protein_body: _body, ...rest } = row;
+        ({ error } = await db.from("coach_automations").upsert(rest));
+        if (!error && settings.proteinOn) throw new Error("Saved, but the low-protein nudge needs the latest database update (20261112090000_nutrition_nudge.sql) before it can send.");
+      }
       if (error) throw isMissingTable(error) ? new Error(NEEDS_UPDATE) : new Error(error.message);
     },
   };
