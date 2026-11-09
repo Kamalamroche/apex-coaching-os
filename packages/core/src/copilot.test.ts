@@ -25,7 +25,7 @@ describe("reading instructions", () => {
 
   it("names the exercises it will touch", () => {
     expect(parseCommand("add a set to squats", upperLower())?.target?.name).toBe("Barbell Back Squat");
-    expect(parseCommand("replace bench press with push-ups", upperLower())?.summary).toBe("Replace Barbell Bench Press with Push-Up across the whole program");
+    expect(parseCommand("replace bench press with push-ups", upperLower())?.summary).toBe("Replace Barbell Bench Press with Push-Up across the whole programme");
     expect(parseCommand("increase deadlifts by 5 kg")?.action).toEqual({ kind: "load", kg: 5, percent: null });
   });
 

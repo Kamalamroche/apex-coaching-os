@@ -14,12 +14,12 @@ import { Transfer } from "./Transfer";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Program" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes";
+type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes";
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
   { date: "Sat 11 Oct", weight: "62.9 kg", stats: "Energy 3/5 · sleep 6 h", note: "Busy week at work" },
-  { date: "Sat 4 Oct", weight: "63.1 kg", stats: "Energy 4/5 · sleep 7.5 h", note: "Loving the new program" },
+  { date: "Sat 4 Oct", weight: "63.1 kg", stats: "Energy 4/5 · sleep 7.5 h", note: "Loving the new programme" },
 ];
 
 interface Props {
@@ -86,7 +86,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Program", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const) : (["Overview", "Program", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "Programme", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const) : (["Overview", "Programme", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
@@ -101,12 +101,12 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
           </div>
           <div className="row" style={{ flexWrap: "wrap" }}>
             <button className="btn act" style={{ flex: 1 }} onClick={() => say(`Message thread opened with ${firstName(c.name)}`)}>Message</button>
-            <button className="btn ghost" style={{ flex: 1 }} onClick={goBuild}>Edit program</button>
+            <button className="btn ghost" style={{ flex: 1 }} onClick={goBuild}>Edit programme</button>
           </div>
         </>
       )}
 
-      {tab === "Program" && (
+      {tab === "Programme" && (
         <div className="card flat list">
           {workout.items.map((it) => (
             <div key={it.key} className="ex">

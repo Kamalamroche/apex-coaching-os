@@ -98,7 +98,7 @@ export function ImportPdf({ file, workout, onClose, onApply }: Props) {
   };
 
   return (
-    <Sheet onClose={onClose} label={file ? "Import a PDF program" : "Paste a program"}>
+    <Sheet onClose={onClose} label={file ? "Import a PDF programme" : "Paste a programme"}>
       <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">You review every line before it's added</span></div>
       <div><div className="eyebrow">{source}</div><h2 className="h2">{plan?.name ?? "Import into this workout"}</h2></div>
 
@@ -122,7 +122,7 @@ export function ImportPdf({ file, workout, onClose, onApply }: Props) {
             </div>
           )}
           {micError && <p className="small" style={{ margin: 0, color: "var(--crit)" }}>{micError}</p>}
-          <button className="btn act block" disabled={!text.trim() || listening} onClick={() => show(parseProgramText(text))}>Read program</button>
+          <button className="btn act block" disabled={!text.trim() || listening} onClick={() => show(parseProgramText(text))}>Read programme</button>
         </>
       )}
 

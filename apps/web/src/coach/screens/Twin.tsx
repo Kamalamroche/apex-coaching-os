@@ -184,7 +184,7 @@ function DraftCard({ d, api, decide, say, reload }: { d: TwinDraft; api: TwinApi
     setError(null);
     try {
       await decide(d, status, status === "rejected" ? null : text.trim() || null);
-      say(status === "rejected" ? `${first}'s draft rejected` : `Sent to ${first}${d.adjust !== "none" && d.adjust !== "hold" ? " · program updated" : ""}`);
+      say(status === "rejected" ? `${first}'s draft rejected` : `Sent to ${first}${d.adjust !== "none" && d.adjust !== "hold" ? " · programme updated" : ""}`);
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

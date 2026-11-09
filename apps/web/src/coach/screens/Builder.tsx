@@ -121,7 +121,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     setFileOver(false);
     const file = Array.from(e.dataTransfer.files).find(isPdf);
     if (file) setImporting(file);
-    else say("Drop a PDF program to import it");
+    else say("Drop a PDF programme to import it");
   };
 
   const first = clientName.split(" ")[0] ?? clientName;
@@ -135,14 +135,14 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     say(`${workout.name} duplicated to ${DAY_NAMES[at]}`);
   };
   if (mode === "live" && !clientName) {
-    return <Empty title="No clients yet" body="Invite your first client, then build their program here." action="Invite a client" onAction={onInvite} />;
+    return <Empty title="No clients yet" body="Invite your first client, then build their programme here." action="Invite a client" onAction={onInvite} />;
   }
-  if (status === "loading") return <Empty title="Loading program…" body={`Fetching ${first}'s program.`} />;
-  if (status === "error") return <Empty title="Couldn't load the program" body={error ?? "Unknown error"} />;
+  if (status === "loading") return <Empty title="Loading programme…" body={`Fetching ${first}'s programme.`} />;
+  if (status === "error") return <Empty title="Couldn't load the programme" body={error ?? "Unknown error"} />;
   if (status === "no-program") {
     return (
       <>
-        <Empty title={`${first} has no program yet`} body="Start from a template (yours or an APEX starter), or from the Foundations day, then edit it here. Changes save as you type." action="Choose a template" onAction={() => setTemplatesOpen(true)} secondary="Start with Foundations" onSecondary={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />
+        <Empty title={`${first} has no programme yet`} body="Start from a template (yours or an APEX starter), or from the Foundations day, then edit it here. Changes save as you type." action="Choose a template" onAction={() => setTemplatesOpen(true)} secondary="Start with Foundations" onSecondary={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />
         {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
       </>
     );
@@ -160,7 +160,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} />
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
-          <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the program builder SQL is run in Supabase.</span>
+          <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the programme builder SQL is run in Supabase.</span>
         </div>
       )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -210,7 +210,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         {workout.items.length === 0 && (
           <div className="bld-empty">
             <b>Drag movements here</b>
-            <span className="small">From the library, or drop a PDF program anywhere on this page. Search above works too.</span>
+            <span className="small">From the library, or drop a PDF programme anywhere on this page. Search above works too.</span>
           </div>
         )}
         {workout.items.map((it, i) => {
@@ -311,7 +311,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         <button className="btn ghost" style={{ flex: 1 }} onClick={duplicateDay}>Duplicate day</button>
         <button className="btn act" style={{ flex: 1.4 }} onClick={() => { if (changes.length) setPublishing(true); else say(`Published · ${first}'s app updated`); }}>Publish to client{changes.length ? ` · ${changes.length} change${changes.length === 1 ? "" : "s"}` : ""}</button>
       </div>
-      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
+      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s programme as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
 
       {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}

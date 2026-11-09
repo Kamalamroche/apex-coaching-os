@@ -11,7 +11,7 @@ import { ContributorRows, FACTOR_COLOUR, QUESTION_ICON, ReadinessTrend, answerCo
 const line = (it: WorkoutItem, u: Units) => `${it.sets}×${it.reps}${it.kg ? ` · ${u.fw(it.kg)}` : ""}`;
 
 /** Before the first set: four taps, then a score screen (score, advice, what's driving it, the week, today's plan).
-    On a low day the client can pick a lighter version of today; the program stays as the coach wrote it. */
+    On a low day the client can pick a lighter version of today; the programme stays as the coach wrote it. */
 export function ReadinessCheck({ workout, history, onStart, onExit }: { workout: Workout; history: ReadinessPoint[] | undefined; onStart: (readiness: Readiness | null, session: Workout) => void; onExit: () => void }) {
   const { coachName } = useAppInfo();
   const { recovery } = useActivitiesIfAny();

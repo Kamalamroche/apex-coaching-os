@@ -86,7 +86,7 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Program" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Program");
+  const [tab, setTab] = useState<"Programme" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Programme");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -99,7 +99,7 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Program", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Programme", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
       {tab === "Report" && <ClientReport clientName={name} say={say} />}
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
@@ -109,9 +109,9 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
       {tab === "Nutrition" && <CoachNutritionPanel clientName={name} say={say} />}
       {tab === "About" && <IntakeView clientName={name} />}
       {tab === "Notes" && <ClientNotes clientId={clientId} clientName={name} say={say} />}
-      {tab === "Program" && <>
+      {tab === "Programme" && <>
       <section>
-        <div className="sect"><h2 className="h2">Program</h2></div>
+        <div className="sect"><h2 className="h2">Programme</h2></div>
         {status === "ready" ? (
           <div className="card flat list">
             {workout.items.map((it) => (
@@ -123,10 +123,10 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
             ))}
           </div>
         ) : (
-          <div className="card small">{status === "loading" ? "Loading…" : status === "no-program" ? "No program yet." : "Couldn't load the program."}</div>
+          <div className="card small">{status === "loading" ? "Loading…" : status === "no-program" ? "No programme yet." : "Couldn't load the programme."}</div>
         )}
       </section>
-      <button className="btn act block" onClick={() => { if (status === "no-program") void (store as { createProgram?: () => Promise<void> }).createProgram?.(); goBuild(); }}>{status === "no-program" ? "Create program" : "Edit program"}</button>
+      <button className="btn act block" onClick={() => { if (status === "no-program") void (store as { createProgram?: () => Promise<void> }).createProgram?.(); goBuild(); }}>{status === "no-program" ? "Create programme" : "Edit programme"}</button>
       </>}
     </>
   );

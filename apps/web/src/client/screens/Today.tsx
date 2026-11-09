@@ -127,7 +127,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
       {status === "loading" ? (
         <div className="card"><div className="small">Loading today's session…</div></div>
       ) : status === "no-program" ? (
-        <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your program. It will appear here as soon as it's ready.</div></div>
+        <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your programme. It will appear here as soon as it's ready.</div></div>
       ) : !log ? (
         <>
           {!cover && <div className="hero">

@@ -22,7 +22,7 @@ export function Launcher() {
         <a href="/coach/" className="st-card">
           <span className="st-kick">For coaches</span>
           <b>Coach OS</b>
-          <span className="st-line">Brief, programs, clients and business.</span>
+          <span className="st-line">Brief, programmes, clients and business.</span>
           <span className="st-btn act">{live ? "Sign in or join" : "Open Coach OS"}</span>
         </a>
         <a href="/client/" className="st-card">
