@@ -1187,6 +1187,11 @@ select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
 select public.close_gym();
 do $$ begin
   assert (select count(*) from public.my_gym()) = 0, 'gym closed';
+end $$;
+reset role;
+
+reset role;
+
 -- Leads: stages, hand-added leads, enquiry details, welcome emails
 reset role;
 update auth.users set email = 'grow@example.com' where id = '00000000-0000-0000-0000-0000000000f1';
@@ -1236,8 +1241,47 @@ do $$ begin
     raise exception 'a client added a lead';
   exception when insufficient_privilege then null; end;
 end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  perform public.request_to_train('grow-coach', 'Ola Nowak', 'ola@example.com', 'Lose fat', '', null, '+44 7700 900456', 'hybrid', 'Instagram');
+  perform public.request_to_train('grow-coach', 'Ben Cole', 'ben@example.com', '', '', null, '', 'sofa', '<bad>');
+  begin
+    perform public.request_to_train('grow-coach', 'Ola', 'ola@example.com');
+    raise exception 'asked twice';
+  exception when unique_violation then null; end;
+  begin
+    perform public.request_to_train('grow-coach', 'Bad Phone', 'bp@example.com', '', '', null, 'call me');
+    raise exception 'bad phone saved';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select source || '/' || how || '/' || phone from join_requests where email = 'ola@example.com') = 'instagram/hybrid/+44 7700 900456', 'enquiry details saved';
+  assert (select source || '/' || how from join_requests where email = 'ben@example.com') = 'page/', 'bad source and mode cleaned';
+end $$;
+set role service_role;
+do $$ declare ids uuid[]; begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 4, 'four welcomes due (not the hand-added lead)';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'coach told about each enquiry';
+  assert (select welcome_text from public.pending_lead_emails() where kind = 'welcome' limit 1) = 'Hi {first}!', 'coach''s own words';
+  select array_agg(request_id) into ids from public.pending_lead_emails() where kind = 'welcome';
+  perform public.mark_lead_emails_sent(ids, '{}');
+  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 0, 'welcome sent once';
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'alerts still due';
+  assert (select count(*) from public.pending_lead_emails(now() + interval '3 days')) = 0, 'old enquiries are never emailed';
+end $$;
+reset role;
+update lead_settings set notify_on = false;
+set role service_role;
+do $$ begin
+  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 0, 'coach switched alerts off';
+end $$;
+reset role;
 
 reset role;
+
 -- On-demand programmes: clients see their own coach's live programmes, start free ones, ask for paid ones;
 -- the coach unlocks them. Nobody else sees any of it; the public page shows only live programmes it lists.
 set role authenticated;
@@ -1337,40 +1381,6 @@ reset role;
 set role anon;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
-  perform public.request_to_train('grow-coach', 'Ola Nowak', 'ola@example.com', 'Lose fat', '', null, '+44 7700 900456', 'hybrid', 'Instagram');
-  perform public.request_to_train('grow-coach', 'Ben Cole', 'ben@example.com', '', '', null, '', 'sofa', '<bad>');
-  begin
-    perform public.request_to_train('grow-coach', 'Ola', 'ola@example.com');
-    raise exception 'asked twice';
-  exception when unique_violation then null; end;
-  begin
-    perform public.request_to_train('grow-coach', 'Bad Phone', 'bp@example.com', '', '', null, 'call me');
-    raise exception 'bad phone saved';
-  exception when check_violation then null; end;
-end $$;
-reset role;
-do $$ begin
-  assert (select source || '/' || how || '/' || phone from join_requests where email = 'ola@example.com') = 'instagram/hybrid/+44 7700 900456', 'enquiry details saved';
-  assert (select source || '/' || how from join_requests where email = 'ben@example.com') = 'page/', 'bad source and mode cleaned';
-end $$;
-set role service_role;
-do $$ declare ids uuid[]; begin
-  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 4, 'four welcomes due (not the hand-added lead)';
-  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'coach told about each enquiry';
-  assert (select welcome_text from public.pending_lead_emails() where kind = 'welcome' limit 1) = 'Hi {first}!', 'coach''s own words';
-  select array_agg(request_id) into ids from public.pending_lead_emails() where kind = 'welcome';
-  perform public.mark_lead_emails_sent(ids, '{}');
-  assert (select count(*) from public.pending_lead_emails() where kind = 'welcome') = 0, 'welcome sent once';
-  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 4, 'alerts still due';
-  assert (select count(*) from public.pending_lead_emails(now() + interval '3 days')) = 0, 'old enquiries are never emailed';
-end $$;
-reset role;
-update lead_settings set notify_on = false;
-set role service_role;
-do $$ begin
-  assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 0, 'coach switched alerts off';
-
-reset role;
   assert (select count(*) from public.public_programmes('grow-coach')) = 1, 'public page lists only shown programmes';
   assert (select per_week from public.public_programmes('grow-coach')) = 2, 'days a week counted';
   assert (select count(*) from public.public_programmes('nobody-here')) = 0, 'no page, no programmes';
@@ -1379,6 +1389,8 @@ reset role;
     raise exception 'anon started a programme';
   exception when insufficient_privilege then null; end;
 end $$;
+reset role;
+
 reset role;
 
 -- Push notifications: people manage only their own devices; the sending functions are service-role only.
