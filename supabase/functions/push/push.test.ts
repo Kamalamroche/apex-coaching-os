@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { b64u, encryptPayload, makeVapidKeys, pushContent, unb64u, vapidAuth } from "./index";
+import { b64u, encryptPayload, makeVapidKeys, pushContent, reminderContent, unb64u, vapidAuth } from "./index";
 
 const subtle = globalThis.crypto.subtle;
 const enc = new TextEncoder();
@@ -67,5 +67,14 @@ describe("web push", () => {
     expect(many.title).toBe("2 people messaged you");
     expect(many.body.endsWith("… (+2 more)")).toBe(true);
     expect(many.url).toBe("https://apex.app/coach/?open=chat");
+  });
+});
+
+describe("reminders", () => {
+  it("keeps links inside the app", () => {
+    expect(reminderContent({ kind: "workout", title: "Lower A today", body: "45 min.", url: "/client/?open=today" }, "https://apex.app/"))
+      .toEqual({ title: "Lower A today", body: "45 min.", url: "https://apex.app/client/?open=today", tag: "apex-workout" });
+    expect(reminderContent({ kind: "x", title: "t", body: "b", url: "https://evil.example" }, "https://apex.app").url).toBe("https://apex.app/start/");
+    expect(reminderContent({ kind: "x", title: "t", body: "b", url: "//evil.example" }, "https://apex.app").url).toBe("https://apex.app/start/");
   });
 });

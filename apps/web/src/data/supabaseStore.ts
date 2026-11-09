@@ -1,4 +1,5 @@
 import {
+  addJob, isNetworkError, readOutbox, withSessionId, type OutboxJob,
   cleanQuestions, questionsProblem, readQuestions, type CheckInQuestion,
   INITIAL_WORKOUT, bestKgByExercise, emptyProgress, hasMeasurements, latestSetByExercise, newKey, nextDayKey, nextHistory, photoPath, programFromWorkout, stateForWorkout,
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
@@ -22,6 +23,10 @@ export interface LiveStore extends ApexStore {
   /** True once the program-builder migration (per-set targets, circuits) is in the database. */
   hasPlanColumns(): boolean;
   close(): void;
+  /** Client: shown from the copy saved on this phone because there's no connection. */
+  offline(): boolean;
+  /** Client: sessions and messages done offline, still waiting to send. */
+  pending(): OutboxJob[];
   /** Resolves once the last program change has been written (or failed: see error()). */
   flush(): Promise<void>;
 }
@@ -82,6 +87,67 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let channelWorkoutId: string | null = null;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
+
+  /* ---------- Offline (client side only) ---------- */
+  const isClient = ids.me === ids.clientId;
+  const SNAP = `apex-offline-v1-${ids.clientId}`;
+  const OUTBOX = `apex-outbox-v1-${ids.clientId}`;
+  let offline = false;
+  const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
+  const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* full or blocked */ } };
+  const outbox = (): OutboxJob[] => { try { return readOutbox(localStorage.getItem(OUTBOX)); } catch { return []; } };
+  const queue = (job: OutboxJob) => { store(OUTBOX, addJob(outbox(), job)); emit(); };
+  /** The last good copy, so the app opens in the gym with no signal. Photos' links expire, so they're left out. */
+  const saveSnapshot = () => {
+    if (!isClient || status !== "ready") return;
+    store(SNAP, { state: { ...state, progress: { ...state.progress, photos: [] } }, workoutId, programId, versionId, at: new Date().toISOString() });
+  };
+  const fromSnapshot = (): boolean => {
+    if (!isClient) return false;
+    try {
+      const snap = JSON.parse(localStorage.getItem(SNAP) ?? "null") as { state: ApexState; workoutId: string | null; programId: string | null; versionId: string | null } | null;
+      if (!snap?.state) return false;
+      state = snap.state;
+      workoutId = snap.workoutId;
+      programId = snap.programId;
+      versionId = snap.versionId;
+      status = "ready";
+      error = null;
+      offline = true;
+      emit();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  let flushing = false;
+  /** Sends what waited, oldest first. Stops at the first failure and keeps the rest for next time. */
+  async function sendOutbox() {
+    if (!isClient || flushing || !online()) return;
+    flushing = true;
+    try {
+      for (let list = outbox(); list.length; list = outbox()) {
+        const job = list[0]!;
+        if (job.kind === "message") {
+          const { error: e } = await db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: job.body, created_at: job.at });
+          if (e) break;
+        } else {
+          let r = await db.from("sessions").insert(hasSummaryColumn ? { ...job.row, summary: job.summary } : job.row).select("id").single();
+          if (r.error && isMissingColumn(r.error)) r = await db.from("sessions").insert(job.row).select("id").single();
+          if (r.error || !r.data) break;
+          if (job.sets.length) await db.from("logged_sets").insert(withSessionId(job.sets, (r.data as { id: string }).id));
+        }
+        store(OUTBOX, outbox().filter((j) => j.id !== job.id));
+        emit();
+      }
+    } finally {
+      flushing = false;
+    }
+  }
+  if (isClient && typeof window !== "undefined") {
+    window.addEventListener("online", () => { void sendOutbox().then(() => load()); });
+    window.addEventListener("offline", () => emit());
+  }
   const fail = (e: unknown) => {
     error = message(e);
     status = "error";
@@ -169,9 +235,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };
       status = "ready";
       error = null;
+      offline = false;
+      saveSnapshot();
       emit();
+      void sendOutbox();
       if (listeners.size) openChannel();
     } catch (e) {
+      if (isNetworkError(e, online()) && fromSnapshot()) return;
       fail(e);
     }
   }
@@ -367,6 +437,8 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   return {
     get: () => state,
     status: () => status,
+    offline: () => offline || (isClient && !online()),
+    pending: () => (isClient ? outbox() : []),
     error: () => error,
     progressError: () => progressError,
     hasPlanColumns: () => hasPlanColumns,
@@ -422,12 +494,16 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     finishSession(log, sets) {
       state = { ...state, log, history: nextHistory(state.history, log, state.workout, sets) };
       emit();
+      saveSnapshot();
+      const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
+      const row: Record<string, unknown> = {
+        client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
+        session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
+      };
+      // No signal: keep it on the phone and send it when the connection is back.
+      const later = () => queue({ kind: "session", id: crypto.randomUUID(), at: new Date().toISOString(), row, summary: log.summary ?? null, sets: toLoggedSetRows(sets, state.workout, "").map(({ session_id: _s, ...r }) => r) });
+      if (isClient && !online()) return later();
       void (async () => {
-        const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
-        const row: Record<string, unknown> = {
-          client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
-          session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
-        };
         const insert = (withSummary: boolean) =>
           db.from("sessions").insert(withSummary ? { ...row, summary: log.summary ?? null } : row).select("id").single();
         let { data, error: e1 } = await insert(hasSummaryColumn);
@@ -435,6 +511,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
           hasSummaryColumn = false;
           ({ data, error: e1 } = await insert(false));
         }
+        if (e1 && isClient && isNetworkError(e1, online())) return later();
         if (e1 || !data) throw e1 ?? new Error("The session wasn't saved");
         const rows = toLoggedSetRows(sets, state.workout, data.id);
         if (rows.length) {
@@ -446,7 +523,12 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     sendMessage(from, text) {
       state = { ...state, messages: [...state.messages, { from, text, time: "Now" }] };
       emit();
-      void db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: text }).then(({ error: e }) => { if (e) fail(e); });
+      const later = () => queue({ kind: "message", id: crypto.randomUUID(), at: new Date().toISOString(), body: text });
+      if (isClient && !online()) return later();
+      void db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: text }).then(({ error: e }) => {
+        if (e && isClient && isNetworkError(e, online())) later();
+        else if (e) fail(e);
+      });
     },
     async submitCheckIn(checkIn, measurements, photos) {
       const id = crypto.randomUUID();

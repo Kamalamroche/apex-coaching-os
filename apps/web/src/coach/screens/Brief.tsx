@@ -11,6 +11,8 @@ import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
 import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
+import { GoingQuiet } from "./Quiet";
+import type { CoachLiveProps } from "../CoachApp";
 
 interface TriageItem {
   id: string;
@@ -43,7 +45,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, say, clientCount, clients }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null }) {
+export function Brief({ openClient, say, clientCount, clients, live }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
   const clientFirst = firstName(clientName);
@@ -106,6 +108,8 @@ export function Brief({ openClient, say, clientCount, clients }: { openClient: (
         <TwinCard onOpen={() => setTwin(true)} />
         <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
       </div>
+
+      <GoingQuiet live={live} say={say} />
 
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>

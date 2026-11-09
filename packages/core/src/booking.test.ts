@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_BOOKING_SETTINGS, byLocalDay, dayIn, freeSlots, fromBookingRow, fromSettingsRow, hoursProblem, minutesLabel, newBooking, sampleBookings, toBookingRow, toSettingsRow,
-  upcomingBookings, zoneOffsetMin, zonedTime, type BookingSettings, callLink, callOpen, callService, videoLinkProblem,
+  upcomingBookings, zoneOffsetMin, zonedTime, type BookingSettings, callLink, callOpen, callService, videoLinkProblem, bookingEvent, toIcs, googleCalendarUrl,
 } from "./booking";
 
 // Monday 2 Nov 2026, 06:00 UTC (06:00 in London: winter time).
@@ -98,5 +98,31 @@ describe("video calls", () => {
     expect(videoLinkProblem("http://zoom.us/j/1")).toMatch(/https/);
     expect(videoLinkProblem("https://zoom.us/j/1")).toBeNull();
     expect(hoursProblem({ ...DEFAULT_BOOKING_SETTINGS, videoLink: "nope" })).toMatch(/https/);
+  });
+});
+
+describe("add to calendar", () => {
+  const b = { ...newBooking("c", "2026-11-10T09:00:00.000Z", 30, "call", "Talk, plan; review", NOW), id: "abc" };
+  const e = bookingEvent(b, null, "Kamal");
+  it("makes an event with the call link", () => {
+    expect(e.title).toBe("Call with Kamal");
+    expect(e.location).toBe("https://meet.jit.si/APEX-abc");
+    expect(e.details).toContain("Join the call: https://meet.jit.si/APEX-abc");
+  });
+  it("writes a valid .ics", () => {
+    const ics = toIcs(e, NOW);
+    expect(ics).toContain("DTSTART:20261110T090000Z\r\n");
+    expect(ics).toContain("DTEND:20261110T093000Z");
+    expect(ics).toContain("Talk\\, plan\\; review");
+    expect(ics).toContain("TRIGGER:-PT30M");
+    expect(ics.split("\r\n").every((l) => l.length <= 75)).toBe(true);
+  });
+  it("links to Google Calendar", () => {
+    const u = new URL(googleCalendarUrl(e));
+    expect(u.searchParams.get("dates")).toBe("20261110T090000Z/20261110T093000Z");
+    expect(u.searchParams.get("text")).toBe("Call with Kamal");
+  });
+  it("leaves the place empty for an in-person session", () => {
+    expect(bookingEvent({ ...b, kind: "session" }, null, "Kamal").location).toBe("");
   });
 });

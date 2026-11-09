@@ -1,4 +1,4 @@
-import { pushPromptDue, unblockHelp, type PushSupport } from "@apex/core";
+import { parseTimeOfDay, pushPromptDue, timeOfDay, unblockHelp, type PushSupport, type ReminderPrefs } from "@apex/core";
 import { Icons } from "@apex/ui";
 import { useCallback, useEffect, useState } from "react";
 import { usePrivacyApi, type PrivacyApi } from "../data/privacy";
@@ -99,9 +99,52 @@ export function NotificationsCard({ api, say }: { api: PrivacyApi; say: (m: stri
           <input type="checkbox" role="switch" aria-label="New message notifications" checked={p.on} disabled={p.busy} onChange={(e) => void (e.target.checked ? p.enable() : p.disable())} style={{ width: 22, height: 22, accentColor: "var(--act)", flex: "none", marginTop: 4 }} />
         </label>
       )}
+      {p.on && <ReminderSettings api={api} />}
       {p.on && <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} disabled={testing} onClick={() => void test()}><Icons.bell width={15} height={15} /> {testing ? "Sending…" : "Send a test"}</button>}
       {p.error && <div className="small" role="alert">{p.error}</div>}
     </section>
+  );
+}
+
+/** Reminder times for clients, check-in alerts for coaches. Saved as soon as they change. */
+function ReminderSettings({ api }: { api: PrivacyApi }) {
+  const [r, setR] = useState<ReminderPrefs | null | "loading">("loading");
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.reminders().then((v) => live && setR(v), () => live && setR(null));
+    return () => { live = false; };
+  }, [api]);
+  if (r === "loading") return null;
+  if (!r) return <div className="tiny">Reminders switch on once the reminders SQL is run in Supabase.</div>;
+  const change = (next: ReminderPrefs) => {
+    const before = r;
+    setR(next);
+    setError(null);
+    api.setReminders(next).catch((e: unknown) => {
+      setR(before);
+      setError(pushNotReady(e) ? "Reminders need the reminders SQL in Supabase first." : e instanceof Error ? e.message : String(e));
+    });
+  };
+  const row = (label: string, hint: string, on: boolean, setOn: (v: boolean) => void, at?: number, setAt?: (m: number) => void) => (
+    <div className="row" style={{ gap: 10, alignItems: "center" }}>
+      <div className="grow"><div className="h3" style={{ fontSize: 15 }}>{label}</div><div className="tiny">{hint}</div></div>
+      {at !== undefined && setAt && <input type="time" className="field num" style={{ width: "auto", padding: "6px 8px" }} aria-label={`${label} time`} disabled={!on} value={timeOfDay(at)} onChange={(e) => { const m = parseTimeOfDay(e.target.value); if (m !== null) setAt(m); }} />}
+      <input type="checkbox" role="switch" aria-label={label} checked={on} onChange={(e) => setOn(e.target.checked)} style={{ width: 22, height: 22, accentColor: "var(--act)", flex: "none" }} />
+    </div>
+  );
+  return (
+    <div className="stack" style={{ gap: 12, paddingTop: 4, borderTop: "1px solid var(--line)" }}>
+      {api.role === "client" ? (
+        <>
+          {row("Workout reminder", "On training days: what's planned and how long it takes", r.workoutOn, (v) => change({ ...r, workoutOn: v }), r.workoutAt, (m) => change({ ...r, workoutAt: m }))}
+          {row("Evening log", "A nudge to log food, water and habits", r.habitsOn, (v) => change({ ...r, habitsOn: v }), r.habitsAt, (m) => change({ ...r, habitsAt: m }))}
+        </>
+      ) : (
+        row("Check-in alerts", "When a client sends their weekly check-in", r.alertsOn, (v) => change({ ...r, alertsOn: v }))
+      )}
+      {error && <div className="small" role="alert">{error}</div>}
+    </div>
   );
 }
 
@@ -144,12 +187,15 @@ export function PushPrompt({ say, full }: { say: (m: string) => void; full?: boo
   );
 }
 
-/** Opens a tab when the app is started from a notification (?open=chat) or a tapped notification focuses it. */
-export function useOpenFromNotification<T extends string>(target: T, open: (t: T) => void) {
+/** Opens a tab when the app is started from a notification (?open=chat) or a tapped notification focuses it.
+    `tabs` maps the open= value to a tab, e.g. { chat: "chat", today: "today" }. */
+export function useOpenFromNotification<T extends string>(tabs: Partial<Record<string, T>>, open: (t: T) => void) {
   useEffect(() => {
-    const q = new URLSearchParams(location.search);
-    if (q.get("open") === "chat") {
-      open(target);
+    const pick = (search: string) => tabs[new URLSearchParams(search).get("open") ?? ""];
+    const first = pick(location.search);
+    if (first) {
+      open(first);
+      const q = new URLSearchParams(location.search);
       q.delete("open");
       const rest = q.toString().replace(/=(&|$)/g, "$1");
       history.replaceState(null, "", `${location.pathname}${rest ? `?${rest}` : ""}${location.hash}`);
@@ -157,7 +203,9 @@ export function useOpenFromNotification<T extends string>(target: T, open: (t: T
     if (!("serviceWorker" in navigator)) return;
     const onMsg = (e: MessageEvent) => {
       const d = e.data as { type?: string; url?: string } | null;
-      if (d?.type === "apex-open" && d.url?.includes("open=chat")) open(target);
+      if (d?.type !== "apex-open" || !d.url) return;
+      const t = pick(new URL(d.url, location.origin).search);
+      if (t) open(t);
     };
     navigator.serviceWorker.addEventListener("message", onMsg);
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);

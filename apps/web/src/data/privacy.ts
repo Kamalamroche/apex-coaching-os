@@ -1,4 +1,4 @@
-import { LEGAL_VERSION, fromConsentRow, type ConsentKind, type ConsentRecord, type ConsentRow, type PrivacyRole } from "@apex/core";
+import { DEFAULT_REMINDERS, fromReminderRow, toReminderRow, type ReminderPrefs, type ReminderRow, LEGAL_VERSION, fromConsentRow, type ConsentKind, type ConsentRecord, type ConsentRow, type PrivacyRole } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useContext } from "react";
 
@@ -23,6 +23,9 @@ export interface PrivacyApi {
   removePush(endpoint: string): Promise<void>;
   /** Sends a test notification to every device of this person; how many it reached. */
   testPush(): Promise<number>;
+  /** Reminder times and alerts. Null until the reminders SQL is run. */
+  reminders(): Promise<ReminderPrefs | null>;
+  setReminders(p: ReminderPrefs): Promise<void>;
 }
 
 export interface PushDevice { endpoint: string; p256dh: string; auth: string; device: string }
@@ -110,10 +113,20 @@ export function livePrivacy(db: SupabaseClient, me: { id: string; role: PrivacyR
       if (error) throw new Error(PUSH_NOT_READY);
       return data?.sent ?? 0;
     },
+    async reminders() {
+      const { data, error } = await db.from("push_reminders").select("*").eq("user_id", me.id).maybeSingle<ReminderRow>();
+      if (error) return null;
+      return data ? fromReminderRow(data) : { ...DEFAULT_REMINDERS, timezone: localZone() };
+    },
+    async setReminders(p) {
+      const { error } = await db.from("push_reminders").upsert({ ...toReminderRow({ ...p, timezone: localZone() }, me.id), updated_at: new Date().toISOString() });
+      if (error) throw isMissing(error) ? new Error(PUSH_NOT_READY) : new Error(error.message);
+    },
   };
 }
 
 const KEY = "apex-privacy-v1";
+const localZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London"; } catch { return "Europe/London"; } };
 
 /** Demo: agreements live in this browser; deleting clears the demo's sample data. */
 export function demoPrivacy(role: PrivacyRole, name: string): PrivacyApi {
@@ -178,6 +191,16 @@ export function demoPrivacy(role: PrivacyRole, name: string): PrivacyApi {
     async removePush() { /* the demo keeps nothing */ },
     async testPush() {
       return 0;
+    },
+    async reminders() {
+      try {
+        const raw = localStorage.getItem(`${key}-reminders`);
+        if (raw) return { ...DEFAULT_REMINDERS, ...(JSON.parse(raw) as Partial<ReminderPrefs>) };
+      } catch { /* defaults */ }
+      return { ...DEFAULT_REMINDERS, habitsOn: role === "client" };
+    },
+    async setReminders(p) {
+      try { localStorage.setItem(`${key}-reminders`, JSON.stringify(p)); } catch { /* this visit only */ }
     },
   };
 }

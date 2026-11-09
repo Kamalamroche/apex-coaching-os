@@ -285,3 +285,46 @@ export function sampleBookings(now = new Date()): { settings: BookingSettings; b
 }
 
 export const DEMO_BOOKING_NAMES: Record<string, string> = { [DEMO_BOOKING_CLIENT]: "Priya Sharma", "demo-james": "James Kowalski", "demo-sarah": "Sarah Mitchell" };
+
+/* ---------- Add to calendar ---------- */
+
+export interface CalendarEvent { uid: string; startsAt: string; endsAt: string; title: string; details: string; location: string }
+
+/** The booking as a calendar entry: "Call with Kamal", with the video link as its place. */
+export function bookingEvent(b: Booking, s: Pick<BookingSettings, "videoLink"> | null, withName: string): CalendarEvent {
+  const link = callLink(b, s);
+  const what = b.kind === "call" ? "Call" : "Training session";
+  return {
+    uid: `${b.id}@apex-coaching`,
+    startsAt: b.startsAt,
+    endsAt: b.endsAt,
+    title: `${what} with ${withName}`.trim(),
+    details: [b.note, link ? `Join the call: ${link}` : "", "Booked in APEX."].filter(Boolean).join("\n"),
+    location: link ?? "",
+  };
+}
+
+const icsTime = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+/** Commas, semicolons, backslashes and new lines must be escaped in calendar text. */
+const icsText = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+/** Lines over 75 bytes are folded onto the next line with a leading space. */
+const fold = (line: string) => line.match(/.{1,73}/g)?.join("\r\n ") ?? line;
+
+/** An .ics file that Apple Calendar, Outlook and Google Calendar all open. Reminds 30 minutes before. */
+export function toIcs(e: CalendarEvent, now = new Date()): string {
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//APEX Coaching//Bookings//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${e.uid}`, `DTSTAMP:${icsTime(now.toISOString())}`, `DTSTART:${icsTime(e.startsAt)}`, `DTEND:${icsTime(e.endsAt)}`,
+    `SUMMARY:${icsText(e.title)}`, `DESCRIPTION:${icsText(e.details)}`, ...(e.location ? [`LOCATION:${icsText(e.location)}`, `URL:${e.location}`] : []),
+    "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY", `DESCRIPTION:${icsText(e.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR", "",
+  ].map(fold).join("\r\n");
+}
+
+/** Opens Google Calendar's "new event" page filled in. */
+export function googleCalendarUrl(e: CalendarEvent): string {
+  const q = new URLSearchParams({ action: "TEMPLATE", text: e.title, dates: `${icsTime(e.startsAt)}/${icsTime(e.endsAt)}`, details: e.details });
+  if (e.location) q.set("location", e.location);
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
+}

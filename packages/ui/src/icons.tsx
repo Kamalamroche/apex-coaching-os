@@ -48,6 +48,7 @@ export const Icons = {
   sleep: lucide(Moon),
   fridge: lucide(Refrigerator),
   video: lucide(Video),
+  calendar: lucide(CalendarDays),
   energy: lucide(Zap),
   soreness: lucide(BicepsFlexed),
   stress: lucide(Brain),

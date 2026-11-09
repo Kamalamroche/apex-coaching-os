@@ -39,3 +39,14 @@ describe("push support", () => {
     expect(pushPromptDue(now - 8 * 864e5, now)).toBe(true);
   });
 });
+
+describe("reminder settings", () => {
+  it("round-trips and formats times", async () => {
+    const { DEFAULT_REMINDERS, fromReminderRow, toReminderRow, timeOfDay, parseTimeOfDay } = await import("./push");
+    expect(fromReminderRow(toReminderRow(DEFAULT_REMINDERS, "u"))).toEqual(DEFAULT_REMINDERS);
+    expect(timeOfDay(450)).toBe("07:30");
+    expect(parseTimeOfDay("18:05")).toBe(1085);
+    expect(parseTimeOfDay("25:00")).toBeNull();
+    expect(toReminderRow({ ...DEFAULT_REMINDERS, workoutAt: 5000 }, "u").workout_at).toBe(1439);
+  });
+});

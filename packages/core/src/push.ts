@@ -64,3 +64,41 @@ export function keyBytes(b64url: string): Uint8Array {
 /** The prompt card on Today waits a week after "Not now". */
 export const PUSH_SNOOZE_DAYS = 7;
 export const pushPromptDue = (snoozedAt: number | null, now: number) => !snoozedAt || now - snoozedAt > PUSH_SNOOZE_DAYS * 864e5;
+
+/* ---------- Reminders ---------- */
+
+export interface ReminderPrefs {
+  /** Client: a reminder on training days. */
+  workoutOn: boolean;
+  /** Minutes after midnight. */
+  workoutAt: number;
+  /** Client: an evening nudge to log food, water and habits. */
+  habitsOn: boolean;
+  habitsAt: number;
+  /** Coach: a notification when a client sends a check-in. */
+  alertsOn: boolean;
+  timezone: string;
+}
+
+export const DEFAULT_REMINDERS: ReminderPrefs = { workoutOn: true, workoutAt: 450, habitsOn: false, habitsAt: 1200, alertsOn: true, timezone: "Europe/London" };
+
+export interface ReminderRow { user_id: string; workout_on: boolean; workout_at: number; habits_on: boolean; habits_at: number; alerts_on: boolean; timezone: string }
+
+export const toReminderRow = (p: ReminderPrefs, userId: string): ReminderRow => ({
+  user_id: userId, workout_on: p.workoutOn, workout_at: clampMin(p.workoutAt), habits_on: p.habitsOn, habits_at: clampMin(p.habitsAt), alerts_on: p.alertsOn, timezone: p.timezone.slice(0, 64) || "Europe/London",
+});
+export const fromReminderRow = (r: ReminderRow): ReminderPrefs => ({
+  workoutOn: r.workout_on, workoutAt: Number(r.workout_at), habitsOn: r.habits_on, habitsAt: Number(r.habits_at), alertsOn: r.alerts_on, timezone: r.timezone,
+});
+
+const clampMin = (m: number) => Math.min(1439, Math.max(0, Math.round(m)));
+
+/** 450 → "07:30", for a time input. */
+export const timeOfDay = (m: number) => `${String(Math.floor(clampMin(m) / 60)).padStart(2, "0")}:${String(clampMin(m) % 60).padStart(2, "0")}`;
+/** "07:30" → 450. Anything else → null. */
+export function parseTimeOfDay(s: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  return h < 24 && min < 60 ? h * 60 + min : null;
+}

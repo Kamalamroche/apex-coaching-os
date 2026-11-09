@@ -2,7 +2,7 @@ import { callLink, kindTitle, newBooking, timeLabel, upcomingBookings, whenLabel
 import { Icons } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
-import { BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
+import { AddToCalendar, BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
 import { useStore } from "../../data/StoreContext";
 
@@ -65,6 +65,7 @@ export function Book({ say }: { say: (m: string) => void }) {
                 <div className="grow"><div className="h3">{whenLabel(b.startsAt)}</div><div className="tiny">{kindTitle(b.kind)} · until {timeLabel(b.endsAt)}{b.note ? ` · ${b.note}` : ""}</div></div>
                 <div className="row" style={{ gap: 6, flex: "none" }}>
                   <JoinCall booking={b} settings={settings} />
+                  <AddToCalendar booking={b} settings={settings} withName={coachName} />
                   <button className="iconbtn" onClick={() => void cancel(b.id)}>Cancel</button>
                 </div>
               </div>

@@ -39,14 +39,14 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const [account, setAccount] = useState(false);
   const [toast, say] = useToast();
   useFinishedAlert(say);
-  useOpenFromNotification("chat", (t: Tab) => { setAccount(false); setTab(t); });
+  useOpenFromNotification<Tab>({ chat: "chat", clients: "clients" }, (t) => { setAccount(false); setTab(t); });
   const openClient = (id: number) => { setClientId(id); setTab("clients"); };
   const goBuild = () => setTab("build");
   const changeTab = (t: Tab) => { setAccount(false); setTab(t); if (t !== "clients") setClientId(null); };
   return (
     <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>Account</button>{signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}</>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>Back</BackLink></div><AccountScreen say={say} /></>}
-      {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} />}
+      {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
       {!account && tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {!account && tab === "chat" && <Messages live={live} say={say} />}
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}

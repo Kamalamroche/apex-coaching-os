@@ -4,7 +4,7 @@ import {
 } from "@apex/core";
 import { Avatar, BackLink, Icons, Label } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
-import { BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
+import { AddToCalendar, BookingStatus, JoinCall, KindChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
 import type { LiveClient } from "../../data/coach";
 
@@ -84,6 +84,7 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
                         <Avatar initials={initials(name)} size={32} />
                         <div className="grow"><div className="h3">{name}</div><div className="tiny">{kindTitle(b.kind)} · until {timeLabel(b.endsAt)}{b.note ? ` · ${b.note}` : ""}</div></div>
                         <JoinCall booking={b} settings={data.settings} />
+                        <AddToCalendar booking={b} settings={data.settings} withName={name} />
                         <button className="iconbtn" onClick={() => void cancel(b.id)} aria-label={`Cancel ${name}'s booking`}>Cancel</button>
                       </div>
                     );

@@ -112,6 +112,14 @@ export function pushContent(a: { role: string; senders: string[]; unread: number
   return { title, body, url: `${base}/${a.role === "coach" ? "coach" : "client"}/?open=chat`, tag: "apex-messages" };
 }
 
+/** A reminder or alert row from the database, as a notification. Only paths inside the app are allowed. */
+export interface Reminder { user_id: string; kind: string; title: string; body: string; url: string; subscriptions: Subscription[] | null }
+export function reminderContent(r: Pick<Reminder, "kind" | "title" | "body" | "url">, appUrl: string): PushMessage {
+  const base = (appUrl || "").replace(/\/+$/, "");
+  const path = r.url.startsWith("/") && !r.url.startsWith("//") ? r.url : "/start/";
+  return { title: r.title.slice(0, 80), body: r.body.slice(0, 180), url: `${base}${path}`, tag: `apex-${r.kind}` };
+}
+
 /* ---------- Sending ---------- */
 
 export interface Subscription { id: string; endpoint: string; p256dh: string; auth: string }
@@ -214,7 +222,26 @@ export async function handle(req: Request): Promise<Response> {
     await rpc("mark_push_sent", { p_ids: p.message_ids });
     if (any) sent++;
   }
-  return json({ due: due.length, sent, failed });
+  // Reminders and check-in alerts (from 20261117090000_reminders.sql; skipped until that SQL is run).
+  let reminders = 0;
+  for (const fn of ["take_push_reminders", "take_checkin_alerts"]) {
+    let rows: Reminder[] = [];
+    try {
+      rows = (await rpc<Reminder[]>(fn)) ?? [];
+    } catch {
+      continue;
+    }
+    for (const r of rows.slice(0, 500)) {
+      const msg = reminderContent(r, appUrl);
+      for (const s of r.subscriptions ?? []) {
+        const res = await sendPush(s, msg, keys, subject);
+        if (res === "ok") reminders++;
+        else if (res === "gone") await rpc("push_subscription_gone", { p_id: s.id });
+        else failed.push(res);
+      }
+    }
+  }
+  return json({ due: due.length, sent, reminders, failed });
 }
 
 if (typeof Deno !== "undefined") Deno.serve((req: Request) => handle(req).catch((e: unknown) => json({ error: e instanceof Error ? e.message : String(e) }, 500)));

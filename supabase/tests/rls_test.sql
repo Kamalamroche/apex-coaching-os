@@ -1152,3 +1152,47 @@ do $$ begin
   assert (select coach_reply from check_ins where id = 'c0000000-0000-0000-0000-0000000000a2') = 'Great', 'coach can still reply';
 end $$;
 reset role;
+
+-- Reminders: a client's own settings only; a workout reminder on a training day, once; a check-in alert for the coach, once.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.save_push_subscription('https://push.example.com/priya-new', repeat('p', 87), repeat('a', 22), 'Android');
+insert into push_reminders (user_id, workout_at, timezone) values ('00000000-0000-0000-0000-0000000000a2', 420, 'Europe/London');
+do $$ begin
+  begin
+    insert into push_reminders (user_id) values ('00000000-0000-0000-0000-0000000000a1');
+    raise exception 'set someone else''s reminders';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.take_push_reminders();
+    raise exception 'client took reminders';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.save_push_subscription('https://push.example.com/coach-new', repeat('p', 87), repeat('a', 22), 'iPhone');
+reset role;
+-- A program for Priya with Lower A on Mondays. 2026-11-16 is a Monday; 07:05 in London is 07:05 UTC in November.
+insert into programs (id, coach_id, client_id, name, weeks, created_at) values ('10000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','Push test',4,'2026-11-02');
+insert into program_versions (id, program_id, version, published_at) values ('20000000-0000-0000-0000-0000000000a2','10000000-0000-0000-0000-0000000000a2',1,now());
+insert into workouts (program_version_id, name, week, day_index, est_minutes) values ('20000000-0000-0000-0000-0000000000a2','Lower A',3,0,45),('20000000-0000-0000-0000-0000000000a2','Upper A',3,2,40);
+set role service_role;
+do $$ declare r record; begin
+  assert (select count(*) from public.take_push_reminders('2026-11-16 06:50+00')) = 0, 'not before the chosen time';
+  select * into r from public.take_push_reminders('2026-11-16 07:05+00') where user_id = '00000000-0000-0000-0000-0000000000a2';
+  assert r.title = 'Lower A today', 'names today''s workout';
+  assert r.body like '45 min.%', 'says how long';
+  assert jsonb_array_length(r.subscriptions) = 1, 'to the client''s phone';
+  assert (select count(*) from public.take_push_reminders('2026-11-16 07:06+00')) = 0, 'once a day';
+  assert (select count(*) from public.take_push_reminders('2026-11-17 07:05+00')) = 0, 'no reminder on a rest day';
+  assert (select count(*) from public.take_checkin_alerts()) >= 0, 'runs';
+end $$;
+reset role;
+insert into check_ins (client_id, weight_kg) values ('00000000-0000-0000-0000-0000000000a2', 61.5);
+set role service_role;
+do $$ declare r record; begin
+  select * into r from public.take_checkin_alerts() where user_id = '00000000-0000-0000-0000-0000000000a1';
+  assert r.title = 'Priya sent a check-in', 'coach told';
+  assert r.body like 'Weight 61.5%', 'with the weight';
+  assert not exists (select 1 from public.take_checkin_alerts() where user_id = '00000000-0000-0000-0000-0000000000a1'), 'once per check-in';
+end $$;
+reset role;
