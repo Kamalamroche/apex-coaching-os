@@ -40,7 +40,7 @@ export function UnitsAndLanguage({ heading = true }: { heading?: boolean }) {
             </div>
           </div>
         ))}
-        <div className="small num">{t("Example: {weight} · {height} · {distance}", { weight: u.fw(100), height: u.height(180), distance: u.dist(5000, "run") })}</div>
+        <div className="small">{t("Example: {weight} · {height} · {distance}", { weight: u.fw(100), height: u.height(180), distance: u.dist(5000, "run") })}</div>
         <div className="tiny">{t("Everything is stored in kg and cm, so you can switch any time without losing anything.")}</div>
       </section>
 

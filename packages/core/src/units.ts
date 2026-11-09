@@ -39,17 +39,17 @@ export function normaliseUnits(v: unknown): UnitPrefs {
 
 /* ---------- Weight ---------- */
 
-/** kg → the person's unit, rounded for reading (0.1 kg, 0.1 lb). */
-export const weightFromKg = (kg: number, unit: WeightUnit, dp = 1): number => trim(unit === "lb" ? kg * LB_PER_KG : kg, dp);
+/** kg → the person's unit, rounded for reading: kg keeps its two places (1.25 kg plates), lb gets one. */
+export const weightFromKg = (kg: number, unit: WeightUnit, dp?: number): number => trim(unit === "lb" ? kg * LB_PER_KG : kg, dp ?? (unit === "lb" ? 1 : 2));
 
 /** What the person typed, in their unit → kg for storage (two places, like the database). */
 export const weightToKg = (value: number, unit: WeightUnit): number => trim(unit === "lb" ? value / LB_PER_KG : value, 2);
 
 /** "100 kg" or "220.5 lb". */
-export const formatWeight = (kg: number, unit: WeightUnit, dp = 1): string => `${weightFromKg(kg, unit, dp).toLocaleString("en-GB")} ${unit}`;
+export const formatWeight = (kg: number, unit: WeightUnit, dp?: number): string => `${weightFromKg(kg, unit, dp).toLocaleString("en-GB")} ${unit}`;
 
 /** A change in weight with its sign: "+2.5 kg", "−1.1 lb". */
-export function formatWeightDelta(kg: number, unit: WeightUnit, dp = 1): string {
+export function formatWeightDelta(kg: number, unit: WeightUnit, dp?: number): string {
   const v = weightFromKg(kg, unit, dp);
   return `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString("en-GB")} ${unit}`;
 }
@@ -121,8 +121,8 @@ export function kgTextIn(text: string, unit: WeightUnit): string {
 export const shownUnit = (metric: string, p: UnitPrefs): string => (metric === "kg" ? p.weight : metric === "cm" ? p.length : metric);
 
 /** A stored value → the person's unit. */
-export const toShown = (value: number, metric: string, p: UnitPrefs, dp = 1): number =>
-  metric === "kg" ? weightFromKg(value, p.weight, dp) : metric === "cm" ? lengthFromCm(value, p.length, dp) : value;
+export const toShown = (value: number, metric: string, p: UnitPrefs, dp?: number): number =>
+  metric === "kg" ? weightFromKg(value, p.weight, dp) : metric === "cm" ? lengthFromCm(value, p.length, dp ?? 1) : value;
 
 /** A value typed in the person's unit → the stored metric value. */
 export const fromShown = (value: number, metric: string, p: UnitPrefs): number =>
@@ -150,3 +150,18 @@ export function kmTextIn(text: string, unit: DistanceUnit): string {
 
 /** Weights and distances in saved text, in the person's units. */
 export const metricTextIn = (text: string, p: UnitPrefs): string => kmTextIn(kgTextIn(text, p.weight), p.distance);
+
+/* ---------- Food amounts ---------- */
+
+export const G_PER_OZ = 28.3495;
+export const ML_PER_FL_OZ = 29.5735;
+
+/** Food amounts follow the weight setting: grams and ml with kg, ounces and fl oz with lb. */
+export function foodAmount(amount: number, metric: "g" | "ml", weight: WeightUnit): { value: number; unit: string } {
+  if (weight === "kg") return { value: Math.round(amount), unit: metric };
+  return metric === "g" ? { value: trim(amount / G_PER_OZ), unit: "oz" } : { value: trim(amount / ML_PER_FL_OZ), unit: "fl oz" };
+}
+
+/** An amount typed in oz or fl oz (or g and ml) → grams or ml. */
+export const foodAmountToMetric = (value: number, metric: "g" | "ml", weight: WeightUnit): number =>
+  weight === "kg" ? value : value * (metric === "g" ? G_PER_OZ : ML_PER_FL_OZ);

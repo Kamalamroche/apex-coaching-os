@@ -1,5 +1,5 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe } from "@apex/core";
-import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe, foodAmount, foodAmountToMetric } from "@apex/core";
+import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useApexState } from "@apex/core/react";
 import { ClientPlan, RecipeSheet, RecipeShelf, WorkoutFuelCard } from "../../app/MealPlanParts";
@@ -16,6 +16,7 @@ const mealNow = (): Meal => {
 
 /** The client's food log for today, against the targets the coach set. */
 export function ClientNutrition() {
+  const u = useUnits();
   const store = useLifestyleStore();
   const s = useLifestyle();
   const { coachName } = useAppInfo();
@@ -207,7 +208,8 @@ export function ClientNutrition() {
           onAdd={(portions) => {
             const base = { kcal: pick.food.kcal, proteinG: pick.food.protein, carbsG: pick.food.carbs, fatG: pick.food.fat };
             const grams = pick.food.grams ? Math.round(pick.food.grams * portions) : null;
-            const name = portions === 1 ? pick.food.name : grams ? `${pick.food.name.replace(/,\s*[^,]*$/, "")}, ${grams} ${/ml\b/.test(pick.food.name) ? "ml" : "g"}` : `${pick.food.name} × ${portions}`;
+            const amount = grams ? foodAmount(grams, /ml\b/.test(pick.food.name) ? "ml" : "g", u.weight) : null;
+            const name = portions === 1 ? pick.food.name : amount ? `${pick.food.name.replace(/,\s*[^,]*$/, "")}, ${amount.value} ${amount.unit}` : `${pick.food.name} × ${portions}`;
             add({ name, ...scalePortion(base, portions) });
             setPick(null); setQ("");
           }} />}
@@ -294,11 +296,15 @@ function SplitBar({ label, s, muted = false }: { label: string; s: { protein: nu
 
 /** Choose how much before adding: portions in half steps, or grams when the portion weight is known. Macros update as you go. */
 function AmountPicker({ food, mealLabel, onAdd, onCancel }: { food: Food; mealLabel: string; onAdd: (portions: number) => void; onCancel: () => void }) {
+  // Grams and ml, or ounces and fl oz for someone using lb.
+  const { weight } = useUnits();
+  const metric = / ml\b/.test(food.name) ? "ml" : "g";
+  const shown = (g: number) => String(foodAmount(g, metric, weight).value);
+  const unit = foodAmount(0, metric, weight).unit;
   const [portions, setPortions] = useState(1);
-  const [grams, setGrams] = useState(food.grams ? String(food.grams) : "");
-  const unit = / ml\b/.test(food.name) ? "ml" : "g";
-  const set = (p: number) => { const v = Math.max(0.25, Math.min(10, Math.round(p * 4) / 4)); setPortions(v); if (food.grams) setGrams(String(Math.round(food.grams * v))); };
-  const fromGrams = (txt: string) => { setGrams(txt); const g = parseNumber(txt); if (food.grams && g !== null && g > 0) setPortions(Math.min(20, g / food.grams)); };
+  const [grams, setGrams] = useState(food.grams ? shown(food.grams) : "");
+  const set = (p: number) => { const v = Math.max(0.25, Math.min(10, Math.round(p * 4) / 4)); setPortions(v); if (food.grams) setGrams(shown(food.grams * v)); };
+  const fromGrams = (txt: string) => { setGrams(txt); const n = parseNumber(txt); const g = n === null ? null : foodAmountToMetric(n, metric, weight); if (food.grams && g !== null && g > 0) setPortions(Math.min(20, g / food.grams)); };
   const m = scalePortion({ kcal: food.kcal, proteinG: food.protein, carbsG: food.carbs, fatG: food.fat }, portions);
   return (
     <div className="card nut-amount">

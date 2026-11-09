@@ -1,5 +1,5 @@
 import { CLIENTS, dayTotals, goalProgress, habitsOn, isDone, localDate } from "@apex/core";
-import { Avatar, BackLink, Icons, type IconName, ScriptTitle, useT } from "@apex/ui";
+import { Avatar, BackLink, Icons, type IconName, ScriptTitle, useT, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
 import { useAppInfo } from "../../app/AppContext";
@@ -111,6 +111,7 @@ const POSTS = [
 ];
 
 function Community() {
+  const u = useUnits();
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   const board = [...CLIENTS].sort((a, b) => b.adherence - a.adherence).slice(0, 4);
   return (
@@ -132,7 +133,7 @@ function Community() {
       {POSTS.map((p, i) => (
         <div key={p.user} className="card">
           <div className="h3">{p.user}</div>
-          <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{p.text}</p>
+          <p className="small" style={{ margin: "6px 0 10px", color: "var(--text)" }}>{u.kt(p.text)}</p>
           <button className="chip" onClick={() => setLiked((s) => ({ ...s, [i]: !s[i] }))} style={liked[i] ? { borderColor: "var(--act)", color: "var(--act)" } : undefined} aria-pressed={!!liked[i]}><Icons.heart width={13} height={13} fill={liked[i] ? "currentColor" : "none"} /> {p.likes + (liked[i] ? 1 : 0)}</button>
         </div>
       ))}

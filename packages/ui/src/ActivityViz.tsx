@@ -507,7 +507,7 @@ export function SplitsChart({ activity }: { activity: Activity }) {
       <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
         <span className="tiny">{shown ? name(shown) : `${splits.length} splits · tap one`}</span>
         <span className="num small" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-          {shown ? `${formatPace(shown.metres, shown.seconds, activity.sport)}${shown.avgHr ? ` · ${shown.avgHr} bpm` : ""}${shown.elevationM !== undefined ? ` · ${shown.elevationM > 0 ? "+" : ""}${shown.elevationM} m` : ""}` : avg ? `avg ${formatPace(activity.metres, activity.movingSeconds, activity.sport)}` : ""}
+          {shown ? `${formatPace(shown.metres, shown.seconds, activity.sport, du)}${shown.avgHr ? ` · ${shown.avgHr} bpm` : ""}${shown.elevationM !== undefined ? ` · ${shown.elevationM > 0 ? "+" : ""}${shown.elevationM} m` : ""}` : avg ? `avg ${formatPace(activity.metres, activity.movingSeconds, activity.sport, du)}` : ""}
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="cx-chart-svg" onPointerMove={pick} onPointerDown={pick} onPointerLeave={() => setAt(null)} role="img" aria-label={`Splits: ${splits.map(short).join(", ")}`}>

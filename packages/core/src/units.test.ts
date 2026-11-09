@@ -3,7 +3,7 @@ import { formatDistance, formatPace, splitsIn, type Activity } from "./activity"
 import { loadPlates } from "./plates";
 import {
   IMPERIAL, METRIC, PLATES_LB, feetInches, formatHeight, formatLength, formatWeight, formatWeightDelta, fromFeetInches, lengthFromCm, lengthToCm,
-  kgTextIn, kmTextIn, metricTextIn, normaliseUnits, parseDecimal, weightFromKg, weightToKg,
+  foodAmount, foodAmountToMetric, kgTextIn, kmTextIn, metricTextIn, normaliseUnits, parseDecimal, weightFromKg, weightToKg,
 } from "./units";
 
 describe("units", () => {
@@ -89,6 +89,14 @@ describe("units", () => {
     expect(miles.length).toBe(4);
     expect(miles[0]).toMatchObject({ n: 1, metres: 1609, seconds: 483, avgHr: 150 });
     expect(miles.at(-1)!.metres).toBe(172);
+  });
+
+  it("shows food amounts in ounces alongside lb", () => {
+    expect(foodAmount(150, "g", "kg")).toEqual({ value: 150, unit: "g" });
+    expect(foodAmount(150, "g", "lb")).toEqual({ value: 5.3, unit: "oz" });
+    expect(foodAmount(330, "ml", "lb")).toEqual({ value: 11.2, unit: "fl oz" });
+    expect(Math.round(foodAmountToMetric(4, "g", "lb"))).toBe(113);
+    expect(foodAmountToMetric(150, "g", "kg")).toBe(150);
   });
 
   it("loads lb plates on a 45 lb bar", () => {
