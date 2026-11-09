@@ -13,6 +13,8 @@ import { Clients } from "./screens/Clients";
 import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
+import { CoachGym } from "./screens/CoachGym";
+import { acceptGymInvite, gymInviteNote, useGymApi } from "../data/gym";
 import { AccountScreen } from "../app/Privacy";
 import { UnitsAndLanguage } from "../app/Settings";
 import { useOpenFromNotification } from "../app/PushParts";
@@ -38,25 +40,43 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const [tab, setTab] = useState<Tab>("brief");
   const [clientId, setClientId] = useState<number | null>(null);
   const [account, setAccount] = useState(false);
+  const [gym, setGym] = useState(false);
+  const gymApi = useGymApi();
   const [toast, say] = useToast();
   const t = useT();
   useFinishedAlert(say);
-  useOpenFromNotification<Tab>({ chat: "chat", clients: "clients" }, (t) => { setAccount(false); setTab(t); });
+  useGymInviteLink(live?.db, () => { setAccount(false); setTab("money"); setGym(true); });
+  useOpenFromNotification<Tab>({ chat: "chat", clients: "clients" }, (t) => { setAccount(false); setGym(false); setTab(t); });
   const openClient = (id: number) => { setClientId(id); setTab("clients"); };
   const goBuild = () => setTab("build");
-  const changeTab = (t: Tab) => { setAccount(false); setTab(t); if (t !== "clients") setClientId(null); };
+  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") setClientId(null); };
   return (
-    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
       {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
       {!account && tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {!account && tab === "chat" && <Messages live={live} say={say} />}
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
-      {!account && tab === "money" && <Business />}
+      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business openGym={gymApi ? () => setGym(true) : undefined} />)}
       {toast}
     </Shell>
   );
+}
+
+/** A coach who opened a gym invite link (/coach/?gym=…): join the gym, drop the token from the address, open the Gym screen. */
+function useGymInviteLink(db: SupabaseClient | undefined, show: () => void) {
+  const done = useRef(false);
+  useEffect(() => {
+    const token = new URLSearchParams(location.search).get("gym");
+    if (!token || !db || done.current) return;
+    done.current = true;
+    history.replaceState(null, "", location.pathname);
+    void acceptGymInvite(db, token).then(
+      (name) => { gymInviteNote.text = `Welcome to ${name}. You're in the team.`; },
+      (e: unknown) => { gymInviteNote.text = e instanceof Error ? e.message : String(e); },
+    ).then(show);
+  }, [db, show]);
 }
 
 /** Toasts the coach when the client finishes a session while the app is open, whatever tab they are on. */

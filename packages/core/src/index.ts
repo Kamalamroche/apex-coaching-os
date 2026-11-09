@@ -62,6 +62,7 @@ export * from "./growth";
 export * from "./signIn";
 export * from "./units";
 export * from "./i18n";
+export * from "./gym";
 export * from "./push";
 export * from "./checkInForm";
 export * from "./quiet";

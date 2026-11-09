@@ -21,6 +21,7 @@ import { ResourceProvider, liveResources } from "../data/resources";
 import { CoachRecipeProvider, liveCoachRecipes } from "../data/coachRecipes";
 import { NotesProvider, liveNotes } from "../data/clientNotes";
 import { TwinProvider, liveTwin } from "../data/twin";
+import { GymProvider, liveGym } from "../data/gym";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -67,6 +68,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   const clientsRef = useRef<LiveClient[]>([]);
   clientsRef.current = clients ?? [];
   const twin = useMemo(() => liveTwin(db, profile.id, () => clientsRef.current), [db, profile.id]);
+  const gym = useMemo(() => liveGym(db, profile.id), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -83,7 +85,9 @@ export function CoachLive({ db, profile, signOut }: Live) {
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
+                        <GymProvider value={gym}>
                         <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                        </GymProvider>
                         </TwinProvider>
                       </NotesProvider>
                     </CoachRecipeProvider></ResourceProvider>
