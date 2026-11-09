@@ -51,7 +51,14 @@ export function liveBookings(db: SupabaseClient, who: { side: "coach" | "client"
     async saveSettings(settings) {
       const problem = hoursProblem(settings);
       if (problem) throw new Error(problem);
-      const { error } = await db.from("coach_booking_settings").upsert({ ...toSettingsRow(settings, coachId), updated_at: new Date().toISOString() });
+      const row = { ...toSettingsRow(settings, coachId), updated_at: new Date().toISOString() };
+      let { error } = await db.from("coach_booking_settings").upsert(row);
+      // Before the video-call SQL is run there's no video_link column: save the hours anyway, unless a link was typed.
+      if (error?.code === "PGRST204" && !row.video_link) {
+        const { video_link: _unused, ...rest } = row;
+        ({ error } = await db.from("coach_booking_settings").upsert(rest));
+      }
+      if (error?.code === "PGRST204") throw new Error("Video links need the video-call SQL in Supabase first.");
       if (error) throw err(error);
     },
     async book(b) {

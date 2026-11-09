@@ -1,3 +1,4 @@
+import { cleanQuestions, questionsProblem, type CheckInQuestion } from "./checkInForm";
 import { emptyProgress, hasMeasurements, type CheckInInput, type MeasurementInput, type PhotoUpload, type ProgressState } from "./checkins";
 import { INITIAL_PROGRESS } from "./data/progress";
 import { INITIAL_HISTORY, INITIAL_MESSAGES, INITIAL_WORKOUT } from "./data/workout";
@@ -52,6 +53,8 @@ export interface ApexStore {
   reviewCheckIn(id: string, reply: string): Promise<void>;
   /** Coach sets the client's check-in day, 0 = Monday … 6 = Sunday. */
   setCheckInDay(day: number): Promise<void>;
+  /** Coach writes their own check-in questions (the same for all their clients). */
+  saveCheckInQuestions(questions: CheckInQuestion[]): Promise<void>;
   /** Demo only: back to the sample data. */
   reset(): void;
 }
@@ -163,6 +166,11 @@ export function createDemoStore(
     },
     async setCheckInDay(day) {
       withProgress((p) => ({ ...p, checkInDay: day }));
+    },
+    async saveCheckInQuestions(questions) {
+      const problem = questionsProblem(questions);
+      if (problem) throw new Error(problem);
+      withProgress((p) => ({ ...p, questions: cleanQuestions(questions) }));
     },
     subscribe(listener) {
       if (listeners.size === 0) events?.addEventListener("storage", onStorage);
