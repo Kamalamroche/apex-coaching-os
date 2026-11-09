@@ -39,9 +39,9 @@ export interface PublicPageApi {
 const isMissing = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202";
 const isMissingColumn = (e: { code?: string } | null) => isMissing(e) || e?.code === "42703" || e?.code === "PGRST204";
 export const GROWTH_NEEDS_UPDATE = "needs-update";
-/** Thrown by lead tools until 20261115090000_leads.sql has run. */
+/** Thrown by lead tools until 20261118090000_leads.sql has run. */
 export const LEADS_NEEDS_UPDATE = "leads-needs-update";
-export const LEADS_SQL = "20261115090000_leads.sql";
+export const LEADS_SQL = "20261118090000_leads.sql";
 const leadErr = (e: { code?: string; message: string }) => (isMissingColumn(e) ? new Error(LEADS_NEEDS_UPDATE) : new Error(e.message));
 
 /** The coach app was opened from a new-enquiry email (?open=leads). */

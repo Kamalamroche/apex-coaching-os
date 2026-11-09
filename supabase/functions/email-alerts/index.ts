@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     else sent += 1;
   }
 
-  // New enquiries. Missing until 20261115090000_leads.sql has run: then skip quietly.
+  // New enquiries. Missing until 20261118090000_leads.sql has run: then skip quietly.
   let leadsSent = 0;
   const { data: leadRows, error: leadError } = await admin.rpc("pending_lead_emails");
   if (leadError && !/pending_lead_emails|PGRST202|42883/.test(`${leadError.code} ${leadError.message}`)) failed.push(leadError.message);

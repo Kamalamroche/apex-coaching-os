@@ -1,6 +1,6 @@
 /* Leads: the enquiry form on a coach's public page, the pipeline of people who aren't clients yet,
    and the automatic welcome email each new enquiry gets. Builds on growth.ts (join requests).
-   Pure helpers mirrored by supabase/migrations/20261115090000_leads.sql. */
+   Pure helpers mirrored by supabase/migrations/20261118090000_leads.sql. */
 
 import { addDays } from "./lifestyle";
 import { PHONE_PATTERN, pageLink, type JoinRequest, type JoinRequestStatus, type TrainingModeName } from "./growth";
