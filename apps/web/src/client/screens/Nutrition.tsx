@@ -215,8 +215,8 @@ export function ClientNutrition() {
         )}
       </section>
 
-      <RecipeShelf onOpen={setRecipe} />
-      {recipe && <RecipeSheet r={recipe} onClose={() => setRecipe(null)} action={{
+      <RecipeShelf key={(s.intake?.answers.diet ?? []).join()} diet={s.intake?.answers.diet ?? []} onOpen={setRecipe} />
+      {recipe && <RecipeSheet r={recipe} foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
         label: `Log to ${MEALS.find((m) => m.key === recipe.meal)?.label.toLowerCase()}${isToday ? "" : `, ${dayName(day)}`}`,
         run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
       }} />}

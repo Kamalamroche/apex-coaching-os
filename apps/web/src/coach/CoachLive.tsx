@@ -18,6 +18,7 @@ import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
 import { ResourceProvider, liveResources } from "../data/resources";
+import { CoachRecipeProvider, liveCoachRecipes } from "../data/coachRecipes";
 import { NotesProvider, liveNotes } from "../data/clientNotes";
 import { TwinProvider, liveTwin } from "../data/twin";
 import { createSupabaseStore } from "../data/supabaseStore";
@@ -59,6 +60,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
   const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
+  const coachRecipes = useMemo(() => liveCoachRecipes(db, profile.id), [db, profile.id]);
   const team = useMemo(() => liveTeam(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const growth = useMemo(() => liveGrowth(db, { side: "coach", coachId: profile.id, coachName: profile.full_name, me: profile.id }), [db, profile.id, profile.full_name]);
   const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
@@ -78,13 +80,13 @@ export function CoachLive({ db, profile, signOut }: Live) {
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
                     <TeamProvider value={team}><GrowthProvider value={growth}>
-                    <ResourceProvider value={resources}>
+                    <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
                         <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
                         </TwinProvider>
                       </NotesProvider>
-                    </ResourceProvider>
+                    </CoachRecipeProvider></ResourceProvider>
                     </GrowthProvider></TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
