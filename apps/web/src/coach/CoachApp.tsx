@@ -59,7 +59,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
       {!account && tab === "chat" && <Messages live={live} say={say} />}
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
-      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business openGym={gymApi ? () => setGym(true) : undefined} />)}
+      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business live={live} say={say} openGym={gymApi ? () => setGym(true) : undefined} />)}
       {toast}
     </Shell>
   );

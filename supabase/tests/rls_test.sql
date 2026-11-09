@@ -1236,6 +1236,103 @@ do $$ begin
     raise exception 'a client added a lead';
   exception when insufficient_privilege then null; end;
 end $$;
+
+reset role;
+-- On-demand programmes: clients see their own coach's live programmes, start free ones, ask for paid ones;
+-- the coach unlocks them. Nobody else sees any of it; the public page shows only live programmes it lists.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+insert into programme_listings (id, title, status, price_pence, weeks, days) values
+  ('a0000000-0000-0000-0000-000000000001', 'First six weeks', 'live', 0, 2,
+   '[{"week":1,"dayIndex":0,"name":"Full body A","minutes":45,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":40,"rpe":7,"restSeconds":120},{"group":"B1","exerciseId":2,"sets":3,"reps":"10","kg":0,"rpe":7,"restSeconds":60,"setPlan":[{"reps":"10","kg":0},{"reps":"8","kg":0},{"reps":"6","kg":0}]}]},
+     {"week":2,"dayIndex":0,"name":"Full body A","minutes":45,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":42.5,"rpe":7,"restSeconds":120}]}]'),
+  ('a0000000-0000-0000-0000-000000000002', 'Strong in 8', 'live', 4900, 1,
+   '[{"week":1,"dayIndex":2,"name":"Lower","minutes":50,"items":[{"group":"A","exerciseId":1,"sets":5,"reps":"5","kg":60,"rpe":8,"restSeconds":180}]}]'),
+  ('a0000000-0000-0000-0000-000000000003', 'Draft idea', 'draft', 0, 1,
+   '[{"week":1,"dayIndex":0,"name":"Day","minutes":30,"items":[{"group":"A","exerciseId":1,"sets":3,"reps":"8","kg":0,"rpe":7,"restSeconds":90}]}]');
+do $$ begin
+  begin
+    insert into programme_listings (title, weeks, days, price_pence) values ('Too cheap', 1, '[{"week":1}]', 50);
+    raise exception 'a 50p programme was accepted';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ declare v_program uuid; begin
+  assert (select count(*) from programme_listings) = 2, 'client sees live programmes only';
+  begin
+    insert into programme_listings (coach_id, title, weeks, days) values ('00000000-0000-0000-0000-0000000000f2', 'Mine', 1, '[{"week":1}]');
+    raise exception 'client created a programme';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into programme_enrolments (listing_id, coach_id, client_id, status, paid_pence, paid_via)
+    values ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000f2', 'active', 0, 'manual');
+    raise exception 'client unlocked a paid programme themselves';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000002');
+    raise exception 'client started a paid programme without paying';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000003');
+    raise exception 'client started a draft';
+  exception when no_data_found then null; end;
+
+  v_program := public.start_programme('a0000000-0000-0000-0000-000000000001');
+  assert (select name from programs where id = v_program) = 'First six weeks', 'free programme copied into a program';
+  assert (select count(*) from workouts w join program_versions v on v.id = w.program_version_id where v.program_id = v_program) = 2, 'every day copied';
+  assert (select count(*) from workout_items i join workouts w on w.id = i.workout_id join program_versions v on v.id = w.program_version_id where v.program_id = v_program) = 3, 'every exercise copied';
+  assert (select jsonb_array_length(i.set_plan) from workout_items i join workouts w on w.id = i.workout_id join program_versions v on v.id = w.program_version_id where v.program_id = v_program and i.group_label = 'B1') = 3, 'set plans kept';
+  assert (select status from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000001') = 'active', 'free start enrols';
+
+  perform public.request_programme('a0000000-0000-0000-0000-000000000002');
+  perform public.request_programme('a0000000-0000-0000-0000-000000000002');
+  assert (select status from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 'requested', 'asked for the paid one';
+  begin
+    update programme_enrolments set status = 'active';
+    assert (select count(*) from programme_enrolments where status = 'requested') = 1, 'client cannot unlock by update';
+  end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from programme_listings) = 0, 'rival sees no programmes';
+  assert (select count(*) from programme_enrolments) = 0, 'rival sees no enrolments';
+  update programme_enrolments set status = 'active';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  assert (select count(*) from programme_listings) = 0, 'another coach''s client sees nothing';
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000001');
+    raise exception 'not their coach, still started';
+  exception when no_data_found then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ begin
+  assert (select count(*) from programme_enrolments) = 2, 'coach sees both enrolments';
+  assert (select p.full_name from programme_enrolments e join profiles p on p.id = e.client_id where e.status = 'requested') = 'Fiona Client', 'coach sees who asked';
+  update programme_enrolments set status = 'active', paid_pence = 4900, paid_via = 'manual' where listing_id = 'a0000000-0000-0000-0000-000000000002';
+  begin
+    delete from programme_listings where id = 'a0000000-0000-0000-0000-000000000001';
+    raise exception 'deleted a programme people had joined';
+  exception when foreign_key_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+do $$ begin
+  assert public.start_programme('a0000000-0000-0000-0000-000000000002') is not null, 'unlocked programme starts';
+  assert (select paid_pence from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 4900, 'payment kept after starting';
+  assert (select paid_via from programme_enrolments where listing_id = 'a0000000-0000-0000-0000-000000000002') = 'manual', 'payment method kept';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update programme_listings set on_page = false;
+insert into programme_listings (title, status, weeks, days, on_page) values
+  ('Grow strong', 'live', 4, '[{"week":1,"dayIndex":0,"name":"A","minutes":40,"items":[]},{"week":1,"dayIndex":3,"name":"B","minutes":40,"items":[]}]', true),
+  ('Hidden', 'live', 4, '[{"week":1,"dayIndex":0,"name":"A","minutes":40,"items":[]}]', false);
 reset role;
 set role anon;
 select set_config('request.jwt.claim.sub', '', false);
@@ -1272,6 +1369,15 @@ update lead_settings set notify_on = false;
 set role service_role;
 do $$ begin
   assert (select count(*) from public.pending_lead_emails() where kind = 'coach') = 0, 'coach switched alerts off';
+
+reset role;
+  assert (select count(*) from public.public_programmes('grow-coach')) = 1, 'public page lists only shown programmes';
+  assert (select per_week from public.public_programmes('grow-coach')) = 2, 'days a week counted';
+  assert (select count(*) from public.public_programmes('nobody-here')) = 0, 'no page, no programmes';
+  begin
+    perform public.start_programme('a0000000-0000-0000-0000-000000000001');
+    raise exception 'anon started a programme';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 

@@ -1,11 +1,16 @@
 import { CLIENTS } from "@apex/core";
 import { Avatar, CountUp, Icons, Label } from "@apex/ui";
+import { useState } from "react";
 import { SampleNote } from "../../app/AppContext";
+import type { CoachLiveProps } from "../CoachApp";
+import { CoachProgrammes } from "./CoachProgrammes";
 
 const MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
 const REVENUE = [920, 1010, 1080, 1150, 1170, 1220];
 
-export function Business({ openGym }: { openGym?: () => void }) {
+export function Business({ live, say = () => {}, openGym }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void }) {
+  const [shop, setShop] = useState(false);
+  if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   const max = Math.max(...REVENUE);
   const total = CLIENTS.reduce((a, c) => a + c.monthlyRevenue, 0);
   return (
@@ -24,6 +29,13 @@ export function Business({ openGym }: { openGym?: () => void }) {
           </button>
         </div>
       )}
+      <div className="card flat list full">
+        <button className="li" onClick={() => setShop(true)}>
+          <span className="mi c2"><Icons.train /></span>
+          <div className="grow"><div className="h3">Programmes</div><div className="small">Sell ready-made plans to many clients at once, free or paid</div></div>
+          <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
+        </button>
+      </div>
       <SampleNote />
       <div className="card">
         <div className="sect"><h3 className="h3">Monthly revenue, 6 months</h3><Label kind="data">Data</Label></div>

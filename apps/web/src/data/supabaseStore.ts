@@ -29,6 +29,8 @@ export interface LiveStore extends ApexStore {
   pending(): OutboxJob[];
   /** Resolves once the last program change has been written (or failed: see error()). */
   flush(): Promise<void>;
+  /** Loads the program again, e.g. after the client started an on-demand programme on the server. */
+  reload(): Promise<void>;
 }
 
 interface Ids {
@@ -595,6 +597,10 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     },
     flush() {
       return writes;
+    },
+    reload() {
+      chosenDay = null;
+      return load();
     },
     close() {
       clearTimeout(saveTimer);
