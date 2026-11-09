@@ -30,6 +30,7 @@ export * from "./booking";
 export * from "./challenges";
 export * from "./resources";
 export * from "./clientNotes";
+export * from "./onDemand";
 export * from "./hero";
 export { EXERCISES } from "./data/exercises";
 export { CLIENTS, DEMO_CLIENT_ID } from "./data/clients";

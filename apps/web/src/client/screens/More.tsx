@@ -16,6 +16,8 @@ import { Goals } from "./Goals";
 import { Book } from "./Book";
 import { Challenges } from "./Challenges";
 import { Resources } from "./Resources";
+import { Programmes } from "./Programmes";
+import { useProgrammesApi } from "../../app/ProgrammeParts";
 import { Team } from "./Team";
 import { useTeamApi } from "../../data/team";
 import { InviteFriend, useFriendInvite } from "../../app/GrowthParts";
@@ -26,11 +28,11 @@ import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
 
-type View = "account" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
+type View = "account" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
 
 export type MoreView = View;
 
-export function More({ say, start }: { say: (m: string) => void; start?: View | null }) {
+export function More({ say, start, goTrain }: { say: (m: string) => void; start?: View | null; goTrain?: () => void }) {
   const [view, setView] = useState<View | null>(start ?? null);
   const teamApi = useTeamApi();
   const friend = useFriendInvite();
@@ -43,6 +45,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
   const bookingApi = useBookingApi();
   const challengeApi = useChallengeApi();
   const resourceApi = useResourceApi();
+  const programmeApi = useProgrammesApi("client");
   const bookingData = useBookings(bookingApi);
   const nextBooking = bookingApi ? upcomingBookings(bookingData.bookings.filter((b) => b.clientId === bookingApi.me), new Date())[0] : undefined;
   const reached = goals.goals.filter((g) => goalProgress(g, inputs).achieved).length;
@@ -54,6 +57,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
     ...(teamApi ? [["team", "Team", `${coachName}'s private team: high fives and the weekly effort board`] as [View, string, string]] : []),
     ...(friend ? [["invite", "Invite a friend", friend.summary.joined ? `${friend.summary.joined} joined ${coachName} through you` : `Bring a friend to train with ${coachName}`] as [View, string, string]] : []),
     ...(challengeApi ? [["challenges", "Challenges", `Join ${coachName}'s challenges and climb the leaderboard`] as [View, string, string]] : []),
+    ...(programmeApi ? [["programmes", "Programmes", `Ready-made plans from ${coachName}. Start any time`] as [View, string, string]] : []),
     ...(resourceApi ? [["resources", "Resources", `Guides, videos and links from ${coachName}`] as [View, string, string]] : []),
     ["goals", "Goals", goals.goals.length ? `${goals.goals.length - reached} on the go${reached ? ` · ${reached} reached` : ""} · badges` : "Set a goal and earn badges"],
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
@@ -63,7 +67,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
     ...(teamApi ? [] : [["community", "Community", "Leaderboard and team feed"] as [View, string, string]]),
   ];
   const ICON: Record<View, [IconName, string]> = {
-    book: ["today", "c1"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
+    book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
     habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
@@ -76,6 +80,7 @@ export function More({ say, start }: { say: (m: string) => void; start?: View | 
         {view === "team" && <Team say={say} />}
         {view === "invite" && <InviteFriend say={say} />}
         {view === "challenges" && <Challenges say={say} />}
+        {view === "programmes" && <Programmes say={say} onTrain={goTrain} />}
         {view === "resources" && <Resources />}
         {view === "goals" && <Goals say={say} />}
         {view === "food" && <ClientNutrition />}

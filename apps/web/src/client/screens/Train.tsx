@@ -13,7 +13,7 @@ const PAGE = 40;
 export function Train({ start, say }: { start: () => void; say: (m: string) => void }) {
   const store = useStore();
   const [mode, setMode] = useState<"strength" | "cardio">("strength");
-  const { workout, log } = useApexState(store);
+  const { workout, log, program, activeDay } = useApexState(store);
   const [area, setArea] = useState<(typeof AREAS)[number]>("All");
   const [type, setType] = useState<(typeof TYPES)[number]>("All");
   const [query, setQuery] = useState("");
@@ -37,19 +37,19 @@ export function Train({ start, say }: { start: () => void; say: (m: string) => v
       </>
     );
   }
-  const schedule = [
-    { date: "Sat 25 Oct", name: workout.name, state: log ? "done" : "today" },
-    { date: "Mon 27 Oct", name: "Upper A · Strength", state: "next" },
-    { date: "Wed 29 Oct", name: "Lower B · Volume", state: "next" },
-    { date: "Fri 31 Oct", name: "Upper B · Volume", state: "next" },
-  ];
+  // This week of the client's real program: the active day first to train, the rest planned.
+  const DAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const week = program.days.filter((d) => d.week === workout.week).sort((a, b) => a.dayIndex - b.dayIndex);
+  const schedule = week.length
+    ? week.map((d) => ({ date: DAY[d.dayIndex] ?? "", name: d.name, state: d.key === activeDay ? (log ? "done" : "today") : "next" }))
+    : [{ date: "Today", name: workout.name, state: log ? "done" : "today" }];
   return (
     <>
       {modes}
       <section className="hero cover short" aria-label="Your program">
         <HeroBackdrop art={HERO_IMAGES[heroForWorkout(workout)]} word={null} />
         <div className="cv-title">
-          <EditorialTitle as="h1" text="Foundations" caption={`Program · week ${workout.week} of ${workout.ofWeeks}`} />
+          <EditorialTitle as="h1" text={program.name || "Your program"} caption={`Program · week ${workout.week} of ${workout.ofWeeks}`} />
         </div>
         <div className="cv-weeks" role="img" aria-label={`Week ${workout.week} of ${workout.ofWeeks}`}>
           {Array.from({ length: workout.ofWeeks }, (_, k) => <i key={k} className={k < workout.week - 1 ? "done" : k === workout.week - 1 ? "now" : undefined} style={{ ["--i" as string]: k }} />)}
@@ -57,7 +57,7 @@ export function Train({ start, say }: { start: () => void; say: (m: string) => v
         <div className="hero-body">
           <ul className="cv-list">
             {schedule.map((r, i) => (
-              <li key={r.date} className={r.state} style={{ ["--i" as string]: i }}>
+              <li key={r.date + r.name} className={r.state} style={{ ["--i" as string]: i }}>
                 <span className="grow"><small>{r.date}</small><b>{r.name}</b></span>
                 {r.state === "today" ? <button className="cv-go" onClick={start}><Icons.play width={14} height={14} /> Start</button> : r.state === "done" ? <span className="gpill dim"><Icons.check /> Done</span> : <small className="cv-plan">Planned</small>}
               </li>

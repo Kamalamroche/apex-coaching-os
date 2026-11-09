@@ -1,8 +1,9 @@
-import { GOAL_CHOICES, REQUEST_MESSAGE_MAX, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft } from "@apex/core";
+import { formatPrice, GOAL_CHOICES, REQUEST_MESSAGE_MAX, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft } from "@apex/core";
 import { Celebrate, CoachPageView, EditorialTitle, Icons, Sheet, ThemeButton } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage } from "../data/growth";
 import { isDemo, supabase } from "../data/supabase";
+import { ProgrammeShelf } from "./ProgrammeShelf";
 
 /** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=. */
 export function CoachPublic() {
@@ -14,6 +15,7 @@ export function CoachPublic() {
   const [page, setPage] = useState<CoachPage | null | undefined>(undefined);
   const [asking, setAsking] = useState(false);
   const [sent, setSent] = useState(false);
+  const [interest, setInterest] = useState("");
 
   useEffect(() => {
     if (!slug) { setPage(null); return; }
@@ -46,12 +48,13 @@ export function CoachPublic() {
           ? <span className="gr-cta glass" role="status"><Icons.check width={16} height={16} /> Sent · {first} will be in touch</span>
           : <button className="gr-cta" onClick={() => setAsking(true)}>Train with {first} <Icons.arrow width={15} height={15} /></button>}
       />
-      {!sent && <button className="gr-cta" style={{ animationDelay: "0s" }} onClick={() => setAsking(true)}>Ask to train with {first}</button>}
+      <ProgrammeShelf slug={page.slug} first={first} onPick={(p) => { setInterest(`I'm interested in ${p.title} (${formatPrice(p.pricePence)}).`); setAsking(true); }} />
+      {!sent && <button className="gr-cta" style={{ animationDelay: "0s" }} onClick={() => { setInterest(""); setAsking(true); }}>Ask to train with {first}</button>}
       {asking && (
         <Sheet label={`Train with ${first}`} onClose={() => setAsking(false)}>
           {sent
             ? <Sent first={first} onDone={() => setAsking(false)} />
-            : <RequestForm first={first} referred={!!ref} onSend={async (d) => { await api.request(page.slug, d, ref); setSent(true); }} />}
+            : <RequestForm key={interest} first={first} referred={!!ref} message={interest} onSend={async (d) => { await api.request(page.slug, d, ref); setSent(true); }} />}
         </Sheet>
       )}
     </main>
@@ -67,8 +70,8 @@ function Top() {
   );
 }
 
-function RequestForm({ first, referred, onSend }: { first: string; referred: boolean; onSend: (d: JoinRequestDraft) => Promise<void> }) {
-  const [d, setD] = useState<JoinRequestDraft>({ name: "", email: "", goal: "", message: "" });
+function RequestForm({ first, referred, message = "", onSend }: { first: string; referred: boolean; message?: string; onSend: (d: JoinRequestDraft) => Promise<void> }) {
+  const [d, setD] = useState<JoinRequestDraft>({ name: "", email: "", goal: "", message });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof JoinRequestDraft, v: string) => { setD((x) => ({ ...x, [k]: v })); setError(null); };
