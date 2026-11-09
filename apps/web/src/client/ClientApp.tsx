@@ -60,7 +60,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
       }} />}
       {!checkingIn && !intaking && tab === "train" && <Train start={start} say={say} />}
       {!checkingIn && !intaking && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
-      {!checkingIn && !intaking && tab === "chat" && <Chat />}
+      {!checkingIn && !intaking && tab === "chat" && <Chat say={say} />}
       {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} goTrain={() => { setTab("train"); window.scrollTo(0, 0); }} />}
       {toast}
     </Shell>

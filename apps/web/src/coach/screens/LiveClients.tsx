@@ -17,6 +17,10 @@ import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { Transfer } from "./Transfer";
 import { ClientReport } from "./Report";
+import { HealthBadge, HealthTrend } from "@apex/ui";
+import type { Health } from "@apex/core";
+import { useRosterHealth } from "../../data/health";
+import { ClientHealthPanel } from "./ClientHealth";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {
@@ -26,14 +30,17 @@ const ago = (iso: string | null) => {
 };
 
 /** The coach's real clients, invite links, and the selected client's program. */
-export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say: (m: string) => void; goBuild: () => void }) {
-  const [open, setOpen] = useState<string | null>(null);
+export function LiveClients({ live, say, goBuild, initialOpen = null }: { live: CoachLiveProps; say: (m: string) => void; goBuild: () => void; initialOpen?: string | null }) {
+  const [open, setOpen] = useState<string | null>(initialOpen);
+  const [order, setOrder] = useState<"need" | "newest">("need");
   const [link, setLink] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [transfer, setTransfer] = useState(false);
   const [tag, setTag] = useState<string | null>(null);
   const { tags, reload: reloadTags } = useClientTags();
   const clients = live.clients;
+  const health = useRosterHealth(live.db, live.coachId, clients);
+  const healthOf = new Map((health ?? []).map((r) => [r.client.id, r]));
 
   const invite = async () => {
     try {
@@ -48,21 +55,31 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   if (transfer) return <Transfer live={live} say={say} onBack={() => setTransfer(false)} />;
   const selected = clients?.find((c) => c.id === open);
   if (selected) {
-    return <LiveProfile clientId={selected.id} name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => { setOpen(null); void reloadTags(); }} goBuild={goBuild} say={say} />;
+    return <LiveProfile health={healthOf.get(selected.id) ?? null} clientId={selected.id} name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => { setOpen(null); void reloadTags(); }} goBuild={goBuild} say={say} />;
   }
 
-  const list = (clients ?? []).filter((c) => c.name.toLowerCase().includes(q.toLowerCase()) && (!tag || hasTag(tags[c.id], tag)));
+  const rank = new Map((health ?? []).map((r, i) => [r.client.id, i]));
+  const list = (clients ?? [])
+    .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()) && (!tag || hasTag(tags[c.id], tag)))
+    .sort((a, b) => (order === "need" && health ? (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999) : 0));
   return (
     <>
       <div><div className="eyebrow">Clients</div><h1 className="h1">{clients ? `${clients.length} active` : "Loading…"}</h1></div>
       {clients && clients.length > 0 && <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={(e) => setQ(e.target.value)} />}
       <TagFilter tags={tags} value={tag} onChange={setTag} />
+      {clients && clients.length > 1 && (
+        <div className="chips" role="tablist" aria-label="Order">
+          <button role="tab" aria-selected={order === "need"} className={`chip ${order === "need" ? "on" : ""}`} onClick={() => setOrder("need")}>Needs you first</button>
+          <button role="tab" aria-selected={order === "newest"} className={`chip ${order === "newest" ? "on" : ""}`} onClick={() => setOrder("newest")}>Newest</button>
+        </div>
+      )}
       <div className="card flat list">
         {clients?.length === 0 && <div className="li"><div className="small">No clients yet. Create an invite link and send it to your first client, or import the clients you already coach.</div></div>}
         {list.map((c) => (
           <button key={c.id} className="li" onClick={() => { live.setActiveClientId(c.id); setOpen(c.id); }}>
             <Avatar initials={initials(c.name)} tone={c.id === live.activeClientId ? "var(--act)" : undefined} />
             <div className="grow"><div className="h3">{c.name}</div><div className="small">{c.mode} · {ago(c.lastSession)}</div><TagList tags={tags[c.id]} /></div>
+            {healthOf.get(c.id) && <span style={{ display: "flex", alignItems: "center", gap: 6 }}><HealthTrend trend={healthOf.get(c.id)!.trend} /><HealthBadge score={healthOf.get(c.id)!.health.score} band={healthOf.get(c.id)!.health.band} size={36} /></span>}
             <span className="tiny">›</span>
           </button>
         ))}
@@ -81,12 +98,12 @@ export function LiveClients({ live, say, goBuild }: { live: CoachLiveProps; say:
   );
 }
 
-function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }: { clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
+function LiveProfile({ health, clientId, name, mode, lastSession, onBack, goBuild, say }: { health: { health: Health; trend: number | null } | null; clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
   const u = useUnits();
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Programme" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Programme");
+  const [tab, setTab] = useState<"Programme" | "Health" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "About" | "Notes">("Programme");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -99,8 +116,9 @@ function LiveProfile({ clientId, name, mode, lastSession, onBack, goBuild, say }
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Programme", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Programme", "Health", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
+      {tab === "Health" && (health ? <ClientHealthPanel health={health.health} trend={health.trend} /> : <div className="card small">Working out {name.split(" ")[0]}'s health score…</div>)}
       {tab === "Report" && <ClientReport clientName={name} say={say} />}
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}

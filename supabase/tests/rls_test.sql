@@ -1606,3 +1606,92 @@ do $$ declare r record; begin
   assert not exists (select 1 from public.take_checkin_alerts() where kind = 'booking'), 'once, and none for a call booked inside 24 h';
 end $$;
 reset role;
+
+-- Business: fees and end dates on coach_clients; ending a client stamps ended_at, bringing them back clears it.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update coach_clients set monthly_fee_pence = 15000 where client_id = '00000000-0000-0000-0000-0000000000a2';
+do $$ begin
+  assert (select monthly_fee_pence from coach_clients where client_id = '00000000-0000-0000-0000-0000000000a2') = 15000, 'coach sets a fee';
+  begin
+    update coach_clients set monthly_fee_pence = -1 where client_id = '00000000-0000-0000-0000-0000000000a2';
+    raise exception 'negative fee saved';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+update coach_clients set monthly_fee_pence = 1 where client_id = '00000000-0000-0000-0000-0000000000a2';
+reset role;
+do $$ begin
+  assert (select monthly_fee_pence from coach_clients where client_id = '00000000-0000-0000-0000-0000000000a2') = 15000, 'rival can''t change the fee';
+end $$;
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a3');
+update coach_clients set status = 'ended' where client_id = '00000000-0000-0000-0000-0000000000a3';
+do $$ begin
+  assert (select ended_at from coach_clients where client_id = '00000000-0000-0000-0000-0000000000a3') is not null, 'ending stamps the date';
+end $$;
+update coach_clients set status = 'active' where client_id = '00000000-0000-0000-0000-0000000000a3';
+do $$ begin
+  assert (select ended_at from coach_clients where client_id = '00000000-0000-0000-0000-0000000000a3') is null, 'coming back clears it';
+end $$;
+update coach_clients set status = 'ended' where client_id = '00000000-0000-0000-0000-0000000000a3';
+
+-- Saved replies: private to their coach; clients can't keep any.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into saved_replies (coach_id, title, body) values ('00000000-0000-0000-0000-0000000000a1', 'Great session', 'Great work, {name}.');
+do $$ begin
+  assert (select count(*) from saved_replies) = 1, 'coach sees own reply';
+  begin
+    insert into saved_replies (coach_id, title, body) values ('00000000-0000-0000-0000-0000000000a1', '', 'x');
+    raise exception 'empty title saved';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from saved_replies) = 0, 'rival sees no replies';
+  begin
+    insert into saved_replies (coach_id, title, body) values ('00000000-0000-0000-0000-0000000000a1', 'x', 'x');
+    raise exception 'wrote into another coach''s replies';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+do $$ begin
+  assert (select count(*) from saved_replies) = 0, 'client sees no replies';
+  begin
+    insert into saved_replies (coach_id, title, body) values ('00000000-0000-0000-0000-0000000000a2', 'x', 'x');
+    raise exception 'client kept a saved reply';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+-- Voice notes: in the thread's client folder; both sides upload and play, a rival does neither.
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+insert into storage.objects (bucket_id, name) values ('voice-notes','00000000-0000-0000-0000-0000000000a2/v1.webm');
+insert into messages (coach_id, client_id, sender_id, body, voice_path, voice_seconds)
+  values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a2','Voice note (0:12)','00000000-0000-0000-0000-0000000000a2/v1.webm',12);
+do $$ begin
+  begin
+    insert into messages (coach_id, client_id, sender_id, body, voice_path, voice_seconds)
+      values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a2','Voice note','00000000-0000-0000-0000-0000000000a3/v.webm',5);
+    raise exception 'voice note outside the thread''s folder';
+  exception when check_violation then null; end;
+  begin
+    insert into messages (coach_id, client_id, sender_id, body, voice_path, voice_seconds)
+      values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-0000000000a2','Voice note','00000000-0000-0000-0000-0000000000a2/v.webm',600);
+    raise exception 'ten-minute voice note';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into storage.objects (bucket_id, name) values ('voice-notes','00000000-0000-0000-0000-0000000000a2/v2.webm');
+do $$ begin
+  assert (select count(*) from storage.objects where bucket_id = 'voice-notes') = 2, 'coach plays both notes';
+  assert (select voice_seconds from messages where voice_path is not null limit 1) = 12, 'coach reads the note';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from storage.objects where bucket_id = 'voice-notes') = 0, 'rival plays nothing';
+  begin
+    insert into storage.objects (bucket_id, name) values ('voice-notes','00000000-0000-0000-0000-0000000000a2/x.webm');
+    raise exception 'rival uploaded into the thread';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

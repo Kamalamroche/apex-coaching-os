@@ -223,6 +223,8 @@ export interface Message {
   from: "coach" | "client";
   text: string;
   time: string;
+  /** A voice note: where the recording is stored (or a local link in the demo) and how long it runs. */
+  voice?: { path: string; seconds: number };
 }
 
 export interface Food {

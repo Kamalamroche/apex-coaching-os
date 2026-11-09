@@ -1,7 +1,7 @@
-import { CLIENTS, HERO_IMAGES, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
+import { CLIENTS, HERO_IMAGES, type RosterRow, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
@@ -12,6 +12,8 @@ import { TwinCard, TwinQueue } from "./Twin";
 import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
 import { GoingQuiet } from "./Quiet";
+import { ClientHealthCard } from "./ClientHealth";
+import { demoRosterHealth, useRosterHealth, type HealthClient } from "../../data/health";
 import type { CoachLiveProps } from "../CoachApp";
 
 interface TriageItem {
@@ -45,7 +47,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, say, clientCount, clients, live }: { openClient: (id: number) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
+export function Brief({ openClient, openLiveClient, say, clientCount, clients, live }: { openClient: (id: number) => void; openLiveClient?: (id: string) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -55,6 +57,11 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
   const hero = HERO_IMAGES[heroForWorkout(workout)];
   const newCheckIn = mode === "live" ? newestFirst(progress.checkIns).find((c) => !c.reviewedAt) : undefined;
   const plateaus = usePlateaus();
+  const liveHealth = useRosterHealth(mode === "live" ? live?.db : undefined, live?.coachId, clients);
+  const demoHealth = useMemo(() => (mode === "demo" ? demoRosterHealth() : null), [mode]);
+  const health: RosterRow<HealthClient>[] | null = mode === "live" ? liveHealth : demoHealth;
+  const scored = (health ?? []).filter((r) => r.health.score !== null);
+  const avgHealth = scored.length ? Math.round(scored.reduce((a, r) => a + r.health.score!, 0) / scored.length) : null;
   const [handled, setHandled] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState<TriageItem | null>(null);
   const [selected, setSelected] = useState<Record<number, boolean>>({ 2: true, 4: true, 5: true });
@@ -76,7 +83,11 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
         <div className="hero-body">
           <div className="cv-stats three">
             <div style={{ ["--i" as string]: 0 }}><b><CountUp value={clientCount ?? CLIENTS.length} /></b><small>Active clients</small>{mode === "demo" && <i>+2 this month</i>}</div>
-            <div style={{ ["--i" as string]: 1 }}><b><CountUp value={74} />%</b><small>Sessions done, 7 days</small><i>+4 pts</i></div>
+            {mode === "live" ? (
+              <div style={{ ["--i" as string]: 1 }}><b>{avgHealth === null ? "–" : <CountUp value={avgHealth} />}</b><small>Average client health</small>{scored.length > 0 && <i>{scored.filter((r) => r.health.band === "low").length} need you</i>}</div>
+            ) : (
+              <div style={{ ["--i" as string]: 1 }}><b><CountUp value={74} />%</b><small>Sessions done, 7 days</small><i>+4 pts</i></div>
+            )}
             <div style={{ ["--i" as string]: 2 }}><b><CountUp value={pending.length} /></b><small>Need you today</small><i>{TRIAGE.length - pending.length} handled</i></div>
           </div>
         </div>
@@ -111,6 +122,8 @@ export function Brief({ openClient, say, clientCount, clients, live }: { openCli
       </div>
 
       <GoingQuiet live={live} say={say} />
+
+      <ClientHealthCard rows={health} open={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />
 
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>

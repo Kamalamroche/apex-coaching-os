@@ -63,6 +63,9 @@ export interface MessageRow {
   sender_id: string;
   body: string;
   created_at: string;
+  /** Voice notes only. Missing on databases that haven't run the chat-tools SQL yet. */
+  voice_path?: string | null;
+  voice_seconds?: number | null;
 }
 
 /** "67.5 kg × 5", "35 s" or "8 reps" from the client's most recent set of an exercise. */
@@ -191,4 +194,9 @@ export function bestKgByExercise(rows: Pick<LoggedSetRow, "exercise_id" | "load_
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 export const toMessages = (rows: MessageRow[], coachId: string): Message[] =>
-  rows.map((r) => ({ from: r.sender_id === coachId ? "coach" : "client", text: r.body, time: hhmm(r.created_at) }));
+  rows.map((r) => ({
+    from: r.sender_id === coachId ? "coach" : "client",
+    text: r.body,
+    time: hhmm(r.created_at),
+    ...(r.voice_path ? { voice: { path: r.voice_path, seconds: r.voice_seconds ?? 0 } } : {}),
+  }));

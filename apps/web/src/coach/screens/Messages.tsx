@@ -13,6 +13,7 @@ import { CoachTeam } from "./CoachTeam";
 import { useTeamApi } from "../../data/team";
 import { openedForLeads, useGrowthApi } from "../../data/growth";
 import { CoachGrow } from "./CoachGrow";
+import { demoReplies, liveReplies } from "../../data/savedReplies";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -22,6 +23,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const { status } = useStoreStatus();
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
+  const replies = useMemo(() => (live ? liveReplies(live.db, live.coachId) : demoReplies()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
   const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | null>(() => (openedForLeads() ? "grow" : null));
   const teamApi = useTeamApi();
@@ -97,7 +99,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
           ))}
         </div>
       )}
-      {status === "loading" ? <div className="small">Loading messages…</div> : status === "error" ? <div className="card small">Couldn't load messages. Reload the page to try again.</div> : <Thread me="coach" to={firstName(clientName)} />}
+      {status === "loading" ? <div className="small">Loading messages…</div> : status === "error" ? <div className="card small">Couldn't load messages. Reload the page to try again.</div> : <Thread me="coach" to={firstName(clientName)} replies={replies} say={say} />}
     </>
   );
 }
