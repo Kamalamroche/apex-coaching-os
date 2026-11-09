@@ -1,9 +1,12 @@
 import { useState, type ReactElement } from "react";
-import { Icons, ThemeButton } from "@apex/ui";
+import { CountUp, Icons } from "@apex/ui";
 import { BriefPoster, DayPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
+import { AUDIENCES, CLIENT_APP, FACTS, FAQ, FEATURE_GROUPS, INTEGRATIONS, LABELS, PLANS, SHOTS } from "./site/content";
+import { Faq, Frame, SecHead, SiteShell } from "./site/Site";
 
-/* Public marketing page at /. Sign-in and demos live at /start/, /coach/ and /client/.
-   Poster layout: each section pairs one campaign poster (see Posters.tsx) with a few lines of copy.
+/* Public home page at /. Sign-in and demos live at /start/, /coach/ and /client/.
+   Structure: hero, real product numbers, tabbed product tour, coach + client apps, a coaching day in posters,
+   AI labels, audiences, integrations, pricing teaser, founder story, FAQ, final call.
    Copy is original. Only features that exist today are sold. */
 
 type Poster = { id: string; Art: () => ReactElement; kicker: string; title: string; body: string };
@@ -26,157 +29,210 @@ const POSTERS: Poster[] = [
   },
 ];
 
-/* Proposed pricing, not live yet: billing arrives with Stripe. */
-const PLANS = [
-  { name: "Starter", price: "£0", clients: "Up to 3 clients" },
-  { name: "Coach", price: "£35", clients: "Up to 30 clients", featured: true },
-  { name: "Studio", price: "£69", clients: "Up to 100 clients" },
-  { name: "Team", price: "£119", clients: "Unlimited clients" },
-];
-
-const FAQ = [
-  { q: "Do my clients need to download an app?", a: "No. The client app runs in the phone's browser and can be added to the home screen like any other app. They tap your invite link and they are in." },
-  { q: "Are any features locked behind higher plans?", a: "No. Every plan includes every feature. Plans only differ in how many active clients you coach. Your own branding on the client app is available as an add-on." },
-  { q: "Does the AI change my clients' programs?", a: "Never on its own. AI suggestions are clearly labelled and wait for you. Nothing reaches a client until you accept it." },
-  { q: "How do I get started?", a: "Sign in with your email, name your coaching business, then send each client a private invite link. Most coaches run their first session the same afternoon." },
-  { q: "Can I try it before I sign up?", a: "Yes. Open the demo to explore the coach and client apps with sample data, no account needed." },
-  { q: "Who is behind APEX?", a: "APEX is built by a working personal trainer at HELIX, for coaches who would rather spend their time coaching than on admin." },
-];
-
-export function Landing() {
-  const [offer, setOffer] = useState(true);
+function Tour() {
+  const [tab, setTab] = useState("training");
+  const g = FEATURE_GROUPS.find((x) => x.id === tab);
+  if (!g) return null;
   return (
-    <div className="lp">
-      {offer && (
-        <div className="lp-offer" role="region" aria-label="Offer">
-          <p><b>Founding coaches</b> start free, every feature included. <a href="/coach/">Claim your spot</a></p>
-          <button className="lp-offer-x" onClick={() => setOffer(false)} aria-label="Close offer">×</button>
-        </div>
-      )}
-      <header className="lp-top">
-        <div className="lp-wrap lp-bar">
-          <a href="/" className="lp-logo" aria-label="APEX home">
-            <Icons.logo width={24} height={24} />
-            <b>APEX</b>
-          </a>
-          <nav className="lp-nav" aria-label="Sections">
-            <a href="#how">How it works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
-          </nav>
-          <div className="lp-bar-acts">
-            <a className="lp-pill ghost" href="/start/">Sign in</a>
-            <a className="lp-pill act" href="/coach/">Start free</a>
-          </div>
-        </div>
-      </header>
-
-      <main>
-        <section className="lp-hero">
-          <div className="lp-wrap lp-hero-grid">
-            <DayPoster />
-            <div className="lp-hero-copy">
-              <h1 className="lp-h1">
-                <span>Coach more people.</span>
-                <span className="act">Keep it personal.</span>
-              </h1>
-              <p className="lp-lead">Software for personal trainers. Know who needs you each morning, and give every client an app that opens on today's workout.</p>
-              <div className="lp-ctas">
-                <a className="lp-pill act lg" href="/coach/">Start free</a>
-                <a className="lp-link" href="/coach/?demo">Try the demo →</a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div id="how">
-          {POSTERS.map((p, i) => (
-            <section key={p.id} className={`lp-poster ${i % 2 ? "flip" : ""}`}>
-              <div className="lp-wrap lp-poster-grid">
-                <p.Art />
-                <div className="lp-copy">
-                  <span className="lp-kick">{p.kicker}</span>
-                  <h2 className="lp-h2">{p.title}</h2>
-                  <p className="lp-lead">{p.body}</p>
-                </div>
-              </div>
-            </section>
+    <section className="lp-sec st-tour" id="tour">
+      <div className="lp-wrap">
+        <SecHead center kick="Everything in one place" title="One app instead of five." lead="Programs, nutrition, habits, messages and bookings share one record of each client, so you never copy anything twice." />
+        <div className="st-tabs rv" role="tablist" aria-label="Product areas">
+          {FEATURE_GROUPS.map((x) => (
+            <button key={x.id} role="tab" type="button" aria-selected={x.id === tab} className={x.id === tab ? "on" : ""} onClick={() => setTab(x.id)}>{x.name}</button>
           ))}
         </div>
-
-        <section className="lp-poster flip">
-          <div className="lp-wrap lp-poster-grid">
-            <ShapePoster />
-            <div className="lp-copy">
-              <span className="lp-kick">Built at HELIX</span>
-              <h2 className="lp-h2">Made by a coach, for coaches.</h2>
-              <p className="lp-lead">Every screen answers a question you ask every day: who needs me, what changes next, and is my client actually progressing?</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="lp-sec" id="pricing">
-          <div className="lp-wrap lp-narrow">
-            <span className="lp-kick">Pricing</span>
-            <h2 className="lp-h2">Every feature on every plan.</h2>
-            <p className="lp-lead">Pay for the number of clients you coach. Monthly, cancel any time.</p>
-            <ul className="lp-plans">
-              {PLANS.map((p) => (
-                <li key={p.name} className={p.featured ? "on" : ""}>
-                  <span className="lp-plan-name">{p.name}{p.featured && <em>Most popular</em>}</span>
-                  <span className="lp-plan-clients">{p.clients}</span>
-                  <b className="lp-plan-price num">{p.price}<small>/mo</small></b>
-                </li>
-              ))}
+        <div className="st-tour-panel" role="tabpanel" key={g.id}>
+          <div className="st-tour-copy">
+            <span className="lp-kick">{g.kicker}</span>
+            <h3 className="st-h3">{g.title}</h3>
+            <p className="lp-lead">{g.lead}</p>
+            <ul className="st-ticks">
+              {g.items.slice(0, 4).map((i) => <li key={i.name}><Icons.check width={16} height={16} /><span><b>{i.name}.</b> {i.text}</span></li>)}
             </ul>
-            <a className="lp-pill act lg" href="/coach/">Start free</a>
+            <a className="st-arrow" href={`/features/#${g.id}`}>Explore {g.name.toLowerCase()}</a>
           </div>
-        </section>
+          <div className={`st-tour-shot ${g.shot.kind}`}>
+            <Frame shot={g.shot} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-        <section className="lp-sec" id="faq">
-          <div className="lp-wrap lp-narrow">
-            <span className="lp-kick">Questions</span>
-            <div className="lp-faq">
-              {FAQ.map((f) => (
-                <details key={f.q}>
-                  <summary>{f.q}</summary>
-                  <p>{f.a}</p>
-                </details>
-              ))}
+export function Landing() {
+  return (
+    <SiteShell path="/" cta={false}>
+      <section className="lp-hero st-hero">
+        <div className="lp-wrap lp-hero-grid">
+          <div className="st-hero-art">
+            <DayPoster />
+            <Frame shot={SHOTS.today} className="st-hero-phone" eager />
+          </div>
+          <div className="lp-hero-copy">
+            <span className="lp-kick">Coaching software for personal trainers</span>
+            <h1 className="lp-h1">
+              <span>Coach more people.</span>
+              <span className="act">Keep it personal.</span>
+            </h1>
+            <p className="lp-lead">Know who needs you each morning, build programs that progress from real data, and give every client an app that opens on today's workout.</p>
+            <div className="lp-ctas">
+              <a className="lp-pill act lg" href="/coach/">Start free</a>
+              <a className="lp-link" href="/in-action/">See it in action →</a>
             </div>
+            <ul className="st-hero-notes">
+              <li><Icons.check width={15} height={15} />Free for your first 3 clients</li>
+              <li><Icons.check width={15} height={15} />Every feature on every plan</li>
+              <li><Icons.check width={15} height={15} />No card needed</li>
+            </ul>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="lp-final">
-          <div className="lp-wrap lp-final-grid">
-            <NextPoster />
-            <div className="lp-copy">
-              <h2 className="lp-h2 big">Your next client deserves your best coaching.</h2>
-              <div className="lp-ctas">
-                <a className="lp-pill act lg" href="/coach/">Start free</a>
-                <a className="lp-link" href="/client/?demo">See the client app →</a>
+      <section className="st-facts" aria-label="APEX in numbers">
+        <div className="lp-wrap st-facts-row">
+          {FACTS.map((f) => (
+            <div key={f.label} className="st-fact rv">
+              <b className="num"><CountUp value={f.value} duration={1200} /></b>
+              <span>{f.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Tour />
+
+      <section className="lp-sec st-two">
+        <div className="lp-wrap">
+          <SecHead center kick="Two apps, one relationship" title="Powerful for you. Simple for them." lead="A coach app for planning and running the business, and a client app built around today." />
+          <div className="st-two-grid">
+            <div className="st-two-card rv">
+              <span className="st-chip">For coaches</span>
+              <h3 className="st-h3">Your morning in five minutes.</h3>
+              <p>The Brief ranks who needs you, the builder carries last week forward, and the business screen shows what you earn.</p>
+              <Frame shot={SHOTS.brief} />
+            </div>
+            <div className="st-two-card dark rv">
+              <span className="st-chip">For clients</span>
+              <h3 className="st-h3">{CLIENT_APP.title}</h3>
+              <p>{CLIENT_APP.lead}</p>
+              <div className="st-two-phones">
+                <Frame shot={SHOTS.today} />
+                <Frame shot={SHOTS.rings} />
               </div>
             </div>
           </div>
-        </section>
-      </main>
-
-      <footer className="lp-foot">
-        <div className="lp-wrap lp-foot-row">
-          <a href="/" className="lp-logo sm" aria-label="APEX home">
-            <Icons.logo width={20} height={20} />
-            <b>APEX</b>
-          </a>
-          <nav className="lp-foot-nav" aria-label="Footer">
-            <a href="/start/">Sign in</a>
-            <a href="/coach/?demo">Coach demo</a>
-            <a href="/client/?demo">Client demo</a>
-            <a href="/legal/#privacy">Privacy</a>
-            <a href="/legal/#terms">Terms</a>
-          </nav>
-          <ThemeButton />
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <div id="how">
+        {POSTERS.map((p, i) => (
+          <section key={p.id} className={`lp-poster ${i % 2 ? "flip" : ""}`}>
+            <div className="lp-wrap lp-poster-grid">
+              <div className="rv"><p.Art /></div>
+              <div className="lp-copy rv">
+                <span className="lp-kick">{p.kicker}</span>
+                <h2 className="lp-h2">{p.title}</h2>
+                <p className="lp-lead">{p.body}</p>
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <section className="lp-sec st-labels">
+        <div className="lp-wrap">
+          <SecHead kick="Coach decides" title="AI that waits for your OK." lead="Every number and suggestion in APEX wears one of four labels. Nothing reaches a client until you accept it." />
+          <ol className="st-label-row">
+            {LABELS.map((l, i) => (
+              <li key={l.name} className={`rv tone-${l.tone}`} style={{ transitionDelay: `${i * 80}ms` }}>
+                <span className="st-label-tag">{l.name}</span>
+                <p>{l.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="lp-sec st-aud">
+        <div className="lp-wrap">
+          <SecHead kick="Who it's for" title="Built for the way you coach." />
+          <div className="st-aud-row">
+            {AUDIENCES.map((a) => (
+              <a key={a.id} href={`/solutions/#${a.id}`} className="st-aud-card rv">
+                <img src={a.photo} alt="" width={1080} height={1350} loading="lazy" />
+                <span className="st-aud-text"><b>{a.name}</b><small>{a.title}</small></span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-sec st-int">
+        <div className="lp-wrap st-int-grid">
+          <SecHead kick="Works with" title="Bring the data you already have." lead="Connect a watch or upload a file. Recovery, runs and steps land next to the training." />
+          <ul className="st-int-list rv">
+            {INTEGRATIONS.map((i) => (
+              <li key={i.name}><b>{i.name}</b><small>{i.text}</small>{i.soon && <em>Soon</em>}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="lp-sec" id="pricing">
+        <div className="lp-wrap lp-narrow">
+          <span className="lp-kick">Pricing</span>
+          <h2 className="lp-h2">Every feature on every plan.</h2>
+          <p className="lp-lead">Pay for the number of clients you coach. Monthly, cancel any time.</p>
+          <ul className="lp-plans">
+            {PLANS.map((p) => (
+              <li key={p.name} className={p.featured ? "on" : ""}>
+                <span className="lp-plan-name">{p.name}{p.featured && <em>Most popular</em>}</span>
+                <span className="lp-plan-clients">{p.clients}</span>
+                <b className="lp-plan-price num">£{p.monthly}<small>/mo</small></b>
+              </li>
+            ))}
+          </ul>
+          <div className="lp-ctas">
+            <a className="lp-pill act lg" href="/coach/">Start free</a>
+            <a className="lp-link" href="/pricing/">Compare plans →</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-poster flip">
+        <div className="lp-wrap lp-poster-grid">
+          <div className="rv"><ShapePoster /></div>
+          <div className="lp-copy rv">
+            <span className="lp-kick">Built at HELIX</span>
+            <h2 className="lp-h2">Made by a coach, for coaches.</h2>
+            <p className="lp-lead">Every screen answers a question you ask every day: who needs me, what changes next, and is my client actually progressing?</p>
+            <a className="st-arrow" href="/about/">Read the story</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-sec" id="faq">
+        <div className="lp-wrap lp-narrow">
+          <span className="lp-kick">Questions</span>
+          <Faq items={FAQ} />
+          <a className="st-arrow" href="/resources/#help">More answers in the help centre</a>
+        </div>
+      </section>
+
+      <section className="lp-final">
+        <div className="lp-wrap lp-final-grid">
+          <div className="rv"><NextPoster /></div>
+          <div className="lp-copy rv">
+            <h2 className="lp-h2 big">Your next client deserves your best coaching.</h2>
+            <div className="lp-ctas">
+              <a className="lp-pill act lg" href="/coach/">Start free</a>
+              <a className="lp-link" href="/client/?demo">See the client app →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </SiteShell>
   );
 }
