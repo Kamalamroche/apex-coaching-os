@@ -1,9 +1,10 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MEALS, RECIPES, filterRecipes, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
+  FOODS, MAX_PLAN_DAYS, MAX_RECIPE_STEPS, MEALS, RECIPES, filterRecipes, newCoachRecipe, recipeProblem, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { recipePhotoFromFile, useCoachRecipes } from "../data/coachRecipes";
 
 const TAGS: RecipeTag[] = ["High protein", "Under 15 min", "Vegetarian", "Vegan", "Gluten free", "Dairy free", "Batch cook"];
 const MEAL_TONE: Record<Meal, string> = { breakfast: "var(--viz-2)", lunch: "var(--viz-1)", dinner: "var(--act)", snack: "var(--viz-3)" };
@@ -12,13 +13,21 @@ const r0 = (v: number) => Math.round(v);
 
 /* ---------- Recipes ---------- */
 
+/** The recipe's photo, or a plain tile with the meal colour when a coach recipe has none. */
+function RecipeImg({ r, small = false, className }: { r: Recipe; small?: boolean; className?: string }) {
+  const src = recipePhoto(r, small);
+  return src
+    ? <img className={className} src={src} alt="" loading={small ? "lazy" : undefined} decoding="async" />
+    : <span className={`rcp-noimg ${className ?? ""}`} aria-hidden="true"><Icons.food width={small ? 22 : 30} height={small ? 22 : 30} /></span>;
+}
+
 export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => void }) {
   const m = recipeMacros(r);
   return (
     <button type="button" className="rcp-card" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }} onClick={() => onOpen(r)}>
-      <span className="rcp-photo"><img src={recipePhoto(r.id, true)} alt="" loading="lazy" decoding="async" /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span></span>
+      <span className="rcp-photo"><RecipeImg r={r} small /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span></span>
       <span className="rcp-body">
-        <span className="tiny caps rcp-meal">{mealLabel(r.meal)}</span>
+        <span className="tiny caps rcp-meal">{mealLabel(r.meal)}{r.byCoach && <span className="rcp-mine"> · Your coach</span>}</span>
         <b className="rcp-name">{r.name}</b>
         <span className="rcp-nums"><span><b className="num">{m.kcal}</b> kcal</span><span><b className="num">{m.proteinG}</b> g protein</span></span>
       </span>
@@ -29,10 +38,15 @@ export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => vo
 /** The recipe library: filter chips and a scrolling shelf of cards. */
 export function RecipeShelf({ onOpen }: { onOpen: (r: Recipe) => void }) {
   const [tags, setTags] = useState<RecipeTag[]>([]);
-  const list = filterRecipes(tags);
+  const [meal, setMeal] = useState<Meal | null>(null);
+  const { recipes: coach } = useCoachRecipes();
+  const list = filterRecipes(tags, meal ?? undefined, coach);
   return (
     <section>
-      <div className="sect"><h2 className="h2">Recipes</h2><span className="tiny">{list.length} of {RECIPES.length}</span></div>
+      <div className="sect"><h2 className="h2">Recipes</h2><span className="tiny">{list.length} of {RECIPES.length + coach.length}</span></div>
+      <div className="seg rcp-meals" role="radiogroup" aria-label="Meal">
+        {[null, ...MEALS.map((m) => m.key)].map((k) => <button key={k ?? "all"} type="button" role="radio" aria-checked={meal === k} className={meal === k ? "on" : ""} onClick={() => setMeal(k)}>{k ? mealLabel(k) : "All"}</button>)}
+      </div>
       <div className="chips rcp-tags" role="group" aria-label="Filter recipes">
         {TAGS.map((t) => <button key={t} className={`chip ${tags.includes(t) ? "on" : ""}`} aria-pressed={tags.includes(t)} onClick={() => setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>)}
       </div>
@@ -49,8 +63,8 @@ export function RecipeSheet({ r, onClose, action }: { r: Recipe; onClose: () => 
     <Sheet label={r.name} onClose={onClose}>
       <div className="stack rcp-sheet" style={{ gap: 14 }}>
         <div className="rcp-hero" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }}>
-          <img className="rcp-hero-img" src={recipePhoto(r.id)} alt={r.name} decoding="async" />
-          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving</span>
+          <RecipeImg r={r} className="rcp-hero-img" />
+          <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving{r.byCoach ? " · Your coach's recipe" : ""}</span>
           <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
           <div className="rcp-macros">
             <div><b className="num">{m.kcal}</b><span className="tiny">kcal</span></div>
@@ -86,10 +100,10 @@ function readTicks(): string[] {
   try { return JSON.parse(localStorage.getItem(SHOP_KEY) ?? "[]") as string[]; } catch { return []; }
 }
 
-export function ShoppingSheet({ plan, onClose }: { plan: MealPlan; onClose: () => void }) {
+export function ShoppingSheet({ plan, onClose, recipes = [] }: { plan: MealPlan; onClose: () => void; recipes?: Recipe[] }) {
   const [days, setDays] = useState(7);
   const [ticks, setTicks] = useState<string[]>(readTicks);
-  const list = shoppingList(plan, days);
+  const list = shoppingList(plan, days, recipes);
   const toggle = (k: string) => {
     const next = ticks.includes(k) ? ticks.filter((x) => x !== k) : [...ticks, k];
     setTicks(next);
@@ -129,6 +143,7 @@ export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPl
   const [dayId, setDayId] = useState(plan.days[0]?.id ?? "");
   const [shop, setShop] = useState(false);
   const [open, setOpen] = useState<Recipe | null>(null);
+  const { recipes: coach } = useCoachRecipes();
   const d = plan.days.find((x) => x.id === dayId) ?? plan.days[0];
   if (!d) return null;
   const total = planDayTotals(d);
@@ -150,9 +165,9 @@ export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPl
             <div key={m.key} className={`plan-meal${logged ? " done" : ""}`} style={{ ["--tone" as string]: MEAL_TONE[m.key] }}>
               <div className="plan-meal-head"><span className="tiny caps">{m.label}</span><span className="tiny num">{r0(mealTotals(items).kcal)} kcal</span></div>
               {items.map((i) => {
-                const r = i.recipeId ? recipeById(i.recipeId) : undefined;
+                const r = i.recipeId ? recipeById(i.recipeId, coach) : undefined;
                 return r
-                  ? <button key={i.id} type="button" className="plan-item link-like" onClick={() => setOpen(r)}><img className="plan-thumb" src={recipePhoto(r.id, true)} alt="" loading="lazy" />{i.name}<Icons.forward width={14} height={14} /></button>
+                  ? <button key={i.id} type="button" className="plan-item link-like" onClick={() => setOpen(r)}><RecipeImg r={r} small className="plan-thumb" />{i.name}<Icons.forward width={14} height={14} /></button>
                   : <div key={i.id} className="plan-item">{i.name}</div>;
               })}
               <button className={`btn sm ${logged ? "ghost" : "act"} plan-log`} disabled={logged} onClick={() => onLog(m.key, items)}>
@@ -164,7 +179,7 @@ export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPl
         {plan.note && <div className="small"><b>{coachName}:</b> {plan.note}</div>}
         <button className="btn block" onClick={() => setShop(true)}><Icons.note width={16} height={16} /> Shopping list</button>
       </div>
-      {shop && <ShoppingSheet plan={plan} onClose={() => setShop(false)} />}
+      {shop && <ShoppingSheet plan={plan} recipes={coach} onClose={() => setShop(false)} />}
       {open && <RecipeSheet r={open} onClose={() => setOpen(null)} />}
     </section>
   );
@@ -180,7 +195,10 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   const [adding, setAdding] = useState<Meal | null>(null);
   const [q, setQ] = useState("");
   const [amount, setAmount] = useState(1);
+  const [library, setLibrary] = useState(false);
+  const { recipes: coach, api: recipeApi, reload } = useCoachRecipes();
   const changed = JSON.stringify(draft) !== JSON.stringify(plan);
+  const librarySheet = library && recipeApi ? <CoachRecipesSheet recipes={coach} api={recipeApi} onChanged={reload} onClose={() => setLibrary(false)} /> : null;
 
   if (!draft) {
     return (
@@ -191,6 +209,8 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
           <button className="btn act" onClick={() => { const p = sampleMealPlan(); setDraft(p); setDayId(p.days[0]!.id); }}>Start from APEX starter plan</button>
           <button className="btn" onClick={() => { const d = newPlanDay(0); setDraft({ days: [d], note: "", updatedAt: new Date().toISOString() }); setDayId(d.id); }}>Blank plan</button>
         </div>
+        {recipeApi && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setLibrary(true)}>My recipes ({coach.length})</button>}
+        {librarySheet}
       </section>
     );
   }
@@ -200,8 +220,8 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   const setDay = (meals: typeof d.meals, nameText = d.name) => setDraft({ ...draft, days: draft.days.map((x) => (x.id === d.id ? { ...x, meals, name: nameText } : x)) });
   const ql = q.trim().toLowerCase();
   const hits: Hit[] = ql
-    ? [...RECIPES.filter((r) => r.name.toLowerCase().includes(ql) || r.tags.some((t) => t.toLowerCase().includes(ql))).sort((a, b) => Number(b.meal === adding) - Number(a.meal === adding)).slice(0, 4).map((r) => ({ kind: "recipe" as const, r })), ...searchFoods(FOODS, q, 6).map((f) => ({ kind: "food" as const, f }))]
-    : adding ? filterRecipes([], adding).map((r) => ({ kind: "recipe" as const, r })) : [];
+    ? [...[...coach, ...RECIPES].filter((r) => r.name.toLowerCase().includes(ql) || r.tags.some((t) => t.toLowerCase().includes(ql))).sort((a, b) => Number(b.meal === adding) - Number(a.meal === adding)).slice(0, 4).map((r) => ({ kind: "recipe" as const, r })), ...searchFoods(FOODS, q, 6).map((f) => ({ kind: "food" as const, f }))]
+    : adding ? filterRecipes([], adding, coach).map((r) => ({ kind: "recipe" as const, r })) : [];
   const add = (h: Hit) => {
     if (!adding) return;
     const item = h.kind === "recipe" ? planItemFromRecipe(h.r, amount) : planItemFromFood(h.f, amount);
@@ -213,6 +233,8 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
   return (
     <section className="card stack">
       <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Meal plan</h3><Label kind="dec">Coach decision</Label></div>
+      {recipeApi && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setLibrary(true)}>My recipes ({coach.length})</button>}
+      {librarySheet}
       <div className="chips" role="tablist" aria-label="Plan days">
         {draft.days.map((x) => <button key={x.id} role="tab" aria-selected={x.id === d.id} className={`chip ${x.id === d.id ? "on" : ""}`} onClick={() => { setDayId(x.id); setAdding(null); }}>{x.name}</button>)}
         {draft.days.length < MAX_PLAN_DAYS && <button className="chip" onClick={() => { const nd = newPlanDay(draft.days.length); setDraft({ ...draft, days: [...draft.days, nd] }); setDayId(nd.id); }}><Icons.plus width={13} height={13} /> Day</button>}
@@ -262,5 +284,121 @@ export function CoachPlanEditor({ plan, targets, name, onSave }: { plan: MealPla
       {plan && <button className="link" style={{ alignSelf: "flex-start", color: "var(--crit)" }} onClick={() => { if (confirm(`Remove ${name}'s meal plan?`)) { onSave(null); setDraft(null); } }}>Remove plan</button>}
       {!plan && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setDraft(null)}>Cancel</button>}
     </section>
+  );
+}
+
+/* ---------- Coach: their own recipes ---------- */
+
+function CoachRecipesSheet({ recipes, api, onChanged, onClose }: { recipes: Recipe[]; api: NonNullable<ReturnType<typeof useCoachRecipes>["api"]>; onChanged: () => void; onClose: () => void }) {
+  const [edit, setEdit] = useState<Recipe | null>(null);
+  if (edit) return <RecipeEditor key={edit.id} start={edit} isNew={!recipes.some((r) => r.id === edit.id)} api={api} onDone={() => { setEdit(null); onChanged(); }} onClose={onClose} />;
+  return (
+    <Sheet label="My recipes" onClose={onClose}>
+      <div className="stack" style={{ gap: 12 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">My recipes</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <div className="small">Your own recipes sit next to the APEX library. Your clients see them, and you can put them in any meal plan.</div>
+        <button className="btn act" onClick={() => setEdit(newCoachRecipe())}><Icons.plus width={16} height={16} /> New recipe</button>
+        {recipes.length ? (
+          <div className="card flat list">
+            {recipes.map((r) => (
+              <button key={r.id} type="button" className="li plan-hit" onClick={() => setEdit(r)}>
+                <RecipeImg r={r} small className="plan-thumb" />
+                <span className="grow" style={{ textAlign: "left" }}>{r.name}<span className="tiny"> · {mealLabel(r.meal)}</span></span>
+                <span className="tiny num">{recipeMacros(r).kcal} kcal</span><Icons.forward width={14} height={14} />
+              </button>
+            ))}
+          </div>
+        ) : <div className="card small">No recipes yet. Write one in a minute: pick the foods, add the method and a photo if you have one.</div>}
+      </div>
+    </Sheet>
+  );
+}
+
+function RecipeEditor({ start, isNew, api, onDone, onClose }: { start: Recipe; isNew: boolean; api: NonNullable<ReturnType<typeof useCoachRecipes>["api"]>; onDone: () => void; onClose: () => void }) {
+  const [r, setR] = useState<Recipe>(start);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+  const m = recipeMacros(r);
+  const set = (patch: Partial<Recipe>) => { setR({ ...r, ...patch }); setError(null); };
+  const hits = q.trim() ? searchFoods(FOODS, q, 6) : [];
+  const save = async () => {
+    const problem = recipeProblem(r);
+    if (problem) return setError(problem);
+    setBusy(true);
+    try { await api.save(r); onDone(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't save the recipe."); } finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!confirm(`Delete ${r.name || "this recipe"}? Meal plans that use it will show it as a plain line.`)) return;
+    setBusy(true);
+    try { await api.remove(r.id); onDone(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't delete the recipe."); } finally { setBusy(false); }
+  };
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    try { set({ photo: await recipePhotoFromFile(f) }); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't use that photo."); }
+  };
+  return (
+    <Sheet label={isNew ? "New recipe" : "Edit recipe"} onClose={onClose}>
+      <div className="stack rcp-edit" style={{ gap: 12 }}>
+        <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">{isNew ? "New recipe" : "Edit recipe"}</h2><button className="iconbtn" aria-label="Close" onClick={onClose}><Icons.close width={16} height={16} /></button></div>
+        <button type="button" className="rcp-edit-photo" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }} onClick={() => file.current?.click()}>
+          {r.photo ? <img src={r.photo} alt="" /> : <span className="rcp-noimg"><Icons.camera width={26} height={26} /><span className="small">Add a photo</span></span>}
+        </button>
+        <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
+        {r.photo && <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => set({ photo: undefined })}>Remove photo</button>}
+        <input id="rcp-name" className="field" maxLength={80} placeholder="Recipe name" value={r.name} onChange={(e) => set({ name: e.target.value })} />
+        <div className="seg" role="radiogroup" aria-label="Meal">
+          {MEALS.map((x) => <button key={x.key} type="button" role="radio" aria-checked={r.meal === x.key} className={r.meal === x.key ? "on" : ""} onClick={() => set({ meal: x.key })}>{x.label}</button>)}
+        </div>
+        <label className="row small" style={{ gap: 8 }}>Takes
+          <input id="rcp-minutes" className="field num" style={{ width: 80 }} type="number" inputMode="numeric" min={1} max={600} value={r.minutes} onChange={(e) => set({ minutes: Number(e.target.value) })} /> minutes
+        </label>
+        <div className="chips" role="group" aria-label="Tags">
+          {TAGS.map((t) => <button key={t} type="button" className={`chip ${r.tags.includes(t) ? "on" : ""}`} aria-pressed={r.tags.includes(t)} onClick={() => set({ tags: r.tags.includes(t) ? r.tags.filter((x) => x !== t) : [...r.tags, t] })}>{t}</button>)}
+        </div>
+        <div>
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Ingredients</h3><span className="tiny num">{m.kcal} kcal · P {m.proteinG} · C {m.carbsG} · F {m.fatG}</span></div>
+          <div className="card flat list">
+            {r.ingredients.map((i, n) => {
+              const f = FOODS.find((x) => x.id === i.foodId);
+              const setFactor = (v: number) => set({ ingredients: r.ingredients.map((x, k) => (k === n ? { ...x, factor: v } : x)) });
+              return (
+                <div key={`${i.foodId}-${n}`} className="li row" style={{ gap: 6 }}>
+                  <span className="grow small">{f?.name}</span>
+                  <div className="nut-step sm" role="group" aria-label={`Amount of ${f?.name}`}>
+                    <button type="button" aria-label="Less" onClick={() => setFactor(Math.max(0.25, Math.round((i.factor - 0.25) * 100) / 100))}>−</button><b className="num">{i.factor}</b><button type="button" aria-label="More" onClick={() => setFactor(Math.min(20, i.factor + 0.25))}>+</button>
+                  </div>
+                  <button className="iconbtn" aria-label={`Remove ${f?.name}`} onClick={() => set({ ingredients: r.ingredients.filter((_, k) => k !== n) })}><Icons.close width={14} height={14} /></button>
+                </div>
+              );
+            })}
+            <div className="li"><input id="rcp-food" className="field" style={{ width: "100%" }} placeholder="Add a food, e.g. chicken, rice, spinach" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            {hits.map((f) => (
+              <button key={f.id} type="button" className="li plan-hit" onClick={() => { set({ ingredients: [...r.ingredients, { foodId: f.id, factor: 1 }] }); setQ(""); }}>
+                <span className="grow" style={{ textAlign: "left" }}>{f.name}</span><span className="tiny num">{f.kcal} kcal</span><Icons.plus width={15} height={15} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="h3">Method</h3>
+          <ol className="rcp-steps rcp-steps-edit">
+            {r.steps.map((st, n) => (
+              <li key={n}>
+                <div className="row" style={{ gap: 6 }}>
+                  <textarea className="field" rows={2} maxLength={400} aria-label={`Step ${n + 1}`} value={st} onChange={(e) => set({ steps: r.steps.map((x, k) => (k === n ? e.target.value : x)) })} />
+                  {r.steps.length > 1 && <button className="iconbtn" aria-label={`Remove step ${n + 1}`} onClick={() => set({ steps: r.steps.filter((_, k) => k !== n) })}><Icons.close width={14} height={14} /></button>}
+                </div>
+              </li>
+            ))}
+          </ol>
+          {r.steps.length < MAX_RECIPE_STEPS && <button className="link" onClick={() => set({ steps: [...r.steps, ""] })}>+ Add a step</button>}
+        </div>
+        {error && <div className="small" role="alert" style={{ color: "var(--warn)" }}>{error}</div>}
+        <button className="btn act block" disabled={busy} onClick={() => void save()}>{isNew ? "Save recipe" : "Save changes"}</button>
+        {!isNew && <button className="link" style={{ alignSelf: "flex-start", color: "var(--crit)" }} disabled={busy} onClick={() => void remove()}>Delete recipe</button>}
+      </div>
+    </Sheet>
   );
 }

@@ -42,10 +42,14 @@ export const emptyMeals = (): Record<Meal, PlanItem[]> => ({ breakfast: [], lunc
 export const newPlanDay = (n: number): PlanDay => ({ id: `day-${Date.now().toString(36)}-${n}`, name: PLAN_DAY_NAMES[n] ?? `Day ${n + 1}`, meals: emptyMeals() });
 
 const foodById = new Map(FOODS.map((f) => [f.id, f]));
-export const recipeById = (id: string): Recipe | undefined => RECIPES.find((r) => r.id === id);
+/** A recipe from the APEX library or, when given, the coach's own recipes. */
+export const recipeById = (id: string, coach: Recipe[] = []): Recipe | undefined => RECIPES.find((r) => r.id === id) ?? coach.find((r) => r.id === id);
 
-/** The recipe's photo (original APEX food photography in apps/web/public/recipes). Small = 480 px wide for cards. */
-export const recipePhoto = (id: string, small = false): string => `/recipes/${id}${small ? "-480" : ""}.webp`;
+/**
+ * The recipe's photo: original APEX food photography in apps/web/public/recipes (small = 480 px wide, for cards),
+ * or the photo a coach added to their own recipe. Null when a coach recipe has none.
+ */
+export const recipePhoto = (r: Recipe, small = false): string | null => (r.byCoach ? r.photo || null : `/recipes/${r.id}${small ? "-480" : ""}.webp`);
 
 const asMacros = (f: Food): Macros => ({ kcal: f.kcal, proteinG: f.protein, carbsG: f.carbs, fatG: f.fat });
 
@@ -55,9 +59,9 @@ export function recipeMacros(r: Recipe): Macros {
   return { kcal: Math.round(m.kcal), proteinG: Math.round(m.proteinG), carbsG: Math.round(m.carbsG), fatG: Math.round(m.fatG) };
 }
 
-/** Recipes with any of the tags (all recipes when none), optionally for one meal. */
-export function filterRecipes(tags: RecipeTag[], meal?: Meal): Recipe[] {
-  return RECIPES.filter((r) => (!meal || r.meal === meal) && tags.every((t) => r.tags.includes(t)));
+/** Recipes with all of the tags (all recipes when none), optionally for one meal. The coach's own come first. */
+export function filterRecipes(tags: RecipeTag[], meal?: Meal, coach: Recipe[] = []): Recipe[] {
+  return [...coach, ...RECIPES].filter((r) => (!meal || r.meal === meal) && tags.every((t) => r.tags.includes(t)));
 }
 
 const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `i-${Math.random().toString(36).slice(2)}`);
@@ -131,14 +135,14 @@ function amountText(f: Food, portions: number): string {
  * Everything the plan needs for `days` days (the plan's days repeat in order), recipes broken into ingredients,
  * added up per food and grouped like a supermarket. Lines the coach typed by hand are listed as they are.
  */
-export function shoppingList(plan: MealPlan, days = 7): ShoppingLine[] {
+export function shoppingList(plan: MealPlan, days = 7, coach: Recipe[] = []): ShoppingLine[] {
   if (!plan.days.length) return [];
   const portions = new Map<number, number>();
   const extra = new Map<string, number>();
   for (let i = 0; i < days; i++) {
     const d = plan.days[i % plan.days.length]!;
     for (const m of MEALS) for (const item of d.meals[m.key]) {
-      const r = item.recipeId ? recipeById(item.recipeId) : undefined;
+      const r = item.recipeId ? recipeById(item.recipeId, coach) : undefined;
       if (r) for (const ing of r.ingredients) portions.set(ing.foodId, (portions.get(ing.foodId) ?? 0) + ing.factor * item.factor);
       else if (item.foodId && foodById.has(item.foodId)) portions.set(item.foodId, (portions.get(item.foodId) ?? 0) + item.factor);
       else extra.set(item.name, (extra.get(item.name) ?? 0) + 1);
@@ -153,6 +157,46 @@ export function shoppingList(plan: MealPlan, days = 7): ShoppingLine[] {
   lines.sort((a, b) => rank(a.group) - rank(b.group) || a.name.localeCompare(b.name));
   for (const [name, n] of extra) lines.push({ key: `x${name}`, name, group: "Other", amount: `${n}` });
   return lines;
+}
+
+/* ---------- The coach's own recipes ---------- */
+
+export const MAX_RECIPE_STEPS = 12;
+/** Room for a ~640 px WebP photo; the database refuses rows over 200 kB. */
+export const MAX_RECIPE_PHOTO_CHARS = 150_000;
+
+export const newCoachRecipe = (meal: Meal = "dinner"): Recipe => ({ id: uid(), name: "", meal, minutes: 15, tags: [], ingredients: [], steps: [""], byCoach: true });
+
+/** What's wrong with a coach recipe, in words for the coach, or null when it can be saved. */
+export function recipeProblem(r: Recipe): string | null {
+  if (!r.name.trim()) return "Give the recipe a name.";
+  if (r.name.trim().length > 80) return "Keep the name under 80 characters.";
+  if (!r.ingredients.length) return "Add at least one ingredient.";
+  if (r.ingredients.some((i) => !foodById.has(i.foodId) || !(i.factor > 0 && i.factor <= 20))) return "Check the ingredient amounts.";
+  if (!r.steps.some((s) => s.trim())) return "Write at least one step of the method.";
+  if (r.steps.length > MAX_RECIPE_STEPS || r.steps.some((s) => s.length > 400)) return "Keep the method to 12 short steps.";
+  if (!(r.minutes >= 1 && r.minutes <= 600)) return "Check the cooking time.";
+  if (r.photo && (r.photo.length > MAX_RECIPE_PHOTO_CHARS || !/^(data:image\/(webp|jpeg|png);base64,|https:\/\/)/.test(r.photo))) return "That photo is too big. Try another.";
+  return null;
+}
+
+export interface CoachRecipeRow { id: string; coach_id: string; recipe: Omit<Recipe, "id" | "byCoach">; updated_at?: string }
+
+export function toCoachRecipeRow(r: Recipe, coachId: string): CoachRecipeRow {
+  const { id, byCoach: _b, ...rest } = r;
+  return {
+    id, coach_id: coachId,
+    recipe: { ...rest, name: rest.name.trim(), steps: rest.steps.map((s) => s.trim()).filter(Boolean).slice(0, MAX_RECIPE_STEPS), ingredients: rest.ingredients.filter((i) => foodById.has(i.foodId)) },
+  };
+}
+
+export function fromCoachRecipeRow(row: CoachRecipeRow): Recipe {
+  const x = row.recipe ?? ({} as CoachRecipeRow["recipe"]);
+  return {
+    id: row.id, byCoach: true, name: String(x.name ?? "Recipe"), meal: MEALS.some((m) => m.key === x.meal) ? x.meal : "dinner",
+    minutes: Number(x.minutes) || 15, tags: Array.isArray(x.tags) ? x.tags : [], ingredients: Array.isArray(x.ingredients) ? x.ingredients.filter((i) => foodById.has(i.foodId)) : [],
+    steps: Array.isArray(x.steps) ? x.steps.map(String) : [], ...(typeof x.photo === "string" && x.photo ? { photo: x.photo } : {}),
+  };
 }
 
 /* ---------- Database row ---------- */

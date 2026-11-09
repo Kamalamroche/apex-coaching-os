@@ -14,6 +14,7 @@ import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/ch
 import { TeamProvider, demoTeam, type TeamApi } from "../data/team";
 import { GrowthProvider, demoGrowth, type GrowthApi } from "../data/growth";
 import { ResourceProvider, demoResources } from "../data/resources";
+import { CoachRecipeProvider, demoCoachRecipes } from "../data/coachRecipes";
 import { NotesProvider, demoNotes } from "../data/clientNotes";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
@@ -35,6 +36,7 @@ const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
 const demoTeamApis: Partial<Record<"coach" | "client", TeamApi>> = {};
 const demoGrowthApis: Partial<Record<"coach" | "client", GrowthApi>> = {};
 const demoResourceApi = demoResources();
+const demoCoachRecipeApi = demoCoachRecipes();
 const demoNotesApi = demoNotes();
 const demoTwinApi: { current: TwinApi | null } = { current: null };
 const demoPrivacyApis: Partial<Record<"coach" | "client", PrivacyApi>> = {};
@@ -68,7 +70,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}>{demo()}</TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></ResourceProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><ResourceProvider value={demoResourceApi}><CoachRecipeProvider value={demoCoachRecipeApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}>{demo()}</TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></CoachRecipeProvider></ResourceProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

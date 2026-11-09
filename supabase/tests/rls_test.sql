@@ -696,6 +696,40 @@ do $$ begin
 end $$;
 reset role;
 
+-- coach recipes: the coach writes them, their clients read them, nobody else sees them
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into coach_recipes (id, coach_id, recipe) values ('b0000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000c','{"name":"Coach wrap","meal":"lunch","minutes":10,"tags":[],"ingredients":[{"foodId":1,"factor":1}],"steps":["Fill it."]}');
+do $$ begin
+  begin
+    insert into coach_recipes (coach_id, recipe) values ('00000000-0000-0000-0000-00000000000d','{"name":"Fake"}');
+    raise exception 'coach wrote a recipe as someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_recipes (coach_id, recipe) values ('00000000-0000-0000-0000-00000000000c','[1]');
+    raise exception 'recipe that is not an object accepted';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  assert (select count(*) from coach_recipes) = 1, 'client reads their coach''s recipes';
+  update coach_recipes set recipe = '{"name":"Hacked"}';
+  assert (select recipe->>'name' from coach_recipes) = 'Coach wrap', 'client cannot change a recipe';
+  begin
+    insert into coach_recipes (coach_id, recipe) values ('00000000-0000-0000-0000-00000000000c','{"name":"Mine"}');
+    raise exception 'client added a recipe';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from coach_recipes) = 0, 'rival coach sees no recipes';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c2');
+do $$ begin
+  assert (select count(*) from coach_recipes) = 0, 'another coach''s client sees no recipes';
+end $$;
+reset role;
+
 -- privacy: consents, a copy of my data, deleting my account
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
@@ -1023,3 +1057,4 @@ do $$ begin
   end;
 end $$;
 reset role;
+

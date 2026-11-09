@@ -21,6 +21,7 @@ import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
 import { ResourceProvider, liveResources } from "../data/resources";
+import { CoachRecipeProvider, liveCoachRecipes } from "../data/coachRecipes";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 
@@ -54,6 +55,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
   useEffect(() => () => goals.close(), [goals]);
   const challenges = useMemo(() => (coach ? liveChallenges(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const resources = useMemo(() => (coach ? liveResources(db, coach.id) : null), [db, coach]);
+  const coachRecipes = useMemo(() => (coach ? liveCoachRecipes(db, coach.id) : null), [db, coach]);
   const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const growth = useMemo(() => (coach ? liveGrowth(db, { side: "client", coachId: coach.id, coachName: coach.name, me: profile.id }) : null), [db, coach, profile.id]);
   const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
@@ -80,9 +82,9 @@ export function ClientLive({ db, profile, signOut }: Live) {
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
                     <TeamProvider value={team}><GrowthProvider value={growth}>
-                    <ResourceProvider value={resources}>
+                    <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <ClientApp notice={notice} />
-                    </ResourceProvider>
+                    </CoachRecipeProvider></ResourceProvider>
                     </GrowthProvider></TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
