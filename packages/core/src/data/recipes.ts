@@ -305,7 +305,7 @@ export const RECIPES: Recipe[] = [
   {
     id: "r-ham-rollups", name: "Ham and cream cheese roll-ups", meal: "snack", minutes: 3, tags: ["High protein",  "Gluten free",  "Under 15 min"],
     ingredients: [{ foodId: 9, factor: 2 }, { foodId: 43, factor: 1 }, { foodId: 89, factor: 0.5 }],
-    steps: ["Spread each ham slice with cream cheese.", "Add a cucumber stick and roll up."],
+    steps: ["Spread each ham slice with cream cheese.", "Add a cucumber stick, roll up and cut each in half."],
   },
   {
     id: "r-pb-banana-toast", name: "Peanut butter banana toast", meal: "snack", minutes: 4, tags: ["Vegan",  "Dairy free",  "Under 15 min"],
