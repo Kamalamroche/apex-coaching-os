@@ -849,3 +849,15 @@ button.gy-client:hover{border-color:var(--line2)}
 .fw-steps li.next .fw-dot{border-color:var(--act);color:var(--act)}
 .fw-later{background:none;border:0;padding:6px 8px;font-size:18px;color:var(--text3);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.fw-card,.fw-steps li,.fw-steps li.done .fw-dot{animation:none}}
+
+/* ───────── Why your plan changed ───────── */
+.pu-card{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--r-lg);border:1px solid color-mix(in srgb,var(--act) 35%,var(--line));background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);animation:m-rise .55s var(--ease-out) backwards}
+.pu-head{display:flex;align-items:center;gap:12px}
+.pu-head b{display:block;font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.pu-ic{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:var(--act);color:var(--act-ink)}
+.pu-why{margin:0;font:400 19px/1.35 var(--serif);color:var(--text)}
+.pu-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pu-list li{position:relative;padding:8px 0 8px 18px;font-size:13.5px;line-height:1.4;color:var(--text2);animation:m-rise .45s var(--ease-out) backwards;animation-delay:calc(.15s + var(--i,0) * .06s)}
+.pu-list li+li{border-top:1px solid var(--line)}
+.pu-list li::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--act)}
+@media (prefers-reduced-motion:reduce){.pu-card,.pu-list li{animation:none}}

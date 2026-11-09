@@ -13,6 +13,7 @@ import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
 import { TeamPeek } from "../../app/TeamParts";
 import { PushPrompt } from "../../app/PushParts";
 import { FirstWeek, useFirstWeek } from "../FirstWeek";
+import { PlanChanged } from "../PlanChanged";
 import type { FirstWeekStepId } from "@apex/core";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
@@ -92,6 +93,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
+      <PlanChanged />
       {go && <FirstWeek go={go} />}
       <section aria-label="Today's rings">
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />

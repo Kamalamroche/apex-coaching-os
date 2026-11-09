@@ -2,13 +2,15 @@ import {
   addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
   swapExercise, toggleSuperset, updateItem, DAY_NAMES, addDay, blockAt, blockLabel, freeDayIndex, setCircuit, setRounds, setTargets, setVarySets, updateSetTarget,
   type Exercise, type Workout, type WorkoutItem,
+  planChanges,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons, Sheet, useUnits } from "@apex/ui";
-import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
+import { PlanUpdateSheet } from "./PlanUpdate";
 import { Copilot } from "./Copilot";
 import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
@@ -54,6 +56,14 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const hits = useMemo(() => searchExercises(q), [q]);
+  /* What each day looked like when the coach opened it (or last told the client), to say what changed on publish. */
+  const baselines = useRef<Record<string, Workout>>({});
+  const [publishing, setPublishing] = useState(false);
+  useEffect(() => {
+    if (status === "ready" && activeDay && !baselines.current[activeDay]) baselines.current[activeDay] = structuredClone(workout);
+  }, [status, activeDay, workout]);
+  const changes = useMemo(() => { const b = baselines.current[activeDay]; return b ? planChanges(b, workout) : []; }, [activeDay, workout]);
+  const published = () => { baselines.current[activeDay] = structuredClone(store.get().workout); setPublishing(false); };
 
   const edit = (fn: (w: Workout) => Workout) => store.saveWorkout(fn(store.get().workout));
   const upd = (key: string, patch: Partial<WorkoutItem>) => edit((w) => updateItem(w, key, patch));
@@ -299,7 +309,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       </div>
       <div className="row">
         <button className="btn ghost" style={{ flex: 1 }} onClick={duplicateDay}>Duplicate day</button>
-        <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
+        <button className="btn act" style={{ flex: 1.4 }} onClick={() => { if (changes.length) setPublishing(true); else say(`Published · ${first}'s app updated`); }}>Publish to client{changes.length ? ` · ${changes.length} change${changes.length === 1 ? "" : "s"}` : ""}</button>
       </div>
       <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
@@ -328,6 +338,17 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
           </div>
           <button className="btn ghost block" onClick={() => setSwapping(null)}>Cancel</button>
         </Sheet>
+      )}
+
+      {publishing && (
+        <PlanUpdateSheet
+          first={first}
+          workoutName={workout.name}
+          changes={changes}
+          onClose={() => setPublishing(false)}
+          onSkip={() => { published(); say(`Published · ${first}'s app updated`); }}
+          onSend={(msg) => { store.sendMessage("coach", msg); published(); say(`Published · ${first} can see what changed and why`); }}
+        />
       )}
 
       {copilotOpen && <Copilot onClose={() => setCopilotOpen(false)} say={say} />}
