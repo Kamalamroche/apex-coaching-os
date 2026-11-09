@@ -44,6 +44,9 @@ export const newPlanDay = (n: number): PlanDay => ({ id: `day-${Date.now().toStr
 const foodById = new Map(FOODS.map((f) => [f.id, f]));
 export const recipeById = (id: string): Recipe | undefined => RECIPES.find((r) => r.id === id);
 
+/** The recipe's photo (original APEX food photography in apps/web/public/recipes). Small = 480 px wide for cards. */
+export const recipePhoto = (id: string, small = false): string => `/recipes/${id}${small ? "-480" : ""}.webp`;
+
 const asMacros = (f: Food): Macros => ({ kcal: f.kcal, proteinG: f.protein, carbsG: f.carbs, fatG: f.fat });
 
 /** One serving of a recipe, added up from its ingredients. */

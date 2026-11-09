@@ -1,5 +1,5 @@
 import {
-  FOODS, MAX_PLAN_DAYS, MEALS, RECIPES, filterRecipes, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, sampleMealPlan, searchFoods, shoppingList,
+  FOODS, MAX_PLAN_DAYS, MEALS, RECIPES, filterRecipes, mealLogged, mealTotals, newPlanDay, planDayTotals, planItemFromFood, planItemFromRecipe, recipeById, recipeMacros, recipePhoto, sampleMealPlan, searchFoods, shoppingList,
   type FoodEntry, type Meal, type MealPlan, type NutritionTargets, type PlanItem, type Recipe, type RecipeTag,
 } from "@apex/core";
 import { Icons, Label, Sheet } from "@apex/ui";
@@ -16,9 +16,12 @@ export function RecipeCard({ r, onOpen }: { r: Recipe; onOpen: (r: Recipe) => vo
   const m = recipeMacros(r);
   return (
     <button type="button" className="rcp-card" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }} onClick={() => onOpen(r)}>
-      <span className="rcp-top"><span className="tiny caps">{mealLabel(r.meal)}</span><span className="tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span></span>
-      <b className="rcp-name">{r.name}</b>
-      <span className="rcp-nums"><span><b className="num">{m.kcal}</b> kcal</span><span><b className="num">{m.proteinG}</b> g protein</span></span>
+      <span className="rcp-photo"><img src={recipePhoto(r.id, true)} alt="" loading="lazy" decoding="async" /><span className="rcp-time tiny"><Icons.clock width={12} height={12} /> {r.minutes} min</span></span>
+      <span className="rcp-body">
+        <span className="tiny caps rcp-meal">{mealLabel(r.meal)}</span>
+        <b className="rcp-name">{r.name}</b>
+        <span className="rcp-nums"><span><b className="num">{m.kcal}</b> kcal</span><span><b className="num">{m.proteinG}</b> g protein</span></span>
+      </span>
     </button>
   );
 }
@@ -46,6 +49,7 @@ export function RecipeSheet({ r, onClose, action }: { r: Recipe; onClose: () => 
     <Sheet label={r.name} onClose={onClose}>
       <div className="stack rcp-sheet" style={{ gap: 14 }}>
         <div className="rcp-hero" style={{ ["--tone" as string]: MEAL_TONE[r.meal] }}>
+          <img className="rcp-hero-img" src={recipePhoto(r.id)} alt={r.name} decoding="async" />
           <span className="tiny caps">{mealLabel(r.meal)} · {r.minutes} min · 1 serving</span>
           <h2 className="h1" style={{ margin: 0 }}>{r.name}</h2>
           <div className="rcp-macros">
@@ -148,7 +152,7 @@ export function ClientPlan({ plan, food, day, coachName, onLog }: { plan: MealPl
               {items.map((i) => {
                 const r = i.recipeId ? recipeById(i.recipeId) : undefined;
                 return r
-                  ? <button key={i.id} type="button" className="plan-item link-like" onClick={() => setOpen(r)}>{i.name}<Icons.forward width={14} height={14} /></button>
+                  ? <button key={i.id} type="button" className="plan-item link-like" onClick={() => setOpen(r)}><img className="plan-thumb" src={recipePhoto(r.id, true)} alt="" loading="lazy" />{i.name}<Icons.forward width={14} height={14} /></button>
                   : <div key={i.id} className="plan-item">{i.name}</div>;
               })}
               <button className={`btn sm ${logged ? "ghost" : "act"} plan-log`} disabled={logged} onClick={() => onLog(m.key, items)}>
