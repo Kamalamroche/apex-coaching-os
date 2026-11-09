@@ -1,6 +1,7 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal, type MealItem } from "@apex/core";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe } from "@apex/core";
 import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel } from "@apex/ui";
 import { useState } from "react";
+import { ClientPlan, RecipeSheet, RecipeShelf } from "../../app/MealPlanParts";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
@@ -21,6 +22,7 @@ export function ClientNutrition() {
   const [meal, setMeal] = useState<Meal>(mealNow);
   const [tab, setTab] = useState<"search" | "recent" | "describe">("search");
   const [said, setSaid] = useState("");
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
   // The food picked from the list, waiting for its amount.
   const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
@@ -103,6 +105,11 @@ export function ClientNutrition() {
           {planSplit && <SplitBar label="Plan" s={planSplit} muted />}
           <div className="rc-legend tiny"><span><i style={{ background: "var(--viz-1)" }} />Protein</span><span><i style={{ background: "var(--act)" }} />Carbs</span><span><i style={{ background: "var(--viz-3)" }} />Fat</span></div>
         </section>
+      )}
+
+      {s.mealPlan && s.mealPlan.days.length > 0 && (
+        <ClientPlan plan={s.mealPlan} food={s.food} day={day} coachName={coachName}
+          onLog={(m, items) => items.forEach((i) => store.addFood({ id: crypto.randomUUID(), day, meal: m, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }))} />
       )}
 
       {yesterdayFood.length > 0 && (
@@ -197,6 +204,12 @@ export function ClientNutrition() {
           <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setQuick(true)}>+ Quick add calories and macros</button>
         )}
       </section>
+
+      <RecipeShelf onOpen={setRecipe} />
+      {recipe && <RecipeSheet r={recipe} onClose={() => setRecipe(null)} action={{
+        label: `Log to ${MEALS.find((m) => m.key === recipe.meal)?.label.toLowerCase()}${isToday ? "" : `, ${dayName(day)}`}`,
+        run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
+      }} />}
 
       {week.loggedDays > 0 && (
         <section>

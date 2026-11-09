@@ -372,6 +372,32 @@ do $$ begin
 end $$;
 reset role;
 
+-- meal plans: the coach writes their own client's plan, the client only reads it, nobody else sees it
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+insert into meal_plans (client_id, plan) values ('00000000-0000-0000-0000-0000000000c1','{"days":[{"id":"d1","name":"Training day","meals":{"breakfast":[],"lunch":[],"dinner":[],"snack":[]}}],"note":"Eat well"}');
+do $$ begin
+  assert (select plan->>'note' from meal_plans) = 'Eat well', 'coach writes client plan';
+  begin
+    insert into meal_plans (client_id, plan) values ('00000000-0000-0000-0000-0000000000c2','{"days":[],"note":""}');
+    raise exception 'coach wrote a plan for a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
+update meal_plans set plan = '{"days":[],"note":"hacked"}';
+do $$ begin
+  assert (select plan->>'note' from meal_plans) = 'Eat well', 'client cannot change the plan';
+  begin
+    insert into meal_plans (client_id, plan) values ('00000000-0000-0000-0000-0000000000c1','{"days":[],"note":""}');
+    raise exception 'client wrote own plan';
+  exception when insufficient_privilege or unique_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from meal_plans) = 0, 'rival sees no meal plan';
+end $$;
+reset role;
+
 -- automatic messages
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
 set role authenticated;

@@ -6,6 +6,7 @@ import {
 import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
+import { CoachPlanEditor } from "../../app/MealPlanParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -150,6 +151,9 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         <input id="nt-note" className="field" maxLength={500} placeholder={`A tip for ${name}, e.g. 30 g of protein at breakfast`} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
+      {s.planReady
+        ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
+        : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
     </>
   );
 }

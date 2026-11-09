@@ -852,3 +852,36 @@ button.tile{font:inherit}
 .nut-calc-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
 .nut-calc-out div{display:flex;flex-direction:column;gap:2px}
 .nut-calc-out b{font:700 18px/1.1 var(--num);color:var(--text)}
+/* Recipes and meal plans */
+.rcp-tags{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+.rcp-tags .chip{flex:none}
+.rcp-shelf{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
+.rcp-card{flex:none;width:168px;min-height:150px;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:space-between;gap:10px;text-align:left;padding:14px;border-radius:18px;border:1px solid var(--line);color:var(--text);cursor:pointer;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--tone) 22%,var(--card)) 0%,var(--card) 70%)}
+.rcp-top{display:flex;justify-content:space-between;align-items:center;color:var(--text2)}
+.rcp-top svg{vertical-align:-2px}
+.rcp-name{font-weight:700;font-size:16px;line-height:1.2}
+.rcp-nums{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--text2)}
+.rcp-nums b{font-size:15px;color:var(--text)}
+.rcp-hero{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:18px;background:linear-gradient(160deg,color-mix(in srgb,var(--tone) 26%,var(--card)) 0%,var(--card) 80%);border:1px solid var(--line)}
+.rcp-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px}
+.rcp-macros div{display:flex;flex-direction:column}
+.rcp-macros b{font:700 20px/1.1 var(--num)}
+.rcp-ing{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rcp-ing li{display:flex;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.rcp-steps{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.45}
+.plan-total{display:flex;gap:14px;flex-wrap:wrap;color:var(--text2)}
+.plan-total b{color:var(--text);font-size:14px;font-family:var(--num)}
+.plan-total .of{font-family:inherit;color:var(--text3)}
+.plan-total.off span:first-child>b{color:var(--warn)}
+.plan-meal{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);border-left:4px solid var(--tone);background:var(--bg2)}
+.plan-meal.done{opacity:.72}
+.plan-meal-head{display:flex;justify-content:space-between;color:var(--text2)}
+.plan-item{font-weight:600;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;text-align:left}
+.plan-item.link-like{cursor:pointer}
+.plan-item.link-like svg{color:var(--text3)}
+.plan-log{align-self:flex-start;display:inline-flex;align-items:center;gap:4px}
+.plan-hit{width:100%;background:none;border:0;cursor:pointer;color:var(--text);gap:8px}
+.shop-li{gap:10px;cursor:pointer}
+.shop-li input{width:20px;height:20px;accent-color:var(--good)}
+.shop-li.got span{text-decoration:line-through;color:var(--text3)}
