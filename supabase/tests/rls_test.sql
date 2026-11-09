@@ -448,6 +448,28 @@ do $$ begin
   assert (select count(*) from coach_automations) = 0, 'client cannot read coach settings';
 end $$;
 reset role;
+-- Low-protein nudge: three logged days under 80% of the 120 g target sends once; a good day or a recent send stops it.
+update coach_automations set protein_on = true, protein_body = 'Protein low, {first_name}' where coach_id = '00000000-0000-0000-0000-00000000000c';
+delete from food_entries where client_id = '00000000-0000-0000-0000-0000000000c1';
+insert into food_entries (client_id, day, meal, name, kcal, protein_g) values
+  ('00000000-0000-0000-0000-0000000000c1','2026-11-20','lunch','Pasta',600,40),
+  ('00000000-0000-0000-0000-0000000000c1','2026-11-21','lunch','Pasta',600,40),
+  ('00000000-0000-0000-0000-0000000000c1','2026-11-22','lunch','Steak',600,110);
+create function pg_temp.protein_sends() returns bigint language sql as $$ select count(*) from automation_sends where client_id = '00000000-0000-0000-0000-0000000000c1' and kind = 'protein' $$;
+do $$ begin
+  perform public.run_automations('2026-11-23 10:00+00');
+  assert pg_temp.protein_sends() = 0, 'a good protein day stops the nudge';
+  update food_entries set protein_g = 50 where day = '2026-11-22';
+  perform public.run_automations('2026-11-23 07:00+00');
+  assert pg_temp.protein_sends() = 0, 'protein nudge waits for the send hour';
+  perform public.run_automations('2026-11-23 10:00+00');
+  assert pg_temp.protein_sends() = 1, 'three low days send the protein nudge';
+  assert (select count(*) from messages where body = 'Protein low, Priya') = 1, 'protein nudge filled in';
+  insert into food_entries (client_id, day, meal, name, kcal, protein_g) values ('00000000-0000-0000-0000-0000000000c1','2026-11-23','lunch','Pasta',600,40);
+  perform public.run_automations('2026-11-24 10:00+00');
+  assert pg_temp.protein_sends() = 1, 'protein nudge at most once a week';
+  delete from food_entries where client_id = '00000000-0000-0000-0000-0000000000c1' and day >= '2026-11-20';
+end $$;
 
 -- video form checks
 set role authenticated;
