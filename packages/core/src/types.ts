@@ -238,6 +238,10 @@ export interface Food {
   grams?: number;
   /** Shelf in the food list, e.g. "Protein", "Carbs", "Fruit". */
   group?: string;
+  /** Per portion, when known (scanned packs). */
+  fibre?: number;
+  sugar?: number;
+  salt?: number;
 }
 
 /** A set as the client fills it in during a session. */

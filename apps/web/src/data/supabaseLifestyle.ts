@@ -104,7 +104,13 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
     },
     addFood(f) {
       set({ food: [...state.food, f] });
-      write(db.from("food_entries").insert(toFoodRow(f, clientId)));
+      const row = toFoodRow(f, clientId);
+      // Before the micros SQL has run, a scanned food with fibre, sugar or salt still saves, without them.
+      write(Promise.resolve(db.from("food_entries").insert(row)).then((r) => {
+        if (r.error?.code !== "PGRST204" || !/fibre_g|sugar_g|salt_g/.test(r.error.message)) return r;
+        const { fibre_g: _f, sugar_g: _s, salt_g: _l, ...plain } = row;
+        return db.from("food_entries").insert(plain);
+      }));
     },
     removeFood(id) {
       set({ food: state.food.filter((f) => f.id !== id) });

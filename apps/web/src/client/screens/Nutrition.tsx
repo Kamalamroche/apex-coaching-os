@@ -1,5 +1,5 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe, foodAmount, foodAmountToMetric } from "@apex/core";
-import { FuelGauge, Icons, MacroRings, MacroTable, ScriptTitle, WeekFuel, useUnits } from "@apex/ui";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe, foodAmount, foodAmountToMetric, microTotals, scaleMicros } from "@apex/core";
+import { FuelGauge, Icons, MacroRings, MacroTable, MicroStrip, ScriptTitle, WeekFuel, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useApexState } from "@apex/core/react";
 import { ClientPlan, RecipeSheet, RecipeShelf, WorkoutFuelCard } from "../../app/MealPlanParts";
@@ -32,7 +32,7 @@ export function ClientNutrition() {
   const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
   const [quick, setQuick] = useState(false);
-  const [qa, setQa] = useState({ name: "", kcal: "", p: "", c: "", f: "" });
+  const [qa, setQa] = useState({ name: "", kcal: "", p: "", c: "", f: "", fi: "", su: "", sa: "" });
   const { program, workout } = useApexState(useStore());
   const eaten = dayTotals(s.food, day);
   // Training day or rest day, from the client's program for this week.
@@ -55,8 +55,9 @@ export function ClientNutrition() {
   const qaKcal = parseNumber(qa.kcal);
   const addQuick = () => {
     if (!qa.name.trim() || qaKcal === null) return;
-    add({ name: qa.name.trim(), kcal: qaKcal, proteinG: parseNumber(qa.p) ?? 0, carbsG: parseNumber(qa.c) ?? 0, fatG: parseNumber(qa.f) ?? 0 });
-    setQa({ name: "", kcal: "", p: "", c: "", f: "" });
+    const opt = (k: "fibreG" | "sugarG" | "saltG", v: string) => { const n = parseNumber(v); return n === null ? {} : { [k]: n }; };
+    add({ name: qa.name.trim(), kcal: qaKcal, proteinG: parseNumber(qa.p) ?? 0, carbsG: parseNumber(qa.c) ?? 0, fatG: parseNumber(qa.f) ?? 0, ...opt("fibreG", qa.fi), ...opt("sugarG", qa.su), ...opt("saltG", qa.sa) });
+    setQa({ name: "", kcal: "", p: "", c: "", f: "", fi: "", su: "", sa: "" });
     setQuick(false);
   };
 
@@ -210,7 +211,7 @@ export function ClientNutrition() {
             const grams = pick.food.grams ? Math.round(pick.food.grams * portions) : null;
             const amount = grams ? foodAmount(grams, /ml\b/.test(pick.food.name) ? "ml" : "g", u.weight) : null;
             const name = portions === 1 ? pick.food.name : amount ? `${pick.food.name.replace(/,\s*[^,]*$/, "")}, ${amount.value} ${amount.unit}` : `${pick.food.name} × ${portions}`;
-            add({ name, ...scalePortion(base, portions) });
+            add({ name, ...scalePortion(base, portions), ...scaleMicros({ fibreG: pick.food.fibre, sugarG: pick.food.sugar, saltG: pick.food.salt }, portions) });
             setPick(null); setQ("");
           }} />}
         {quick ? (
@@ -219,6 +220,11 @@ export function ClientNutrition() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 }}>
               {([["kcal", "kcal"], ["p", "Protein g"], ["c", "Carbs g"], ["f", "Fat g"]] as const).map(([k, l]) => (
                 <label key={k} className="tiny" style={{ display: "flex", flexDirection: "column", gap: 4 }}>{l}<input id={`qa-${k}`} className="field num" inputMode="decimal" value={qa[k]} onChange={(e) => setQa({ ...qa, [k]: e.target.value })} /></label>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+              {([["fi", "Fibre g"], ["su", "Sugar g"], ["sa", "Salt g"]] as const).map(([k, l]) => (
+                <label key={k} className="tiny" style={{ display: "flex", flexDirection: "column", gap: 4 }}>{l} · optional<input id={`qa-${k}`} className="field num" inputMode="decimal" value={qa[k]} onChange={(e) => setQa({ ...qa, [k]: e.target.value })} /></label>
               ))}
             </div>
             <button className="btn act block" disabled={!qa.name.trim() || qaKcal === null} onClick={addQuick}>Add to {MEALS.find((m) => m.key === meal)?.label.toLowerCase()}</button>
@@ -245,6 +251,7 @@ export function ClientNutrition() {
               <div><span className="tiny">Week total</span><b>{Math.round(week.total.kcal).toLocaleString("en-GB")}</b></div>
             </div>
             <MacroTable avg={week.avg} total={week.total} goal={t} />
+            <MicroStrip totals={microTotals(todays)} caption={`${isToday ? "Today" : dayName(day)}: from ${microTotals(todays).withData} of ${todays.length} foods that list them. Scanned packs fill these in.`} />
           </div>
         </section>
       )}
