@@ -35,7 +35,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
   if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
-  if (extra === "grow") return <CoachGrow onBack={() => setExtra(null)} say={say} />;
+  if (extra === "grow") return <CoachGrow live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "resources") return <CoachResources live={live} onBack={() => setExtra(null)} say={say} />;
   const autoButton = (
     <div className="card flat list">
@@ -64,7 +64,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
       {growApi && (
         <button className="li" onClick={() => setExtra("grow")}>
           <Icons.globe width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Leads, your enquiry form and welcome email, your public page</div></div>
+          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Leads, your enquiry form, your public page, referral rewards and reviews</div></div>
           <span className="tiny">›</span>
         </button>
       )}

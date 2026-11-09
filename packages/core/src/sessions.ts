@@ -279,7 +279,7 @@ export function samplePacks(now = new Date()): SessionPack[] {
   ];
 }
 
-/** Past training sessions for the demo register: some attended, one to mark, a no-show and a late cancel. */
+/** Past training sessions for the demo register: some attended, one to mark, a no-show and a late cancel. James is down to his last session. */
 export function samplePastSessions(now = new Date()): Booking[] {
   const at = (daysAgo: number, hour: number) => { const d = new Date(now); d.setUTCDate(d.getUTCDate() - daysAgo); d.setUTCHours(hour, 0, 0, 0); return d.toISOString(); };
   const make = (id: string, clientId: string, daysAgo: number, hour: number, extra: Partial<Booking> = {}): Booking => {
@@ -293,5 +293,7 @@ export function samplePastSessions(now = new Date()): Booking[] {
     make("demo-past-4", "demo-james", 6, 18, { attendance: "no_show" }),
     make("demo-past-5", "demo-james", 3, 18, { status: "cancelled", cancelledBy: "client", late: true }),
     make("demo-past-6", "demo-sarah", 4, 12, { attendance: "attended" }),
+    make("demo-past-7", "demo-james", 20, 18, { attendance: "attended" }),
+    make("demo-past-8", "demo-james", 13, 18, { attendance: "attended" }),
   ];
 }

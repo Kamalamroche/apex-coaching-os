@@ -1,6 +1,7 @@
 import { HERO_IMAGES, MODE_LABEL, type CoachPage, type JoinRequest } from "@apex/core";
 import type { ReactNode } from "react";
 import { Icons, type IconName } from "./icons";
+import { ReviewQuote, ReviewScore } from "./reviews";
 import { CountUp } from "./motion";
 import { EditorialTitle, HeroBackdrop } from "./primitives";
 import { TEAM_ART, teamInitials } from "./team";
@@ -18,7 +19,10 @@ const OFFER: [IconName, string, string][] = [
 ];
 
 /** The public page itself. Also used as the coach's live preview. */
-export function CoachPageView({ page, action, preview = false }: { page: CoachPage; action?: ReactNode; preview?: boolean }) {
+/** Extras from the growth tools: the free first session and approved reviews. */
+export interface PageReviews { introOffer: boolean; reviews: { name: string | null; stars: number; body: string; at: string }[] }
+
+export function CoachPageView({ page, action, preview = false, extras }: { page: CoachPage; action?: ReactNode; preview?: boolean; extras?: PageReviews | null }) {
   const first = page.name.split(" ")[0] || page.name;
   const caption = ["Coach", page.city].filter(Boolean).join(" · ");
   return (
@@ -35,6 +39,7 @@ export function CoachPageView({ page, action, preview = false }: { page: CoachPa
           {page.specialties.length > 0 && (
             <div className="gpills">{page.specialties.map((s, i) => <span key={s} className="gpill" style={{ ["--i" as string]: i }}>{s}</span>)}</div>
           )}
+          {extras?.introOffer && <span className="gr-intro"><Icons.gift width={14} height={14} aria-hidden /> First session free</span>}
           {action}
         </div>
       </section>
@@ -54,6 +59,13 @@ export function CoachPageView({ page, action, preview = false }: { page: CoachPa
         <section className="gr-about">
           <span className="gr-eyebrow">About {first}</span>
           <blockquote>{page.bio}</blockquote>
+        </section>
+      )}
+      {extras && extras.reviews.length > 0 && (
+        <section className="gr-reviews" aria-label="What clients say">
+          <span className="gr-eyebrow">What clients say</span>
+          <ReviewScore average={Math.round((extras.reviews.reduce((t, r) => t + r.stars, 0) / extras.reviews.length) * 10) / 10} count={extras.reviews.length} />
+          <div>{extras.reviews.slice(0, 6).map((r, i) => <ReviewQuote key={`${r.at}-${i}`} {...r} i={i} />)}</div>
         </section>
       )}
       <p className="gr-made"><Icons.logo width={12} height={12} /> Made with APEX</p>

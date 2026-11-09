@@ -876,3 +876,25 @@ button.gy-client:hover{border-color:var(--line2)}
 .ss-warn{padding:12px 14px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft);font-size:13px;color:var(--text)}
 .ss-policy{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text2)}
 .ss-policy svg{flex:none;margin-top:1px}
+
+/* Reviews: accent stars, a big serif score, serif quotes. */
+.rv-stars{display:inline-flex;gap:2px;color:var(--line2);vertical-align:middle}
+.rv-stars .on{color:var(--act);fill:currentColor}
+.rv-pick{display:flex;gap:4px}
+.rv-pick label{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--line2);cursor:pointer;transition:color .2s var(--ease-out),transform .2s var(--ease-out)}
+.rv-pick label.on{color:var(--act)}
+.rv-pick label.on svg{fill:currentColor;animation:rv-pop .35s var(--ease-out) backwards;animation-delay:calc(var(--i,0) * .03s)}
+.rv-pick input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.rv-pick label:has(input:focus-visible){outline:2px solid var(--act);outline-offset:2px}
+@keyframes rv-pop{from{transform:scale(.6)}to{transform:scale(1)}}
+.rv-score{display:flex;align-items:center;gap:14px;animation:m-rise .5s var(--ease-out) backwards}
+.rv-score>b{font:400 54px/1 var(--serif);letter-spacing:-.02em;color:var(--act)}
+.rv-score>div{display:flex;flex-direction:column;gap:4px}
+.rv-quote{margin:0;padding:16px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .07s)}
+.rv-quote:first-of-type{border-top:0}
+.rv-quote blockquote{margin:0;font:400 17px/1.5 var(--serif);color:var(--text)}
+.rv-quote figcaption{font-size:12px;color:var(--text2)}
+.gr-reward{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:var(--r);background:var(--glass-dim);border:1px solid var(--glass-line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--glass-ink);font-size:14px;line-height:1.4;animation:m-rise .5s var(--ease-out) .3s backwards}
+.gr-reward svg{flex:none;margin-top:2px}
+.gr-intro{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:7px 12px;border-radius:var(--pill);background:var(--act);color:var(--act-ink);font:700 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;animation:m-rise .5s var(--ease-out) .35s backwards}
+@media (prefers-reduced-motion:reduce){.rv-pick label.on svg,.rv-score,.rv-quote,.gr-intro{animation:none}}
