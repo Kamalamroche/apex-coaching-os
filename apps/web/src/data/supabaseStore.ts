@@ -5,11 +5,12 @@ import {
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
   withDayWorkout, withProgram,
   type ApexState, type ApexStore, type CheckInRow, type LoggedSetRow, type MeasurementInput, type MeasurementRow, type MessageRow, type PhotoRow, type PhotoUpload,
-  MAX_RECENT, toRecentSession, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  MAX_RECENT, toRecentSession, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, voiceBody, voicePath, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 export const PHOTO_BUCKET = "progress-photos";
+const VOICE_BUCKET = "voice-notes";
 /** Signed photo links last an hour; every progress reload makes fresh ones. */
 const PHOTO_URL_SECONDS = 3600;
 
@@ -248,8 +249,15 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     }
   }
 
+  // Voice note columns arrive with the chat-tools SQL; until then messages load without them.
+  let hasVoiceColumns = true;
   async function loadMessages() {
-    const { data, error: mErr } = await db.from("messages").select("sender_id, body, created_at").eq("coach_id", ids.coachId).eq("client_id", ids.clientId).order("created_at").returns<MessageRow[]>();
+    const thread = (cols: string) => db.from("messages").select(cols).eq("coach_id", ids.coachId).eq("client_id", ids.clientId).order("created_at").returns<MessageRow[]>();
+    let { data, error: mErr } = await thread(hasVoiceColumns ? "sender_id, body, created_at, voice_path, voice_seconds" : "sender_id, body, created_at");
+    if (mErr && hasVoiceColumns && isMissingColumn(mErr)) {
+      hasVoiceColumns = false;
+      ({ data, error: mErr } = await thread("sender_id, body, created_at"));
+    }
     if (mErr) throw mErr;
     return toMessages(data ?? [], ids.coachId);
   }
@@ -531,6 +539,26 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         if (e && isClient && isNetworkError(e, online())) later();
         else if (e) fail(e);
       });
+    },
+    async sendVoice(from, audio, seconds) {
+      if (!online()) throw new Error("Voice notes need a connection. Try again when you're back online.");
+      const secs = Math.max(VOICE_MIN_SECONDS, Math.min(VOICE_MAX_SECONDS, Math.round(seconds)));
+      const type = audio.type || "audio/webm";
+      const path = voicePath(ids.clientId, crypto.randomUUID(), type);
+      const up = await db.storage.from(VOICE_BUCKET).upload(path, audio, { contentType: type.split(";")[0], upsert: false });
+      if (up.error) throw new Error(/bucket not found/i.test(up.error.message) ? "Voice notes need the latest database update (20261120090000_business_chat_tools.sql)" : `Couldn't send the voice note (${up.error.message})`);
+      const { error: e } = await db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: voiceBody(secs), voice_path: path, voice_seconds: secs });
+      if (e) {
+        void db.storage.from(VOICE_BUCKET).remove([path]);
+        throw new Error(isMissingColumn(e) ? "Voice notes need the latest database update (20261120090000_business_chat_tools.sql)" : `Couldn't send the voice note (${e.message})`);
+      }
+      state = { ...state, messages: [...state.messages, { from, text: voiceBody(secs), time: "Now", voice: { path, seconds: secs } }] };
+      emit();
+    },
+    async voiceUrl(path) {
+      const { data, error: e } = await db.storage.from(VOICE_BUCKET).createSignedUrl(path, 3600);
+      if (e || !data) throw e ?? new Error("Couldn't open the voice note");
+      return data.signedUrl;
     },
     async submitCheckIn(checkIn, measurements, photos) {
       const id = crypto.randomUUID();

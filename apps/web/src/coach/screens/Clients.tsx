@@ -11,6 +11,9 @@ import { ClientGoals } from "./Goals";
 import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
 import { hasTag } from "@apex/core";
 import { Transfer } from "./Transfer";
+import { useMemo } from "react";
+import { demoRosterHealth } from "../../data/health";
+import { ClientHealthPanel } from "./ClientHealth";
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
@@ -78,6 +81,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
   const { workout } = useApexState(store);
   const [tab, setTab] = useState<ProfileTab>("Overview");
   const c = CLIENTS.find((x) => x.id === clientId);
+  const health = useMemo(() => demoRosterHealth().find((r) => r.client.id === String(clientId)) ?? null, [clientId]);
   if (!c) return null;
   return (
     <>
@@ -95,6 +99,7 @@ function ClientProfile({ clientId, onBack, say, goBuild }: { clientId: number; o
             <div className="kpi"><b>{u.w(c.weightKg)}</b><small>Weight, {u.weight}</small></div>
             <div className="kpi"><b>{c.streak}</b><small>Day streak</small></div>
           </div>
+          {health && <ClientHealthPanel health={health.health} trend={health.trend} />}
           <div className="card">
             <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Squat e1RM, 8 weeks</h3><Label kind="data">Data</Label></div>
             <Spark data={[88, 90, 91, 94, 94, 97, 99, 101].map((kg) => u.w(kg))} unit={u.weight} />

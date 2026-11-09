@@ -1,5 +1,5 @@
 import {
-  Phone, Send, Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
+  Phone, Send, Mic, Square, Pause, MessageSquareText, Pencil, TrendingDown, Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
   MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, Share2, Hand, type LucideIcon, Mail, Copy, Globe, Eye, EyeOff, ScanBarcode, Refrigerator, Video,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
@@ -78,6 +78,13 @@ export const Icons = {
   scan: lucide(ScanBarcode),
   phone: lucide(Phone),
   send: lucide(Send),
+  mic: lucide(Mic),
+  stop: lucide(Square),
+  pause: lucide(Pause),
+  replies: lucide(MessageSquareText),
+  edit: lucide(Pencil),
+  up: lucide(TrendingUp),
+  down: lucide(TrendingDown),
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;

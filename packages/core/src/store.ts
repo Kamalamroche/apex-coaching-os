@@ -1,3 +1,4 @@
+import { voiceBody } from "./chatTools";
 import { cleanQuestions, questionsProblem, type CheckInQuestion } from "./checkInForm";
 import { emptyProgress, hasMeasurements, type CheckInInput, type MeasurementInput, type PhotoUpload, type ProgressState } from "./checkins";
 import { INITIAL_PROGRESS } from "./data/progress";
@@ -42,6 +43,10 @@ export interface ApexStore {
   /** Client finished a session. `sets` is every set as logged. */
   finishSession(log: SessionLog, sets: SessionSets): void;
   sendMessage(from: Message["from"], text: string): void;
+  /** Sends a recorded voice note. Needs a connection; throws with a message to show when it can't send. */
+  sendVoice?(from: Message["from"], audio: Blob, seconds: number): Promise<void>;
+  /** A playable link for a voice note's stored path. */
+  voiceUrl?(path: string): Promise<string>;
   /** Client sends the weekly check-in, with any measurements and photos taken for it. */
   submitCheckIn(checkIn: CheckInInput, measurements: MeasurementInput, photos: PhotoUpload[]): Promise<void>;
   /** Client logs measurements on their own, outside a check-in. */
@@ -141,6 +146,17 @@ export function createDemoStore(
     startProgram: (program) => update((s) => withProgram({ ...s, log: null }, program, "")),
     finishSession: (log, sets) => update((s) => ({ ...s, log, history: nextHistory(s.history, log, s.workout, sets) })),
     sendMessage: (from, text) => update((s) => ({ ...s, messages: [...s.messages, { from, text, time: "Now" }] })),
+    async sendVoice(from, audio, seconds) {
+      // The demo keeps the recording in the page itself, so it still plays after a reload.
+      const path = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error("Couldn't read the recording"));
+        r.readAsDataURL(audio);
+      });
+      update((s) => ({ ...s, messages: [...s.messages, { from, text: voiceBody(seconds), time: "Now", voice: { path, seconds } }] }));
+    },
+    voiceUrl: async (path) => path,
     async submitCheckIn(checkIn, measurements, photos) {
       const id = crypto.randomUUID();
       const at = now();

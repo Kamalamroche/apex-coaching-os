@@ -40,6 +40,8 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const tabs = TABS.map((t) => (t.id === "chat" ? { ...t, dot: messages.at(-1)?.from === "client" } : t));
   const [tab, setTab] = useState<Tab>(() => (openedForLeads() ? "chat" : "brief"));
   const [clientId, setClientId] = useState<number | null>(null);
+  // A live client opened from the Brief (health card): Clients opens straight onto their profile.
+  const [liveOpen, setLiveOpen] = useState<string | null>(null);
   const [account, setAccount] = useState(false);
   const [gym, setGym] = useState(false);
   const gymApi = useGymApi();
@@ -49,13 +51,14 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   useGymInviteLink(live?.db, () => { setAccount(false); setTab("money"); setGym(true); });
   useOpenFromNotification<Tab>({ chat: "chat", clients: "clients" }, (t) => { setAccount(false); setGym(false); setTab(t); });
   const openClient = (id: number) => { setClientId(id); setTab("clients"); };
+  const openLiveClient = (id: string) => { live?.setActiveClientId(id); setLiveOpen(id); setTab("clients"); };
   const goBuild = () => setTab("build");
-  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") setClientId(null); };
+  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } };
   return (
     <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
-      {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
-      {!account && tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
+      {!account && tab === "brief" && <Brief openClient={openClient} openLiveClient={openLiveClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
+      {!account && tab === "clients" && (live ? <LiveClients key={liveOpen ?? ""} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
       {!account && tab === "chat" && <Messages live={live} say={say} />}
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
