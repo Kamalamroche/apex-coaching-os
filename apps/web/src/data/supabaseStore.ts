@@ -5,7 +5,7 @@ import {
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
   withDayWorkout, withProgram,
   type ApexState, type ApexStore, type CheckInRow, type LoggedSetRow, type MeasurementInput, type MeasurementRow, type MessageRow, type PhotoRow, type PhotoUpload,
-  MAX_RECENT, toRecentSession, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, voiceBody, voicePath, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  MAX_RECENT, toRecentSession, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, voiceBody, voicePath, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionLog, type SessionRow, type SessionSets, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -34,7 +34,11 @@ export interface LiveStore extends ApexStore {
   flush(): Promise<void>;
   /** Loads the program again, e.g. after the client started an on-demand programme on the server. */
   reload(): Promise<void>;
+  /** Coach only: save a session the coach ran in person. It lands in the client's history, marked as run by the coach. */
+  saveCoachSession(log: SessionLog, sets: SessionSets): Promise<void>;
 }
+
+export const ONE_TO_ONE_SQL = "Saving sessions you run needs the latest database update (20261123090000_one_to_one.sql)";
 
 interface Ids {
   coachId: string;
@@ -541,6 +545,32 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
           if (e2) throw e2;
         }
       })().catch(fail);
+    },
+    async saveCoachSession(log, sets) {
+      if (isClient) throw new Error("Only the coach can run a session for a client");
+      const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
+      const row: Record<string, unknown> = {
+        client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
+        session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
+        source: "coach", coached_by: ids.me,
+      };
+      const insert = (withSummary: boolean) =>
+        db.from("sessions").insert(withSummary ? { ...row, summary: log.summary ?? null } : row).select("id").single();
+      let { data, error: e1 } = await insert(hasSummaryColumn);
+      if (e1 && isMissingColumn(e1) && hasSummaryColumn) {
+        hasSummaryColumn = false;
+        ({ data, error: e1 } = await insert(false));
+      }
+      // Missing column, the old source check, or no insert policy yet: all mean the SQL hasn't been run.
+      if (e1 && (isMissingColumn(e1) || e1.code === "23514" || e1.code === "42501")) throw new Error(ONE_TO_ONE_SQL);
+      if (e1 || !data) throw new Error(`The session wasn't saved (${message(e1)})`);
+      const rows = toLoggedSetRows(sets, state.workout, data.id);
+      if (rows.length) {
+        const { error: e2 } = await db.from("logged_sets").insert(rows);
+        if (e2) throw new Error(`The session was saved, but its sets weren't (${e2.message})`);
+      }
+      state = { ...state, history: nextHistory(state.history, log, state.workout, sets) };
+      emit();
     },
     sendMessage(from, text) {
       state = { ...state, messages: [...state.messages, { from, text, time: "Now" }] };

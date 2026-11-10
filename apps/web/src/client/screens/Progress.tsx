@@ -6,6 +6,7 @@ import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
 import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
+import { CoachNotes } from "./CoachNotes";
 import { ConnectedApps } from "./ConnectedApps";
 import { Recovery } from "./Recovery";
 import { ShareProgress } from "./ShareProgress";
@@ -80,6 +81,8 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
           ))}
         </div>
       </section>
+
+      <CoachNotes />
 
       <SampleNote />
       <div className="card">

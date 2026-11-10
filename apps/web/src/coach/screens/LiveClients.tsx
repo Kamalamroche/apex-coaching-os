@@ -24,6 +24,7 @@ import type { Health } from "@apex/core";
 import { useRosterHealth } from "../../data/health";
 import { ClientHealthPanel } from "./ClientHealth";
 import { RecoveryTab } from "./Clients";
+import { OneToOneTab } from "./OneToOne";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {
@@ -124,7 +125,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Programme" | "Health" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes">(startTab === "Recovery" ? "Recovery" : "Programme");
+  const [tab, setTab] = useState<"Programme" | "In person" | "Health" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes">(startTab === "Recovery" ? "Recovery" : startTab === "In person" ? "In person" : "Programme");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
@@ -137,7 +138,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Programme", "Health", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Programme", "In person", "Health", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
       </div>
       {tab === "Health" && (health ? <ClientHealthPanel health={health.health} trend={health.trend} /> : <div className="card small">Working out {name.split(" ")[0]}'s health score…</div>)}
       {tab === "Report" && <ClientReport clientName={name} say={say} />}
@@ -149,6 +150,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
       {tab === "Recovery" && <RecoveryTab name={name} />}
       {tab === "About" && <IntakeView clientName={name} />}
       {tab === "Notes" && <ClientNotes clientId={clientId} clientName={name} say={say} />}
+      {tab === "In person" && (status === "ready" || status === "no-program" ? <OneToOneTab clientId={clientId} clientName={name} canRun={status === "ready"} whyNot={`Give ${name.split(" ")[0]} a programme first, then run it with them here.`} say={say} /> : <div className="card small">Loading…</div>)}
       {tab === "Programme" && <>
       <section>
         <div className="sect"><h2 className="h2">Programme</h2></div>

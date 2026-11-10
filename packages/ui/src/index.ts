@@ -35,3 +35,4 @@ export { BusinessGlance, BusinessHero, ClientFlow, HealthBadge, HealthBandPill, 
 export { MicroStrip } from "./micros";
 export { ClassCard, AgreementPaper, AnswerHit, TeamBubble } from "./extras";
 export { ClientTable, type ClientTableProps } from "./clientTable";
+export { NoteAudience, NoteTimeline, RunProgress, RunStats, ShareSwitch } from "./oneToOne";

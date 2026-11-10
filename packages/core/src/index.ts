@@ -82,3 +82,4 @@ export * from "./agreements";
 export * from "./classes";
 export * from "./answers";
 export * from "./micros";
+export * from "./coachSession";
