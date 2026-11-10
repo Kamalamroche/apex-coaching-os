@@ -10,7 +10,16 @@
 
 -- The source column came with the client-import update; add it here too in case that one wasn't run.
 alter table public.sessions add column if not exists source text not null default 'app';
-alter table public.sessions drop constraint if exists sessions_source_check;
+-- Drop the old "app or import" check whatever Postgres named it, so 'coach' is allowed.
+do $$
+declare c record;
+begin
+  for c in select conname from pg_constraint
+           where conrelid = 'public.sessions'::regclass and contype = 'c' and pg_get_constraintdef(oid) ilike '%source%'
+  loop
+    execute format('alter table public.sessions drop constraint %I', c.conname);
+  end loop;
+end $$;
 alter table public.sessions add constraint sessions_source_check check (source in ('app', 'import', 'coach'));
 alter table public.sessions add column if not exists coached_by uuid references public.profiles (id) on delete set null;
 
