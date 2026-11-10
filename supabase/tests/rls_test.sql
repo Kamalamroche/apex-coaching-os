@@ -149,6 +149,12 @@ do $$ begin
     update workout_items set block_style = 'chaos' where position = 50;
     raise exception 'unknown block style accepted';
   exception when check_violation then null; end;
+  update workout_items set coach_note = 'each side, tempo 3-1-1' where position = 50;
+  assert (select coach_note from workout_items where position = 50) = 'each side, tempo 3-1-1', 'exercise note saved';
+  begin
+    update workout_items set coach_note = repeat('x', 301) where position = 50;
+    raise exception 'over-long exercise note accepted';
+  exception when check_violation then null; end;
 end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
 do $$ begin

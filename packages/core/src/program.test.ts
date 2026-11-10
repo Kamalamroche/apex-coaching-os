@@ -127,4 +127,10 @@ describe("programFromImport", () => {
     expect(p.days[0]!.items.map((i) => i.group)).toEqual(["A", "B"]);
     expect(p.days[0]!.minutes).toBeGreaterThanOrEqual(15);
   });
+
+  it("carries the source's exercise notes onto the items", () => {
+    const p = programFromImport("Block", [{ title: "Day 1", week: 1, dayIndex: 0, drafts: [{ ...d(1), note: "each side" }, d(2, "B")] }]);
+    expect(p.days[0]!.items[0]!.note).toBe("each side");
+    expect(p.days[0]!.items[1]!.note).toBeUndefined();
+  });
 });

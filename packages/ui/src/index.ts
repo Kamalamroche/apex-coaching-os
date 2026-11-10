@@ -31,6 +31,7 @@ export { ReportHero, ReportView } from "./report";
 export { FirstWeekCard } from "./firstWeek";
 export { CreditBalance, SessionMonthStats, SessionsHero } from "./sessions";
 export { PlanChangedCard } from "./planUpdate";
-export { BusinessHero, ClientFlow, HealthBadge, HealthBandPill, HealthParts, HealthTrend, IncomeBars, SourceRows, VoiceNote } from "./business";
+export { BusinessGlance, BusinessHero, ClientFlow, HealthBadge, HealthBandPill, HealthParts, HealthTrend, IncomeBars, SourceRows, VoiceNote } from "./business";
 export { MicroStrip } from "./micros";
 export { ClassCard, AgreementPaper, AnswerHit, TeamBubble } from "./extras";
+export { ClientTable, type ClientTableProps } from "./clientTable";

@@ -88,3 +88,19 @@
 .bz-status{margin-top:4px;padding:3px 6px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);color:var(--text2);font:500 12px/1.2 var(--ui)}
 details.card>summary{list-style:none}
 details.card>summary::-webkit-details-marker{display:none}
+
+/* Brief: business at a glance */
+.bg-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.bg-tile{padding:14px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);display:flex;flex-direction:column;gap:4px;min-width:0;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .06s)}
+.bg-tile b{font:700 22px/1.1 var(--num);color:var(--text)}
+.bg-tile:first-child b{color:var(--act)}
+.bg-tile span{font-size:12px;color:var(--text2)}
+.bg-tile small{font-size:11px;color:var(--text3)}
+
+/* Business: the coach's tools, near the top */
+.bz-tools{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media (min-width:900px){.bz-tools{grid-template-columns:repeat(4,1fr)}}
+.bz-tool{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);text-align:left;color:var(--text);min-width:0;cursor:pointer;transition:transform .2s,border-color .2s;animation:m-rise .45s var(--ease-out) backwards;animation-delay:calc(.08s + var(--i,0) * .05s)}
+.bz-tool:hover{transform:translateY(-2px);border-color:var(--line2)}
+.bz-tool b{font-size:14px;font-weight:700}
+.bz-tool small{font-size:12px;color:var(--text3);line-height:1.35}

@@ -93,6 +93,8 @@ export interface DraftItem {
   kg: number;
   rpe: number | null;
   restSeconds: number | null;
+  /** A note written next to the exercise in the source ("each side", "tempo 3-1-1"). */
+  note?: string;
 }
 
 /** Adds drafted items after the current ones as new blocks, keeping the source's supersets together. */
@@ -108,6 +110,7 @@ export function appendItems(workout: Workout, drafts: DraftItem[], keys: string[
     rpe: d.rpe ?? 7,
     restSeconds: d.restSeconds ?? defaultRestFor(exerciseById(d.exerciseId)),
     lastTime: "New exercise",
+    ...(d.note ? { note: d.note } : {}),
   }));
   return { ...workout, items: relabelGroups([...workout.items, ...added]) };
 }

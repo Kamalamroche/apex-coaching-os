@@ -166,6 +166,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
+        {it.note && <div className="coach-note"><span className="tiny">From your coach</span>{it.note}</div>}
         <div className="card" style={{ padding: "10px 12px" }}>
           <div className="small">Last time: <b className="num" style={{ color: "var(--text)" }}>{u.kt(it.lastTime)}</b></div>
         </div>

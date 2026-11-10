@@ -152,7 +152,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
             {w.items.map((it) => (
               <li key={it.key} className="row small" style={{ gap: 8 }}>
                 <span className="grp" style={{ width: 28, fontSize: 11 }}>{it.group}</span>
-                <span style={{ color: "var(--text)" }}>{exerciseFor(it).name}</span>
+                <span style={{ color: "var(--text)", minWidth: 0 }}>{exerciseFor(it).name}{it.note && <span className="tiny" style={{ display: "block" }}>{it.note}</span>}</span>
                 <span className="num" style={{ marginLeft: "auto" }}>{it.sets}×{it.reps}{it.kg ? ` · ${u.fw(it.kg)}` : ""}</span>
               </li>
             ))}

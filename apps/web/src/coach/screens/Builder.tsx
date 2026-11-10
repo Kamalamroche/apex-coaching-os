@@ -44,6 +44,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [plateauOpen, setPlateauOpen] = useState<number | null>(null);
+  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
@@ -122,9 +123,9 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     if (!hasType(e, "Files")) return;
     e.preventDefault();
     setFileOver(false);
-    const file = Array.from(e.dataTransfer.files).find(isPdf);
+    const file = Array.from(e.dataTransfer.files).find((f) => isPdf(f) || f.type.startsWith("image/"));
     if (file) setImporting(file);
-    else say("Drop a PDF programme to import it");
+    else say("Drop a PDF or a photo of a programme to import it");
   };
 
   const first = clientName.split(" ")[0] ?? clientName;
@@ -161,7 +162,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       say(`Saved “${imported.name}” to your templates, ready for other clients`);
     } catch (e) { say(e instanceof Error ? e.message : String(e)); }
   };
-  const pdfInput = <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />;
+  const pdfInput = <input ref={fileRef} type="file" accept="application/pdf,.pdf,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />;
   const importSheet = importing && (
     <ImportPdf
       file={importing === "text" ? null : importing}
@@ -180,7 +181,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   if (status === "no-program") {
     return (
       <>
-        <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
+        <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF (even a scan), a photo or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
         <div className="row full" style={{ gap: 8, flexWrap: "wrap" }}>
           <button className="btn ghost sm" onClick={() => setImporting("text")}>Paste or speak a programme</button>
           <button className="btn ghost sm" onClick={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()}>Start with Foundations</button>
@@ -205,6 +206,11 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
           <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the programme builder SQL is run in Supabase.</span>
+        </div>
+      )}
+      {"hasNoteColumn" in store && !(store as { hasNoteColumn: () => boolean }).hasNoteColumn() && workout.items.some((x) => x.note) && (
+        <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
+          <span className="small" style={{ color: "var(--text)" }}>Exercise notes are only kept on this screen until the exercise notes SQL is run in Supabase.</span>
         </div>
       )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -268,7 +274,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         {workout.items.length === 0 && (
           <div className="bld-empty">
             <b>Drag movements here</b>
-            <span className="small">From the library, or drop a PDF programme anywhere on this page. Search above works too.</span>
+            <span className="small">From the library, or drop a PDF or photo of a programme anywhere on this page. Search above works too.</span>
           </div>
         )}
         {workout.items.map((it, i) => {
@@ -347,11 +353,19 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
                   ))}
                 </div>
               )}
+              {(it.note !== undefined || notesOpen[it.key]) && (
+                <label className="bld-note">
+                  <span className="tiny">Note for the client</span>
+                  <input id={`n-${it.key}`} maxLength={300} placeholder="e.g. each side · tempo 3-1-1 · pause at the bottom" value={it.note ?? ""}
+                    onChange={(e) => upd(it.key, { note: e.target.value || undefined })} />
+                </label>
+              )}
               {plateauOpen === it.exerciseId && stalled && <PlateauFixes plateau={stalled} say={say} onDone={() => setPlateauOpen(null)} />}
               <div className="bld-foot">
                 <span className="tiny">Last time: <span className="num">{u.kt(it.lastTime)}</span>{e1rm ? <> · e1RM <span className="num">{u.fw(e1rm)}</span></> : null}</span>
                 <span className="row" style={{ gap: 6 }}>
                   {stalled && <button className="chip plat-chip" aria-expanded={plateauOpen === it.exerciseId} onClick={() => setPlateauOpen(plateauOpen === it.exerciseId ? null : it.exerciseId)} title={stalled.reason}>Stalled</button>}
+                  {it.note === undefined && !notesOpen[it.key] && <button className="chip bld-ss" onClick={() => setNotesOpen((o) => ({ ...o, [it.key]: true }))} title="A short note the client sees with this exercise">+ Note</button>}
                   <button className={`chip bld-ss ${vary ? "on" : ""}`} aria-pressed={vary} onClick={() => edit((w) => updateItem(w, it.key, setVarySets(it, !vary)))} title="Different reps and kg on each set: pyramids, top set and back-offs">{vary ? "Per set ✓" : "Per set"}</button>
                   {i > 0 && (
                     <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Unlink from the exercise above" : "Link with the exercise above: superset, tri-set, giant set or circuit"}>
@@ -372,7 +386,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s programme as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
 
-      {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}
+      {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF or photo to import it</b><span className="small">You review every exercise before it's added</span></div>}
 
       {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
 

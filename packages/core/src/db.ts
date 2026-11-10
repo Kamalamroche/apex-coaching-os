@@ -25,6 +25,8 @@ export interface WorkoutItemRow {
   /** Per-set targets. Missing until the program-builder migration has run. */
   set_plan?: SetTarget[] | null;
   block_style?: BlockStyle | null;
+  /** The coach's note on the exercise. Missing until the exercise-notes SQL has run. */
+  coach_note?: string | null;
 }
 
 export interface LoggedSetRow {
@@ -109,6 +111,7 @@ export function toWorkout(
         lastTime: formatLastTime(lastSets.get(Number(r.exercise_id))),
         ...(r.set_plan?.length ? { setPlan: r.set_plan } : {}),
         ...(r.block_style ? { blockStyle: r.block_style } : {}),
+        ...(r.coach_note ? { note: r.coach_note } : {}),
       })),
   };
 }
@@ -127,6 +130,7 @@ export const toItemRows = (workout: Workout, workoutId: string): WorkoutItemRow[
     rest_seconds: it.restSeconds,
     set_plan: it.setPlan ?? null,
     block_style: it.blockStyle ?? null,
+    coach_note: it.note?.trim() ? it.note.trim().slice(0, 300) : null,
   }));
 
 /** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`.

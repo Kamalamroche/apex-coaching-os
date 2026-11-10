@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { businessSummary, lastMonths, parsePounds, pounds, type BizClient, type BizInput } from "./business";
+import { businessGlance, businessSummary, lastMonths, parsePounds, pounds, type BizClient, type BizInput } from "./business";
+import { sampleBusiness } from "./data/business";
 
 const NOW = new Date("2026-11-20T12:00:00Z");
 const client = (over: Partial<BizClient>): BizClient => ({ id: "x", name: "X", startedAt: "2026-06-01T00:00:00Z", endedAt: null, status: "active", feePence: 15000, ...over });
@@ -120,5 +121,23 @@ describe("months and money", () => {
     expect(parsePounds("abc")).toBeNull();
     expect(parsePounds("12.345")).toBeNull();
     expect(parsePounds("-5")).toBeNull();
+  });
+});
+
+describe("business glance", () => {
+  it("gives four plain tiles from the summary", () => {
+    const sum = businessSummary(sampleBusiness(NOW));
+    const g = businessGlance(sum);
+    expect(g.map((t) => t.key)).toEqual(["recurring", "month", "sessions", "leads"]);
+    expect(g[0]!.value).toBe(pounds(sum.recurringPence));
+    expect(g[2]!.value).toBe(String(sum.sessions30.delivered));
+  });
+
+  it("notes clients without a fee and stays quiet when there's nothing to add", () => {
+    const input: BizInput = { now: NOW, clients: [client({ id: "a", feePence: 0, startedAt: "2026-06-01T00:00:00Z" })], leads: [], bookings: [], packs: [], sales: [] };
+    const g = businessGlance(businessSummary(input));
+    expect(g[0]!.note).toBe("1 without a fee set");
+    expect(g[2]!.note).toBeNull();
+    expect(g[3]!.note).toBeNull();
   });
 });
