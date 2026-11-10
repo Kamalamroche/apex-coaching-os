@@ -66,3 +66,15 @@ describe("history", () => {
       .toEqual({ workoutName: "Last session", sets: 13, volumeKg: 2950, minutes: 46 });
   });
 });
+
+describe("exercise notes", () => {
+  it("saves a trimmed note and reads it back, and leaves it out when empty", () => {
+    const w = { ...INITIAL_WORKOUT, items: INITIAL_WORKOUT.items.map((it, i) => (i === 0 ? { ...it, note: "  tempo 3-1-1 " } : it)) };
+    const rows = toItemRows(w, "w1");
+    expect(rows[0]!.coach_note).toBe("tempo 3-1-1");
+    expect(rows[1]!.coach_note).toBeNull();
+    const back = toWorkout({ id: "w1", name: "A", week: 1, est_minutes: 45 } as WorkoutRow, rows, 8, new Map());
+    expect(back.items[0]!.note).toBe("tempo 3-1-1");
+    expect("note" in back.items[1]!).toBe(false);
+  });
+});

@@ -995,3 +995,8 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .cal-menu{position:fixed;z-index:61;display:grid;min-width:170px;padding:6px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:var(--card-shadow)}
 .cal-menu button,.cal-menu a{all:unset;cursor:pointer;padding:10px 12px;border-radius:10px;font-size:14px;color:var(--text)}
 .cal-menu button:hover,.cal-menu a:hover,.cal-menu button:focus-visible,.cal-menu a:focus-visible{background:var(--card2)}
+.imp-note{font-size:12px;color:var(--text2);line-height:1.4;padding:6px 8px;border-left:2px solid var(--act);background:var(--act-soft);border-radius:0 6px 6px 0}
+.bld-note{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.bld-note input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font:400 13px/1.3 var(--ui);padding:8px 10px}
+.coach-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-sm);border-left:3px solid var(--act);background:var(--act-soft);color:var(--text);font-size:14px;line-height:1.4}
+.coach-note .tiny{color:var(--act);font-weight:700;letter-spacing:.04em;text-transform:uppercase}

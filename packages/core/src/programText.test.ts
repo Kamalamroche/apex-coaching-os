@@ -87,3 +87,43 @@ Barbell Bench Press  4  8  72.5kg  120s`;
     expect(names).toContain("Walking Lunge");
   });
 });
+
+describe("notes written with an exercise", () => {
+  const items = parseProgramText(`Day 1 - Lower
+A1) Back Squat 4 x 6-8 @ 80kg RPE 8, rest 2 min
+Bulgarian split squat 3x10 each side, tempo 3-1-1
+Coach: keep the hips square
+Walking lunge 3 x 12 per leg (60s rest)
+4x8 Back squat
+Back Squat   4   6-8  100kg  150s
+Note: pause at the bottom`).days[0]!.items;
+
+  it("keeps words after the numbers as the note, not loads, RPE or rest", () => {
+    expect(items[0]!.note).toBeUndefined();
+    expect(items[0]!.restSeconds).toBe(120);
+    expect(items[2]!.note).toBe("per leg");
+    expect(items[2]!.restSeconds).toBe(60);
+  });
+
+  it("adds a Coach: or Note: line to the exercise above it", () => {
+    expect(items[1]!.note).toBe("each side, tempo 3-1-1 · keep the hips square");
+    expect(items[4]!.note).toBe("pause at the bottom");
+    expect(items[4]!.restSeconds).toBe(150);
+  });
+
+  it("doesn't take the name as a note when the numbers come first", () => {
+    expect(items[3]!.name).toBe("Back squat");
+    expect(items[3]!.note).toBeUndefined();
+  });
+});
+
+describe("plan-wide notes", () => {
+  it("leaves a Notes: line at the end of the plan off the last exercise", () => {
+    const p = parseProgramText(`Friday
+C) Bike erg 5 x 60s, 60s rest
+
+Notes: drink water and sleep 8 hours.`);
+    expect(p.days[0]!.items[0]!.note).toBeUndefined();
+    expect(p.skipped.map((s) => s.text)).toContain("Notes: drink water and sleep 8 hours.");
+  });
+});

@@ -72,6 +72,8 @@ export interface WorkoutItem {
   setPlan?: SetTarget[];
   /** "circuit": the block runs round by round with timed stations. Absent = a straight set, superset, tri-set or giant set. */
   blockStyle?: BlockStyle;
+  /** The coach's note for this exercise, shown to the client: "each side", "tempo 3-1-1", "pause at the bottom". */
+  note?: string;
 }
 
 export interface SetTarget {

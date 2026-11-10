@@ -81,12 +81,14 @@ export function ImportPdf({ file, workout, onClose, onApply, onProgram, wholeOnl
     r.start();
   };
   const source = file?.name ?? "pasted text";
+  const [reading, setReading] = useState<string | null>(null);
   const show = (p: ParsedProgram) => { setPlan(p); setDayIx(0); setAll(p.days.map(toRows)); setProgName(p.name ?? ""); };
 
   useEffect(() => {
     if (!file) return;
     let live = true;
-    readProgramFromPdf(file)
+    setReading(null);
+    readProgramFromPdf(file, (n) => { if (live) setReading(n); })
       .then((p) => { if (live) show(p); })
       .catch((e: unknown) => live && setFailed(e instanceof Error ? e.message : String(e)));
     return () => { live = false; };
@@ -110,17 +112,17 @@ export function ImportPdf({ file, workout, onClose, onApply, onProgram, wholeOnl
     const name = progName.trim() || plan?.name || "Imported programme";
     const program = programFromImport(name, days.map((d, i) => ({
       title: d.title, week: d.week, dayIndex: d.dayIndex,
-      drafts: keep(all[i] ?? []).map((r) => ({ exerciseId: r.pick as number, group: r.group, sets: r.sets, reps: r.reps, kg: r.kg, rpe: r.rpe, restSeconds: r.restSeconds })),
+      drafts: keep(all[i] ?? []).map((r) => ({ exerciseId: r.pick as number, group: r.group, sets: r.sets, reps: r.reps, kg: r.kg, rpe: r.rpe, restSeconds: r.restSeconds, ...(r.note ? { note: r.note } : {}) })),
     })));
     onProgram(program, `${name}: ${program.days.length} session${program.days.length === 1 ? "" : "s"} over ${program.weeks} week${program.weeks === 1 ? "" : "s"} imported from ${source} · logged as your decision`);
   };
   const accept = () => {
-    const drafts = chosen.map((r) => ({ exerciseId: r.pick as number, group: r.group, sets: r.sets, reps: r.reps, kg: r.kg, rpe: r.rpe, restSeconds: r.restSeconds }));
+    const drafts = chosen.map((r) => ({ exerciseId: r.pick as number, group: r.group, sets: r.sets, reps: r.reps, kg: r.kg, rpe: r.rpe, restSeconds: r.restSeconds, ...(r.note ? { note: r.note } : {}) }));
     onApply(appendItems(workout, drafts), `${chosen.length} exercise${chosen.length === 1 ? "" : "s"} imported from ${source} · logged as your decision`);
   };
 
   return (
-    <Sheet onClose={onClose} label={file ? "Import a PDF programme" : "Paste a programme"}>
+    <Sheet onClose={onClose} label={file ? (file.type.startsWith("image/") ? "Import a programme photo" : "Import a PDF programme") : "Paste a programme"}>
       <div className="row"><Label kind="ai">AI suggestion</Label><span className="tiny">You review every line before it's added</span></div>
       <div><div className="eyebrow">{source}</div><h2 className="h2">{plan?.name ?? (onProgram ? "Import a programme" : "Import into this workout")}</h2></div>
 
@@ -148,8 +150,9 @@ export function ImportPdf({ file, workout, onClose, onApply, onProgram, wholeOnl
         </>
       )}
 
-      {failed && <p className="small" style={{ margin: 0 }}>Couldn't read this PDF: {failed}. If it's a scan or a photo, there's no text to read; type the exercises in or drag them from the library instead.</p>}
-      {file && !failed && !days && <p className="small" style={{ margin: 0 }}>Reading the PDF…</p>}
+      {failed && <p className="small" style={{ margin: 0 }}>Couldn't read this file: {failed}. Try a clearer scan, or type the exercises in or drag them from the library instead.</p>}
+      {file && !failed && !days && <p className="small" style={{ margin: 0 }}>{reading ?? (file.type.startsWith("image/") ? "Reading the photo…" : "Reading the PDF…")}</p>}
+      {file && reading && days && <div className="tiny">Read from a scan or photo, so check each line against the original.</div>}
 
       {days && days.length > 0 && onProgram && !wholeOnly && (
         <div className="chips" role="radiogroup" aria-label="What to import">
@@ -166,7 +169,7 @@ export function ImportPdf({ file, workout, onClose, onApply, onProgram, wholeOnl
       {days && (days.length > 1 || whole) && (
         <div className="chips">{days.map((d, i) => { const c = toCheck(all[i] ?? []); return <button key={i} className={`chip ${dayIx === i ? "on" : ""}`} onClick={() => pickDay(i)}>{weeks > 1 ? `W${d.week} · ` : ""}{d.title}{whole ? ` · ${keep(all[i] ?? []).length}` : ""}{c ? <span style={{ color: "var(--warn)" }}> · {c} to check</span> : null}</button>; })}</div>
       )}
-      {days && rows.length === 0 && <p className="small" style={{ margin: 0 }}>No exercises found{file ? " in this PDF" : ""}. Try one with a line per exercise, such as “Back squat 4 × 6 @ 80 kg”.</p>}
+      {days && rows.length === 0 && <p className="small" style={{ margin: 0 }}>No exercises found{file ? " in this file" : ""}. Try one with a line per exercise, such as “Back squat 4 × 6 @ 80 kg”.</p>}
       {rows.length > 0 && (
         <div className="card flat list">
           {rows.map((r, i) => (
@@ -184,6 +187,7 @@ export function ImportPdf({ file, workout, onClose, onApply, onProgram, wholeOnl
                   <span className="tiny num">{[`${r.sets} × ${r.reps}`, r.kg ? `${r.kg} kg` : "", r.rpe ? `RPE ${r.rpe}` : "", r.restSeconds ? `rest ${r.restSeconds} s` : ""].filter(Boolean).join(" · ")}</span>
                   {r.match && r.pick === r.match.exercise.id && !r.confident && <Label kind="insight">Check match</Label>}
                 </div>
+                {r.note && <div className="imp-note">Note for the client: “{r.note}”</div>}
               </div>
             </div>
           ))}

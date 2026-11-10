@@ -63,39 +63,30 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
     }
   };
 
+  const tools: { key: string; icon: keyof typeof Icons; title: string; note: string; open: () => void }[] = [
+    { key: "programmes", icon: "train", title: "Programmes", note: "Sell ready-made plans, free or paid", open: () => setShop(true) },
+    ...(extras ? [
+      { key: "classes", icon: "calendar" as const, title: "Group classes", note: "Place limits and a waitlist", open: () => setView("classes") },
+      { key: "agreements", icon: "note" as const, title: "Contracts and waivers", note: "Clients sign by typing their name", open: () => setView("agreements") },
+    ] : []),
+    ...(openGym ? [{ key: "gym", icon: "clients" as const, title: "Gym", note: "Your trainers and every client", open: openGym }] : []),
+  ];
   const links = (
-    <>
-      {openGym && (
-        <div className="card flat list full">
-          <button className="li" onClick={openGym}>
-            <Icons.clients width={18} height={18} style={{ color: "var(--act)" }} />
-            <div className="grow"><div className="h3">Gym</div><div className="tiny">Your trainers, their roles and every client in one place</div></div>
-            <span className="tiny">›</span>
-          </button>
-        </div>
-      )}
-      <div className="card flat list full">
-        <button className="li" onClick={() => setShop(true)}>
-          <span className="mi c2"><Icons.train /></span>
-          <div className="grow"><div className="h3">Programmes</div><div className="small">Sell ready-made plans to many clients at once, free or paid</div></div>
-          <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
-        </button>
-        {extras && (
-          <>
-            <button className="li" onClick={() => setView("classes")}>
-              <span className="mi c1"><Icons.clients /></span>
-              <div className="grow"><div className="h3">Group classes</div><div className="small">Classes with a place limit and a waitlist that moves up by itself</div></div>
-              <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
+    <section className="full bz-tools-wrap">
+      <div className="sect"><h2 className="h3">Your tools</h2></div>
+      <div className="bz-tools">
+        {tools.map((t, i) => {
+          const I = Icons[t.icon];
+          return (
+            <button key={t.key} className="bz-tool" style={{ ["--i" as string]: i }} onClick={t.open}>
+              <span className={`mi c${(i % 4) + 1}`}><I /></span>
+              <b>{t.title}</b>
+              <small>{t.note}</small>
             </button>
-            <button className="li" onClick={() => setView("agreements")}>
-              <span className="mi c4"><Icons.note /></span>
-              <div className="grow"><div className="h3">Contracts and waivers</div><div className="small">Clients sign by typing their name. See who has and who hasn't</div></div>
-              <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
-            </button>
-          </>
-        )}
+          );
+        })}
       </div>
-    </>
+    </section>
   );
 
   if (failed) {
@@ -123,6 +114,7 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
         <BusinessHero title={`${pounds(sum.recurringPence)} a month`} caption={mode === "demo" ? "Sample business · your real one fills in when you sign in" : "Monthly recurring, from the fees you set"} pills={pills} />
       </div>
       {needsSql && <div className="card small full" style={{ borderColor: "var(--warn)" }}>One step left: run the business SQL so fees and leaving dates can be saved. Everything else below is already your real data.</div>}
+      {links}
 
       <div className="gy-stats full">
         <div className="gy-stat" style={{ ["--i" as string]: 0 }}><b>£<CountUp value={Math.round(sum.thisMonth.totalPence / 100)} /></b><span>income this month</span></div>
@@ -188,7 +180,6 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
           ))}
         </details>
       )}
-      {links}
     </>
   );
 }

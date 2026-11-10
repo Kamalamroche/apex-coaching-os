@@ -23,6 +23,8 @@ export interface LiveStore extends ApexStore {
   createProgram(): Promise<void>;
   /** True once the program-builder migration (per-set targets, circuits) is in the database. */
   hasPlanColumns(): boolean;
+  /** True once the exercise-notes SQL is in the database, so a note on an exercise is saved. */
+  hasNoteColumn(): boolean;
   close(): void;
   /** Client: shown from the copy saved on this phone because there's no connection. */
   offline(): boolean;
@@ -53,7 +55,9 @@ interface DayRow extends WorkoutRow {
 
 /** The new columns from the program-builder migration. Stripped when the database doesn't have them yet. */
 const PLAN_COLUMNS = ["set_plan", "block_style"] as const;
-const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_style: _b, ...r }) => r);
+const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_style: _b, coach_note: _n, ...r }) => r);
+/** Exercise notes came later than per-set targets, so they are dropped on their own first. */
+const withoutNote = (rows: WorkoutItemRow[]) => rows.map(({ coach_note: _n, ...r }) => r);
 
 /** Postgres "undefined column" (select) and PostgREST "column not in schema cache" (insert). */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
@@ -74,6 +78,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let savedKeys = new Set<string>();
   let savedDays = new Set<string>();
   let hasPlanColumns = true;
+  let hasNoteColumn = true;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let lastLocalEdit = 0;
   let channel: RealtimeChannel | null = null;
@@ -231,6 +236,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       }
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
+      hasNoteColumn = !(items ?? []).length || "coach_note" in (items?.[0] ?? {});
       if (stale()) return;
       const next = withProgram({ ...state, messages, progress, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness, sessions } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
@@ -367,8 +373,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
 
   /** Writes item rows, dropping the per-set and circuit columns if the migration hasn't run yet. */
   async function upsertItems(rows: WorkoutItemRow[]) {
-    const send = hasPlanColumns ? rows : withoutPlan(rows);
+    const send = !hasPlanColumns ? withoutPlan(rows) : hasNoteColumn ? rows : withoutNote(rows);
     const { error: e } = await db.from("workout_items").upsert(send);
+    if (e && isMissingColumn(e) && hasNoteColumn) {
+      hasNoteColumn = false;
+      emit();
+      return upsertItems(rows);
+    }
     if (e && isMissingColumn(e) && hasPlanColumns) {
       hasPlanColumns = false;
       emit();
@@ -452,6 +463,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     error: () => error,
     progressError: () => progressError,
     hasPlanColumns: () => hasPlanColumns,
+    hasNoteColumn: () => hasNoteColumn,
     subscribe(listener) {
       listeners.add(listener);
       openChannel();
@@ -658,9 +670,11 @@ export async function insertProgram(db: SupabaseClient, ids: { coachId: string; 
   if (e3) throw e3;
   const rows = plan.days.flatMap((d) => toItemRows(d, d.key));
   if (!rows.length) return;
-  const first = await db.from("workout_items").insert(ids.hasPlanColumns === false ? withoutPlan(rows) : rows);
-  if (first.error && isMissingColumn(first.error)) {
-    const { error: e5 } = await db.from("workout_items").insert(withoutPlan(rows));
-    if (e5) throw e5;
-  } else if (first.error) throw first.error;
+  // Try with everything, then without notes (newest column), then without per-set targets too.
+  const tries = ids.hasPlanColumns === false ? [withoutPlan(rows)] : [rows, withoutNote(rows), withoutPlan(rows)];
+  for (const [i, send] of tries.entries()) {
+    const { error } = await db.from("workout_items").insert(send);
+    if (!error) return;
+    if (!isMissingColumn(error) || i === tries.length - 1) throw error;
+  }
 }
