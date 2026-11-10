@@ -54,3 +54,36 @@ describe("parseProgramText", () => {
     expect(t.days[0]).toMatchObject({ title: "Day 1", week: 1, dayIndex: 0 });
   });
 });
+
+describe("tables and whole programmes from other apps", () => {
+  const TABLE = `Hypertrophy Block - Phase 1
+Week 1
+Day 1 - Upper
+Exercise  Sets  Reps  Load  Rest
+Barbell Bench Press  4  8  70.0kg  120s
+Seated Cable Row  3  10-12  55.0kg  90s
+Day 2 - Lower
+Exercise  Sets  Reps  Load  Rest
+Deadlift  4  5  120kg  3 min
+Walking Lunges  3  12  16kg  90s
+Farmer's walk 3 x 40m
+Week 2
+Day 1 - Upper
+Barbell Bench Press  4  8  72.5kg  120s`;
+  const p = parseProgramText(TABLE);
+
+  it("reads the rest column, skips the header row and keeps distances", () => {
+    expect(p.skipped).toEqual([]);
+    const [upper, lower] = p.days;
+    expect(upper!.items.map((i) => i.restSeconds)).toEqual([120, 90]);
+    expect(lower!.items[0]!.restSeconds).toBe(180);
+    expect(lower!.items[2]!.reps).toBe("40m");
+  });
+
+  it("matches everyday names to the right movement", () => {
+    const names = p.days.flatMap((d) => d.items.map((i) => i.match?.exercise.name));
+    expect(names).toContain("Seated Cable Row");
+    expect(names).toContain("Conventional Deadlift");
+    expect(names).toContain("Walking Lunge");
+  });
+});

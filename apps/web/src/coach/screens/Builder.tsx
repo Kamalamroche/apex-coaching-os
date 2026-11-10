@@ -1,8 +1,8 @@
 import {
   addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
   swapExercise, toggleSuperset, updateItem, DAY_NAMES, addDay, blockAt, blockLabel, freeDayIndex, setCircuit, setRounds, setTargets, setVarySets, updateSetTarget,
-  type Exercise, type Workout, type WorkoutItem,
-  planChanges,
+  type Exercise, type Program, type Workout, type WorkoutItem,
+  planChanges, toTemplate,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons, Sheet, useUnits } from "@apex/ui";
@@ -16,6 +16,7 @@ import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Templates } from "./Templates";
+import { demoTemplates, liveTemplates } from "../../data/templates";
 import type { CoachLiveProps } from "../CoachApp";
 import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
 
@@ -59,6 +60,8 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   /* What each day looked like when the coach opened it (or last told the client), to say what changed on publish. */
   const baselines = useRef<Record<string, Workout>>({});
   const [publishing, setPublishing] = useState(false);
+  /* A whole programme just brought in from a PDF or text: offer to send it and to keep it as a template. */
+  const [imported, setImported] = useState<{ name: string; sessions: number; weeks: number; perWeek: number; sent: boolean; saved: boolean } | null>(null);
   useEffect(() => {
     if (status === "ready" && activeDay && !baselines.current[activeDay]) baselines.current[activeDay] = structuredClone(workout);
   }, [status, activeDay, workout]);
@@ -134,6 +137,41 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     store.saveProgram(p, day.key);
     say(`${workout.name} duplicated to ${DAY_NAMES[at]}`);
   };
+  const bringInProgram = (p: Program, msg: string) => {
+    const hasPlan = status === "ready" && program.days.some((d) => d.items.length > 0);
+    if (hasPlan && !confirm(`Replace ${first}'s current programme with “${p.name}”? Their past sessions and records are kept.`)) return;
+    store.startProgram(p);
+    setImporting(null);
+    const perWeek = Math.max(...Array.from({ length: p.weeks }, (_, w) => p.days.filter((d) => d.week === w + 1).length), 1);
+    setImported({ name: p.name, sessions: p.days.length, weeks: p.weeks, perWeek, sent: false, saved: false });
+    say(msg);
+  };
+  const sendImported = () => {
+    if (!imported) return;
+    store.sendMessage("coach", `Your new programme “${imported.name}” is ready in the app: ${imported.perWeek} session${imported.perWeek === 1 ? "" : "s"} a week${imported.weeks > 1 ? ` for ${imported.weeks} weeks` : ""}. Open Train to see your first session, and message me with any questions.`);
+    baselines.current = {};
+    setImported({ ...imported, sent: true });
+    say(`Sent · ${first} can start ${imported.name} now`);
+  };
+  const saveImported = async () => {
+    if (!imported) return;
+    try {
+      await (live ? liveTemplates(live.db) : demoTemplates()).save(toTemplate(store.get().program, imported.name));
+      setImported({ ...imported, saved: true });
+      say(`Saved “${imported.name}” to your templates, ready for other clients`);
+    } catch (e) { say(e instanceof Error ? e.message : String(e)); }
+  };
+  const pdfInput = <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />;
+  const importSheet = importing && (
+    <ImportPdf
+      file={importing === "text" ? null : importing}
+      workout={workout}
+      wholeOnly={status !== "ready"}
+      onClose={() => setImporting(null)}
+      onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
+      onProgram={bringInProgram}
+    />
+  );
   if (mode === "live" && !clientName) {
     return <Empty title="No clients yet" body="Invite your first client, then build their programme here." action="Invite a client" onAction={onInvite} />;
   }
@@ -142,7 +180,13 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   if (status === "no-program") {
     return (
       <>
-        <Empty title={`${first} has no programme yet`} body="Start from a template (yours or an APEX starter), or from the Foundations day, then edit it here. Changes save as you type." action="Choose a template" onAction={() => setTemplatesOpen(true)} secondary="Start with Foundations" onSecondary={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />
+        <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
+        <div className="row full" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button className="btn ghost sm" onClick={() => setImporting("text")}>Paste or speak a programme</button>
+          <button className="btn ghost sm" onClick={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()}>Start with Foundations</button>
+        </div>
+        {pdfInput}
+        {importSheet}
         {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
       </>
     );
@@ -170,8 +214,22 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
           <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste or speak</button>
           <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
         </div>
-        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />
+        {pdfInput}
       </div>
+      {imported && (
+        <div className="card imp-ready" role="status">
+          <div className="grow">
+            <div className="eyebrow">Imported · ready for {first}</div>
+            <div className="h3">{imported.name}</div>
+            <div className="tiny">{imported.sessions} session{imported.sessions === 1 ? "" : "s"}{imported.weeks > 1 ? ` over ${imported.weeks} weeks` : ""}, laid out in APEX with demos, timers and logging. Check each day above, then send it.</div>
+          </div>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button className="btn act sm" disabled={imported.sent} onClick={sendImported}><Icons.send width={14} height={14} /> {imported.sent ? `Sent to ${first}` : `Send to ${first}`}</button>
+            <button className="btn ghost sm" disabled={imported.saved} onClick={() => void saveImported()}>{imported.saved ? "Saved as template" : "Save as template"}</button>
+            <button className="iconbtn" aria-label="Hide" onClick={() => setImported(null)}>Close</button>
+          </div>
+        </div>
+      )}
 
       <div className="bld-quick" style={{ position: "relative" }}>
         <input id="exsearch" className="field" placeholder='Add exercise: try "rdl", "hinge" or "cable"' value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
@@ -361,14 +419,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         />
       )}
 
-      {importing && (
-        <ImportPdf
-          file={importing === "text" ? null : importing}
-          workout={workout}
-          onClose={() => setImporting(null)}
-          onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
-        />
-      )}
+      {importSheet}
     </div>
   );
 }
