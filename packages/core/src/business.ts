@@ -201,3 +201,17 @@ export function parsePounds(text: string): number | null {
   const pence = Math.round(Number(s) * 100);
   return pence <= 10_000_000 ? pence : null;
 }
+
+export interface GlanceTile { key: "recurring" | "month" | "sessions" | "leads"; value: string; label: string; note: string | null }
+
+/** Four numbers for the trainer's Brief: what comes in each month, income so far this month, sessions in the last
+    30 days, and leads. Plain figures from the coach's own records (Data). */
+export function businessGlance(sum: BizSummary): GlanceTile[] {
+  const s = sum.sessions30;
+  return [
+    { key: "recurring", value: pounds(sum.recurringPence), label: "a month from fees", note: sum.noFee ? `${sum.noFee} without a fee set` : null },
+    { key: "month", value: pounds(sum.thisMonth.totalPence), label: "income this month", note: sum.newThisMonth ? `${sum.newThisMonth} joined this month` : null },
+    { key: "sessions", value: String(s.delivered), label: "sessions, last 30 days", note: s.noShows ? `${s.noShows} no-show${s.noShows === 1 ? "" : "s"}` : null },
+    { key: "leads", value: String(sum.leads90), label: "leads, last 90 days", note: sum.conversionPct !== null ? `${sum.conversionPct}% became clients` : null },
+  ];
+}

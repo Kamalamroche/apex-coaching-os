@@ -75,6 +75,7 @@ export * from "./planUpdate";
 export * from "./outbox";
 export * from "./business";
 export * from "./health";
+export * from "./clientTable";
 export * from "./chatTools";
 export { sampleBusiness, sampleHealth } from "./data/business";
 export * from "./agreements";

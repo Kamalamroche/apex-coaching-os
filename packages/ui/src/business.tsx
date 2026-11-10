@@ -1,4 +1,4 @@
-import { HEALTH_BANDS, HERO_IMAGES, pounds, voiceClock, type BizMonth, type BizSource, type HealthBand, type HealthPart } from "@apex/core";
+import { HEALTH_BANDS, HERO_IMAGES, pounds, voiceClock, type BizMonth, type GlanceTile, type BizSource, type HealthBand, type HealthPart } from "@apex/core";
 import { useEffect, useRef, useState } from "react";
 import { Icons } from "./icons";
 import { EditorialTitle, HeroBackdrop } from "./primitives";
@@ -164,5 +164,24 @@ export function VoiceNote({ seconds, load, mine }: { seconds: number; load: () =
       <span className="vn-line"><i style={{ width: `${Math.min(100, (pos / Math.max(1, seconds)) * 100)}%` }} /></span>
       <span className="vn-time num">{failed ? "Can't play" : voiceClock(playing || pos ? pos : seconds)}</span>
     </span>
+  );
+}
+
+/** Brief: the business in four numbers, with a way through to the full Business screen. */
+export function BusinessGlance({ tiles, sample, onOpen }: { tiles: GlanceTile[]; sample?: boolean; onOpen?: () => void }) {
+  return (
+    <section className="bg-glance">
+      <div className="sect"><h2 className="h2">Business</h2>{onOpen ? <button className="link" onClick={onOpen}>Open Business ›</button> : null}</div>
+      <div className="bg-tiles">
+        {tiles.map((t, i) => (
+          <div key={t.key} className="bg-tile" style={{ ["--i" as string]: i }}>
+            <b className="num">{t.value}</b>
+            <span>{t.label}</span>
+            {t.note && <small>{t.note}</small>}
+          </div>
+        ))}
+      </div>
+      {sample && <div className="tiny" style={{ marginTop: 8 }}>Sample figures. Your own fill in when you sign in.</div>}
+    </section>
   );
 }

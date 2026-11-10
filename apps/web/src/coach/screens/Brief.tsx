@@ -1,11 +1,11 @@
-import { CLIENTS, HERO_IMAGES, type RosterRow, firstName, heroForWorkout, newestFirst, type Client } from "@apex/core";
+import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, type Client, type GlanceTile } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
-import { useMemo, useState } from "react";
+import { Avatar, BusinessGlance, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
+import { useEffect, useMemo, useState } from "react";
+import { loadBusiness } from "../../data/business";
 import { SampleNote, useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
-import { CoachCardio, CoachRecovery } from "./CoachCardio";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
@@ -47,7 +47,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, openLiveClient, say, clientCount, clients, live }: { openClient: (id: number) => void; openLiveClient?: (id: string) => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
+export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -68,6 +68,8 @@ export function Brief({ openClient, openLiveClient, say, clientCount, clients, l
   const pending = TRIAGE.filter((i) => !handled[i.id]);
   const selectedCount = Object.values(selected).filter(Boolean).length;
   const handle = (id: string) => setHandled((d) => ({ ...d, [id]: true }));
+  const glance = useBusinessGlance(mode === "live" ? live : undefined);
+  const openToday = (tab?: string) => (mode === "live" ? (live?.activeClientId ? openLiveClient?.(live.activeClientId, tab) : undefined) : openClient(DEMO_CLIENT_ID, tab));
   const [calendar, setCalendar] = useState(false);
   const [twin, setTwin] = useState(false);
   if (calendar) return <Calendar clients={clients} onBack={() => setCalendar(false)} say={say} />;
@@ -94,37 +96,6 @@ export function Brief({ openClient, openLiveClient, say, clientCount, clients, l
       </section>
       <SampleNote />
       <PushPrompt say={say} full />
-      <div className="hero side short">
-        <HeroBackdrop art={hero} />
-        <div className="hero-body" style={{ maxWidth: 280 }}>
-          <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
-          <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>
-          <div className="gpills">
-            {log ? (
-              <>
-                <span className="gpill num">{log.sets} sets</span>
-                <span className="gpill num">{u.fw(log.volumeKg, 0)}</span>
-                {log.prs ? <span className="gpill num">{log.prs} PR</span> : <span className="gpill num">RPE {log.rpe}</span>}
-              </>
-            ) : (
-              <>
-                <span className="gpill num">{workout.items.length} exercises</span>
-                <span className="gpill num">{workout.minutes} min</span>
-                <span className="gpill num">Week {workout.week} of {workout.ofWeeks}</span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="stack" style={{ gap: 18 }}>
-        <TwinCard onOpen={() => setTwin(true)} />
-        <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
-      </div>
-
-      <GoingQuiet live={live} say={say} />
-
-      <ClientHealthCard rows={health} open={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />
-
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
         <div className="card flat list">
@@ -154,6 +125,19 @@ export function Brief({ openClient, openLiveClient, say, clientCount, clients, l
           })}
         </div>
       </section>
+
+      <div className="stack" style={{ gap: 8 }}>
+        <ClientHealthCard rows={health} open={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />
+        {openClients && <button className="link" style={{ alignSelf: "flex-start" }} onClick={openClients}>See every client in the table ›</button>}
+      </div>
+      {glance && <BusinessGlance tiles={glance} sample={mode === "demo"} onOpen={openBusiness} />}
+      <div className="stack" style={{ gap: 18 }}>
+        <TwinCard onOpen={() => setTwin(true)} />
+        <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
+      </div>
+
+      <GoingQuiet live={live} say={say} />
+
 
       <section>
         <div className="sect"><h2 className="h2">Progressions ready</h2><Label kind="insight">Rule-based</Label></div>
@@ -220,8 +204,31 @@ export function Brief({ openClient, openLiveClient, say, clientCount, clients, l
         </div>
       </section>
 
-      <CoachRecovery />
-      <CoachCardio />
+      <section className="stack" style={{ gap: 10 }}>
+        <div className="sect"><h2 className="h2">{clientFirst} today</h2><button className="link" onClick={() => openToday("Recovery")}>Recovery and cardio ›</button></div>
+      <div className="hero side short" role="button" tabIndex={0} style={{ cursor: "pointer" }} onClick={() => openToday()} onKeyDown={(e) => { if (e.key === "Enter") openToday(); }}>
+        <HeroBackdrop art={hero} />
+        <div className="hero-body" style={{ maxWidth: 280 }}>
+          <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
+          <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>
+          <div className="gpills">
+            {log ? (
+              <>
+                <span className="gpill num">{log.sets} sets</span>
+                <span className="gpill num">{u.fw(log.volumeKg, 0)}</span>
+                {log.prs ? <span className="gpill num">{log.prs} PR</span> : <span className="gpill num">RPE {log.rpe}</span>}
+              </>
+            ) : (
+              <>
+                <span className="gpill num">{workout.items.length} exercises</span>
+                <span className="gpill num">{workout.minutes} min</span>
+                <span className="gpill num">Week {workout.week} of {workout.ofWeeks}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      </section>
 
       {draft && (
         <Sheet onClose={() => setDraft(null)} label="Draft message">
@@ -236,4 +243,16 @@ export function Brief({ openClient, openLiveClient, say, clientCount, clients, l
       )}
     </>
   );
+}
+
+/** The four business numbers for the Brief: the coach's own records when live, sample figures in the demo. */
+function useBusinessGlance(live: CoachLiveProps | undefined): GlanceTile[] | null {
+  const [tiles, setTiles] = useState<GlanceTile[] | null>(() => (live ? null : businessGlance(businessSummary(sampleBusiness(new Date())))));
+  useEffect(() => {
+    if (!live) return;
+    let on = true;
+    loadBusiness(live.db, live.coachId).then((r) => { if (on) setTiles(businessGlance(businessSummary(r.input))); }, (e: unknown) => console.error("Couldn't load the business glance", e));
+    return () => { on = false; };
+  }, [live?.db, live?.coachId]); // eslint-disable-line react-hooks/exhaustive-deps
+  return tiles;
 }

@@ -62,3 +62,13 @@ export async function setClientStatus(db: SupabaseClient, coachId: string, clien
   const { error } = await db.from("coach_clients").update({ status }).eq("coach_id", coachId).eq("client_id", clientId);
   if (error) throw error;
 }
+
+/** What each client pays a month, for the client table. Empty until the business SQL has run. */
+export async function loadClientFees(db: SupabaseClient, coachId: string): Promise<Map<string, number>> {
+  const { data, error } = await db.from("coach_clients").select("client_id, monthly_fee_pence").eq("coach_id", coachId);
+  if (error) {
+    if (isMissingColumn(error)) return new Map();
+    throw error;
+  }
+  return new Map(((data ?? []) as { client_id: string; monthly_fee_pence: number | null }[]).filter((r) => r.monthly_fee_pence).map((r) => [r.client_id, r.monthly_fee_pence!]));
+}
