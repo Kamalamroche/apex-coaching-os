@@ -8,6 +8,8 @@
 
 -- ───────────── sessions the coach runs ─────────────
 
+-- The source column came with the client-import update; add it here too in case that one wasn't run.
+alter table public.sessions add column if not exists source text not null default 'app';
 alter table public.sessions drop constraint if exists sessions_source_check;
 alter table public.sessions add constraint sessions_source_check check (source in ('app', 'import', 'coach'));
 alter table public.sessions add column if not exists coached_by uuid references public.profiles (id) on delete set null;
