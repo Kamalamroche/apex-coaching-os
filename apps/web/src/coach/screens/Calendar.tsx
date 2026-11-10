@@ -8,6 +8,7 @@ import { AddToCalendar, BookingStatus, JoinCall, KindChips, MovePicker, RepeatCh
 import { useBookingApi } from "../../data/bookings";
 import { SessionsDesk } from "./Sessions";
 import type { LiveClient } from "../../data/coach";
+import type { CoachLiveProps } from "../CoachApp";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const TIMES = Array.from({ length: 37 }, (_, i) => 300 + i * 30); // 05:00 to 23:00
@@ -42,7 +43,7 @@ export function CalendarCard({ clients, onOpen }: { clients?: LiveClient[] | nul
 const nameMap = (clients?: LiveClient[] | null): Record<string, string> => (clients ? Object.fromEntries(clients.map((c) => [c.id, c.name])) : DEMO_BOOKING_NAMES);
 
 /** Coach: upcoming bookings, booking for a client, and the weekly hours clients can book. */
-export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | null; onBack: () => void; say: (m: string) => void }) {
+export function Calendar({ clients, live, onBack, say }: { clients?: LiveClient[] | null; live?: CoachLiveProps; onBack: () => void; say: (m: string) => void }) {
   const api = useBookingApi();
   const data = useBookings(api);
   const [mode, setMode] = useState<"list" | "sessions" | "hours">("list");
@@ -114,7 +115,7 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
           {data.settings.windows.length > 0 && <BookFor data={data} names={names} say={say} />}
         </>
       )}
-      {data.status === "ready" && mode === "sessions" && <SessionsDesk data={data} names={names} say={say} />}
+      {data.status === "ready" && mode === "sessions" && <SessionsDesk data={data} names={names} live={live} say={say} />}
       {data.status === "ready" && data.settings && mode === "hours" && <Hours initial={data.settings} onSaved={async () => { await data.reload(); say("Saved · clients can book these hours"); setMode("list"); }} />}
     </>
   );

@@ -2,6 +2,7 @@ import { formatPrice, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLin
 import { Celebrate, CoachPageView, EditorialTitle, Icons, Sheet, ThemeButton } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage } from "../data/growth";
+import { demoPageExtras, livePageExtras, type PageExtras } from "../data/grow";
 import { isDemo, supabase } from "../data/supabase";
 import { ProgrammeShelf } from "./ProgrammeShelf";
 
@@ -18,10 +19,13 @@ export function CoachPublic() {
   const [asking, setAsking] = useState(link.form && !link.embed);
   const [sent, setSent] = useState(false);
   const [interest, setInterest] = useState("");
+  const [extras, setExtras] = useState<PageExtras | null>(null);
 
   useEffect(() => {
     if (!slug) { setPage(null); return; }
     api.load(slug).then(setPage, () => setPage(null));
+    if (isDemo() || !supabase) setExtras(demoPageExtras());
+    else void livePageExtras(supabase, slug).then(setExtras);
   }, [api, slug]);
   useEffect(() => {
     if (page) document.title = `${page.name} · Train with me · APEX`;
@@ -54,6 +58,7 @@ export function CoachPublic() {
       <Top />
       <CoachPageView
         page={page}
+        extras={extras}
         action={sent
           ? <span className="gr-cta glass" role="status"><Icons.check width={16} height={16} /> Sent · {first} will be in touch</span>
           : <button className="gr-cta" onClick={() => setAsking(true)}>Train with {first} <Icons.arrow width={15} height={15} /></button>}

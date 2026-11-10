@@ -28,6 +28,7 @@ export * from "./formChecks";
 export * from "./goals";
 export * from "./booking";
 export * from "./sessions";
+export * from "./growthTools";
 export * from "./challenges";
 export * from "./resources";
 export * from "./clientNotes";

@@ -2,15 +2,23 @@ import { HEADLINE_MAX, BIO_MAX, MODE_LABEL, SPECIALTY_IDEAS, SPECIALTY_MAX, page
 import { BackLink, CoachPageView, GrowHero, Icons, LeadCard, PipelineStrip, Sheet } from "@apex/ui";
 import { useCallback, useEffect, useState } from "react";
 import { GROWTH_NEEDS_UPDATE, LEADS_NEEDS_UPDATE, LEADS_SQL, openedForLeads, useGrowthApi } from "../../data/growth";
+import { demoPageExtras, livePageExtras, useGrowApi, type PageExtras } from "../../data/grow";
+import { isDemo, supabase } from "../../data/supabase";
+import type { CoachLiveProps } from "../CoachApp";
+import { clientNames, useSendToClient } from "../sendToClient";
+import { GrowRewards } from "./GrowRewards";
 import { AddLeadSheet, EnquiryForm, LeadSheet, copyText, inviteLead, localToday } from "./CoachLeads";
 
 type Load = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; page: CoachPage; leads: Lead[] };
-type View = "leads" | "form" | "page";
+type View = "leads" | "form" | "page" | "rewards";
 type Filter = LeadStage | "open" | "all";
 
 /** Coach: my leads (pipeline), my enquiry form and welcome email, and my public page with its Train with me link. */
-export function CoachGrow({ onBack, say }: { onBack: () => void; say: (m: string) => void }) {
+export function CoachGrow({ live, onBack, say }: { live?: CoachLiveProps; onBack: () => void; say: (m: string) => void }) {
   const api = useGrowthApi();
+  const grow = useGrowApi();
+  const send = useSendToClient(live);
+  const [extras, setExtras] = useState<PageExtras | null>(null);
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [draft, setDraft] = useState<CoachPage | null>(null);
   const [view, setView] = useState<View>("leads");
@@ -32,6 +40,12 @@ export function CoachGrow({ onBack, say }: { onBack: () => void; say: (m: string
   }, [api]);
   useEffect(() => { void reload(); }, [reload]);
   useEffect(() => { if (openedForLeads()) setView("leads"); }, []);
+  const loadExtras = useCallback(() => {
+    if (!grow) return;
+    if (!grow.live) { setExtras(demoPageExtras()); return; }
+    if (supabase && !isDemo() && load.status === "ready" && load.page.published) void livePageExtras(supabase, load.page.slug).then(setExtras);
+  }, [grow, load]);
+  useEffect(() => { loadExtras(); }, [loadExtras]);
   if (!api) return null;
 
   if (load.status !== "ready" || !draft) {
@@ -93,7 +107,7 @@ export function CoachGrow({ onBack, say }: { onBack: () => void; say: (m: string
       </GrowHero>
 
       <div className="seg" role="tablist" aria-label="Train with me">
-        {([["leads", `Leads${counts.new ? ` · ${counts.new}` : ""}`], ["form", "Enquiry form"], ["page", "Your page"]] as [View, string][]).map(([v, label]) => (
+        {([["leads", `Leads${counts.new ? ` ${counts.new}` : ""}`], ["form", "Form"], ["page", "Page"], ...(grow ? [["rewards", "Rewards"]] : [])] as [View, string][]).map(([v, label]) => (
           <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>{label}</button>
         ))}
       </div>
@@ -130,6 +144,8 @@ export function CoachGrow({ onBack, say }: { onBack: () => void; say: (m: string
           )}
         </>
       )}
+
+      {view === "rewards" && grow && <GrowRewards api={grow} names={clientNames(live)} send={send} say={say} onChanged={loadExtras} />}
 
       {view === "form" && <EnquiryForm page={saved} say={say} fail={fail} onSetUp={() => setView("page")} />}
 
@@ -196,7 +212,7 @@ export function CoachGrow({ onBack, say }: { onBack: () => void; say: (m: string
       {preview && (
         <Sheet label="Preview" onClose={() => setPreview(false)}>
           <div className="sect"><h2 className="h3">What people see</h2><button className="btn ghost sm" onClick={() => setPreview(false)}>Close</button></div>
-          <CoachPageView page={draft} preview action={<span className="gr-cta">Train with {draft.name.split(" ")[0]}</span>} />
+          <CoachPageView page={draft} preview extras={extras} action={<span className="gr-cta">Train with {draft.name.split(" ")[0]}</span>} />
         </Sheet>
       )}
       {opened && <LeadSheet lead={opened} api={api} today={today} say={say} fail={fail} onChanged={reload} onClose={() => setOpenId(null)} />}

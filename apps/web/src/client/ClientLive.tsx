@@ -17,6 +17,7 @@ import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
+import { GrowProvider, liveGrow } from "../data/grow";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
@@ -61,6 +62,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const programmes = useMemo(() => (coach ? liveProgrammes(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const growth = useMemo(() => (coach ? liveGrowth(db, { side: "client", coachId: coach.id, coachName: coach.name, me: profile.id }) : null), [db, coach, profile.id]);
+  const grow = useMemo(() => (coach ? liveGrow(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const extras = useMemo(() => (coach ? liveExtras(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
@@ -85,11 +87,11 @@ export function ClientLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}>
+                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientApp notice={notice} /></ExtrasProvider></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </GrowthProvider></TeamProvider>
+                    </GrowProvider></GrowthProvider></TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>
