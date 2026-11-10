@@ -22,7 +22,7 @@ do $$ begin
   assert (select count(*) from program_versions) = 1, 'client must not see unpublished draft';
   assert (select count(*) from workouts) = 1, 'client sees only published workouts';
   assert (select count(*) from check_ins) = 1, 'client sees only own check-ins';
-  assert (select count(*) from exercises) = 637, 'client reads shared library';
+  assert (select count(*) from exercises) = 654, 'client reads shared library';
   assert (select count(*) from profiles) = 2, 'client sees self and own coach';
 end $$;
 insert into messages (coach_id, client_id, sender_id, body) values ('00000000-0000-0000-0000-00000000000c','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Hip felt fine');
@@ -1694,4 +1694,135 @@ do $$ begin
     raise exception 'rival uploaded into the thread';
   exception when insufficient_privilege then null; end;
 end $$;
+reset role;
+
+-- Contracts, classes, team inbox, micros, quick answers. Coach a1, clients a2, b4, b5; rival d.
+insert into auth.users values ('00000000-0000-0000-0000-0000000000b4'),('00000000-0000-0000-0000-0000000000b5');
+insert into profiles values ('00000000-0000-0000-0000-0000000000b4','client','Bola Class'),('00000000-0000-0000-0000-0000000000b5','client','Wen Class');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b4'),('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b5');
+
+-- Agreements: coach writes, client reads and signs once per version, signatures can't be changed; editing asks again.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into coach_agreements (id, coach_id, title, body) values ('a9000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000a1','Coaching agreement','I understand this plan is general guidance and I will tell my coach about injuries.');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+do $$ begin
+  assert (select count(*) from coach_agreements) = 1, 'client reads the agreement';
+  perform public.sign_agreement('a9000000-0000-0000-0000-000000000001', 'Priya Push');
+  perform public.sign_agreement('a9000000-0000-0000-0000-000000000001', 'Priya Push');
+  assert (select count(*) from agreement_signatures) = 1, 'one signature per version';
+  begin
+    update agreement_signatures set typed_name = 'Someone Else';
+    if (select typed_name from agreement_signatures limit 1) <> 'Priya Push' then raise exception 'signature changed'; end if;
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into agreement_signatures (agreement_id, coach_id, client_id, version, title, body, typed_name)
+    values (null, '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2', 9, 'x', 'x', 'Fake Sig');
+    raise exception 'signed directly';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.sign_agreement('a9000000-0000-0000-0000-000000000001', 'x');
+    raise exception 'one-letter name accepted';
+  exception when invalid_parameter_value then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from coach_agreements) = 0, 'rival sees no agreements';
+  assert (select count(*) from agreement_signatures) = 0, 'rival sees no signatures';
+  begin
+    perform public.sign_agreement('a9000000-0000-0000-0000-000000000001', 'Rival Coach');
+    raise exception 'non-client signed';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update coach_agreements set body = 'New wording: I understand this plan is general guidance and will report injuries.', version = 50 where id = 'a9000000-0000-0000-0000-000000000001';
+do $$ begin
+  assert (select version from coach_agreements where id = 'a9000000-0000-0000-0000-000000000001') = 2, 'new wording, version 2 (not what the coach typed)';
+  assert (select count(*) from agreement_signatures) = 1, 'coach sees the signature';
+end $$;
+
+-- Classes: two places; third person waits; a place freed moves them up; capacity raised moves the next up.
+insert into group_classes (id, coach_id, title, starts_at, capacity) values ('c1a55000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000a1','Circuits', now() + interval '2 days', 2);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+do $$ begin assert public.join_class('c1a55000-0000-0000-0000-000000000001') = 'booked', 'first booked'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b4');
+do $$ begin assert public.join_class('c1a55000-0000-0000-0000-000000000001') = 'booked', 'second booked'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b5');
+do $$ declare r record; begin
+  assert public.join_class('c1a55000-0000-0000-0000-000000000001') = 'waitlist', 'third waits';
+  select * into r from public.class_list();
+  assert r.booked = 2 and r.waiting = 1 and r.my_status = 'waitlist' and r.my_place = 1, 'list shows counts and place';
+  assert (select count(*) from class_spots) = 1, 'client sees only their own spot';
+  begin
+    insert into class_spots (class_id, client_id, status) values ('c1a55000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b5', 'booked');
+    raise exception 'jumped the waitlist';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b4');
+select public.leave_class('c1a55000-0000-0000-0000-000000000001');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b5');
+do $$ begin assert (select my_status from public.class_list()) = 'booked', 'waitlist moved up'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000b4');
+do $$ begin assert public.join_class('c1a55000-0000-0000-0000-000000000001') = 'waitlist', 'back of the queue'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+update group_classes set capacity = 3 where id = 'c1a55000-0000-0000-0000-000000000001';
+do $$ begin
+  assert (select count(*) from class_spots where status = 'booked') = 3, 'more room moves the waitlist up';
+end $$;
+select public.leave_class('c1a55000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b4');
+do $$ begin assert (select status from class_spots where client_id = '00000000-0000-0000-0000-0000000000b4') = 'cancelled', 'coach takes someone off'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from group_classes) = 0, 'rival sees no classes';
+  assert (select count(*) from class_spots) = 0, 'rival sees no spots';
+  begin
+    perform public.join_class('c1a55000-0000-0000-0000-000000000001');
+    raise exception 'rival joined';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.leave_class('c1a55000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a2');
+    raise exception 'rival removed a client';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+-- Team inbox: gym members only.
+reset role;
+insert into gyms (id, name, owner_id) values ('9e000000-0000-0000-0000-000000000001', 'Inbox Gym', '00000000-0000-0000-0000-0000000000a1');
+insert into gym_members (gym_id, coach_id, role) values ('9e000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a1', 'owner');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into gym_messages (gym_id, sender_id, body) values ('9e000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a1', 'Who can cover Saturday?');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from gym_messages) = 0, 'outsider reads nothing';
+  begin
+    insert into gym_messages (gym_id, sender_id, body) values ('9e000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d', 'hi');
+    raise exception 'outsider posted';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+do $$ begin assert (select count(*) from gym_messages) = 0, 'clients read nothing'; end $$;
+
+-- Food micros save; silly values don't.
+insert into food_entries (client_id, day, meal, name, kcal, fibre_g, sugar_g, salt_g) values ('00000000-0000-0000-0000-0000000000a2', current_date, 'lunch', 'Oats', 380, 10, 1.2, 0.02);
+do $$ begin
+  begin
+    insert into food_entries (client_id, day, meal, name, kcal, salt_g) values ('00000000-0000-0000-0000-0000000000a2', current_date, 'lunch', 'Odd', 10, 500);
+    raise exception 'saved 500 g salt';
+  exception when check_violation then null; end;
+end $$;
+
+-- Quick answers: coach writes, own clients read.
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into coach_answers (coach_id, question, answer) values ('00000000-0000-0000-0000-0000000000a1', 'Can I swap a session?', 'Yes, move it to any free day this week.');
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a2');
+do $$ begin
+  assert (select count(*) from coach_answers) = 1, 'client reads answers';
+  begin
+    insert into coach_answers (coach_id, question, answer) values ('00000000-0000-0000-0000-0000000000a1', 'Fake?', 'Fake answer');
+    raise exception 'client wrote an answer';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin assert (select count(*) from coach_answers) = 0, 'rival reads none'; end $$;
 reset role;

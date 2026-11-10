@@ -11,6 +11,7 @@ import { More, type MoreView } from "./screens/More";
 import { Player } from "./screens/Player";
 import { Progress } from "./screens/Progress";
 import { Today } from "./screens/Today";
+import { SignRequired, useClientAgreements } from "./screens/Agreements";
 import { Train } from "./screens/Train";
 
 type Tab = "today" | "train" | "progress" | "chat" | "more";
@@ -28,6 +29,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   // Opens More straight on a screen, e.g. Team from Today.
   const [moreStart, setMoreStart] = useState<{ view: MoreView; n: number } | null>(null);
   const [toast, say] = useToast();
+  const agreements = useClientAgreements();
   const t = useT();
   const tabs: TabDef<Tab>[] = [
     { id: "today", icon: "today", label: "Today" },
@@ -51,6 +53,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   return (
     <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}>
       <OfflineBanner />
+      {agreements.required.length > 0 ? <SignRequired list={agreements.required} onSigned={agreements.reload} say={say} /> : <>
       {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
       {intaking && <Intake onExit={() => setIntaking(false)} onDone={() => { setIntaking(false); setTab("today"); window.scrollTo(0, 0); say(`Sent · ${coachName} can see your answers`); }} />}
       {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} go={(id) => {
@@ -62,6 +65,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
       {!checkingIn && !intaking && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
       {!checkingIn && !intaking && tab === "chat" && <Chat say={say} />}
       {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} goTrain={() => { setTab("train"); window.scrollTo(0, 0); }} />}
+      </>}
       {toast}
     </Shell>
   );

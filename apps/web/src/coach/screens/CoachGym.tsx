@@ -4,6 +4,7 @@ import {
 } from "@apex/core";
 import { BackLink, GymClientItem, GymHero, GymStat, Icons, RoleBadge, RoleGuide, Sheet, TrainerRoster } from "@apex/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TeamInbox } from "./TeamInbox";
 import { GYM_NEEDS_UPDATE, gymInviteNote, useGymApi, type GymState } from "../../data/gym";
 
 type Load = { status: "loading" } | { status: "error"; message: string } | ({ status: "ready" } & GymState);
@@ -98,6 +99,8 @@ export function CoachGym({ onBack, say }: { onBack: () => void; say: (m: string)
 
       <div className="sect" style={{ marginBottom: 0 }}><h2 className="h3">Trainers</h2><span className="tiny">This week</span></div>
       <TrainerRoster lines={lines} onOpen={lead ? (id) => setOpen({ kind: "member", id }) : undefined} />
+
+      <TeamInbox gymId={gym.id} members={members} say={say} />
 
       {lead && invites.length > 0 && (
         <>

@@ -1,12 +1,12 @@
 import {
-  feetInches, fromFeetInches, ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
+  feetInches, fromFeetInches, ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, microTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
   weekDaysOf, weekNutrition, restDayProblem, suggestRestDay, nutritionNudge, nutritionScore, targetsFor, workoutOn,
   type NutritionTargets,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { useStore } from "../../data/StoreContext";
-import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, NumberField, WeekFuel, useUnits, useConvertedText } from "@apex/ui";
+import { HabitDays, Icons, Label, LiquidTank, MacroBars, MacroTable, MicroStrip, NumberField, WeekFuel, useUnits, useConvertedText } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { CoachPlanEditor } from "../../app/MealPlanParts";
@@ -144,6 +144,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
             <div><span className="tiny">Week total</span><b>{Math.round(weekView.total.kcal).toLocaleString("en-GB")}</b></div>
           </div>
           <MacroTable avg={weekView.avg} total={weekView.total} goal={t} />
+          <MicroStrip totals={microTotals(todays)} caption={`Today: from ${microTotals(todays).withData} of ${todays.length} foods that list fibre, sugar and salt.`} />
         </div>
       )}
       {todays.length > 0 && (

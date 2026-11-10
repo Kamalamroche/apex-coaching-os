@@ -1,3 +1,4 @@
+import type { Micros } from "./micros";
 import { sampleMealPlan, type MealPlan } from "./mealPlans";
 /* Habits, nutrition targets with a food log, and the onboarding questionnaire.
    The coach sets habits and targets; the client ticks habits, logs food and fills in the questionnaire once.
@@ -179,7 +180,7 @@ export const MEALS: { key: Meal; label: string }[] = [
   { key: "snack", label: "Snacks" },
 ];
 
-export interface FoodEntry {
+export interface FoodEntry extends Micros {
   id: string;
   /** Local date, YYYY-MM-DD. */
   day: string;
@@ -346,7 +347,7 @@ export interface LifestyleStore {
 export interface HabitRow { id: string; client_id: string; kind: HabitKind; title: string; days: number[]; created_at: string }
 export interface HabitTickRow { client_id: string; habit_id: string; day: string }
 export interface NutritionTargetsRow { client_id: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; note: string | null; rest_day?: { kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null }
-export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number }
+export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; fibre_g?: number | null; sugar_g?: number | null; salt_g?: number | null }
 export interface WaterRow { id: string; client_id: string; day: string; ml: number; created_at: string }
 export interface IntakeRow { client_id: string; answers: IntakeAnswers; health_flags: number; submitted_at: string }
 
@@ -366,8 +367,19 @@ export const fromTargetsRow = (r: NutritionTargetsRow): NutritionTargets => {
   return t;
 };
 
-export const toFoodRow = (f: FoodEntry, clientId: string): FoodEntryRow => ({ id: f.id, client_id: clientId, day: f.day, meal: f.meal, name: f.name.slice(0, 120), kcal: Math.round(f.kcal), protein_g: f.proteinG, carbs_g: f.carbsG, fat_g: f.fatG });
-export const fromFoodRow = (r: FoodEntryRow): FoodEntry => ({ id: r.id, day: r.day.slice(0, 10), meal: r.meal, name: r.name, kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g) });
+/** Fibre, sugar and salt go in only when known, so foods without them still save before the micros SQL has run. */
+export const toFoodRow = (f: FoodEntry, clientId: string): FoodEntryRow => ({
+  id: f.id, client_id: clientId, day: f.day, meal: f.meal, name: f.name.slice(0, 120), kcal: Math.round(f.kcal), protein_g: f.proteinG, carbs_g: f.carbsG, fat_g: f.fatG,
+  ...(f.fibreG !== undefined ? { fibre_g: Math.min(300, Math.max(0, f.fibreG)) } : {}),
+  ...(f.sugarG !== undefined ? { sugar_g: Math.min(1000, Math.max(0, f.sugarG)) } : {}),
+  ...(f.saltG !== undefined ? { salt_g: Math.min(100, Math.max(0, f.saltG)) } : {}),
+});
+export const fromFoodRow = (r: FoodEntryRow): FoodEntry => ({
+  id: r.id, day: r.day.slice(0, 10), meal: r.meal, name: r.name, kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g),
+  ...(r.fibre_g != null ? { fibreG: num(r.fibre_g) } : {}),
+  ...(r.sugar_g != null ? { sugarG: num(r.sugar_g) } : {}),
+  ...(r.salt_g != null ? { saltG: num(r.salt_g) } : {}),
+});
 
 export const toWaterRow = (e: WaterEntry, clientId: string): WaterRow => ({ id: e.id, client_id: clientId, day: e.day, ml: Math.round(Math.min(5000, Math.max(1, e.ml))), created_at: e.at });
 export const fromWaterRow = (r: WaterRow): WaterEntry => ({ id: r.id, day: r.day.slice(0, 10), ml: num(r.ml), at: r.created_at });

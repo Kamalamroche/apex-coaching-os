@@ -1,0 +1,42 @@
+/* Contracts and waivers, group classes, team inbox and quick answers. Athletic Tech tokens only. */
+.xc-card{display:flex;gap:12px;align-items:stretch;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);animation:xc-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 50ms)}
+.xc-card.off{opacity:.6}
+.xc-date{flex:none;width:52px;border-radius:var(--r-sm);background:var(--act-soft);color:var(--act);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0}
+.xc-date b{font-family:var(--num);font-size:22px;line-height:1;color:var(--text)}
+.xc-date small{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.xc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.xc-title{font-family:var(--head);font-weight:800;font-size:15.5px;letter-spacing:-.01em}
+.xc-meta{font-size:12.5px;color:var(--text2)}
+.xc-fill{display:flex;gap:3px;margin-top:4px}
+.xc-fill i{flex:1;height:5px;border-radius:var(--pill);background:var(--line);transition:background .3s}
+.xc-fill i.on{background:var(--act)}
+.xc-fill i.wait{background:var(--warn)}
+.xc-foot{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-top:6px;flex-wrap:wrap}
+.xc-spots{font-size:12px;font-weight:700;color:var(--text2)}
+.xc-spots.full{color:var(--warn)}
+@keyframes xc-in{from{opacity:0;transform:translateY(6px)}}
+
+.xa-paper{border:1px solid var(--line);border-radius:var(--r);background:var(--card2);padding:18px 18px 14px}
+.xa-text{max-height:min(40vh,380px);overflow:auto;padding-right:4px}
+.xa-paper h3{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:.01em;margin:0 0 4px}
+.xa-paper .ver{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.xa-paper p{font-size:14px;line-height:1.55;color:var(--text);margin:0 0 10px;white-space:pre-line}
+.xa-sign{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line2);padding-top:12px;margin-top:6px}
+.xa-sigline{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--text);border-bottom:1px solid var(--text3);padding:0 2px 2px;min-height:34px}
+.xa-row{display:flex;align-items:center;gap:10px}
+.xa-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--line2)}
+.xa-dot.ok{background:var(--good)}
+.xa-dot.wait{background:var(--warn)}
+
+.xq-ask{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.xq-hit{padding:10px 12px;border-radius:var(--r-sm);background:var(--bg2);border:1px solid var(--line);animation:xc-in .28s ease both;animation-delay:calc(var(--i,0) * 60ms)}
+.xq-hit b{display:block;font-size:13.5px;margin-bottom:3px}
+.xq-hit p{margin:0;font-size:13.5px;line-height:1.5;color:var(--text);white-space:pre-line}
+
+.xt-feed{display:flex;flex-direction:column;gap:8px;max-height:min(50vh,440px);overflow:auto;padding:2px}
+.xt-msg{max-width:86%;padding:8px 11px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.xt-msg.mine{align-self:flex-end;background:var(--blue);border-color:var(--blue);color:#fff}
+.xt-msg .who{font-size:11.5px;font-weight:700;color:var(--act);margin-bottom:2px}
+.xt-msg p{margin:0;font-size:14px;line-height:1.45;white-space:pre-line}
+.xt-msg .at{font-size:10.5px;opacity:.7;margin-top:3px;text-align:right}
+@media (prefers-reduced-motion:reduce){.xc-card,.xq-hit{animation:none}}

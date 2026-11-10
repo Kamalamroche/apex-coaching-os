@@ -19,6 +19,9 @@ interface OffNutriments {
   proteins_100g?: number;
   carbohydrates_100g?: number;
   fat_100g?: number;
+  fiber_100g?: number;
+  sugars_100g?: number;
+  salt_100g?: number;
 }
 
 export interface OffProduct {
@@ -59,5 +62,10 @@ export function foodFromOff(code: string, p: OffProduct | null | undefined): Foo
   const base = (p.product_name || p.product_name_en || "Scanned food").trim().slice(0, 70);
   const brand = p.brands?.split(",")[0]?.trim();
   const name = `${brand && !base.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${base}` : base}, ${grams} ${unit}`;
-  return { id: idFor(code), name, grams, kcal: Math.round(kcal100 * f), protein: r1(num(n.proteins_100g)), carbs: r1(num(n.carbohydrates_100g)), fat: r1(num(n.fat_100g)), group: "Scanned" };
+  const food: Food = { id: idFor(code), name, grams, kcal: Math.round(kcal100 * f), protein: r1(num(n.proteins_100g)), carbs: r1(num(n.carbohydrates_100g)), fat: r1(num(n.fat_100g)), group: "Scanned" };
+  // Fibre, sugar and salt when the pack lists them; left out (unknown) when it doesn't.
+  if (num(n.fiber_100g) !== null) food.fibre = r1(num(n.fiber_100g));
+  if (num(n.sugars_100g) !== null) food.sugar = r1(num(n.sugars_100g));
+  if (num(n.salt_100g) !== null) food.salt = Math.round(num(n.salt_100g)! * f * 100) / 100;
+  return food;
 }

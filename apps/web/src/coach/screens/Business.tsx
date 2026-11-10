@@ -5,6 +5,9 @@ import { useAppInfo } from "../../app/AppContext";
 import { loadBusiness, setClientFee, setClientStatus } from "../../data/business";
 import type { CoachLiveProps } from "../CoachApp";
 import { CoachProgrammes } from "./CoachProgrammes";
+import { CoachAgreements } from "./CoachAgreements";
+import { CoachClasses } from "./CoachClasses";
+import { useExtras } from "../../data/extras";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -12,6 +15,8 @@ const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").sli
 export function Business({ live, say = () => {}, openGym }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void }) {
   const { mode } = useAppInfo();
   const [shop, setShop] = useState(false);
+  const [view, setView] = useState<"agreements" | "classes" | null>(null);
+  const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -25,6 +30,8 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
   const sum = useMemo(() => (data ? businessSummary(data) : null), [data]);
 
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
+  if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
+  if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;
 
   const saveFee = async (c: BizClient, text: string) => {
     const pence = parsePounds(text);
@@ -73,6 +80,20 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
           <div className="grow"><div className="h3">Programmes</div><div className="small">Sell ready-made plans to many clients at once, free or paid</div></div>
           <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
         </button>
+        {extras && (
+          <>
+            <button className="li" onClick={() => setView("classes")}>
+              <span className="mi c1"><Icons.clients /></span>
+              <div className="grow"><div className="h3">Group classes</div><div className="small">Classes with a place limit and a waitlist that moves up by itself</div></div>
+              <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
+            </button>
+            <button className="li" onClick={() => setView("agreements")}>
+              <span className="mi c4"><Icons.note /></span>
+              <div className="grow"><div className="h3">Contracts and waivers</div><div className="small">Clients sign by typing their name. See who has and who hasn't</div></div>
+              <Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} />
+            </button>
+          </>
+        )}
       </div>
     </>
   );

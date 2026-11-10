@@ -213,6 +213,7 @@ textarea.field{resize:vertical;line-height:1.5;font-family:inherit}
 .imp-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 14px}
 .imp-row input[type=checkbox]{margin-top:3px;accent-color:var(--act);width:16px;height:16px}
 .imp-src{font:500 11.5px/1.4 var(--num);color:var(--text3);overflow-wrap:anywhere}
+.imp-ready{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-color:var(--act);background:var(--act-soft);animation:xc-in .32s cubic-bezier(.2,.7,.2,1) both}
 .imp-row select{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font:700 14px/1.2 var(--ui);padding:7px 8px}
 .imp-row.off{opacity:.5}
 .mini input:disabled{color:var(--text3);font:600 11px/1 var(--ui)}

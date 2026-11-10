@@ -28,8 +28,11 @@ import { useBookings } from "../../app/BookingParts";
 import { upcomingBookings, whenLabel } from "@apex/core";
 import { AccountScreen } from "../../app/Privacy";
 import { UnitsAndLanguage } from "../../app/Settings";
+import { useExtras } from "../../data/extras";
+import { Classes } from "./Classes";
+import { MyAgreements } from "./Agreements";
 
-type View = "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form";
+type View = "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "classes" | "agreements";
 
 export type MoreView = View;
 
@@ -45,6 +48,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
   const goals = useGoals();
   const inputs = useGoalInputs();
   const bookingApi = useBookingApi();
+  const extras = useExtras();
   const challengeApi = useChallengeApi();
   const resourceApi = useResourceApi();
   const programmeApi = useProgrammesApi("client");
@@ -56,6 +60,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
   const kcal = Math.round(dayTotals(life.food, today).kcal);
   const MENU: [View, string, string][] = [
     ...(bookingApi ? [["book", `Book with ${coachName}`, nextBooking ? `Next: ${whenLabel(nextBooking.startsAt)}` : "A call or a training session"] as [View, string, string]] : []),
+    ...(extras ? [["classes", "Group classes", `Book a place in ${coachName}'s classes`] as [View, string, string]] : []),
     ...(teamApi ? [["team", "Team", `${coachName}'s private team: high fives and the weekly effort board`] as [View, string, string]] : []),
     ...(friend ? [["invite", "Invite a friend", friend.summary.joined ? `${friend.summary.joined} joined ${coachName} through you` : `Bring a friend to train with ${coachName}`] as [View, string, string]] : []),
     ...(challengeApi ? [["challenges", "Challenges", `Join ${coachName}'s challenges and climb the leaderboard`] as [View, string, string]] : []),
@@ -66,11 +71,12 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
     ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
     ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
     ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
+    ...(extras ? [["agreements", "Agreements", "What you've signed with " + coachName] as [View, string, string]] : []),
     ...(teamApi ? [] : [["community", "Community", "Leaderboard and team feed"] as [View, string, string]]),
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["note", "c4"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -79,6 +85,8 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
       <>
         <BackLink onClick={() => setView(null)}>{t("More")}</BackLink>
         {view === "book" && <Book say={say} />}
+        {view === "classes" && <Classes say={say} />}
+        {view === "agreements" && <MyAgreements say={say} />}
         {view === "team" && <Team say={say} />}
         {view === "invite" && <InviteFriend say={say} />}
         {view === "challenges" && <Challenges say={say} />}

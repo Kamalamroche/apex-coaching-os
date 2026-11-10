@@ -25,7 +25,20 @@ export interface GymApi {
   remove(coachId: string): Promise<void>;
   handOver(clientId: string, to: string): Promise<void>;
   share(clientId: string, withId: string, on: boolean): Promise<void>;
+  /** The team inbox: one chat for everyone in the gym. */
+  chat: {
+    list(gymId: string): Promise<TeamMessage[]>;
+    send(gymId: string, body: string): Promise<void>;
+    remove(id: string): Promise<void>;
+    /** Calls back when someone posts. Returns a stop function. */
+    watch(gymId: string, changed: () => void): () => void;
+  };
 }
+
+export interface TeamMessage { id: string; senderId: string; body: string; at: string }
+export const TEAM_MESSAGE_MAX = 2000;
+const bodyCheck = (b: string) => { const t = b.trim(); if (!t) throw new Error("Write a message first"); if (t.length > TEAM_MESSAGE_MAX) throw new Error("Keep it under 2,000 characters"); return t; };
+export const TEAM_CHAT_NEEDS_SQL = "The team inbox needs the latest database update (20261121090000_contracts_classes_inbox.sql)";
 
 const isMissing = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202" || e?.code === "42883";
 export const GYM_NEEDS_UPDATE = "needs-update";
@@ -71,6 +84,27 @@ export function liveGym(db: SupabaseClient, me: string): GymApi {
     async remove(coachId) { await call("remove_gym_member", { p_coach: coachId }); },
     async handOver(clientId, to) { await call("hand_over_gym_client", { p_client: clientId, p_to: to }); },
     async share(clientId, withId, on) { await call("share_gym_client", { p_client: clientId, p_with: withId, p_on: on }); },
+    chat: {
+      async list(gymId) {
+        const { data, error } = await db.from("gym_messages").select("id, sender_id, body, created_at").eq("gym_id", gymId).order("created_at", { ascending: false }).limit(100);
+        if (error) throw isMissing(error) ? new Error(TEAM_CHAT_NEEDS_SQL) : new Error(error.message);
+        return (data as { id: string; sender_id: string; body: string; created_at: string }[]).reverse().map((r) => ({ id: r.id, senderId: r.sender_id, body: r.body, at: r.created_at }));
+      },
+      async send(gymId, body) {
+        const { error } = await db.from("gym_messages").insert({ gym_id: gymId, sender_id: me, body: bodyCheck(body) });
+        if (error) throw isMissing(error) ? new Error(TEAM_CHAT_NEEDS_SQL) : new Error(error.message);
+      },
+      async remove(id) {
+        const { error } = await db.from("gym_messages").delete().eq("id", id);
+        if (error) throw new Error(error.message);
+      },
+      watch(gymId, changed) {
+        const ch = db.channel(`apex-team-chat-${gymId}-${Math.random().toString(36).slice(2)}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "gym_messages", filter: `gym_id=eq.${gymId}` }, changed)
+          .subscribe();
+        return () => { void db.removeChannel(ch); };
+      },
+    },
   };
 }
 
@@ -88,6 +122,12 @@ export const gymInviteNote: { text: string | null } = { text: null };
 export function demoGym(): GymApi {
   let s: GymState = { ...sampleGym() };
   const me = "coach";
+  const ago = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+  let chat: TeamMessage[] = [
+    { id: "tm-1", senderId: "t-amara", body: "Morning all. Studio 2 is closed for cleaning until 10, so use the main floor for early sessions.", at: ago(190) },
+    { id: "tm-2", senderId: "t-luis", body: "Thanks. Aisha's knee is better, so I'm putting squats back in from Monday.", at: ago(150) },
+    { id: "tm-3", senderId: "t-mei", body: "Can someone cover my 6pm Thursday? Happy to swap for a Saturday morning.", at: ago(42) },
+  ];
   const myRole = () => s.gym?.myRole ?? "trainer";
   const member = (id: string) => s.members.find((m) => m.id === id);
   return {
@@ -124,6 +164,12 @@ export function demoGym(): GymApi {
         const rest = c.sharedWith.filter((w) => w.id !== withId);
         return { ...c, sharedWith: on ? [...rest, { id: t.id, name: t.name }].sort((a, b) => a.name.localeCompare(b.name)) : rest };
       });
+    },
+    chat: {
+      async list() { return chat.map((m) => ({ ...m })); },
+      async send(_gym, body) { chat = [...chat, { id: crypto.randomUUID(), senderId: me, body: bodyCheck(body), at: new Date().toISOString() }]; },
+      async remove(id) { chat = chat.filter((m) => m.id !== id || m.senderId !== me); },
+      watch() { return () => {}; },
     },
   };
 }

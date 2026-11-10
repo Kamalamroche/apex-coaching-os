@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { STARTER_TEMPLATES } from "./data/starterTemplates";
 import { INITIAL_WORKOUT } from "./data/workout";
 import { exerciseById } from "./library";
-import { addDay, copyWeek, daysInWeek, deleteWeek, freeDayIndex, fromTemplate, nextDayKey, programFromWorkout, removeDay, templateSummary, toTemplate } from "./program";
+import { addDay, copyWeek, daysInWeek, deleteWeek, freeDayIndex, fromTemplate, nextDayKey, programFromImport, programFromWorkout, removeDay, templateSummary, toTemplate } from "./program";
 import { createDemoStore, initialState } from "./store";
 
 const W1 = { ...INITIAL_WORKOUT, week: 1 };
@@ -108,5 +108,23 @@ describe("demo store with days", () => {
     const s = createDemoStore(storage, null).get();
     expect(s.program.days[0]?.name).toBe("Old save");
     expect(s.workout.name).toBe("Old save");
+  });
+});
+
+describe("programFromImport", () => {
+  const d = (exerciseId: number, group = "A") => ({ exerciseId, group, sets: 3, reps: "10", kg: 0, rpe: null, restSeconds: 60 });
+  it("builds every week and day, moving clashes to a free day and dropping empty days", () => {
+    const p = programFromImport("Block", [
+      { title: "Day 1 - Upper", week: 1, dayIndex: 0, drafts: [d(1), d(2, "B")] },
+      { title: "Lower", week: 1, dayIndex: 0, drafts: [d(3)] },
+      { title: "Rest", week: 1, dayIndex: 3, drafts: [] },
+      { title: "Upper", week: 2, dayIndex: 0, drafts: [d(1)] },
+    ]);
+    expect(p.name).toBe("Block");
+    expect(p.weeks).toBe(2);
+    expect(p.days.map((x) => [x.week, x.dayIndex, x.name])).toEqual([[1, 0, "Upper"], [1, 1, "Lower"], [2, 0, "Upper"]]);
+    expect(p.days.every((x) => x.ofWeeks === 2)).toBe(true);
+    expect(p.days[0]!.items.map((i) => i.group)).toEqual(["A", "B"]);
+    expect(p.days[0]!.minutes).toBeGreaterThanOrEqual(15);
   });
 });
