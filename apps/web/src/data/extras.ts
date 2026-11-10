@@ -1,5 +1,5 @@
 import {
-  ANSWER_STARTERS, agreementProblem, answerProblem, classProblem, demoJoin, demoLeave, sampleAgreements,
+  ANSWER_STARTERS, DEMO_CLIENT_ID, SESSION_NOTE_MAX, sampleSessionNotes, sessionNoteProblem, type SessionNote, agreementProblem, answerProblem, classProblem, demoJoin, demoLeave, sampleAgreements,
   type Agreement, type ClassSpot, type ClassView, type CoachAnswer, type GroupClass, type Signature,
 } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -35,7 +35,20 @@ export interface ExtrasApi {
     save(a: { id?: string; question: string; answer: string }): Promise<void>;
     remove(id: string): Promise<void>;
   };
+  /** Session notes. Coach: every note for one client. Client: only the notes shared with them (clientId ignored). */
+  notes: {
+    list(clientId: string): Promise<SessionNote[]>;
+    add(n: { clientId: string; body: string; shared: boolean; session: string | null }): Promise<SessionNote>;
+    setShared(id: string, shared: boolean): Promise<void>;
+    remove(id: string): Promise<void>;
+  };
 }
+
+export const NOTES_NEED_SQL = "Session notes need the latest database update (20261123090000_one_to_one.sql)";
+const failNote = (e: { code?: string; message: string }) => new Error(missing(e) ? NOTES_NEED_SQL : e.message);
+type NoteRow = { id: string; client_id: string; body: string; shared: boolean; session_label: string | null; created_at: string };
+const fromNote = (r: NoteRow): SessionNote => ({ id: r.id, clientId: r.client_id, body: r.body, shared: r.shared, session: r.session_label, createdAt: r.created_at });
+const cleanNote = (body: string) => { check(sessionNoteProblem(body)); return body.trim().slice(0, SESSION_NOTE_MAX); };
 
 export const EXTRAS_NEED_SQL = "This needs the latest database update (20261121090000_contracts_classes_inbox.sql)";
 const missing = (e: { code?: string } | null) => ["42P01", "PGRST205", "PGRST202", "42883"].includes(e?.code ?? "");
@@ -140,6 +153,29 @@ export function liveExtras(db: SupabaseClient, o: { side: "coach" | "client"; co
         if (error) throw fail(error);
       },
     },
+    notes: {
+      async list(clientId) {
+        let q = db.from("session_notes").select("id, client_id, body, shared, session_label, created_at").order("created_at", { ascending: false }).limit(200);
+        q = o.side === "client" ? q.eq("client_id", o.me).eq("shared", true) : q.eq("client_id", clientId).eq("coach_id", o.coachId);
+        const { data, error } = await q;
+        if (error) throw failNote(error);
+        return (data as NoteRow[]).map(fromNote);
+      },
+      async add(n) {
+        const row = { coach_id: o.coachId, client_id: n.clientId, body: cleanNote(n.body), shared: n.shared, session_label: n.session?.slice(0, 200) ?? null };
+        const { data, error } = await db.from("session_notes").insert(row).select("id, client_id, body, shared, session_label, created_at").single();
+        if (error || !data) throw failNote(error ?? { message: "The note wasn't saved" });
+        return fromNote(data as NoteRow);
+      },
+      async setShared(id, shared) {
+        const { error } = await db.from("session_notes").update({ shared }).eq("id", id);
+        if (error) throw failNote(error);
+      },
+      async remove(id) {
+        const { error } = await db.from("session_notes").delete().eq("id", id);
+        if (error) throw failNote(error);
+      },
+    },
   };
 }
 
@@ -147,7 +183,9 @@ export function liveExtras(db: SupabaseClient, o: { side: "coach" | "client"; co
 
 const KEY = "apex-extras-v1";
 export const DEMO_CLIENT = { id: "demo-client", name: "Priya Sharma" };
-interface DemoState { agreements: Agreement[]; signatures: Signature[]; classes: GroupClass[]; spots: Record<string, ClassSpot[]>; answers: CoachAnswer[] }
+interface DemoState { agreements: Agreement[]; signatures: Signature[]; classes: GroupClass[]; spots: Record<string, ClassSpot[]>; answers: CoachAnswer[]; notes?: SessionNote[] }
+/** The demo client in the coach's list. The client app's demo is the same person, so shared notes show up there. */
+const DEMO_NOTES_CLIENT = String(DEMO_CLIENT_ID);
 
 function sample(now: Date): DemoState {
   const day = (d: number, h: number) => { const t = new Date(now); t.setDate(t.getDate() + d); t.setHours(h, 0, 0, 0); return t.toISOString(); };
@@ -173,6 +211,7 @@ function sample(now: Date): DemoState {
       "cl-3": [spot("3", "Lena Rossi", "booked", 50)],
     },
     answers: ANSWER_STARTERS.map((a, i) => ({ ...a, id: `qa-${i}` })),
+    notes: sampleSessionNotes(DEMO_NOTES_CLIENT, now),
   };
 }
 
@@ -256,8 +295,25 @@ export function demoExtras(side: "coach" | "client"): ExtrasApi {
       },
       async remove(id) { st.update((s) => ({ ...s, answers: s.answers.filter((x) => x.id !== id) })); },
     },
+    notes: {
+      async list(clientId) {
+        const all = notesOf(st.read());
+        const id = side === "client" ? DEMO_NOTES_CLIENT : clientId;
+        return all.filter((n) => n.clientId === id && (side === "coach" || n.shared)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      },
+      async add(n) {
+        const note: SessionNote = { id: crypto.randomUUID(), clientId: n.clientId, body: cleanNote(n.body), shared: n.shared, session: n.session, createdAt: new Date().toISOString() };
+        st.update((s) => ({ ...s, notes: [note, ...notesOf(s)] }));
+        return note;
+      },
+      async setShared(id, shared) { st.update((s) => ({ ...s, notes: notesOf(s).map((n) => (n.id === id ? { ...n, shared } : n)) })); },
+      async remove(id) { st.update((s) => ({ ...s, notes: notesOf(s).filter((n) => n.id !== id) })); },
+    },
   };
 }
+
+/** Browsers that saved the demo before session notes existed get the samples too. */
+const notesOf = (s: DemoState): SessionNote[] => s.notes ?? sampleSessionNotes(DEMO_NOTES_CLIENT, new Date());
 
 const Ctx = createContext<ExtrasApi | null>(null);
 export function ExtrasProvider({ value, children }: { value: ExtrasApi | null; children: ReactNode }) {

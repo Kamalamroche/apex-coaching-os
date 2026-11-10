@@ -1832,3 +1832,80 @@ end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
 do $$ begin assert (select count(*) from coach_answers) = 0, 'rival reads none'; end $$;
 reset role;
+
+-- One-to-one: the coach logs a session, writes notes, and adds measurements and photos for their own client only.
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-00000000a1e1'),('00000000-0000-0000-0000-00000000a1e2'),('00000000-0000-0000-0000-00000000a1e3');
+insert into profiles values ('00000000-0000-0000-0000-00000000a1e1','coach','PT Coach'),('00000000-0000-0000-0000-00000000a1e2','client','PT Client'),('00000000-0000-0000-0000-00000000a1e3','client','Not Theirs');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e2');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a1e1');
+insert into sessions (id, client_id, started_at, finished_at, source, coached_by, session_rpe) values ('5e000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000a1e2', now() - interval '1 hour', now(), 'coach', '00000000-0000-0000-0000-00000000a1e1', 8);
+insert into logged_sets (session_id, exercise_id, set_index, load_kg, reps) values ('5e000000-0000-0000-0000-000000000001', 1, 0, 60, 8);
+insert into session_notes (coach_id, client_id, body, shared, session_label) values
+  ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e2','Great depth today.', true, 'Lower A · 1 set'),
+  ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e2','Ask about sleep next time.', false, null);
+insert into body_measurements (client_id, weight_kg, waist_cm) values ('00000000-0000-0000-0000-00000000a1e2', 71.4, 80);
+insert into storage.objects (bucket_id, name) values ('progress-photos','00000000-0000-0000-0000-00000000a1e2/front/p1.jpg');
+insert into progress_photos (client_id, pose, storage_path) values ('00000000-0000-0000-0000-00000000a1e2','front','00000000-0000-0000-0000-00000000a1e2/front/p1.jpg');
+do $$ begin
+  assert (select count(*) from sessions where source = 'coach') = 1, 'coach sees the session they ran';
+  assert (select count(*) from session_notes) = 2, 'coach sees both notes';
+  begin
+    insert into sessions (client_id, source, coached_by) values ('00000000-0000-0000-0000-00000000a1e3', 'coach', '00000000-0000-0000-0000-00000000a1e1');
+    raise exception 'coach logged a session for someone else''s client';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into sessions (client_id, source) values ('00000000-0000-0000-0000-00000000a1e2', 'app');
+    raise exception 'coach wrote a session pretending the client logged it';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into sessions (client_id, source, coached_by) values ('00000000-0000-0000-0000-00000000a1e2', 'other', '00000000-0000-0000-0000-00000000a1e1');
+    raise exception 'unknown source accepted';
+  exception when check_violation or insufficient_privilege then null; end;
+  begin
+    insert into session_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e3','Not mine');
+    raise exception 'note for someone else''s client';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into session_notes (coach_id, client_id, body) values ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e2',' ');
+    raise exception 'empty note saved';
+  exception when check_violation then null; end;
+  begin
+    insert into sessions (client_id, source, coached_by) values ('00000000-0000-0000-0000-00000000a1e2', 'coach', '00000000-0000-0000-0000-00000000000c');
+    raise exception 'coach logged a session in another coach''s name';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into body_measurements (client_id, weight_kg) values ('00000000-0000-0000-0000-00000000a1e3', 70);
+    raise exception 'measured someone else''s client';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into progress_photos (client_id, pose, storage_path) values ('00000000-0000-0000-0000-00000000a1e2','side','00000000-0000-0000-0000-00000000a1e3/side/x.jpg');
+    raise exception 'photo row pointing at another client''s folder';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('progress-photos','00000000-0000-0000-0000-00000000a1e3/front/x.jpg');
+    raise exception 'uploaded into another client''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+update session_notes set shared = true where body = 'Ask about sleep next time.';
+update session_notes set shared = false where body = 'Ask about sleep next time.';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a1e2');
+do $$ begin
+  assert (select count(*) from session_notes) = 1, 'client reads only the shared note';
+  assert (select count(*) from sessions where source = 'coach') = 1, 'client sees the session in their history';
+  assert (select count(*) from logged_sets ls join sessions s on s.id = ls.session_id where s.source = 'coach') = 1, 'client sees its sets';
+  assert (select count(*) from body_measurements) = 1, 'client sees the coach''s measurements';
+  begin
+    insert into session_notes (coach_id, client_id, body, shared) values ('00000000-0000-0000-0000-00000000a1e1','00000000-0000-0000-0000-00000000a1e2','Fake coach note', true);
+    raise exception 'client wrote a coach note';
+  exception when insufficient_privilege then null; end;
+end $$;
+update session_notes set shared = false;
+do $$ begin assert (select count(*) from session_notes where shared) = 1, 'client cannot hide a note'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from session_notes) = 0, 'rival reads no notes';
+  assert (select count(*) from sessions where source = 'coach') = 0, 'rival sees no coached sessions';
+end $$;
+reset role;
