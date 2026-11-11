@@ -28,7 +28,7 @@ export function CoachNutrition({ live, say }: { live?: CoachLiveProps; say: (m: 
         </select>
       )}
       {live ? (live.activeClientId && <CoachNutritionPanel clientName={clientName} say={say} />) : clientId === DEMO_CLIENT_ID ? <CoachNutritionPanel clientName={clientName} say={say} /> : <SampleTargets clientId={clientId} />}
-      <section>
+      {!live && <section>
         <div className="sect"><h2 className="h2">Supplement plan</h2></div>
         <SampleNote />
         <div className="card flat list">
@@ -36,7 +36,7 @@ export function CoachNutrition({ live, say }: { live?: CoachLiveProps; say: (m: 
             <div key={name} className="li"><div className="grow"><div className="h3">{name}</div><div className="small">{when}</div></div><span className="num" style={{ fontWeight: 700 }}>{dose}</span></div>
           ))}
         </div>
-      </section>
+      </section>}
     </>
   );
 }
