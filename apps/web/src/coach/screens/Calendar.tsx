@@ -1,11 +1,12 @@
 import {
   CANCEL_CHOICES, DEMO_BOOKING_NAMES, NOTICE_CHOICES, SLOT_CHOICES, hoursText, policyText, weeklyStarts, byLocalDay, callOpen, videoLinkProblem, dayLabel, firstName, hoursProblem, kindTitle, minutesLabel, newBooking, safeZone, timeLabel, upcomingBookings, whenLabel,
-  type BookingKind, type BookingSettings, type HoursWindow,
+  guestQueue, type BookingKind, type BookingSettings, type GuestBooking, type HoursWindow,
 } from "@apex/core";
 import { Avatar, BackLink, Icons, Label } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { AddToCalendar, BookingStatus, JoinCall, KindChips, MovePicker, RepeatChips, SlotPicker, useBookings, type BookingData } from "../../app/BookingParts";
 import { useBookingApi } from "../../data/bookings";
+import { ServicesDesk } from "./Services";
 import { SessionsDesk } from "./Sessions";
 import type { LiveClient } from "../../data/coach";
 
@@ -45,11 +46,15 @@ const nameMap = (clients?: LiveClient[] | null): Record<string, string> => (clie
 export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | null; onBack: () => void; say: (m: string) => void }) {
   const api = useBookingApi();
   const data = useBookings(api);
-  const [mode, setMode] = useState<"list" | "sessions" | "hours">("list");
+  const [mode, setMode] = useState<"list" | "sessions" | "services" | "hours">("list");
   const [moving, setMoving] = useState<string | null>(null);
   const names = nameMap(clients);
+  const [guests, setGuests] = useState<GuestBooking[]>([]);
+  useEffect(() => { api?.guests().then(setGuests, () => undefined); }, [api, mode]);
   if (!api) return null;
   const next = upcomingBookings(data.bookings, new Date());
+  const fromLink = guestQueue(guests, new Date());
+  const toConfirm = fromLink.filter((g) => g.status === "requested").length;
 
   const cancel = async (id: string) => {
     try {
@@ -79,12 +84,20 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
       <div className="chips full" role="tablist">
         <button role="tab" aria-selected={mode === "list"} className={`chip ${mode === "list" ? "on" : ""}`} onClick={() => setMode("list")}>Upcoming</button>
         <button role="tab" aria-selected={mode === "sessions"} className={`chip ${mode === "sessions" ? "on" : ""}`} onClick={() => setMode("sessions")}>Sessions and packs</button>
+        <button role="tab" aria-selected={mode === "services"} className={`chip ${mode === "services" ? "on" : ""}`} onClick={() => setMode("services")}>Services and link</button>
         <button role="tab" aria-selected={mode === "hours"} className={`chip ${mode === "hours" ? "on" : ""}`} onClick={() => setMode("hours")}>Your hours</button>
       </div>
       <div className="full"><BookingStatus data={data} /></div>
       {data.status === "ready" && data.settings && mode === "list" && (
         <>
           <section className="full stack">
+            {fromLink.length > 0 && (
+              <button className="card li" style={{ width: "100%", textAlign: "left" }} onClick={() => setMode("services")}>
+                <Icons.link width={18} height={18} style={{ color: "var(--act)" }} />
+                <div className="grow"><div className="h3">{fromLink.length} booked from your link</div><div className="tiny">{toConfirm ? `${toConfirm} waiting for you to confirm` : "All confirmed"} · next {fromLink.map((g) => g.startsAt).sort()[0] ? whenLabel(fromLink.map((g) => g.startsAt).sort()[0]!) : ""}</div></div>
+                <span className="tiny">›</span>
+              </button>
+            )}
             {next.length === 0 && <div className="card small">{data.settings.windows.length ? "Nothing booked yet. Clients book from More in their app." : "Set your hours first, then clients can book calls and sessions from their app."}</div>}
             {byLocalDay(next).map((g) => (
               <div key={g.day}>
@@ -115,6 +128,7 @@ export function Calendar({ clients, onBack, say }: { clients?: LiveClient[] | nu
         </>
       )}
       {data.status === "ready" && mode === "sessions" && <SessionsDesk data={data} names={names} say={say} />}
+      {data.status === "ready" && mode === "services" && <ServicesDesk data={data} say={say} onHours={() => setMode("hours")} />}
       {data.status === "ready" && data.settings && mode === "hours" && <Hours initial={data.settings} onSaved={async () => { await data.reload(); say("Saved · clients can book these hours"); setMode("list"); }} />}
     </>
   );

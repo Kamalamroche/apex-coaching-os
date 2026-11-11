@@ -1,5 +1,7 @@
 import { blankPage, defaultLeadSettings, fromPageRow, manualLeadProblem, onStageChange, onStatusChange, pageLink, pageProblem, phoneProblem, readSource, referralSummary, requestProblem, sampleLeads, samplePage, slugProblem, stageFromStatus, welcomeProblem, type CoachPage, type JoinRequestDraft, type JoinRequestStatus, type Lead, type LeadSettings, type LeadStage, type ManualLead, type PageRow, type ReferralSummary, type TrainingModeName } from "@apex/core";
+import { BOOK_AHEAD_DAYS, fromServiceRow, fromSettingsRow, guestProblem, menuFor, type BookingSettings, type BookingSettingsRow, type Busy, type GuestBooking, type GuestDraft, type Service, type ServiceRow } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { demoBookingLoad, readDemoGuests, readDemoServices, writeDemoGuests } from "./bookings";
 import { createContext, useContext } from "react";
 
 /** Coach: my public page and the requests it brings in. Client: my invite-a-friend link. */
@@ -34,7 +36,13 @@ export interface PublicPageApi {
   live: boolean;
   load(slug: string): Promise<CoachPage | null>;
   request(slug: string, d: JoinRequestDraft, ref: string | null, source?: string | null): Promise<void>;
+  /** Services open to everyone, the coach's hours and which times are taken. Null before the services SQL. */
+  bookingMenu(slug: string): Promise<PublicBookingMenu | null>;
+  /** Books a service at a free time. It waits for the coach to confirm. */
+  bookAsGuest(slug: string, serviceId: string, startsAt: string, d: GuestDraft, source?: string | null): Promise<void>;
 }
+
+export interface PublicBookingMenu { services: Service[]; settings: BookingSettings | null; busy: Busy[] }
 
 const isMissing = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202";
 const isMissingColumn = (e: { code?: string } | null) => isMissing(e) || e?.code === "42703" || e?.code === "PGRST204";
@@ -180,6 +188,31 @@ export function livePublicPage(db: SupabaseClient): PublicPageApi {
       if (error?.code === "PGRST202") ({ error } = await db.rpc("request_to_train", base));
       if (error) throw err(error);
     },
+    async bookingMenu(slug) {
+      const now = new Date();
+      const [s, h, b] = await Promise.all([
+        db.rpc("public_services", { p_slug: slug }),
+        db.rpc("public_booking_hours", { p_slug: slug }),
+        db.rpc("public_busy", { p_slug: slug, p_from: now.toISOString(), p_to: new Date(now.getTime() + (BOOK_AHEAD_DAYS + 1) * 86400000).toISOString() }),
+      ]);
+      if (isMissing(s.error) || isMissing(h.error) || isMissing(b.error)) return null;
+      const e = s.error ?? h.error ?? b.error;
+      if (e) throw new Error(e.message);
+      const hours = ((h.data ?? []) as Omit<BookingSettingsRow, "coach_id">[])[0];
+      return {
+        services: ((s.data ?? []) as Omit<ServiceRow, "coach_id" | "audience" | "active">[]).map((r) => fromServiceRow({ ...r, audience: "everyone", active: true })),
+        settings: hours ? fromSettingsRow({ ...hours, coach_id: "" }) : null,
+        busy: ((b.data ?? []) as { starts_at: string; ends_at: string }[]).map((x) => ({ startsAt: new Date(x.starts_at).toISOString(), endsAt: new Date(x.ends_at).toISOString() })),
+      };
+    },
+    async bookAsGuest(slug, serviceId, startsAt, d, source) {
+      const problem = guestProblem(d);
+      if (problem) throw new Error(problem);
+      const { error } = await db.rpc("book_as_guest", {
+        p_slug: slug, p_service: serviceId, p_starts: startsAt, p_name: d.name.trim(), p_email: d.email.trim(), p_phone: d.phone.trim(), p_note: d.note.trim(), p_source: readSource(source ?? null),
+      });
+      if (error) throw new Error(error.message);
+    },
   };
 }
 
@@ -271,6 +304,33 @@ export function demoPublicPage(): PublicPageApi {
         welcomedAt: (readDemo().settings ?? defaultLeadSettings()).welcomeOn ? now : null,
       };
       updateDemo((s) => ({ ...s, requests: [r, ...s.requests] }));
+    },
+    async bookingMenu() {
+      const load = await demoBookingLoad();
+      return { services: menuFor(readDemoServices(), "public"), settings: load.settings, busy: load.busy };
+    },
+    async bookAsGuest(_slug, serviceId, startsAt, d) {
+      const problem = guestProblem(d);
+      if (problem) throw new Error(problem);
+      const sv = readDemoServices().find((x) => x.id === serviceId);
+      if (!sv) throw new Error("That service isn't available to book.");
+      const ends = new Date(Date.parse(startsAt) + sv.minutes * 60000).toISOString();
+      const load = await demoBookingLoad();
+      if (load.busy.some((b) => Date.parse(b.startsAt) < Date.parse(ends) && Date.parse(startsAt) < Date.parse(b.endsAt))) throw new Error("That slot was just taken. Pick another one.");
+      const g: GuestBooking = {
+        id: `guest-${Date.now()}`, serviceId: sv.id, serviceName: sv.name, pricePence: sv.pricePence, kind: sv.kind, startsAt, endsAt: ends,
+        name: d.name.trim(), email: d.email.trim().toLowerCase(), phone: d.phone.trim(), note: d.note.trim(), status: "requested", createdAt: new Date().toISOString(),
+      };
+      writeDemoGuests([...readDemoGuests(), g]);
+      // Like the live booking, the person lands in Leads unless they're already there.
+      if (!readDemo().requests.some((r) => r.email === g.email && ["new", "contacted", "trial"].includes(r.stage))) {
+        const now = new Date().toISOString();
+        const lead: Lead = {
+          id: `r-${Date.now()}`, name: g.name, email: g.email, goal: "", message: `Booked: ${sv.name}. ${g.note}`.trim(), phone: g.phone, how: "",
+          at: now, status: "new", stage: "new", referredBy: null, source: "booking", notes: "", followUp: null, welcomedAt: null,
+        };
+        updateDemo((s) => ({ ...s, requests: [lead, ...s.requests] }));
+      }
     },
   };
 }

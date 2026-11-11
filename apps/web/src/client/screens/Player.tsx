@@ -1,6 +1,6 @@
 import {
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
-  sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { FormCheckSheet } from "./FormCheck";
+import { ExerciseCommentSheet } from "./ExerciseComment";
 import { PlateCalculator } from "./PlateCalculator";
 import { ReadinessCheck } from "./Readiness";
 import { ShareWorkout } from "./ShareWorkout";
@@ -37,6 +38,8 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const [finishing, setFinishing] = useState(false);
   const [plates, setPlates] = useState(false);
   const [filming, setFilming] = useState(false);
+  const [commenting, setCommenting] = useState(false);
+  const [comments, setComments] = useState<ExerciseComment[]>([]);
   /** Exercises a form check video was sent for in this session. */
   const [filmed, setFilmed] = useState<Record<number, boolean>>({});
   /** Bar chosen in the plate calculator, per exercise, for this session. */
@@ -116,7 +119,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const workSecs = timedSeconds(it.reps);
   const round = itemSets.filter((s) => s.done).length + 1;
 
-  if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} minutes={minutes} onDone={onDone} />;
+  if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} comments={comments} minutes={minutes} onDone={onDone} />;
 
   // The plate calculator opens on the next set still to do.
   const nextSet = itemSets.find((s) => !s.done) ?? itemSets.at(-1);
@@ -163,6 +166,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
             <button className="link" onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
             {usesPlates(ex) && it.kg > 0 && <button className="link" onClick={() => setPlates(true)}>Plate calculator</button>}
             <button className="link" onClick={() => setFilming(true)}>{filmed[ex.id] ? "Video sent · film another" : "Film my form"}</button>
+            <button className="link" onClick={() => setCommenting(true)}>{comments.some((c) => c.exerciseId === ex.id) ? `Comment sent · add another` : "Comment"}</button>
           </div>
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
@@ -203,6 +207,15 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
         )}
       </main>
+      {commenting && (
+        <ExerciseCommentSheet
+          exerciseId={ex.id}
+          exercise={ex.name}
+          set={itemSets.some((x) => x.done) ? Math.min(itemSets.filter((x) => x.done).length, it.sets) : null}
+          onClose={() => setCommenting(false)}
+          onSent={(c) => { setComments((l) => [...l, c]); setCommenting(false); }}
+        />
+      )}
       {filming && <FormCheckSheet exerciseId={ex.id} exercise={ex.name} onClose={() => setFilming(false)} onSent={() => { setFilming(false); setFilmed((f) => ({ ...f, [ex.id]: true })); }} />}
       {plates && (
         <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
@@ -241,7 +254,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   );
 }
 
-function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; minutes: () => number; onDone: () => void }) {
+function Finish({ workout: w, sets, history, readiness, comments, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; comments: ExerciseComment[]; minutes: () => number; onDone: () => void }) {
   const store = useStore();
   const u = useUnits();
   const { clientName, coachName } = useAppInfo();
@@ -255,7 +268,7 @@ function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { wor
   const volume = sessionVolume(sets);
   const prs = countPersonalBests(w, sets, history.bestKg);
   const count = completedSets(sets);
-  const summary = useMemo(() => ({ ...buildSummary(w, sets, mins, history), ...(readiness ? { readiness } : {}) }), [w, sets, mins, history, readiness]);
+  const summary = useMemo(() => ({ ...buildSummary(w, sets, mins, history), ...(readiness ? { readiness } : {}), ...(comments.length ? { comments } : {}) }), [w, sets, mins, history, readiness, comments]);
   const save = () => {
     if (sessionRpe === null) return;
     const log: SessionLog = { workoutName: w.name, sets: count, volumeKg: volume, minutes: mins, rpe: sessionRpe, prs, summary, ...(note.trim() ? { note: note.trim() } : {}) };

@@ -55,8 +55,8 @@ export function KindChips({ value, onChange }: { value: BookingKind; onChange: (
 }
 
 /** Pick a day, then a free time. */
-export function SlotPicker({ settings, busy, value, onChange }: { settings: BookingSettings; busy: Busy[]; value: string | null; onChange: (iso: string | null) => void }) {
-  const days = useMemo(() => freeSlots(settings, busy, new Date()), [settings, busy]);
+export function SlotPicker({ settings, busy, value, onChange, lengthMin }: { settings: BookingSettings; busy: Busy[]; value: string | null; onChange: (iso: string | null) => void; lengthMin?: number }) {
+  const days = useMemo(() => freeSlots(settings, busy, new Date(), undefined, lengthMin ?? settings.slotMin), [settings, busy, lengthMin]);
   const [day, setDay] = useState<string | null>(null);
   const open = days.find((d) => d.day === day) ?? days[0];
   if (!days.length) return <div className="small">No free times in the next two weeks.</div>;

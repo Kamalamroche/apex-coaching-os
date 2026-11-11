@@ -1,5 +1,6 @@
 import {
-  BOOK_AHEAD_DAYS, DEFAULT_BOOKING_SETTINGS, DEMO_BOOKING_CLIENT, busyFrom, fromBookingRow, fromPackRow, fromSettingsRow, hoursProblem, sampleBookings, samplePacks, samplePastSessions, toBookingRow, toPackRow, toSettingsRow,
+  BOOK_AHEAD_DAYS, DEFAULT_BOOKING_SETTINGS, freeSlots, fromGuestRow, guestBusy, fromServiceRow, sampleServices, serviceProblem, toServiceRow,
+  type GuestBooking, type GuestBookingRow, type GuestStatus, type Service, type ServiceRow, DEMO_BOOKING_CLIENT, busyFrom, fromBookingRow, fromPackRow, fromSettingsRow, hoursProblem, sampleBookings, samplePacks, samplePastSessions, toBookingRow, toPackRow, toSettingsRow,
   type Attendance, type Booking, type BookingRow, type BookingSettings, type BookingSettingsRow, type Busy, type SessionPack, type SessionPackRow,
 } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -25,7 +26,17 @@ export interface BookingApi {
   removePack(id: string): Promise<void>;
   mark(id: string, attendance: Attendance): Promise<void>;
   waive(id: string, waived: boolean): Promise<void>;
+  /* Service menu and booking link (services SQL). ready is false until it is run. */
+  services(): Promise<{ list: Service[]; ready: boolean }>;
+  /** Coach: saves every service in the list (new, edited or reordered). */
+  saveServices(list: Service[]): Promise<void>;
+  removeService(id: string): Promise<void>;
+  /** Coach: bookings from people who aren't clients yet, booked on the public page. */
+  guests(): Promise<GuestBooking[]>;
+  answerGuest(id: string, status: GuestStatus): Promise<void>;
 }
+
+export const SERVICES_NEED_UPDATE = "The service menu needs the services SQL in Supabase first.";
 
 export interface BookingLoad {
   settings: BookingSettings;
@@ -64,6 +75,11 @@ export function liveBookings(db: SupabaseClient, who: { side: "coach" | "client"
       if (e) throw err(e);
       const bookings = (b.data ?? []).map(fromBookingRow);
       let busy = busyFrom(bookings);
+      if (who.side === "coach") {
+        // Times held by people booking from the public page (services SQL; skipped before it is run).
+        const g = await db.from("guest_bookings").select("starts_at, ends_at, status").eq("coach_id", coachId).in("status", ["requested", "confirmed"]).gte("ends_at", since);
+        if (!g.error) busy = [...busy, ...((g.data ?? []) as { starts_at: string; ends_at: string }[]).map((x) => ({ startsAt: new Date(x.starts_at).toISOString(), endsAt: new Date(x.ends_at).toISOString() }))];
+      }
       if (who.side === "client") {
         const r = await db.rpc("booking_busy", { p_coach: coachId, p_from: now.toISOString(), p_to: until });
         if (r.error) throw err(r.error);
@@ -131,6 +147,32 @@ export function liveBookings(db: SupabaseClient, who: { side: "coach" | "client"
       const { error } = await db.from("bookings").update({ waived }).eq("id", id);
       if (error) throw new Error(error.message);
     },
+    async services() {
+      const { data, error } = await db.from("coach_services").select("id, name, minutes, price_pence, kind, description, audience, active, position").eq("coach_id", coachId).order("position").returns<ServiceRow[]>();
+      if (error && isMissingTable(error)) return { list: [], ready: false };
+      if (error) throw new Error(error.message);
+      return { list: (data ?? []).map(fromServiceRow), ready: true };
+    },
+    async saveServices(list) {
+      for (const sv of list) { const p = serviceProblem(sv); if (p) throw new Error(`${sv.name || "A service"}: ${p}`); }
+      const { error } = await db.from("coach_services").upsert(list.map((sv) => toServiceRow(sv, coachId)));
+      if (error) throw isMissingTable(error) ? new Error(SERVICES_NEED_UPDATE) : new Error(error.message);
+    },
+    async removeService(id) {
+      const { error } = await db.from("coach_services").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    async guests() {
+      const since = new Date(Date.now() - 86400000).toISOString();
+      const { data, error } = await db.from("guest_bookings").select("*").eq("coach_id", coachId).gte("ends_at", since).order("starts_at").limit(200).returns<GuestBookingRow[]>();
+      if (error && isMissingTable(error)) return [];
+      if (error) throw new Error(error.message);
+      return (data ?? []).map(fromGuestRow);
+    },
+    async answerGuest(id, status) {
+      const { error } = await db.from("guest_bookings").update({ status }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
   };
 }
 
@@ -138,7 +180,7 @@ const KEY = "apex-bookings-v2";
 
 /** Demo: sample hours and bookings in localStorage, shared by the coach and client tabs. */
 export function demoBookings(me = DEMO_BOOKING_CLIENT): BookingApi {
-  type Demo = { settings: BookingSettings; bookings: Booking[]; packs?: SessionPack[] };
+  type Demo = { settings: BookingSettings; bookings: Booking[]; packs?: SessionPack[]; services?: Service[]; guests?: GuestBooking[] };
   const read = (): Demo => {
     try {
       const raw = localStorage.getItem(KEY);
@@ -164,7 +206,7 @@ export function demoBookings(me = DEMO_BOOKING_CLIENT): BookingApi {
       const v = get();
       const mine = v.bookings.filter((b) => me === "coach" || b.clientId === me);
       return {
-        settings: v.settings, bookings: v.bookings, busy: busyFrom(v.bookings),
+        settings: v.settings, bookings: v.bookings, busy: [...busyFrom(v.bookings), ...guestBusy(readDemoGuests())],
         history: mine.filter((b) => b.kind === "session"), packs: (v.packs ?? (v.packs = samplePacks())).filter((p) => me === "coach" || p.clientId === me), sessionsReady: true,
       };
     },
@@ -201,6 +243,17 @@ export function demoBookings(me = DEMO_BOOKING_CLIENT): BookingApi {
     async removePack(id) { const v = get(); set({ ...v, packs: (v.packs ?? []).filter((p) => p.id !== id) }); },
     async mark(id, attendance) { patch(id, (x) => ({ ...x, attendance, waived: attendance === "no_show" ? x.waived : false })); },
     async waive(id, waived) { patch(id, (x) => ({ ...x, waived })); },
+    async services() { return { list: get().services ?? sampleServices(), ready: true }; },
+    async saveServices(list) {
+      for (const sv of list) { const p = serviceProblem(sv); if (p) throw new Error(`${sv.name || "A service"}: ${p}`); }
+      const v = get();
+      const byId = new Map((v.services ?? sampleServices()).map((x) => [x.id, x]));
+      for (const sv of list) byId.set(sv.id, sv);
+      set({ ...v, services: [...byId.values()].sort((a, b) => a.position - b.position) });
+    },
+    async removeService(id) { const v = get(); set({ ...v, services: (v.services ?? sampleServices()).filter((x) => x.id !== id) }); },
+    async guests() { return readDemoGuests(); },
+    async answerGuest(id, status) { writeDemoGuests(readDemoGuests().map((g) => (g.id === id ? { ...g, status } : g))); },
   };
 }
 
@@ -208,3 +261,44 @@ const Ctx = createContext<BookingApi | null>(null);
 export const BookingProvider = Ctx.Provider;
 /** Null where there's no calendar, e.g. a client without a coach. */
 export const useBookingApi = (): BookingApi | null => useContext(Ctx);
+
+/* Demo guest bookings live under their own key so the public page (another tab, no sign-in) can add to them. */
+const GUEST_KEY = "apex-guest-bookings-v1";
+export function readDemoGuests(): GuestBooking[] {
+  try {
+    const raw = localStorage.getItem(GUEST_KEY);
+    if (raw) return JSON.parse(raw) as GuestBooking[];
+  } catch { /* sample */ }
+  return sampleGuests();
+}
+export function writeDemoGuests(list: GuestBooking[]) {
+  try { localStorage.setItem(GUEST_KEY, JSON.stringify(list)); } catch { /* this visit only */ }
+}
+/** The demo's services, as the coach last saved them. */
+export function readDemoServices(): Service[] {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return (JSON.parse(raw) as { services?: Service[] }).services ?? sampleServices();
+  } catch { /* sample */ }
+  return sampleServices();
+}
+/** The demo's hours and bookings, for the public page. */
+export async function demoBookingLoad(): Promise<BookingLoad> {
+  return demoBookings("coach").load();
+}
+
+function sampleGuests(): GuestBooking[] {
+  const { settings, bookings } = sampleBookings();
+  const svc = sampleServices();
+  const taken = busyFrom(bookings);
+  const slots = freeSlots(settings, taken, new Date(), 10, 60).flatMap((d) => d.slots);
+  if (slots.length < 8) return [];
+  const make = (i: number, slot: string, s: Service, name: string, email: string, note: string, status: GuestStatus): GuestBooking => ({
+    id: `demo-guest-${i}`, serviceId: s.id, serviceName: s.name, pricePence: s.pricePence, kind: s.kind, startsAt: slot,
+    endsAt: new Date(Date.parse(slot) + s.minutes * 60000).toISOString(), name, email, phone: "", note, status, createdAt: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
+  });
+  return [
+    make(1, slots[3]!, svc[0]!, "Aisha Khan", "aisha.k@example.com", "Thinking about my first 10k", "requested"),
+    make(2, slots[7]!, svc[1]!, "Tom Okafor", "tom.okafor@example.com", "", "confirmed"),
+  ];
+}
