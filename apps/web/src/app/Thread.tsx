@@ -1,6 +1,6 @@
-import { VOICE_MIN_SECONDS, voiceClock, type Message } from "@apex/core";
+import { VOICE_MIN_SECONDS, readComment, voiceClock, type Message } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, VoiceNote } from "@apex/ui";
+import { CommentTag, Icons, VoiceNote } from "@apex/ui";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "../data/StoreContext";
 import type { RepliesApi } from "../data/savedReplies";
@@ -43,9 +43,13 @@ export function Thread({ me, to, replies, say }: { me: Message["from"]; to: stri
             <div key={i} className={`msg ${mine ? "mine" : "theirs"}`} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", background: mine ? "var(--blue)" : "var(--card)", color: mine ? "#fff" : "var(--text)", border: mine ? "none" : "1px solid var(--line)", borderRadius: 12, padding: "10px 12px" }}>
               {m.voice && store.voiceUrl ? (
                 <VoiceNote seconds={m.voice.seconds} mine={mine} load={() => store.voiceUrl!(m.voice!.path)} />
-              ) : (
-                <div style={{ whiteSpace: "pre-line" }}>{m.text}</div>
-              )}
+              ) : (() => {
+                // A comment on one exercise from a workout: the exercise and set as a tag, then what they said.
+                const c = readComment(m.text);
+                return c ? (
+                  <><CommentTag exercise={c.exercise} set={c.set} voice={c.voice} />{c.body && <div style={{ whiteSpace: "pre-line" }}>{c.body}</div>}</>
+                ) : <div style={{ whiteSpace: "pre-line" }}>{m.text}</div>;
+              })()}
               <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4, textAlign: "right" }}>{m.time}</div>
             </div>
           );

@@ -1909,3 +1909,114 @@ do $$ begin
   assert (select count(*) from sessions where source = 'coach') = 0, 'rival sees no coached sessions';
 end $$;
 reset role;
+
+-- Services and booking link: the coach's menu, clients reading it, and guests booking through the public page.
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-00000000b0e1'),('00000000-0000-0000-0000-00000000b0e2'),('00000000-0000-0000-0000-00000000b0e3');
+insert into profiles values ('00000000-0000-0000-0000-00000000b0e1','coach','Menu Coach'),('00000000-0000-0000-0000-00000000b0e2','client','Menu Client'),('00000000-0000-0000-0000-00000000b0e3','client','Not Theirs');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-00000000b0e1','00000000-0000-0000-0000-00000000b0e2');
+grant execute on function public.public_services(text) to anon;
+grant execute on function public.public_booking_hours(text) to anon;
+grant execute on function public.public_busy(text, timestamptz, timestamptz) to anon;
+grant execute on function public.book_as_guest(text, uuid, timestamptz, text, text, text, text, text) to anon;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000b0e1');
+insert into coach_pages (coach_id, slug, headline, published) values ('00000000-0000-0000-0000-00000000b0e1','menu-coach','Book me', true);
+insert into coach_booking_settings (coach_id, slot_min, notice_hours, timezone, windows)
+values ('00000000-0000-0000-0000-00000000b0e1', 30, 2, 'UTC', (select jsonb_agg(jsonb_build_object('weekday', d, 'start_min', 360, 'end_min', 1320)) from generate_series(0, 6) d));
+insert into coach_services (id, coach_id, name, minutes, price_pence, kind, audience, position) values
+  ('5e500000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000b0e1','Free consultation', 30, 0, 'call', 'everyone', 0),
+  ('5e500000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000b0e1','PT session', 60, 4500, 'session', 'everyone', 1),
+  ('5e500000-0000-0000-0000-000000000003','00000000-0000-0000-0000-00000000b0e1','Check-in call', 20, 0, 'call', 'clients', 2);
+do $$ begin
+  begin
+    insert into coach_services (coach_id, name, minutes) values ('00000000-0000-0000-0000-00000000b0e1','Odd length', 50);
+    raise exception 'service with a length not on the list';
+  exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000b0e2');
+do $$ begin
+  assert (select count(*) from coach_services) = 3, 'client reads their coach''s services';
+  begin
+    insert into coach_services (coach_id, name, minutes) values ('00000000-0000-0000-0000-00000000b0e2','My own', 60);
+    raise exception 'a client made a service';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into guest_bookings (coach_id, service_name, starts_at, ends_at, name, email) values ('00000000-0000-0000-0000-00000000b0e1','Sneaky', now() + interval '1 day', now() + interval '1 day 1 hour', 'Me', 'me@example.com');
+    raise exception 'guest booking inserted directly';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- The client books a PT session through the menu: the booking remembers the service.
+insert into bookings (coach_id, client_id, starts_at, ends_at, kind, service_id)
+values ('00000000-0000-0000-0000-00000000b0e1','00000000-0000-0000-0000-00000000b0e2', date_trunc('day', now()) + interval '3 days 10 hours', date_trunc('day', now()) + interval '3 days 11 hours', 'session', '5e500000-0000-0000-0000-000000000002');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000b0e3');
+do $$ begin
+  assert (select count(*) from coach_services) = 0, 'not their coach: no services';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare g uuid; begin
+  assert (select count(*) from public.public_services('menu-coach')) = 2, 'public sees only services open to everyone';
+  assert (select count(*) from public.public_booking_hours('menu-coach')) = 1, 'public sees the hours';
+  assert (select count(*) from public.public_busy('menu-coach', now(), now() + interval '14 days')) = 1, 'public sees the client''s booking as taken';
+  g := public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000002', date_trunc('day', now()) + interval '2 days 9 hours', 'Aisha Khan', 'Aisha@Example.com', '07700 900123', 'Knee is a bit sore');
+  assert g is not null, 'guest booked';
+  assert (select count(*) from public.public_busy('menu-coach', now(), now() + interval '14 days')) = 2, 'the guest''s time is now taken';
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', date_trunc('day', now()) + interval '2 days 9 hours 30 minutes', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked over a guest''s hour';
+  exception when unique_violation then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', date_trunc('day', now()) + interval '3 days 10 hours 30 minutes', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked over a client''s session';
+  exception when unique_violation then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', date_trunc('day', now()) + interval '2 days 3 hours', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked outside the coach''s hours';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', date_trunc('day', now()) + interval '2 days 9 hours 10 minutes', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked off the coach''s steps';
+  exception when invalid_parameter_value or unique_violation then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', now() + interval '30 minutes', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked inside the notice period';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000001', date_trunc('day', now()) + interval '20 days 9 hours', 'Ben Ode', 'ben@example.com');
+    raise exception 'booked too far ahead';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.book_as_guest('menu-coach', '5e500000-0000-0000-0000-000000000003', date_trunc('day', now()) + interval '4 days 9 hours', 'Ben Ode', 'ben@example.com');
+    raise exception 'guest booked a clients-only service';
+  exception when no_data_found then null; end;
+  begin
+    perform 1 from guest_bookings;
+    raise exception 'anon read guest bookings';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000b0e1');
+do $$ begin
+  assert (select count(*) from guest_bookings) = 1, 'coach sees the guest booking';
+  assert (select email from guest_bookings) = 'aisha@example.com', 'email kept lower case';
+  assert (select ends_at - starts_at from guest_bookings) = interval '1 hour', 'length comes from the service';
+  assert (select count(*) from join_requests where email = 'aisha@example.com' and source = 'booking') = 1, 'guest lands in Leads';
+  assert (select count(*) from bookings where service_id is not null) = 1, 'client booking keeps its service';
+end $$;
+update guest_bookings set status = 'confirmed';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000b0e2');
+do $$ begin
+  assert (select count(*) from public.booking_busy('00000000-0000-0000-0000-00000000b0e1', now(), now() + interval '14 days')) = 2, 'client sees the guest''s time as taken';
+  assert (select count(*) from guest_bookings) = 0, 'client can''t read guest bookings';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from guest_bookings) = 0, 'rival reads no guest bookings';
+  assert (select count(*) from coach_services) = 0, 'rival reads no services';
+  update guest_bookings set status = 'declined';
+  assert not found, 'rival changed a guest booking';
+end $$;
+reset role;

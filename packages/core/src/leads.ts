@@ -93,7 +93,7 @@ export function followUpLabel(date: string, today: string): string {
 }
 
 export const SOURCE_CHOICES: [string, string][] = [["instagram", "Instagram"], ["tiktok", "TikTok"], ["website", "Website"], ["whatsapp", "WhatsApp"], ["flyer", "Flyer or QR"], ["gym", "Gym"]];
-const SOURCE_NAMES: Record<string, string> = { page: "Your page", referral: "A client", manual: "Added by you", ...Object.fromEntries(SOURCE_CHOICES) };
+const SOURCE_NAMES: Record<string, string> = { page: "Your page", referral: "A client", manual: "Added by you", booking: "Booking link", ...Object.fromEntries(SOURCE_CHOICES) };
 
 /** A safe source tag from a link's ?src=, or null. */
 export function readSource(raw: string | null | undefined): string | null {

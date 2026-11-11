@@ -1,0 +1,26 @@
+/* Plan builder: the coach describes a client and reviews the programme it builds. Athletic Tech tokens only. */
+.pbd-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pbd-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--pill);font-size:12.5px;font-weight:700;background:var(--ai-soft);color:var(--ai);border:1px solid color-mix(in srgb,var(--ai) 30%,transparent)}
+.pbd-chip.assumed{background:transparent;color:var(--text3);border:1px dashed var(--line)}
+.pbd-days{display:grid;grid-template-columns:1fr;gap:10px}
+.pbd-day{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);animation:pbd-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 50ms)}
+.pbd-day-head{display:flex;align-items:baseline;gap:8px}
+.pbd-day-head b{font-family:var(--head);font-weight:800;font-size:15px;letter-spacing:-.01em;flex:1}
+.pbd-day-head .tiny{display:inline-flex;align-items:center;gap:4px}
+.pbd-dow{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--act)}
+.pbd-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pbd-row{display:grid;grid-template-columns:28px 1fr;column-gap:8px;row-gap:1px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+.pbd-row:first-child{border-top:0}
+.pbd-row.warm{color:var(--text3)}
+.pbd-row.circuit .pbd-grp{color:var(--ai)}
+.pbd-grp{font:800 12px/1 var(--num);color:var(--text2)}
+.pbd-name{color:var(--text);font-weight:600}
+.pbd-row.warm .pbd-name{color:var(--text2);font-weight:500}
+.pbd-name i{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:var(--warn);margin-top:1px}
+.pbd-row.warm .pbd-name i{display:none}
+.pbd-dose{grid-column:2;font-size:12.5px;color:var(--text2)}
+.pbd-row.warm .pbd-dose{display:none}
+.pbd-why{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--text2)}
+.pbd-area{min-height:96px;resize:vertical;font:inherit;line-height:1.45}
+@keyframes pbd-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pbd-day{animation:none}}
