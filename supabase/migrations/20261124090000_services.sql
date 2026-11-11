@@ -5,7 +5,9 @@
 --    there without an account (public.book_as_guest). It holds the slot until the coach confirms or declines,
 --    and the person also lands in Leads.
 -- Payment is in person or by bank transfer for now. Mirrors packages/core/src/services.ts.
--- Needs 20261103180000_bookings.sql, 20261110090000_growth.sql and 20261118090000_leads.sql. Safe to run more than once.
+-- Needs 20261103180000_bookings.sql. The public booking page also needs the public page (20261110090000_growth.sql);
+-- without it the coach's menu and client booking still work. Leads (20261118090000_leads.sql) is used when present.
+-- Safe to run more than once.
 
 create table if not exists public.coach_services (
   id           uuid primary key default gen_random_uuid(),
@@ -48,10 +50,18 @@ create table if not exists public.guest_bookings (
   phone         text not null default '' check (phone = '' or phone ~ '^\+?[0-9][0-9 ()-]{5,22}$'),
   note          text not null default '' check (length(note) <= 400),
   status        text not null default 'requested' check (status in ('requested', 'confirmed', 'declined', 'cancelled')),
-  lead_id       uuid references public.join_requests (id) on delete set null,
+  -- The person's row in Leads, when Leads is set up (linked below).
+  lead_id       uuid,
   created_at    timestamptz not null default now(),
   check (ends_at > starts_at and ends_at - starts_at <= interval '4 hours')
 );
+do $$
+begin
+  if to_regclass('public.join_requests') is not null
+     and not exists (select 1 from pg_constraint where conname = 'guest_bookings_lead_id_fkey') then
+    alter table public.guest_bookings add constraint guest_bookings_lead_id_fkey foreign key (lead_id) references public.join_requests (id) on delete set null;
+  end if;
+end $$;
 create unique index if not exists guest_bookings_one_per_slot on public.guest_bookings (coach_id, starts_at) where status in ('requested', 'confirmed');
 create index if not exists guest_bookings_coach_idx on public.guest_bookings (coach_id, starts_at);
 
@@ -66,32 +76,41 @@ drop policy if exists "coach removes own guest bookings" on public.guest_booking
 create policy "coach removes own guest bookings" on public.guest_bookings for delete using (coach_id = auth.uid());
 
 -- Anyone: the services on a published page, in the coach's order.
+-- (plpgsql, so these can be created before the public page update; they need coach_pages only when called.)
 create or replace function public.public_services(p_slug text)
 returns table (id uuid, name text, minutes smallint, price_pence integer, kind text, description text, "position" smallint)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
+begin
+  return query
   select s.id, s.name, s.minutes, s.price_pence, s.kind, s.description, s.position
   from public.coach_services s
   join public.coach_pages cp on cp.coach_id = s.coach_id
   where cp.slug = lower(trim(p_slug)) and cp.published and s.active and s.audience = 'everyone'
   order by s.position, s.name;
+end;
 $$;
 
 -- Anyone: the coach's bookable hours and which times are taken, never who took them. Two weeks ahead at most.
 create or replace function public.public_booking_hours(p_slug text)
 returns table (slot_min smallint, notice_hours smallint, timezone text, windows jsonb)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
+begin
+  return query
   select bs.slot_min, bs.notice_hours, bs.timezone, bs.windows
   from public.coach_booking_settings bs
   join public.coach_pages cp on cp.coach_id = bs.coach_id
   where cp.slug = lower(trim(p_slug)) and cp.published;
+end;
 $$;
 
 create or replace function public.public_busy(p_slug text, p_from timestamptz, p_to timestamptz)
 returns table (starts_at timestamptz, ends_at timestamptz)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
+begin
+  return query
   with c as (select cp.coach_id from public.coach_pages cp where cp.slug = lower(trim(p_slug)) and cp.published)
   select b.starts_at, b.ends_at from public.bookings b, c
   where b.coach_id = c.coach_id and b.status = 'booked' and b.ends_at > p_from and b.starts_at < least(p_to, now() + interval '15 days')
@@ -99,6 +118,7 @@ as $$
   select g.starts_at, g.ends_at from public.guest_bookings g, c
   where g.coach_id = c.coach_id and g.status in ('requested', 'confirmed') and g.ends_at > p_from and g.starts_at < least(p_to, now() + interval '15 days')
   order by 1;
+end;
 $$;
 
 -- Clients see guest bookings as taken too. Same signature as before, so it is replaced in place.
@@ -181,14 +201,16 @@ begin
   end if;
   if v_source !~ '^[a-z0-9-]{2,24}$' then v_source := 'booking'; end if;
 
-  -- The person in Leads: an open lead with this email, or a new one.
-  select r.id into v_lead from public.join_requests r
-  where r.coach_id = v_coach and r.email = v_email and r.stage in ('new', 'contacted', 'trial')
-  order by r.created_at desc limit 1;
-  if v_lead is null then
-    insert into public.join_requests (coach_id, name, email, message, phone, source)
-    values (v_coach, trim(p_name), v_email, left('Booked: ' || v_s.name || '. ' || coalesce(trim(p_note), ''), 400), coalesce(trim(p_phone), ''), v_source)
-    returning id into v_lead;
+  -- The person in Leads (when Leads is set up): an open lead with this email, or a new one.
+  if to_regclass('public.join_requests') is not null then
+    select r.id into v_lead from public.join_requests r
+    where r.coach_id = v_coach and r.email = v_email and r.stage in ('new', 'contacted', 'trial')
+    order by r.created_at desc limit 1;
+    if v_lead is null then
+      insert into public.join_requests (coach_id, name, email, message, phone, source)
+      values (v_coach, trim(p_name), v_email, left('Booked: ' || v_s.name || '. ' || coalesce(trim(p_note), ''), 400), coalesce(trim(p_phone), ''), v_source)
+      returning id into v_lead;
+    end if;
   end if;
 
   insert into public.guest_bookings (coach_id, service_id, service_name, price_pence, kind, starts_at, ends_at, name, email, phone, note, lead_id)
