@@ -15,6 +15,7 @@ import { PushPrompt } from "../../app/PushParts";
 import { FirstWeek, useFirstWeek } from "../FirstWeek";
 import { PlanChanged } from "../PlanChanged";
 import { ReviewPrompt } from "../Review";
+import { HappinessPrompt } from "../Happiness";
 import type { FirstWeekStepId } from "@apex/core";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
@@ -106,7 +107,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
       </section>
       {!(go && firstWeek.visible) && <PushPrompt say={say ?? (() => {})} />}
-      <ReviewPrompt say={say} />
+      <HappinessPrompt say={say} fallback={<ReviewPrompt say={say} />} />
 
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>

@@ -7,15 +7,18 @@ import type { CoachLiveProps } from "../CoachApp";
 import { CoachProgrammes } from "./CoachProgrammes";
 import { CoachAgreements } from "./CoachAgreements";
 import { CoachClasses } from "./CoachClasses";
+import { CoachMarketing } from "./CoachMarketing";
+import { useMarketingApi } from "../../data/marketing";
 import { useExtras } from "../../data/extras";
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's business from their own records: fees, packs, programme sales, clients joining and leaving, leads, sessions. */
 export function Business({ live, say = () => {}, openGym }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void }) {
-  const { mode } = useAppInfo();
+  const { mode, coachName } = useAppInfo();
+  const marketing = useMarketingApi();
   const [shop, setShop] = useState(false);
-  const [view, setView] = useState<"agreements" | "classes" | null>(null);
+  const [view, setView] = useState<"agreements" | "classes" | "marketing" | null>(null);
   const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);
@@ -32,6 +35,7 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
   if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;
+  if (view === "marketing") return <CoachMarketing live={isLive ? live : undefined} coachName={coachName} onBack={() => setView(null)} say={say} />;
 
   const saveFee = async (c: BizClient, text: string) => {
     const pence = parsePounds(text);
@@ -64,6 +68,7 @@ export function Business({ live, say = () => {}, openGym }: { live?: CoachLivePr
   };
 
   const tools: { key: string; icon: keyof typeof Icons; title: string; note: string; open: () => void }[] = [
+    ...(marketing ? [{ key: "marketing", icon: "up" as const, title: "Marketing", note: "This week's plan, posts, offers, QR poster", open: () => setView("marketing") }] : []),
     { key: "programmes", icon: "train", title: "Programmes", note: "Sell ready-made plans, free or paid", open: () => setShop(true) },
     ...(extras ? [
       { key: "classes", icon: "calendar" as const, title: "Group classes", note: "Place limits and a waitlist", open: () => setView("classes") },

@@ -85,7 +85,7 @@ export function MyReview({ say }: { say: (m: string) => void }) {
   );
 }
 
-function ReviewForm({ existing, onSaved }: { existing?: Review | null; onSaved: () => Promise<void> }) {
+export function ReviewForm({ existing, onSaved }: { existing?: Review | null; onSaved: () => Promise<void> }) {
   const api = useGrowApi();
   const { coachName, clientName } = useAppInfo();
   const [stars, setStars] = useState(existing?.stars ?? 0);

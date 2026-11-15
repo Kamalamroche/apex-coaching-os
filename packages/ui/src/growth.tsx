@@ -4,6 +4,7 @@ import { Icons, type IconName } from "./icons";
 import { ReviewQuote, ReviewScore } from "./reviews";
 import { CountUp } from "./motion";
 import { EditorialTitle, HeroBackdrop } from "./primitives";
+import { OfferBanner, SpotsBadge } from "./marketing";
 import { TEAM_ART, teamInitials } from "./team";
 
 /* Growth: the coach's public page, the coach's share card for it, and the client's invite-a-friend card.
@@ -22,7 +23,10 @@ const OFFER: [IconName, string, string][] = [
 /** Extras from the growth tools: the free first session and approved reviews. */
 export interface PageReviews { introOffer: boolean; reviews: { name: string | null; stars: number; body: string; at: string }[] }
 
-export function CoachPageView({ page, action, preview = false, extras }: { page: CoachPage; action?: ReactNode; preview?: boolean; extras?: PageReviews | null }) {
+/** Places left and the offer, worked out by the page from the coach's settings. */
+export interface PageBoost { spots: string | null; full: boolean; offer: { title: string; text: string; ends: string } | null }
+
+export function CoachPageView({ page, action, preview = false, extras, boost }: { page: CoachPage; action?: ReactNode; preview?: boolean; extras?: PageReviews | null; boost?: PageBoost | null }) {
   const first = page.name.split(" ")[0] || page.name;
   const caption = ["Coach", page.city].filter(Boolean).join(" · ");
   return (
@@ -40,9 +44,11 @@ export function CoachPageView({ page, action, preview = false, extras }: { page:
             <div className="gpills">{page.specialties.map((s, i) => <span key={s} className="gpill" style={{ ["--i" as string]: i }}>{s}</span>)}</div>
           )}
           {extras?.introOffer && <span className="gr-intro"><Icons.gift width={14} height={14} aria-hidden /> First session free</span>}
+          {boost?.spots && <SpotsBadge text={boost.spots} full={boost.full} />}
           {action}
         </div>
       </section>
+      {boost?.offer && <OfferBanner {...boost.offer} />}
       {page.clients !== null && page.clients > 0 && (
         <div className="gr-count">
           <b><CountUp value={page.clients} duration={1100} /></b>

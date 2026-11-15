@@ -12,6 +12,7 @@ import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
 import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
 import { demoGrow, GrowProvider, type GrowApi } from "../data/grow";
+import { demoMarketing, MarketingProvider, type MarketingApi } from "../data/marketing";
 import { newPack } from "@apex/core";
 import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/challenges";
 import { TeamProvider, demoTeam, type TeamApi } from "../data/team";
@@ -41,6 +42,7 @@ const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
 const demoTeamApis: Partial<Record<"coach" | "client", TeamApi>> = {};
 const demoGrowthApis: Partial<Record<"coach" | "client", GrowthApi>> = {};
 const demoGrowApis: Partial<Record<"coach" | "client", GrowApi>> = {};
+const demoMarketingApis: Partial<Record<"coach" | "client", MarketingApi>> = {};
 const demoResourceApi = demoResources();
 const demoCoachRecipeApi = demoCoachRecipes();
 const demoNotesApi = demoNotes();
@@ -73,6 +75,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoChallengeApis[side] ??= demoChallenges(side);
     demoTeamApis[side] ??= demoTeam(side);
     demoGrowthApis[side] ??= demoGrowth(side);
+    demoMarketingApis[side] ??= demoMarketing(side);
     demoGrowApis[side] ??= demoGrow(side, async (clientId, sessions, note) => demoBookingApis[side]?.addPack(newPack(clientId, sessions, 0, "free", 0, note, "referral")));
     demoTwinApi.current ??= demoTwin(() => demoStore.current as ApexStore);
     demoGymApi.current ??= demoGym();
@@ -81,7 +84,7 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApis[side] ?? null}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><GrowProvider value={demoGrowApis[side] ?? null}><ResourceProvider value={demoResourceApi}><CoachRecipeProvider value={demoCoachRecipeApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}><GymProvider value={side === "coach" ? demoGymApi.current : null}><ExtrasProvider value={demoExtrasApis[side] ?? null}>{demo()}</ExtrasProvider></GymProvider></TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></CoachRecipeProvider></ResourceProvider></GrowProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApis[side] ?? null}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><GrowProvider value={demoGrowApis[side] ?? null}><MarketingProvider value={demoMarketingApis[side] ?? null}><ResourceProvider value={demoResourceApi}><CoachRecipeProvider value={demoCoachRecipeApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}><GymProvider value={side === "coach" ? demoGymApi.current : null}><ExtrasProvider value={demoExtrasApis[side] ?? null}>{demo()}</ExtrasProvider></GymProvider></TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></CoachRecipeProvider></ResourceProvider></MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );

@@ -10,18 +10,19 @@ import { GrowRewards } from "./GrowRewards";
 import { AddLeadSheet, EnquiryForm, LeadSheet, copyText, inviteLead, localToday } from "./CoachLeads";
 
 type Load = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; page: CoachPage; leads: Lead[] };
-type View = "leads" | "form" | "page" | "rewards";
+export type GrowView = "leads" | "form" | "page" | "rewards";
+type View = GrowView;
 type Filter = LeadStage | "open" | "all";
 
 /** Coach: my leads (pipeline), my enquiry form and welcome email, and my public page with its Train with me link. */
-export function CoachGrow({ live, onBack, say }: { live?: CoachLiveProps; onBack: () => void; say: (m: string) => void }) {
+export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView = "leads" }: { live?: CoachLiveProps; onBack: () => void; say: (m: string) => void; backLabel?: string; startView?: GrowView }) {
   const api = useGrowthApi();
   const grow = useGrowApi();
   const send = useSendToClient(live);
   const [extras, setExtras] = useState<PageExtras | null>(null);
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [draft, setDraft] = useState<CoachPage | null>(null);
-  const [view, setView] = useState<View>("leads");
+  const [view, setView] = useState<View>(startView);
   const [filter, setFilter] = useState<Filter>("open");
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -51,7 +52,7 @@ export function CoachGrow({ live, onBack, say }: { live?: CoachLiveProps; onBack
   if (load.status !== "ready" || !draft) {
     return (
       <>
-        <BackLink onClick={onBack}>Messages</BackLink>
+        <BackLink onClick={onBack}>{backLabel}</BackLink>
         {load.status === "error" ? (
           <div className="card small">{load.message === GROWTH_NEEDS_UPDATE ? "Your page needs a database update first: run 20261110090000_growth.sql in Supabase." : load.message}</div>
         ) : <div className="card small">Loading your page…</div>}
@@ -94,7 +95,7 @@ export function CoachGrow({ live, onBack, say }: { live?: CoachLiveProps; onBack
 
   return (
     <>
-      <BackLink onClick={onBack}>Messages</BackLink>
+      <BackLink onClick={onBack}>{backLabel}</BackLink>
       <GrowHero page={saved} fresh={counts.new} joined={counts.client}>
         {saved.published ? (
           <div className="gr-row">

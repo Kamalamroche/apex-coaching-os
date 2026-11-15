@@ -236,7 +236,7 @@ export function proofCaption(p: ProofNumbers, link: string): string {
 }
 
 export function reviewCaption(name: string | null, link: string): string {
-  return `Kind words from ${name ?? "one of my clients"}. This is why I coach.\n\nIf you're ready to start, ask me here: ${link}`;
+  return `Kind words from ${(name ?? "one of my clients").replace(/\.$/, "")}. This is why I coach.\n\nIf you're ready to start, ask me here: ${link}`;
 }
 
 export function spotsCaption(text: string, link: string): string {
@@ -330,14 +330,14 @@ export function growthPlan(p: PlanInput): { week: string; actions: PlanAction[];
 
   const waiting = p.leads.filter((l) => l.stage === "new" && ageDays(l.at, p.now) >= 1);
   for (const l of waiting.slice(0, 2)) {
-    add({ key: `reply:${l.id}`, kind: "reply", title: `Reply to ${firstName(l.name)}`, why: `Asked ${ageDays(l.at, p.now)} days ago. A quick reply wins most clients.`, message: null, to: { kind: "lead", id: l.id, name: l.name, email: l.email } });
+    add({ key: `reply:${l.id}`, kind: "reply", title: `Reply to ${firstName(l.name)}`, why: `Asked ${ageDays(l.at, p.now) === 1 ? "yesterday" : `${ageDays(l.at, p.now)} days ago`}. A quick reply wins most clients.`, message: null, to: { kind: "lead", id: l.id, name: l.name, email: l.email } });
   }
   const due = p.leads.filter((l) => l.followUp && l.followUp <= today && l.stage !== "client" && l.stage !== "lost");
   if (due.length) add({ key: `follow:${due.map((l) => l.id).join(",")}`, kind: "follow", title: due.length === 1 ? `Follow up ${firstName(due[0]!.name)}` : `${due.length} follow-ups due`, why: "You set a date to get back to them.", message: null, to: null });
 
   const recent = latestAnswers(p.answers).filter((a) => ageDays(a.at, p.now) <= 45 && p.current.includes(a.clientId));
   for (const a of recent.filter((x) => happinessBand(x.score) === "detractor").slice(0, 2)) {
-    add({ key: `unhappy:${a.clientId}`, kind: "unhappy", title: `Talk to ${firstName(a.name)}`, why: `Scored you ${a.score} out of 10${a.comment ? `: "${a.comment.slice(0, 80)}${a.comment.length > 80 ? "…" : ""}"` : ""}. Fix it before it becomes a goodbye.`, message: unhappyMessage(a.name, p.coach), to: { kind: "client", id: a.clientId, name: a.name } });
+    add({ key: `unhappy:${a.clientId}`, kind: "unhappy", title: `Talk to ${firstName(a.name)}`, why: `Scored you ${a.score} out of 10${a.comment ? `: "${a.comment.slice(0, 80).replace(/[.!\s]+$/, "")}${a.comment.length > 80 ? "…" : ""}"` : ""}. Fix it before it becomes a goodbye.`, message: unhappyMessage(a.name, p.coach), to: { kind: "client", id: a.clientId, name: a.name } });
   }
   const promoters = recent.filter((x) => happinessBand(x.score) === "promoter");
   const toReview = promoters.find((a) => !p.reviewed.includes(a.clientId));
@@ -377,11 +377,11 @@ export const fromHappinessRow = (r: HappinessRow): HappinessAnswer => ({ id: r.i
 export function sampleHappiness(now = new Date()): HappinessAnswer[] {
   const ago = (d: number) => new Date(now.getTime() - d * DAY).toISOString();
   return [
-    { id: "h1", clientId: "demo-james", name: "James K.", score: 10, comment: "", at: ago(6) },
-    { id: "h2", clientId: "demo-amara", name: "Amara O.", score: 9, comment: "Love the sessions. More mobility work would make it a 10.", at: ago(9) },
-    { id: "h3", clientId: "demo-tom", name: "Tom R.", score: 8, comment: "", at: ago(12) },
-    { id: "h4", clientId: "demo-sarah", name: "Sarah L.", score: 6, comment: "Struggling to fit the Thursday session in with shifts.", at: ago(3) },
-    { id: "h5", clientId: "demo-wei", name: "Wei C.", score: 10, comment: "", at: ago(20) },
+    { id: "h1", clientId: "4", name: "Omar T.", score: 10, comment: "", at: ago(6) },
+    { id: "h2", clientId: "5", name: "Priya S.", score: 9, comment: "Love the sessions. More mobility work would make it a 10.", at: ago(9) },
+    { id: "h3", clientId: "2", name: "James K.", score: 8, comment: "", at: ago(12) },
+    { id: "h4", clientId: "1", name: "Sarah M.", score: 6, comment: "Struggling to fit the Thursday session in with shifts.", at: ago(3) },
+    { id: "h5", clientId: "6", name: "Marcus W.", score: 10, comment: "", at: ago(20) },
   ];
 }
 
