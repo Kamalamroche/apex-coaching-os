@@ -15,6 +15,8 @@ import { ONE_TO_ONE_SQL, type LiveStore } from "../../data/supabaseStore";
    (just for the coach, or shared with the client), and take weight, measurements and photos in person. */
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
+/** The demo log of the last session the coach ran here, so the "client finished a session" toast skips it. */
+export const coachRunLog = { key: "" };
 const errText = (e: unknown, fallback: string) => {
   const m = e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : fallback;
   // The coach's insert policies arrive with the one-to-one SQL; before that, RLS turns the write away.
@@ -271,7 +273,7 @@ function FinishRun({ clientId, clientName, workoutName, log: base, sets, onBack,
     setErr(null);
     try {
       if (store.saveCoachSession) await store.saveCoachSession(log, sets);
-      else store.finishSession(log, sets);
+      else { coachRunLog.key = JSON.stringify(log); store.finishSession(log, sets); }
     } catch (e) {
       setErr(errText(e, "The session wasn't saved"));
       setBusy(false);

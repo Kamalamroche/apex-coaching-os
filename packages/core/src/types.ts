@@ -1,6 +1,7 @@
 /* Domain types shared by the coach and client apps.
    They mirror the Supabase schema in supabase/migrations: a workout item is a
    prescription, a logged set is what the client actually did. */
+import type { ExerciseComment } from "./exerciseComments";
 
 import type { Readiness } from "./readiness";
 
@@ -219,6 +220,8 @@ export interface WorkoutSummary {
   fun: string;
   /** The pre-session check, when the client did it. */
   readiness?: Readiness;
+  /** What the client said about single exercises during the session. */
+  comments?: ExerciseComment[];
 }
 
 export interface Message {

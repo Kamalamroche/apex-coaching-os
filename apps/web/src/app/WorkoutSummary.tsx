@@ -1,5 +1,5 @@
-import { describeExerciseTotal, type WorkoutSummary } from "@apex/core";
-import { Icons, Label, useUnits } from "@apex/ui";
+import { commentsByExercise, describeExerciseTotal, type WorkoutSummary } from "@apex/core";
+import { CommentList, Icons, Label, useUnits } from "@apex/ui";
 import { ReadinessSummary } from "./ReadinessViz";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${Math.abs(n).toLocaleString("en-GB")}`;
@@ -20,6 +20,7 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
           ))}
         </div>
       )}
+      {s.comments && s.comments.length > 0 && <CommentList groups={commentsByExercise(s.comments)} />}
       {s.exercises && s.exercises.length > 0 && (
         <div className="card" style={{ padding: "10px 12px" }}>
           <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Exercises</h3><span className="num small" style={{ fontWeight: 700, color: "var(--text)" }}>{(s.totalReps ?? 0).toLocaleString("en-GB")} reps{s.totalKg ? ` · ${u.fw(s.totalKg, 0)}` : ""} in total</span></div>

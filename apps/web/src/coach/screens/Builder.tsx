@@ -13,6 +13,7 @@ import { AiAdjust } from "./AiAdjust";
 import { PlanUpdateSheet } from "./PlanUpdate";
 import { Copilot } from "./Copilot";
 import { ImportPdf } from "./ImportPdf";
+import { PlanBuilder } from "./PlanBuilder";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Templates } from "./Templates";
@@ -48,6 +49,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
   const [importing, setImporting] = useState<File | "text" | null>(null);
@@ -183,12 +185,14 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       <>
         <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF (even a scan), a photo or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
         <div className="row full" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button className="btn ghost sm pb-cop" onClick={() => setPlanOpen(true)}>Describe {first}, get a plan</button>
           <button className="btn ghost sm" onClick={() => setImporting("text")}>Paste or speak a programme</button>
           <button className="btn ghost sm" onClick={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()}>Start with Foundations</button>
         </div>
         {pdfInput}
         {importSheet}
         {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
+        {planOpen && <PlanBuilder live={live} say={say} onClose={() => setPlanOpen(false)} />}
       </>
     );
   }
@@ -202,7 +206,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     >
       <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
       <section className="bld-main">
-      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} />
+      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} onPlan={() => setPlanOpen(true)} />
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
           <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the programme builder SQL is run in Supabase.</span>
@@ -424,6 +428,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       )}
 
       {copilotOpen && <Copilot onClose={() => setCopilotOpen(false)} say={say} />}
+      {planOpen && <PlanBuilder live={live} say={say} onClose={() => setPlanOpen(false)} />}
 
       {aiOpen && (
         <AiAdjust

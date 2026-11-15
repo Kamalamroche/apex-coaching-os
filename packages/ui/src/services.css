@@ -1,0 +1,31 @@
+/* Service menu and booking link. Athletic Tech tokens only. */
+.sv-menu{display:flex;flex-direction:column;gap:8px}
+.sv-item{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;text-align:left;border:1px solid var(--line2);border-radius:var(--r);background:var(--card);color:var(--text);cursor:pointer;transition:border-color .15s,background .15s,transform .15s var(--ease-out,ease);animation:sv-in .3s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 40ms)}
+.sv-item:active{transform:scale(.99)}
+.sv-item.on{border-color:var(--act);background:color-mix(in srgb,var(--act) 7%,var(--card))}
+.sv-ico{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--bg2);color:var(--text2)}
+.sv-item.on .sv-ico{background:var(--act);color:var(--act-ink)}
+.sv-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.sv-body b{font-family:var(--head);font-weight:800;font-size:15px;letter-spacing:-.01em;line-height:1.2}
+.sv-line{font-size:13px;font-weight:700;color:var(--text2)}
+.sv-line.free{color:var(--good)}
+.sv-desc{font-size:12.5px;color:var(--text2);line-height:1.4}
+.sv-tick{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);color:transparent;margin-top:6px}
+.sv-item.on .sv-tick{background:var(--act);border-color:var(--act);color:var(--act-ink)}
+.sv-link{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:var(--r);border:1px dashed var(--line2);background:var(--bg2)}
+.sv-link-head{display:flex;align-items:center;gap:8px;color:var(--act)}
+.sv-link-head b{color:var(--text);font-family:var(--head);font-weight:800}
+.sv-link-url{font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.sv-row:first-of-type{border-top:0}
+.sv-row.off{opacity:.55}
+.sv-move{display:flex;flex-direction:column;gap:2px}
+.sv-move button{width:26px;height:20px;border:1px solid var(--line);border-radius:6px;background:none;color:var(--text2);font-size:11px;line-height:1;cursor:pointer}
+.sv-move button:disabled{opacity:.3;cursor:default}
+.sv-tag{display:inline-block;padding:2px 8px;border-radius:var(--pill);font-size:11px;font-weight:700;background:var(--bg2);color:var(--text2)}
+.sv-tag.open{background:var(--good-soft);color:var(--good)}
+.sv-tag.wait{background:var(--warn-soft);color:var(--warn)}
+@keyframes sv-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.sv-item{animation:none}}
+.sv-row .ss-when{font:600 12px/1.25 var(--mono,var(--ui));color:var(--text2);width:74px;flex:none;white-space:pre-line}
+.gr-book{display:flex;flex-direction:column;gap:12px;margin-top:6px}

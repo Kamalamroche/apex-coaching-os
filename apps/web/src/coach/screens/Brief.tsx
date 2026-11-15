@@ -1,4 +1,4 @@
-import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, type Client, type GlanceTile } from "@apex/core";
+import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, exerciseFor, progressWorkout, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, type Client, type GlanceTile } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BusinessGlance, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
@@ -66,6 +66,9 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
   const [draft, setDraft] = useState<TriageItem | null>(null);
   const [selected, setSelected] = useState<Record<number, boolean>>({ 2: true, 4: true, 5: true });
   const pending = TRIAGE.filter((i) => !handled[i.id]);
+  // Live: the clients whose health score says they need you, from their real training, check-ins and messages.
+  const liveNeed = mode === "live" ? (health ?? []).filter((r) => r.health.band === "low" && !handled[r.client.id]) : [];
+  const needCount = mode === "live" ? liveNeed.length : pending.length;
   const selectedCount = Object.values(selected).filter(Boolean).length;
   const handle = (id: string) => setHandled((d) => ({ ...d, [id]: true }));
   const glance = useBusinessGlance(mode === "live" ? live : undefined);
@@ -90,7 +93,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
             ) : (
               <div style={{ ["--i" as string]: 1 }}><b><CountUp value={74} />%</b><small>Sessions done, 7 days</small><i>+4 pts</i></div>
             )}
-            <div style={{ ["--i" as string]: 2 }}><b><CountUp value={pending.length} /></b><small>Need you today</small><i>{TRIAGE.length - pending.length} handled</i></div>
+            <div style={{ ["--i" as string]: 2 }}><b><CountUp value={needCount} /></b><small>Need you today</small><i>{mode === "live" ? "From client health" : `${TRIAGE.length - pending.length} handled`}</i></div>
           </div>
         </div>
       </section>
@@ -98,6 +101,30 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
       <PushPrompt say={say} full />
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
+        {mode === "live" ? (
+          <div className="card flat list">
+            {health === null && <div className="li"><div className="small">Working out who needs you…</div></div>}
+            {health !== null && liveNeed.length === 0 && (
+              <div className="li"><div className="grow"><div className="h3">All clear</div><div className="small">Clients show here when their health score drops below 50: missed sessions, no check-in, gone quiet.</div></div></div>
+            )}
+            {liveNeed.map((r) => (
+              <div key={r.client.id} className="tri">
+                <div className="stripe" style={{ background: "var(--crit)" }} />
+                <div>
+                  <div className="row" style={{ gap: 10 }}><Avatar initials={r.client.name.split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()} size={32} tone="var(--crit)" /><div className="grow"><div className="h3">{r.client.name} needs you</div></div></div>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <Label kind="insight">Insight</Label>
+                    <span className="small">Health {r.health.score ?? "–"} · {r.health.reasons.join(" · ") || "Below 50 this fortnight"}</span>
+                  </div>
+                  <div className="acts">
+                    <button className="btn act sm" onClick={() => openLiveClient?.(r.client.id)}>Open client</button>
+                    <button className="btn ghost sm" onClick={() => { handle(r.client.id); say("Dismissed for today"); }}>Dismiss</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="card flat list">
           {pending.length === 0 && (
             <div className="li"><div className="grow"><div className="h3">All clear</div><div className="small">New flags appear here as clients log, skip or check in.</div></div></div>
@@ -124,6 +151,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
             );
           })}
         </div>
+        )}
       </section>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -139,7 +167,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
       <GoingQuiet live={live} say={say} />
 
 
-      <section>
+      {mode === "live" ? <LiveProgressions say={say} /> : <section>
         <div className="sect"><h2 className="h2">Progressions ready</h2><Label kind="insight">Rule-based</Label></div>
         <div className="card flat list">
           {PROGRESSIONS.map((p) => (
@@ -155,7 +183,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
             <button className="btn act block" disabled={selectedCount === 0} onClick={() => { say(`${selectedCount} progressions applied to next session`); setSelected({}); }}>Apply selected</button>
           </div>
         </div>
-      </section>
+      </section>}
 
       {plateaus.length > 0 && (
         <section>
@@ -255,4 +283,48 @@ function useBusinessGlance(live: CoachLiveProps | undefined): GlanceTile[] | nul
     return () => { on = false; };
   }, [live?.db, live?.coachId]); // eslint-disable-line react-hooks/exhaustive-deps
   return tiles;
+}
+
+/** Live: next-session loads for the open client from what they actually logged. Nothing changes until the coach applies. */
+function LiveProgressions({ say }: { say: (m: string) => void }) {
+  const u = useUnits();
+  const store = useStore();
+  const { workout } = useApexState(store);
+  const { clientName } = useAppInfo();
+  const next = useMemo(() => progressWorkout(workout), [workout]);
+  const changes = workout.items.flatMap((it) => {
+    const to = next.workout.items.find((x) => x.key === it.key);
+    return to && (to.kg !== it.kg || to.reps !== it.reps) ? [{ it, to, why: next.reasons[it.key] ?? "" }] : [];
+  });
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
+  const on = (key: string) => picked[key] ?? true;
+  const count = changes.filter((c) => on(c.it.key)).length;
+  if (changes.length === 0) return null;
+  const apply = () => {
+    const chosen = new Map(changes.filter((c) => on(c.it.key)).map((c) => [c.it.key, c.to]));
+    store.saveWorkout({ ...workout, items: workout.items.map((it) => chosen.get(it.key) ?? it) });
+    say(`${count} change${count === 1 ? "" : "s"} saved to ${firstName(clientName)}'s next ${workout.name}`);
+    setPicked({});
+  };
+  const show = (it: { kg: number; reps: string }) => `${it.kg ? `${u.fw(it.kg)} × ` : ""}${it.reps}`;
+  return (
+    <section>
+      <div className="sect"><h2 className="h2">Progressions ready · {firstName(clientName)}</h2><Label kind="ai">AI suggestion</Label></div>
+      <div className="card flat list">
+        {changes.map(({ it, to, why }) => (
+          <label key={it.key} className="li" style={{ cursor: "pointer" }}>
+            <input type="checkbox" checked={on(it.key)} onChange={(e) => setPicked((s) => ({ ...s, [it.key]: e.target.checked }))} style={{ width: 20, height: 20, accentColor: "var(--act)" }} />
+            <div className="grow">
+              <div className="h3">{exerciseFor(it).name}</div>
+              <div className="small"><span className="num">{show(it)} → <b style={{ color: "var(--act)" }}>{show(to)}</b></span> · {u.kt(why)}</div>
+            </div>
+          </label>
+        ))}
+        <div style={{ padding: 12 }}>
+          <button className="btn act block" disabled={count === 0} onClick={apply}>Apply {count} to {workout.name}</button>
+          <div className="tiny" style={{ marginTop: 6 }}>Worked out from the sets {firstName(clientName)} logged last time. Pick another client on Clients to see theirs.</div>
+        </div>
+      </div>
+    </section>
+  );
 }

@@ -54,6 +54,8 @@ export interface Booking {
   waived?: boolean;
   /** Bookings made together as a weekly slot share this. */
   repeatId?: string | null;
+  /** The service on the coach's menu it was booked as (services SQL). */
+  serviceId?: string | null;
 }
 
 /** A taken slot. Clients see only these for other people's bookings, never who booked. */
@@ -119,8 +121,9 @@ export interface DaySlots {
   slots: string[];
 }
 
-/** Free slots over the next `days` days: inside the coach's hours, after the notice period, not already taken. */
-export function freeSlots(s: BookingSettings, busy: Busy[], now: Date, days = BOOK_AHEAD_DAYS): DaySlots[] {
+/** Free slots over the next `days` days: inside the coach's hours, after the notice period, not already taken.
+    `lengthMin` is how long each booking lasts (a 60-min service on 30-min steps); it defaults to the slot length. */
+export function freeSlots(s: BookingSettings, busy: Busy[], now: Date, days = BOOK_AHEAD_DAYS, lengthMin = s.slotMin): DaySlots[] {
   const tz = safeZone(s.timezone);
   const earliest = now.getTime() + s.noticeHours * 3600000;
   const today = dayIn(now, tz);
@@ -130,9 +133,9 @@ export function freeSlots(s: BookingSettings, busy: Busy[], now: Date, days = BO
     const wd = weekdayOf(day);
     const slots: string[] = [];
     for (const w of [...s.windows].filter((x) => x.weekday === wd).sort((a, b) => a.startMin - b.startMin)) {
-      for (let m = w.startMin; m + s.slotMin <= w.endMin; m += s.slotMin) {
+      for (let m = w.startMin; m + lengthMin <= w.endMin; m += s.slotMin) {
         const start = zonedTime(day, m, tz).getTime();
-        const end = start + s.slotMin * 60000;
+        const end = start + lengthMin * 60000;
         if (start < earliest || busy.some((b) => overlaps(start, end, b))) continue;
         const iso = new Date(start).toISOString();
         if (!slots.includes(iso)) slots.push(iso);
@@ -184,9 +187,10 @@ export function hoursProblem(s: BookingSettings): string | null {
 }
 
 /** A new booking for this slot. */
-export function newBooking(clientId: string, startsAt: string, slotMin: number, kind: BookingKind, note: string, now = new Date()): Booking {
+export function newBooking(clientId: string, startsAt: string, slotMin: number, kind: BookingKind, note: string, now = new Date(), serviceId?: string | null): Booking {
   return {
     id: crypto.randomUUID(), clientId, startsAt, endsAt: new Date(Date.parse(startsAt) + slotMin * 60000).toISOString(), kind, note: note.trim().slice(0, 500), status: "booked", createdAt: now.toISOString(),
+    ...(serviceId ? { serviceId } : {}),
   };
 }
 
@@ -220,6 +224,7 @@ export interface BookingRow {
   late?: boolean | null;
   waived?: boolean | null;
   repeat_id?: string | null;
+  service_id?: string | null;
 }
 
 export const toSettingsRow = (s: BookingSettings, coachId: string): BookingSettingsRow => ({
@@ -279,11 +284,12 @@ export function videoLinkProblem(link: string): string | null {
 export const toBookingRow = (b: Booking, coachId: string): Omit<BookingRow, "created_at"> => ({
   id: b.id, coach_id: coachId, client_id: b.clientId, starts_at: b.startsAt, ends_at: b.endsAt, kind: b.kind, note: b.note || null, status: b.status,
   ...(b.repeatId ? { repeat_id: b.repeatId } : {}),
+  ...(b.serviceId ? { service_id: b.serviceId } : {}),
 });
 
 export const fromBookingRow = (r: BookingRow): Booking => ({
   id: r.id, clientId: r.client_id, startsAt: new Date(r.starts_at).toISOString(), endsAt: new Date(r.ends_at).toISOString(), kind: r.kind, note: r.note ?? "", status: r.status, createdAt: r.created_at,
-  attendance: r.attendance ?? null, cancelledBy: r.cancelled_by ?? null, late: !!r.late, waived: !!r.waived, repeatId: r.repeat_id ?? null,
+  attendance: r.attendance ?? null, cancelledBy: r.cancelled_by ?? null, late: !!r.late, waived: !!r.waived, repeatId: r.repeat_id ?? null, serviceId: r.service_id ?? null,
 });
 
 /* ---------- Demo ---------- */

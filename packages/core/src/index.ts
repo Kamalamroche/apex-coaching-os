@@ -85,3 +85,6 @@ export * from "./answers";
 export * from "./micros";
 export * from "./coachSession";
 export * from "./marketing";
+export * from "./planBuilder";
+export * from "./services";
+export * from "./exerciseComments";

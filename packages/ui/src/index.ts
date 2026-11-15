@@ -37,3 +37,6 @@ export { ClassCard, AgreementPaper, AnswerHit, TeamBubble } from "./extras";
 export { ClientTable, type ClientTableProps } from "./clientTable";
 export { NoteAudience, NoteTimeline, RunProgress, RunStats, ShareSwitch } from "./oneToOne";
 export { ReviewQuote, ReviewScore, StarPicker, Stars } from "./reviews";
+export { PlanDayCard, UnderstoodChips, type PlanDayView, type PlanRow } from "./planBuilder";
+export { BookingLinkCard, ServiceMenu, type ServiceView } from "./services";
+export { CommentList, CommentTag } from "./exerciseComments";

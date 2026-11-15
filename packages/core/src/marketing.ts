@@ -5,7 +5,7 @@
    - A funnel by source (e-commerce): page visits → enquiries → clients, so the coach knows which channel works.
    - A weekly plan of a few small actions (a growth habit, like a sales team's weekly pipeline review).
    - Proof in numbers: real totals from the coach's clients, ready to post, never invented.
-   Live: supabase/migrations/20261125090000_marketing.sql. Pure, so it is unit tested. */
+   Live: supabase/migrations/20261126090000_marketing.sql. Pure, so it is unit tested. */
 
 import { sourceLabel } from "./leads";
 

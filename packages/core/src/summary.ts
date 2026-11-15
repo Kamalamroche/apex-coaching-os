@@ -1,3 +1,4 @@
+import { commentLines } from "./exerciseComments";
 import { exerciseById } from "./library";
 import { addSessionToTrend } from "./plateau";
 import { estimatedOneRepMax } from "./progression";
@@ -160,6 +161,7 @@ export function summaryMessage(log: SessionLog): string {
   if (s?.vsLast) lines.push(`📈 vs last time: ${signed(s.vsLast.volumeKg, " kg")} · ${signed(s.vsLast.sets, " sets")}`);
   if (s?.readiness) lines.push(`🔋 ${readinessReason(s.readiness)}${s.readiness.adjusted ? " Chose the lighter session." : ""}`);
   if (s?.fun) lines.push(s.fun);
+  if (s?.comments?.length) lines.push(...commentLines(s.comments));
   if (log.note?.trim()) lines.push(`📝 "${log.note.trim()}"`);
   return lines.join("\n");
 }

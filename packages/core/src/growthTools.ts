@@ -1,6 +1,6 @@
 /* Growing a PT business from the clients you already have: referral rewards, a free intro session,
    reviews on the public page (and Google), and ready-to-send nudges when a pack runs low or a client stops booking.
-   Live: supabase/migrations/20261124090000_growth_tools.sql. Pure, so it is unit tested. */
+   Live: supabase/migrations/20261125090000_growth_tools.sql. Pure, so it is unit tested. */
 
 import type { Booking } from "./booking";
 import type { Credits } from "./sessions";

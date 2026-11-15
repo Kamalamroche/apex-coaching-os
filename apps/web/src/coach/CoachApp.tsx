@@ -15,6 +15,7 @@ import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
 import { CoachGym } from "./screens/CoachGym";
+import { coachRunLog } from "./screens/OneToOne";
 import { acceptGymInvite, gymInviteNote, useGymApi } from "../data/gym";
 import { AccountScreen } from "../app/Privacy";
 import { UnitsAndLanguage } from "../app/Settings";
@@ -100,7 +101,7 @@ function useFinishedAlert(say: (m: string) => void) {
       seen.current = { store, key };
       return;
     }
-    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
+    if (key && key !== seen.current.key && log && key !== coachRunLog.key) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
     seen.current.key = key;
   }, [store, status, log, clientName, say]);
 }
