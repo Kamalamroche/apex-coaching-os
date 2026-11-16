@@ -5,7 +5,8 @@ import { useAppInfo } from "../../app/AppContext";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 /** The onboarding questionnaire: a health check, goals, training background and lifestyle. Sent once, can be updated. */
-export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
+/** `bare`: inside the welcome flow, which shows its own title and skip. */
+export function Intake({ onExit, onDone, bare }: { onExit: () => void; onDone: () => void; bare?: boolean }) {
   const store = useLifestyleStore();
   const { intake } = useLifestyle();
   const { coachName } = useAppInfo();
@@ -37,8 +38,8 @@ export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => v
 
   return (
     <>
-      <BackLink onClick={onExit}>Back</BackLink>
-      <div><div className="eyebrow">About you</div><h1 className="h1">Help {coachName} plan for you</h1><p className="sub">About five minutes. Only {coachName} sees your answers.</p></div>
+      {!bare && <BackLink onClick={onExit}>Back</BackLink>}
+      {!bare && <div><div className="eyebrow">About you</div><h1 className="h1">Help {coachName} plan for you</h1><p className="sub">About five minutes. Only {coachName} sees your answers.</p></div>}
 
       <section className="card stack">
         <div><h2 className="h2">Health check</h2><div className="small" style={{ marginTop: 4 }}>A yes doesn't stop you training. It means {coachName} will talk it through with you first, and may ask you to check with your doctor.</div></div>
