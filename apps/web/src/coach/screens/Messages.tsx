@@ -1,6 +1,6 @@
 import { countOn, firstName, type AutomationSettings } from "@apex/core";
 import { Avatar, Icons } from "@apex/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense, lazy } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { Thread } from "../../app/Thread";
 import { demoAutomations, liveAutomations } from "../../data/automations";
@@ -12,10 +12,13 @@ import { CoachResources } from "./CoachResources";
 import { CoachTeam } from "./CoachTeam";
 import { useTeamApi } from "../../data/team";
 import { openedForLeads, useGrowthApi } from "../../data/growth";
-import { CoachGrow } from "./CoachGrow";
+
 import { demoReplies, liveReplies } from "../../data/savedReplies";
 import { CoachAnswers } from "./CoachAnswers";
 import { useExtras } from "../../data/extras";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.CoachGrow })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -41,7 +44,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
   if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
   if (extra === "answers") return <CoachAnswers onBack={() => setExtra(null)} say={say} />;
-  if (extra === "grow") return <CoachGrow live={live} onBack={() => setExtra(null)} say={say} />;
+  if (extra === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} onBack={() => setExtra(null)} say={say} /></Suspense>;
   if (extra === "resources") return <CoachResources live={live} onBack={() => setExtra(null)} say={say} />;
   const autoButton = (
     <div className="card flat list">

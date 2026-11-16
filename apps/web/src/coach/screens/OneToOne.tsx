@@ -10,13 +10,12 @@ import { MeasureInputs, PoseSlots, blankMeasures, parseMeasures } from "../../ap
 import { useExtras } from "../../data/extras";
 import { useStore } from "../../data/StoreContext";
 import { ONE_TO_ONE_SQL, type LiveStore } from "../../data/supabaseStore";
+import { coachRunLog } from "../runLog";
 
 /* One-to-one tools on the client's profile: run a session on the coach's own phone or tablet, write session notes
    (just for the coach, or shared with the client), and take weight, measurements and photos in person. */
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
-/** The demo log of the last session the coach ran here, so the "client finished a session" toast skips it. */
-export const coachRunLog = { key: "" };
 const errText = (e: unknown, fallback: string) => {
   const m = e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : fallback;
   // The coach's insert policies arrive with the one-to-one SQL; before that, RLS turns the write away.
