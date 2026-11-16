@@ -1,8 +1,8 @@
-import { HERO_IMAGES, bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
+import { HERO_IMAGES, bestPerDay, headlineLift, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { BackLink, CountUp, EditorialTitle, HeroBackdrop, Icons, Sheet, Spark, useT, useUnits } from "@apex/ui";
 import { useState } from "react";
-import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
 import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
@@ -16,10 +16,11 @@ const WEEK_MS = 7 * 86400000;
 
 export function Progress({ say, openCheckIn }: { say: (m: string) => void; openCheckIn: () => void }) {
   const store = useStore();
-  const { coachName } = useAppInfo();
+  const { coachName, mode: appMode } = useAppInfo();
   const u = useUnits();
   const t = useT();
-  const { progress } = useApexState(store);
+  const { progress, history } = useApexState(store);
+  const lift = headlineLift(history.trend);
   const [sheet, setSheet] = useState<"measure" | "photos" | "share" | "week" | null>(null);
   const [mode, setMode] = useState<"body" | "recovery" | "apps">("body");
   const { recovery } = useActivities();
@@ -84,11 +85,19 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
 
       <CoachNotes />
 
-      <SampleNote />
-      <div className="card">
-        <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Trap bar deadlift, top set</h3></div>
-        <Spark data={[55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70].map((kg) => u.w(kg))} unit={u.weight} />
-      </div>
+      {lift ? (
+        <div className="card">
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{lift.name}, estimated best</h3></div>
+          <Spark data={lift.points.map((kg) => u.w(kg))} unit={u.weight} />
+        </div>
+      ) : appMode === "demo" ? (
+        <div className="card">
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Trap bar deadlift, top set</h3></div>
+          <Spark data={[55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70].map((kg) => u.w(kg))} unit={u.weight} />
+        </div>
+      ) : (
+        <div className="card small">Your strength chart appears after two sessions of the same lift.</div>
+      )}
       <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setMode("recovery")}>
         <div><div className="h3">Recovery</div><div className="small num">{last ? [last.sleepMinutes ? `${formatSleep(last.sleepMinutes)} sleep` : null, last.hrvMs ? `HRV ${Math.round(last.hrvMs)} ms` : null, last.restingHr ? `${last.restingHr} bpm resting` : null].filter(Boolean).join(" · ") : "Sleep, HRV and resting heart rate from your watch"}</div></div>
         <span className="tiny">›</span>
