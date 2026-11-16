@@ -30,6 +30,7 @@ export { CoverPicker, IncludesList, ProgrammeCover, ProgrammeFacts, ProgrammePos
 export { ReportHero, ReportView } from "./report";
 export { FirstWeekCard } from "./firstWeek";
 export { OnboardingDone, OnboardingHeader } from "./onboarding";
+export { WeeklyReportCard } from "./weeklyReport";
 export { CreditBalance, SessionMonthStats, SessionsHero } from "./sessions";
 export { PlanChangedCard } from "./planUpdate";
 export { BusinessGlance, BusinessHero, ClientFlow, HealthBadge, HealthBandPill, HealthParts, HealthTrend, IncomeBars, SourceRows, VoiceNote } from "./business";

@@ -1,0 +1,16 @@
+/* Weekly coach report on the Brief. Athletic Tech tokens only. */
+.wr-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow)}
+.wr-card .sect{margin-bottom:0}
+.wr-headline{margin:0;font-size:15px;line-height:1.4;color:var(--text);font-weight:600}
+.wr-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.wr-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r);background:var(--bg2);animation:wr-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 40ms)}
+.wr-tile b{font-size:22px;font-weight:800;color:var(--text)}
+.wr-tile span{font-size:12px;color:var(--text2)}
+.wr-tile small{font-size:11px;color:var(--good);font-weight:700}
+.wr-row{display:flex;align-items:center;gap:10px;width:100%;padding:6px 0;background:none;border:0;text-align:left;color:var(--text);font:inherit;cursor:pointer}
+.wr-row b{display:block;font-size:14px}
+.wr-row small{display:block;font-size:12px;color:var(--text2)}
+.wr-name{background:none;border:0;padding:0;text-align:left;font:600 14px/1.3 var(--ui);color:var(--text);cursor:pointer}
+.wr-quiet{display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid var(--line)}
+@keyframes wr-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wr-tile{animation:none}}
