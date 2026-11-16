@@ -7,7 +7,7 @@ import { browserPushSupport, pushIsOn, pushNotReady, sendTestPush, turnOffPush, 
 const NOT_READY = "Notifications switch on once the push setup is done in Supabase (SQL and the push function).";
 const SNOOZE_KEY = "apex-push-prompt";
 
-function usePush(api: PrivacyApi | null) {
+export function usePush(api: PrivacyApi | null) {
   const [support, setSupport] = useState<PushSupport>(() => browserPushSupport());
   const [on, setOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +54,7 @@ function usePush(api: PrivacyApi | null) {
   return { support, on, busy, error, enable, disable };
 }
 
-function IosSteps() {
+export function IosSteps() {
   return (
     <ol className="small push-steps">
       <li>Tap the Share button <span aria-hidden>(the square with an arrow)</span> at the bottom of Safari.</li>
