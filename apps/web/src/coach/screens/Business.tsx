@@ -1,15 +1,17 @@
 import { businessSummary, parsePounds, pounds, sampleBusiness, type BizClient, type BizInput } from "@apex/core";
 import { Avatar, BusinessHero, ClientFlow, CountUp, Icons, IncomeBars, Label, SourceRows } from "@apex/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, lazy } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { loadBusiness, setClientFee, setClientStatus } from "../../data/business";
 import type { CoachLiveProps } from "../CoachApp";
-import { CoachProgrammes } from "./CoachProgrammes";
 import { CoachAgreements } from "./CoachAgreements";
 import { CoachClasses } from "./CoachClasses";
-import { CoachMarketing } from "./CoachMarketing";
 import { useMarketingApi } from "../../data/marketing";
 import { useExtras } from "../../data/extras";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachProgrammes = lazy(() => import("./CoachProgrammes").then((m) => ({ default: m.CoachProgrammes })));
+const CoachMarketing = lazy(() => import("./CoachMarketing").then((m) => ({ default: m.CoachMarketing })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 

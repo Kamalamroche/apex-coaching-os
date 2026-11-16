@@ -6,20 +6,22 @@ import {
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Icons, Sheet, useUnits } from "@apex/ui";
-import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, lazy } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
 import { PlanUpdateSheet } from "./PlanUpdate";
 import { Copilot } from "./Copilot";
 import { ImportPdf } from "./ImportPdf";
-import { PlanBuilder } from "./PlanBuilder";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Templates } from "./Templates";
 import { demoTemplates, liveTemplates } from "../../data/templates";
 import type { CoachLiveProps } from "../CoachApp";
 import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
+
+/* Loaded when first opened, so the app starts faster. */
+const PlanBuilder = lazy(() => import("./PlanBuilder").then((m) => ({ default: m.PlanBuilder })));
 
 const RECENT_IDS = [2, 9, 13];
 /** Drag payload for a workout row being moved. */

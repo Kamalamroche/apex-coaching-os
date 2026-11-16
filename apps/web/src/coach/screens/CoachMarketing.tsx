@@ -5,7 +5,7 @@ import {
   type PageVisits, type PlanAction, type ProofNumbers, type ReferralJoin, type Review,
 } from "@apex/core";
 import { BackLink, FunnelView, HappinessGauge, HappinessRow, Icons, Label, MarketingHero, PlanItem, PlanProgress, ProofTiles, drawMarketingCard, loadStoryFonts, type MarketingCardData, type MarketingCardTheme } from "@apex/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
 import { shareCards } from "../../app/shareImage";
 import { loadBusiness } from "../../data/business";
 import { useGrowApi } from "../../data/grow";
@@ -14,8 +14,11 @@ import { MARKETING_NEEDS_UPDATE, MARKETING_SQL, useMarketingApi } from "../../da
 import type { CoachLiveProps } from "../CoachApp";
 import { downloadQr, printPoster, qrSvg } from "../poster";
 import { useSendToClient } from "../sendToClient";
-import { CoachGrow, type GrowView } from "./CoachGrow";
+import type { GrowView } from "./CoachGrow";
 import { copyText, localToday } from "./CoachLeads";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.CoachGrow })));
 
 type Tab = "plan" | "posts" | "boost" | "numbers";
 
@@ -75,7 +78,7 @@ export function CoachMarketing({ live, onBack, say, coachName }: { live?: CoachL
   }, [growth, grow, mk, live]);
   useEffect(() => { void reload(); }, [reload]);
 
-  if (grow2) return <CoachGrow live={live} startView={grow2} backLabel="Marketing" onBack={() => { setGrow2(null); void reload(); }} say={say} />;
+  if (grow2) return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} startView={grow2} backLabel="Marketing" onBack={() => { setGrow2(null); void reload(); }} say={say} /></Suspense>;
   if (!data) return <><BackLink onClick={onBack}>Business</BackLink><div className="card small">Loading your marketing…</div></>;
 
   const now = new Date();

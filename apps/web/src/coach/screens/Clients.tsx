@@ -1,7 +1,7 @@
 import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, Bar, ClientTable, Label, Spark, riskColor, useUnits } from "@apex/ui";
-import { useState } from "react";
+import { useState, lazy } from "react";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
 import { ClientReport } from "./Report";
@@ -10,12 +10,14 @@ import { ClientFormChecks } from "./FormChecks";
 import { ClientGoals } from "./Goals";
 import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
 import { clientTableRows, hasTag, type SortDir, type TableSortKey } from "@apex/core";
-import { Transfer } from "./Transfer";
 import { useMemo } from "react";
 import { demoRosterHealth } from "../../data/health";
 import { ClientHealthPanel } from "./ClientHealth";
 import { CoachCardio, CoachRecovery } from "./CoachCardio";
-import { OneToOneTab } from "./OneToOne";
+
+/* Loaded when first opened, so the app starts faster. */
+const Transfer = lazy(() => import("./Transfer").then((m) => ({ default: m.Transfer })));
+const OneToOneTab = lazy(() => import("./OneToOne").then((m) => ({ default: m.OneToOneTab })));
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];

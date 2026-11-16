@@ -1,7 +1,7 @@
 import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, ClientTable, useUnits } from "@apex/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy } from "react";
 import { clientTableRows, type SortDir, type TableSortKey } from "@apex/core";
 import { loadClientFees } from "../../data/business";
 import { useStoreStatus } from "../../app/AppContext";
@@ -17,14 +17,16 @@ import { hasTag } from "@apex/core";
 import { useFormChecks } from "../../data/FormCheckContext";
 import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
-import { Transfer } from "./Transfer";
 import { ClientReport } from "./Report";
 import { HealthBadge, HealthTrend } from "@apex/ui";
 import type { Health } from "@apex/core";
 import { useRosterHealth } from "../../data/health";
 import { ClientHealthPanel } from "./ClientHealth";
 import { RecoveryTab } from "./Clients";
-import { OneToOneTab } from "./OneToOne";
+
+/* Loaded when first opened, so the app starts faster. */
+const Transfer = lazy(() => import("./Transfer").then((m) => ({ default: m.Transfer })));
+const OneToOneTab = lazy(() => import("./OneToOne").then((m) => ({ default: m.OneToOneTab })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 const ago = (iso: string | null) => {

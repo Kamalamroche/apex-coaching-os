@@ -2,7 +2,7 @@ import { Shell, useT, useToast, type TabDef } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { firstName } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
 import { openedForLeads } from "../data/growth";
@@ -14,13 +14,15 @@ import { Clients } from "./screens/Clients";
 import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
-import { CoachGym } from "./screens/CoachGym";
-import { coachRunLog } from "./screens/OneToOne";
+import { coachRunLog } from "./runLog";
 import { acceptGymInvite, gymInviteNote, useGymApi } from "../data/gym";
 import { AccountScreen } from "../app/Privacy";
 import { UnitsAndLanguage } from "../app/Settings";
 import { useOpenFromNotification } from "../app/PushParts";
 import { BackLink } from "@apex/ui";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachGym = lazy(() => import("./screens/CoachGym").then((m) => ({ default: m.CoachGym })));
 
 type Tab = "brief" | "clients" | "chat" | "build" | "food" | "money";
 const TABS: TabDef<Tab>[] = [
@@ -59,6 +61,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } setStartTab(undefined); };
   return (
     <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
+      <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
       {!account && tab === "brief" && <Brief openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
       {!account && tab === "clients" && (live ? <LiveClients key={liveOpen ?? ""} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} startTab={startTab} /> : <Clients id={clientId} setId={(id) => { setStartTab(undefined); setClientId(id); }} say={say} goBuild={goBuild} startTab={startTab} />)}
@@ -66,6 +69,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
       {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business live={live} say={say} openGym={gymApi ? () => setGym(true) : undefined} />)}
+      </Suspense>
       {toast}
     </Shell>
   );
