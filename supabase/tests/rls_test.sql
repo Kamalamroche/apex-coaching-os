@@ -2020,3 +2020,168 @@ do $$ begin
   assert not found, 'rival changed a guest booking';
 end $$;
 reset role;
+
+-- growth tools: offers, referral rewards, reviews
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update coach_pages set intro_offer = true, referral_reward = 1, google_review_url = 'https://g.page/r/grow/review' where coach_id = '00000000-0000-0000-0000-0000000000f1';
+insert into session_packs (id, coach_id, client_id, sessions, source, paid_via) values ('b2000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 1, 'referral', 'free');
+update join_requests set reward_pack_id = 'b2000000-0000-0000-0000-000000000001' where email = 'leo@example.com';
+do $$ begin
+  assert (select reward_pack_id is not null from join_requests where email = 'leo@example.com'), 'reward recorded once';
+  begin
+    update coach_pages set google_review_url = 'javascript:alert(1)' where coach_id = '00000000-0000-0000-0000-0000000000f1';
+    raise exception 'bad review link saved';
+  exception when check_violation then null; end;
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+insert into reviews (coach_id, client_id, stars, body) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 5, 'Brilliant coach, I am stronger than ever.');
+do $$ begin
+  assert (select referral_reward from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) = 1, 'client sees the reward';
+  assert (select google_review_url from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) like 'https://g.page/%', 'and the Google link';
+  begin
+    insert into reviews (coach_id, client_id, stars, body, approved) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f4', 5, 'Pretending to be someone else here.', false);
+    raise exception 'review written as someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into reviews (coach_id, client_id, stars, body) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000f2', 1, 'Reviewing a coach who is not mine.');
+    raise exception 'reviewed someone else''s coach';
+  exception when insufficient_privilege then null; end;
+  update reviews set approved = true;
+  assert not (select approved from reviews), 'client cannot approve their own review';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  assert jsonb_array_length(public.public_coach_extras('grow-coach') -> 'reviews') = 0, 'unapproved reviews stay hidden';
+  assert (public.public_coach_extras('grow-coach') ->> 'intro_offer')::boolean, 'intro offer is public';
+end $$;
+reset role;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update reviews set approved = true, body = 'Coach rewrote this review to sound better.';
+do $$ begin
+  assert (select approved and body like 'Brilliant%' from reviews), 'coach approves but cannot change the words';
+  assert (select name from public.coach_reviews()) = 'Fiona C.', 'coach sees the short name';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+update reviews set body = 'Edited after approval, still a great coach.';
+do $$ begin
+  assert not (select approved from reviews), 'an edit goes back for approval';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update reviews set approved = true;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from reviews) = 0, 'rival sees no reviews';
+  assert (select count(*) from public.my_coach_offer('00000000-0000-0000-0000-0000000000f1')) = 0, 'rival sees no offer';
+end $$;
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare r jsonb; begin
+  r := public.public_coach_extras('grow-coach') -> 'reviews' -> 0;
+  assert r ->> 'name' = 'Fiona C.' and (r ->> 'stars')::int = 5, 'approved review is public with a short name';
+end $$;
+reset role;
+
+-- Marketing: places left, the offer, page visits, happiness checks, proof in numbers. Coach f1, client f2, outsider f3, rival d.
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+update coach_pages set spots_month = 3, campaign_title = 'New Year start', campaign_text = 'First month half price.', campaign_ends = current_date + 10 where coach_id = '00000000-0000-0000-0000-0000000000f1';
+do $$ begin
+  begin
+    update coach_pages set spots_month = 99 where coach_id = '00000000-0000-0000-0000-0000000000f1';
+    raise exception 'saved 99 places';
+  exception when check_violation then null; end;
+end $$;
+-- The coach's own visit doesn't count.
+select public.count_page_visit('grow-coach', 'instagram');
+reset role;
+set role anon;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare m jsonb; begin
+  perform public.count_page_visit('grow-coach', 'instagram');
+  perform public.count_page_visit('grow-coach', 'instagram');
+  perform public.count_page_visit('grow-coach', 'BAD SOURCE!');
+  perform public.count_page_visit('no-such-page', 'instagram');
+  m := public.public_coach_marketing('grow-coach');
+  assert (m ->> 'spots')::int = 3, 'places shown';
+  assert m -> 'campaign' ->> 'title' = 'New Year start', 'offer shown while it runs';
+  begin
+    perform 1 from page_visits;
+    raise exception 'anon read visits';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.coach_happiness();
+    raise exception 'anon read happiness';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select visits from page_visits where source = 'instagram') = 2, 'two visits, not the coach''s own';
+  assert (select visits from page_visits where source = 'page') = 1, 'odd source falls back to page';
+end $$;
+update coach_pages set campaign_ends = current_date - 1 where coach_id = '00000000-0000-0000-0000-0000000000f1';
+do $$ begin
+  assert public.public_coach_marketing('grow-coach') -> 'campaign' = 'null'::jsonb, 'offer hides after its last day';
+end $$;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f2');
+insert into happiness_checks (coach_id, client_id, score, comment) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 9, ' More mobility please ');
+do $$ begin
+  assert (select comment from happiness_checks) = 'More mobility please', 'comment trimmed';
+  begin
+    insert into happiness_checks (coach_id, client_id, score) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f2', 10);
+    raise exception 'answered twice in a month';
+  exception when unique_violation then null; end;
+  begin
+    insert into happiness_checks (coach_id, client_id, score) values ('00000000-0000-0000-0000-00000000000d','00000000-0000-0000-0000-0000000000f2', 0);
+    raise exception 'scored a coach they don''t train with';
+  exception when insufficient_privilege then null; end;
+  update happiness_checks set score = 10;
+  delete from happiness_checks;
+  assert (select score from happiness_checks) = 9, 'answers can''t be changed or removed';
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f3');
+do $$ begin
+  assert (select count(*) from happiness_checks) = 0, 'other clients see nothing';
+  begin
+    insert into happiness_checks (coach_id, client_id, score) values ('00000000-0000-0000-0000-0000000000f1','00000000-0000-0000-0000-0000000000f3', 10);
+    raise exception 'non-client scored';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ declare r record; begin
+  select * into r from public.coach_happiness() limit 1;
+  assert r.name = 'Fiona C.' and r.score = 9, 'coach sees short name and score';
+  assert (select visits from page_visits where source = 'instagram') = 2, 'coach reads own visits';
+end $$;
+-- Proof: a finished workout with a heavier set than before counts as a best.
+reset role;
+insert into sessions (id, client_id, started_at, finished_at) values
+  ('c7000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000f2', now() - interval '60 days', now() - interval '60 days'),
+  ('c7000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-0000000000f2', now() - interval '2 days', now() - interval '2 days');
+insert into logged_sets (session_id, exercise_id, set_index, load_kg, reps, completed_at) values
+  ('c7000000-0000-0000-0000-000000000001', (select min(id) from exercises), 1, 60, 5, now() - interval '60 days'),
+  ('c7000000-0000-0000-0000-000000000002', (select min(id) from exercises), 1, 70, 5, now() - interval '2 days'),
+  ('c7000000-0000-0000-0000-000000000002', (select min(id) from exercises), 2, 70, 5, now() - interval '2 days');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');
+do $$ declare r record; begin
+  select * into r from public.coach_proof(30);
+  assert r.clients = 1 and r.workouts = 1, 'one client, one workout in 30 days: ' || r::text;
+  assert r.kg = 700, 'kg = 70 × 5 × 2: ' || r.kg;
+  assert r.bests = 1, 'one new best: ' || r.bests;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ declare r record; begin
+  select * into r from public.coach_proof(30);
+  assert r.workouts = 0 and r.kg = 0, 'rival sees none of it';
+  assert (select count(*) from page_visits) = 0, 'rival reads no visits';
+  assert (select count(*) from public.coach_happiness()) = 0, 'rival reads no answers';
+end $$;
+reset role;

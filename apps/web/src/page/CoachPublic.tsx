@@ -1,9 +1,11 @@
-import { formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
-import { Celebrate, CoachPageView, EditorialTitle, Icons, ServiceMenu, Sheet, ThemeButton } from "@apex/ui";
+import { campaignEndsText, campaignLive, spotsLeft, spotsText, formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
+import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, ThemeButton } from "@apex/ui";
 import { SlotPicker } from "../app/BookingParts";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage, type PublicBookingMenu } from "../data/growth";
+import { demoPageExtras, livePageExtras, type PageExtras } from "../data/grow";
 import { isDemo, supabase } from "../data/supabase";
+import { demoPageMarketing, liveCountVisit, livePageMarketing, type PageMarketing } from "../data/marketing";
 import { ProgrammeShelf } from "./ProgrammeShelf";
 
 /** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=.
@@ -19,6 +21,8 @@ export function CoachPublic() {
   const [asking, setAsking] = useState(link.form && !link.embed);
   const [sent, setSent] = useState(false);
   const [interest, setInterest] = useState("");
+  const [extras, setExtras] = useState<PageExtras | null>(null);
+  const [marketing, setMarketing] = useState<PageMarketing | null>(null);
   const bookLink = useMemo(() => readBookLink(location.search), []);
   const [menu, setMenu] = useState<PublicBookingMenu | null>(null);
   const [booking, setBooking] = useState<string | null | false>(false);
@@ -31,6 +35,13 @@ export function CoachPublic() {
       // ?book=1 opens the booking straight away; ?book=<service> opens on that service.
       if (m && m.services.length && m.settings?.windows.length && bookLink.open) setBooking(m.services.some((x) => x.id === bookLink.serviceId) ? bookLink.serviceId : m.services.length === 1 ? m.services[0]!.id : null);
     }, () => setMenu(null));
+    if (isDemo() || !supabase) { setExtras(demoPageExtras()); setMarketing(demoPageMarketing()); }
+    else {
+      void livePageExtras(supabase, slug).then(setExtras);
+      void livePageMarketing(supabase, slug).then(setMarketing);
+      // One anonymous count per visit, tagged with where the link was shared (or a friend's link).
+      liveCountVisit(supabase, slug, link.source ?? (ref ? "referral" : null));
+    }
   }, [api, slug, bookLink]);
   useEffect(() => {
     if (page) document.title = `${page.name} · Train with me · APEX`;
@@ -50,6 +61,13 @@ export function CoachPublic() {
     );
   }
   const first = page.name.split(" ")[0] || page.name;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const boost: PageBoost | null = marketing ? {
+    spots: spotsText(marketing.spots, marketing.joined, now),
+    full: marketing.spots !== null && spotsLeft(marketing.spots, marketing.joined) === 0,
+    offer: campaignLive(marketing.campaign, today) ? { title: marketing.campaign.title, text: marketing.campaign.text, ends: campaignEndsText(marketing.campaign.ends, today) } : null,
+  } : null;
   const canBook = !!menu && menu.services.length > 0 && !!menu.settings?.windows.length;
   const send = async (d: JoinRequestDraft) => { await api.request(page.slug, d, ref, link.source); setSent(true); };
   if (link.embed) {
@@ -64,6 +82,8 @@ export function CoachPublic() {
       <Top />
       <CoachPageView
         page={page}
+        extras={extras}
+        boost={boost}
         action={sent
           ? <span className="gr-cta glass" role="status"><Icons.check width={16} height={16} /> Sent · {first} will be in touch</span>
           : <button className="gr-cta" onClick={() => setAsking(true)}>Train with {first} <Icons.arrow width={15} height={15} /></button>}

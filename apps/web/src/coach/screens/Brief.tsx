@@ -75,7 +75,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
   const openToday = (tab?: string) => (mode === "live" ? (live?.activeClientId ? openLiveClient?.(live.activeClientId, tab) : undefined) : openClient(DEMO_CLIENT_ID, tab));
   const [calendar, setCalendar] = useState(false);
   const [twin, setTwin] = useState(false);
-  if (calendar) return <Calendar clients={clients} onBack={() => setCalendar(false)} say={say} />;
+  if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
 
   return (
