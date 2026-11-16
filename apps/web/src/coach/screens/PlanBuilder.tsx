@@ -1,5 +1,5 @@
 import { DAY_NAMES, PLAN_EXAMPLES, buildPlan, exerciseById, firstName, formatRest, fromTemplate, newKey, templateSummary, type BuiltPlan } from "@apex/core";
-import { Label, PlanDayCard, Sheet, UnderstoodChips, type PlanDayView } from "@apex/ui";
+import { Label, PlanDayCard, Sheet, UnderstoodChips, WeekStrip, type PlanDayView } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
@@ -7,8 +7,8 @@ import { demoTemplates, liveTemplates } from "../../data/templates";
 import type { CoachLiveProps } from "../CoachApp";
 
 /** Rows the plan card shows: "A · Barbell Back Squat · 4×5 · RPE 8 · 3 min". */
-function dayView(plan: BuiltPlan): PlanDayView[] {
-  return plan.template.days.map((d) => ({
+function dayView(plan: BuiltPlan, week: number): PlanDayView[] {
+  return plan.template.days.filter((d) => d.week === week).map((d) => ({
     day: DAY_NAMES[d.dayIndex] ?? "",
     name: d.name,
     minutes: d.minutes,
@@ -33,11 +33,14 @@ export function PlanBuilder({ live, onClose, say }: { live?: CoachLiveProps; onC
   const [confirm, setConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const days = useMemo(() => (plan ? dayView(plan) : []), [plan]);
+  const [week, setWeek] = useState(1);
+  const days = useMemo(() => (plan ? dayView(plan, week) : []), [plan, week]);
+  const wk = plan?.weeks.find((w) => w.week === week);
 
   const build = (t = text) => {
     if (t.trim().length < 6) return;
     setPlan(buildPlan(t, newKey()));
+    setWeek(1);
     setConfirm(false);
     setSaved(false);
     setErr(null);
@@ -92,6 +95,13 @@ export function PlanBuilder({ live, onClose, say }: { live?: CoachLiveProps; onC
             <span className="tiny num">{templateSummary(plan.template)} · {plan.template.note}</span>
           </div>
           <UnderstoodChips understood={plan.brief.understood} assumed={plan.brief.assumed} />
+          <div className="card flat" style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, padding: "12px 14px" }}>
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <span className="eyebrow">Week {week} of {plan.weeks.length} · {wk?.label}</span>
+              <span className="tiny">Tap a week</span>
+            </div>
+            <WeekStrip weeks={plan.weeks} selected={week} onSelect={setWeek} />
+          </div>
           <div className="pbd-days">
             {days.map((d, i) => <PlanDayCard key={`${d.day}-${d.name}`} view={d} index={i} />)}
           </div>

@@ -10,7 +10,9 @@ type TemplateItem = TemplateDay["items"][number];
 export type PlanGoal = "strength" | "muscle" | "fatloss" | "fitness" | "general";
 export type PlanLevel = "beginner" | "intermediate" | "advanced";
 export type PlanSetting = "gym" | "dumbbells" | "kettlebell" | "bodyweight";
-export type PlanInjury = "knee" | "back" | "shoulder";
+export type PlanInjury = "knee" | "back" | "shoulder" | "hip" | "wrist";
+/** A body area the coach wants more of: one extra exercise for it every day. */
+export type PlanFocus = "glutes" | "legs" | "upper" | "arms" | "core";
 
 export interface PlanBrief {
   goal: PlanGoal;
@@ -20,6 +22,9 @@ export interface PlanBrief {
   minutes: number;
   weeks: number;
   avoid: PlanInjury[];
+  focus: PlanFocus | null;
+  /** 50 or over: gentler effort and a longer warm-up. */
+  older: boolean;
   /** Words the builder found, as chips: "3 days a week", "Fat loss", "Knee-friendly". */
   understood: string[];
   /** Safe defaults for what the description didn't say: "Beginner (assumed)". */
@@ -34,7 +39,8 @@ const NUM = "(\\d+|one|two|three|four|five|six|seven|eight|ten|twelve)";
 export const GOAL_LABEL: Record<PlanGoal, string> = { strength: "Strength", muscle: "Build muscle", fatloss: "Fat loss", fitness: "Fitness and conditioning", general: "General fitness" };
 const SETTING_LABEL: Record<PlanSetting, string> = { gym: "Full gym", dumbbells: "Dumbbells", kettlebell: "Kettlebells", bodyweight: "Bodyweight, at home" };
 const LEVEL_LABEL: Record<PlanLevel, string> = { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" };
-const INJURY_LABEL: Record<PlanInjury, string> = { knee: "Knee-friendly", back: "Back-friendly", shoulder: "Shoulder-friendly" };
+const INJURY_LABEL: Record<PlanInjury, string> = { knee: "Knee-friendly", back: "Back-friendly", shoulder: "Shoulder-friendly", hip: "Hip-friendly", wrist: "Wrist-friendly" };
+const FOCUS_LABEL: Record<PlanFocus, string> = { glutes: "Extra glutes", legs: "Extra legs", upper: "Extra upper body", arms: "Extra arms", core: "Extra core" };
 
 /** Reads the coach's description. Anything not mentioned gets a sensible default (and isn't shown as understood). */
 export function readBrief(text: string): PlanBrief {
@@ -91,9 +97,24 @@ export function readBrief(text: string): PlanBrief {
   if (has(t, /knee|acl|meniscus|patella/)) avoid.push("knee");
   if (has(t, /back (pain|issue|injur|problem|tight|sore)|lower back|lumbar|disc|sciatica|bad back/)) avoid.push("back");
   if (has(t, /shoulder|rotator|impingement/)) avoid.push("shoulder");
+  if (has(t, /\bhips?\b|hip (pain|replacement|flexor)|labrum|groin/)) avoid.push("hip");
+  if (has(t, /wrists?\b|carpal/)) avoid.push("wrist");
   for (const a of avoid) understood.push(INJURY_LABEL[a]);
 
-  return { goal, days, level, setting, minutes, weeks, avoid, understood, assumed };
+  let focus: PlanFocus | null = null;
+  if (has(t, /glutes?\b|booty|bum\b|peach/)) focus = "glutes";
+  else if (has(t, /\blegs?\b|quads|thighs/)) focus = "legs";
+  else if (has(t, /\barms?\b|biceps|triceps|guns/)) focus = "arms";
+  else if (has(t, /upper body|chest|shoulders (bigger|wider)|back (bigger|wider)|v.?shape/)) focus = "upper";
+  else if (has(t, /\bcore\b|abs\b|six.?pack|midsection/)) focus = "core";
+  if (focus) understood.push(FOCUS_LABEL[focus]);
+
+  const age = /\b(\d{2})\s*(,|y\/?o\b|years? old|yrs? old)/.exec(t);
+  const ageNum = age ? Number(age[1]) : 0;
+  const older = (ageNum >= 50 && ageNum <= 95) || has(t, /\bolder\b|over (50|fifty|sixty|60|65|70)|retired|\b(50|60|70)s\b|pensioner|menopaus/);
+  if (older) understood.push("50+, gentler");
+
+  return { goal, days, level, setting, minutes, weeks, avoid, focus, older, understood, assumed };
 }
 
 type Slot = "squat" | "hinge" | "lunge" | "hpush" | "vpush" | "hpull" | "vpull" | "arms" | "delts" | "core" | "cond" | "glutes";
@@ -119,8 +140,11 @@ const FRIENDLY: Partial<Record<PlanInjury, Partial<Record<Slot, number[]>>>> = {
   knee: { squat: [106, 8, 225, 83], lunge: [8, 83, 84], cond: [626, 633, 431] },
   back: { squat: [9, 10, 642], hinge: [8, 83, 74], hpull: [645, 638, 132], core: [426, 280, 453] },
   shoulder: { vpush: [7, 72, 37], hpush: [11, 624, 123], vpull: [645, 638, 649], arms: [17, 18, 26] },
+  hip: { squat: [106, 10, 83, 9], lunge: [641, 83, 84], hinge: [83, 74, 8], cond: [626, 633, 431] },
+  wrist: { hpush: [11, 124, 125], vpush: [125, 7, 37], core: [426, 280, 453] },
 };
-const INJURY_NOTE: Record<PlanInjury, string> = { knee: "knee-friendly choice", back: "back-friendly choice", shoulder: "shoulder-friendly choice" };
+const INJURY_NOTE: Record<PlanInjury, string> = { knee: "knee-friendly choice", back: "back-friendly choice", shoulder: "shoulder-friendly choice", hip: "hip-friendly choice", wrist: "wrist-friendly choice" };
+const FOCUS_SLOTS: Record<PlanFocus, Slot[]> = { glutes: ["glutes", "lunge"], legs: ["lunge", "squat"], upper: ["hpull", "delts"], arms: ["arms", "delts"], core: ["core"] };
 
 /* Kit each setting has. A swap the client can't do with their kit is skipped. */
 const KIT: Record<PlanSetting, string[] | null> = {
@@ -141,7 +165,7 @@ const HELD = /isometric|plank|hold|wall sit|hollow/i;
 const WARM_UPS = [305, 314, 311, 304, 313, 310];
 
 interface Dose { sets: number; reps: string; rpe: number; rest: number }
-function dose(goal: PlanGoal, level: PlanLevel, role: "main" | "second" | "acc"): Dose {
+function dose(goal: PlanGoal, level: PlanLevel, role: "main" | "second" | "acc", older = false): Dose {
   const table: Record<PlanGoal, Record<"main" | "second" | "acc", Dose>> = {
     strength: { main: { sets: 4, reps: "5", rpe: 8, rest: 180 }, second: { sets: 3, reps: "6-8", rpe: 8, rest: 120 }, acc: { sets: 3, reps: "10-12", rpe: 8, rest: 60 } },
     muscle: { main: { sets: 4, reps: "6-8", rpe: 8, rest: 120 }, second: { sets: 3, reps: "8-10", rpe: 8, rest: 90 }, acc: { sets: 3, reps: "10-15", rpe: 9, rest: 60 } },
@@ -152,6 +176,7 @@ function dose(goal: PlanGoal, level: PlanLevel, role: "main" | "second" | "acc")
   const d = { ...table[goal][role] };
   if (level === "beginner") { d.rpe = Math.max(6, d.rpe - 1); if (role === "main" && d.sets > 3) d.sets = 3; }
   if (level === "advanced" && role !== "acc") d.sets += 1;
+  if (older) d.rpe = Math.min(d.rpe, 7);
   return d;
 }
 
@@ -176,8 +201,40 @@ function split(days: number): DayPlan[] {
 }
 const DAY_INDEX: Record<number, number[]> = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] };
 
+/** How hard each week is. Blocks of four: three weeks that build, then a lighter week to recover. */
+export type WeekKind = "base" | "build" | "peak" | "lighter";
+export interface PlanWeek { week: number; kind: WeekKind; label: string }
+const WEEK_LABEL: Record<WeekKind, string> = { base: "Base", build: "Build", peak: "Hardest", lighter: "Lighter" };
+
+export function weekPattern(weeks: number): PlanWeek[] {
+  return Array.from({ length: weeks }, (_, i) => {
+    const w = i + 1;
+    const pos = ((w - 1) % 4) + 1;
+    const kind: WeekKind = pos === 4 && w < weeks ? "lighter" : pos === 1 ? "base" : pos === 2 ? "build" : "peak";
+    return { week: w, kind, label: WEEK_LABEL[kind] };
+  });
+}
+
+/* One week's version of a day: effort climbs half an RPE a week, the lighter week drops a set and eases off. */
+function forWeek(day: TemplateDay, wk: PlanWeek, cap: number): TemplateDay {
+  const step = wk.kind === "build" ? 1 : wk.kind === "peak" ? 2 : 0;
+  return {
+    ...day,
+    week: wk.week,
+    name: wk.kind === "lighter" ? `${day.name} · lighter week` : day.name,
+    items: day.items.map((it) => {
+      if (it.group.startsWith("W")) return { ...it };
+      if (wk.kind === "lighter") return { ...it, sets: Math.max(2, it.sets - 1), rpe: Math.max(5, it.rpe - 1.5) };
+      const circuit = it.blockStyle === "circuit";
+      return { ...it, sets: circuit && step === 2 ? it.sets + 1 : it.sets, rpe: Math.min(cap, it.rpe + step * 0.5) };
+    }),
+  };
+}
+
 export interface BuiltPlan {
   brief: PlanBrief;
+  /** Each week's kind, for the week strip under the plan. */
+  weeks: PlanWeek[];
   template: ProgramTemplate;
   /** Plain reasons for the choices, shown under the plan. */
   why: string[];
@@ -186,7 +243,7 @@ export interface BuiltPlan {
 /** The whole plan from a description. Same words, same plan. */
 export function buildPlan(text: string, id = "plan-builder"): BuiltPlan {
   const brief = readBrief(text);
-  const { goal, level, setting, minutes, avoid } = brief;
+  const { goal, level, setting, minutes, avoid, focus, older } = brief;
   const plans = split(brief.days);
   const used = new Map<Slot, number>();
   const choose = (slot: Slot, dayUsed: Set<number>): { id: number; note?: string } | null => {
@@ -225,16 +282,19 @@ export function buildPlan(text: string, id = "plan-builder"): BuiltPlan {
     const w2 = WARM_UPS[(i * 2 + 1) % WARM_UPS.length]!;
     add("W1", null, w1, { sets: 1, reps: "6", rpe: 5, rest: 0 }, { note: "warm-up, easy" });
     add("W2", null, w2, { sets: 1, reps: "6", rpe: 5, rest: 30 }, { note: "warm-up, easy" });
+    if (older) add("W3", null, WARM_UPS[(i * 2 + 2) % WARM_UPS.length]!, { sets: 1, reps: "6", rpe: 5, rest: 30 }, { note: "warm-up, easy" });
     // Main lifts: the first is heavy on its own, the rest are second lifts.
     let letter = 65;
     p.main.forEach((slot, k) => {
       const c = choose(slot, dayUsed);
-      if (c) add(String.fromCharCode(letter++), slot, c.id, dose(goal, level, k === 0 ? "main" : "second"), c.note ? { note: c.note } : {});
+      if (c) add(String.fromCharCode(letter++), slot, c.id, dose(goal, level, k === 0 ? "main" : "second", older), c.note ? { note: c.note } : {});
     });
     // Accessories as supersets: C1/C2, then D1.
-    const accs = p.acc.slice(0, accSlots + 1).flatMap((slot) => { const c = choose(slot, dayUsed); if (c) dayUsed.add(c.id); return c ? [{ slot, c }] : []; });
+    // The coach's focus comes first, so it is never the one dropped when time is short.
+    const accList = focus ? [...new Set([...FOCUS_SLOTS[focus].filter((f) => !p.main.includes(f)).slice(0, 1), ...p.acc])] : p.acc;
+    const accs = accList.slice(0, accSlots + 1).flatMap((slot) => { const c = choose(slot, dayUsed); if (c) dayUsed.add(c.id); return c ? [{ slot, c }] : []; });
     accs.forEach(({ slot, c }, k) => {
-      const d = dose(goal, level, "acc");
+      const d = dose(goal, level, "acc", older);
       const second = k % 2 === 1 || k === accs.length - 1;
       const reps = slot === "core" ? (c.id === 14 || c.id === 453 ? "30s" : "10") : d.reps;
       add(`${String.fromCharCode(letter + Math.floor(k / 2))}${(k % 2) + 1}`, slot, c.id, { ...d, reps, rest: second ? d.rest : 0 }, c.note ? { note: c.note } : {});
@@ -256,12 +316,20 @@ export function buildPlan(text: string, id = "plan-builder"): BuiltPlan {
     return { week: 1, dayIndex: DAY_INDEX[brief.days]![i]!, name: p.name, minutes, items };
   });
 
+  // Every week written out, so the coach sees (and the client gets) the progression, not one week repeated.
+  const weeks = weekPattern(brief.weeks);
+  const cap = older || level === "beginner" ? 8 : 9;
+  const allDays = weeks.flatMap((wk) => days.map((d) => forWeek(d, wk, cap)));
+  const lighter = weeks.filter((w) => w.kind === "lighter").map((w) => w.week);
+
   const why: string[] = [
     `${brief.days} days a week, so ${brief.days <= 3 ? "full-body days so every muscle is trained each session" : brief.days === 4 ? "an upper / lower split" : "push, pull and legs"}.`,
     `${GOAL_LABEL[goal]}: main lifts at ${dose(goal, level, "main").sets}×${dose(goal, level, "main").reps}, RPE ${dose(goal, level, "main").rpe}${finisher ? ", plus a short circuit to finish" : ""}.`,
     level === "beginner" ? "Beginner: fewer hard sets and RPE 6–7 while technique settles." : level === "advanced" ? "Advanced: an extra set on the main lifts." : "Intermediate: standard volume, close to RPE 8.",
     ...avoid.map((a) => `${INJURY_LABEL[a]}: swapped the riskier lifts and marked them on the plan.`),
-    "Each week, loads move up from what the client logs (Progressions on your Brief).",
+    ...(focus ? [`${FOCUS_LABEL[focus]}: one more exercise for it every day, kept even when time is short.`] : []),
+    ...(older ? ["50+: effort kept at RPE 7 or under on the big lifts, and an extra warm-up move."] : []),
+    `Effort climbs half an RPE a week${lighter.length ? `, with a lighter week ${lighter.length === 1 ? `in week ${lighter[0]}` : `in weeks ${lighter.join(" and ")}`} (one set fewer, easier) to recover` : ""}. Loads move up from what the client logs (Progressions on your Brief).`,
   ];
 
   const template: ProgramTemplate = {
@@ -269,9 +337,9 @@ export function buildPlan(text: string, id = "plan-builder"): BuiltPlan {
     name: `${GOAL_LABEL[goal]} · ${brief.days} days`,
     note: `${LEVEL_LABEL[level]} · ${SETTING_LABEL[setting].toLowerCase()} · ${minutes} min${avoid.length ? ` · ${avoid.map((a) => INJURY_LABEL[a].toLowerCase()).join(", ")}` : ""}`,
     weeks: brief.weeks,
-    days,
+    days: allDays,
   };
-  return { brief, template, why };
+  return { brief, weeks, template, why };
 }
 
 export const PLAN_EXAMPLES = [

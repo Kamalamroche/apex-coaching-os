@@ -24,3 +24,10 @@
 .pbd-area{min-height:96px;resize:vertical;font:inherit;line-height:1.45}
 @keyframes pbd-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.pbd-day{animation:none}}
+.pbd-weeks{display:flex;gap:4px;align-items:flex-end;overflow-x:auto;padding-bottom:2px}
+.pbd-wk{flex:1 0 26px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px 4px;border:1px solid transparent;border-radius:var(--r-sm,8px);background:transparent;cursor:pointer;color:var(--text3)}
+.pbd-wk.on{border-color:var(--line);background:var(--card);color:var(--text)}
+.pbd-wk-bar{display:block;width:12px;height:calc(var(--h) * 40px);border-radius:3px;background:var(--act);opacity:.85;transition:height .25s ease}
+.pbd-wk.lighter .pbd-wk-bar{background:var(--text3);opacity:.45}
+.pbd-wk-n{font-size:11px;font-weight:800}
+.pbd-wk:focus-visible{outline:2px solid var(--act);outline-offset:2px}

@@ -35,3 +35,28 @@ export function PlanDayCard({ view, index }: { view: PlanDayView; index: number 
     </article>
   );
 }
+
+export interface PlanWeekView { week: number; kind: "base" | "build" | "peak" | "lighter"; label: string }
+const EFFORT: Record<PlanWeekView["kind"], number> = { base: 0.55, build: 0.75, peak: 1, lighter: 0.35 };
+
+/** The block at a glance: one bar per week, taller when harder. Tap a week to see its days. */
+export function WeekStrip({ weeks, selected, onSelect }: { weeks: PlanWeekView[]; selected: number; onSelect: (week: number) => void }) {
+  return (
+    <div className="pbd-weeks" role="tablist" aria-label="Weeks">
+      {weeks.map((w) => (
+        <button
+          key={w.week}
+          role="tab"
+          aria-selected={w.week === selected}
+          className={`pbd-wk ${w.kind} ${w.week === selected ? "on" : ""}`}
+          onClick={() => onSelect(w.week)}
+          title={`Week ${w.week}: ${w.label}`}
+          aria-label={`Week ${w.week}, ${w.label.toLowerCase()}`}
+        >
+          <span className="pbd-wk-bar" style={{ ["--h" as string]: EFFORT[w.kind] }} />
+          <span className="pbd-wk-n num">{w.week}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
