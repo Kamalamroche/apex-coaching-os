@@ -3,7 +3,7 @@ import { useApexState } from "@apex/core/react";
 import { Avatar, BusinessGlance, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { loadBusiness } from "../../data/business";
-import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
@@ -97,7 +97,6 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
           </div>
         </div>
       </section>
-      <SampleNote />
       <PushPrompt say={say} full />
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
