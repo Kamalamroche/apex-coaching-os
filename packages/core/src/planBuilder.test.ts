@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPlan, PLAN_EXAMPLES, readBrief } from "./planBuilder";
+import { buildPlan, PLAN_EXAMPLES, readBrief, weekPattern } from "./planBuilder";
 import { EXERCISES } from "./data/exercises";
 import { fromTemplate } from "./program";
 
@@ -32,7 +32,7 @@ describe("readBrief", () => {
 describe("buildPlan", () => {
   const settings = ["in the gym", "with dumbbells", "with kettlebells", "no equipment"];
   const goals = ["get stronger", "build muscle", "lose fat", "get fitter", "general health"];
-  const extras = ["", "bad knee", "lower back pain", "shoulder impingement", "knee and lower back pain"];
+  const extras = ["", "bad knee", "lower back pain", "shoulder impingement", "knee and lower back pain", "hip pain", "sore wrists", "over 60, bigger glutes"];
   const all = settings.flatMap((s) => goals.flatMap((g) => extras.flatMap((x) => [2, 3, 4, 5, 6].map((d) => `${g}, ${d} days a week ${s}, ${x}`))));
 
   it("only uses exercises from the library, never twice in a day", () => {
@@ -47,7 +47,7 @@ describe("buildPlan", () => {
 
   it("gives as many days as asked, on separate weekdays", () => {
     for (const d of [2, 3, 4, 5, 6]) {
-      const days = buildPlan(`${d} days a week`).template.days;
+      const days = buildPlan(`${d} days a week`).template.days.filter((x) => x.week === 1);
       expect(days).toHaveLength(d);
       expect(new Set(days.map((x) => x.dayIndex)).size).toBe(d);
     }
@@ -95,5 +95,58 @@ describe("buildPlan", () => {
       expect(program.days.length).toBeGreaterThan(0);
       expect(program.days[0]!.items.length).toBeGreaterThan(4);
     }
+  });
+
+  it("writes out every week: effort climbs, a lighter week every fourth", () => {
+    const plan = buildPlan("get stronger, 3 days a week, intermediate, gym, 8 weeks");
+    expect(plan.weeks.map((w) => w.kind)).toEqual(["base", "build", "peak", "lighter", "base", "build", "peak", "peak"]);
+    expect(plan.template.days).toHaveLength(24);
+    const a = (w: number) => plan.template.days.find((d) => d.week === w && d.dayIndex === 0)!.items.find((i) => i.group === "A")!;
+    expect(a(2).rpe).toBe(a(1).rpe + 0.5);
+    expect(a(3).rpe).toBe(a(1).rpe + 1);
+    expect(a(4).sets).toBe(a(1).sets - 1);
+    expect(a(4).rpe).toBeLessThan(a(1).rpe);
+    expect(plan.template.days.find((d) => d.week === 4)!.name).toMatch(/lighter week/);
+    expect(plan.why.join(" ")).toMatch(/lighter week in week 4/);
+    // The programme keeps the weeks as written rather than repeating week 1.
+    const program = fromTemplate(plan.template);
+    expect(program.days).toHaveLength(24);
+  });
+
+  it("never ends on a lighter week and caps effort", () => {
+    expect(weekPattern(4).at(-1)!.kind).toBe("peak");
+    for (const d of buildPlan("beginner, 3 days, gym, 12 weeks").template.days) for (const i of d.items) expect(i.rpe).toBeLessThanOrEqual(8);
+  });
+
+  it("reads hips, wrists, a focus and an older client", () => {
+    const b = readBrief("Maria, 58, wants bigger glutes, hip pain and sore wrists, 3 days in the gym");
+    expect(b.avoid).toEqual(["hip", "wrist"]);
+    expect(b.focus).toBe("glutes");
+    expect(b.older).toBe(true);
+    expect(b.understood).toEqual(expect.arrayContaining(["Hip-friendly", "Wrist-friendly", "Extra glutes", "50+, gentler"]));
+    expect(readBrief("Sarah, 34, lose weight").older).toBe(false);
+    expect(readBrief("lose 6 kg, 45 minutes").older).toBe(false);
+  });
+
+  it("gives an older client an extra warm-up and gentler main lifts", () => {
+    const plan = buildPlan("over 60, get stronger, 3 days, intermediate, gym");
+    const day = plan.template.days[0]!;
+    expect(day.items.filter((i) => i.group.startsWith("W"))).toHaveLength(3);
+    expect(day.items.find((i) => i.group === "A")!.rpe).toBeLessThanOrEqual(7);
+  });
+
+  it("keeps the focus area in every day", () => {
+    const plan = buildPlan("build muscle, bigger glutes, 4 days a week, gym, 30 minutes");
+    const glutes = new Set([8, 74, 54, 83, 84, 117, 248]);
+    for (const d of plan.template.days.filter((x) => x.week === 1)) expect(d.items.some((i) => glutes.has(i.exerciseId)), d.name).toBe(true);
+  });
+
+  it("swaps for hips and wrists", () => {
+    const hip = buildPlan("build muscle, 4 days, gym, hip pain").template.days.flatMap((d) => d.items.map((i) => i.exerciseId));
+    expect(hip).not.toContain(1);
+    expect(hip).not.toContain(109);
+    const wrist = buildPlan("build muscle, 4 days, gym, wrist pain").template.days.flatMap((d) => d.items.map((i) => i.exerciseId));
+    expect(wrist).not.toContain(120);
+    expect(wrist).not.toContain(624);
   });
 });
