@@ -1,6 +1,6 @@
-import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, exerciseFor, progressWorkout, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, type Client, type GlanceTile } from "@apex/core";
+import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, exerciseFor, progressWorkout, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, sampleHealth, weeklyReport, type Client, type GlanceTile, type WeeklyReport } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, BusinessGlance, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
+import { Avatar, BusinessGlance, WeeklyReportCard, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { loadBusiness } from "../../data/business";
 import { useAppInfo } from "../../app/AppContext";
@@ -13,7 +13,7 @@ import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
 import { GoingQuiet } from "./Quiet";
 import { ClientHealthCard } from "./ClientHealth";
-import { demoRosterHealth, useRosterHealth, type HealthClient } from "../../data/health";
+import { cachedRosterInputs, demoRosterHealth, useRosterHealth, type HealthClient } from "../../data/health";
 import type { CoachLiveProps } from "../CoachApp";
 
 interface TriageItem {
@@ -57,6 +57,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
   const hero = HERO_IMAGES[heroForWorkout(workout)];
   const newCheckIn = mode === "live" ? newestFirst(progress.checkIns).find((c) => !c.reviewedAt) : undefined;
   const plateaus = usePlateaus();
+  const report = useWeeklyReport(mode === "live" ? live : undefined, clients);
   const liveHealth = useRosterHealth(mode === "live" ? live?.db : undefined, live?.coachId, clients);
   const demoHealth = useMemo(() => (mode === "demo" ? demoRosterHealth() : null), [mode]);
   const health: RosterRow<HealthClient>[] | null = mode === "live" ? liveHealth : demoHealth;
@@ -157,6 +158,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
         <ClientHealthCard rows={health} open={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />
         {openClients && <button className="link" style={{ alignSelf: "flex-start" }} onClick={openClients}>See every client in the table ›</button>}
       </div>
+      {report && <WeeklyReportCard report={report} sample={mode === "demo"} onClient={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />}
       {glance && <BusinessGlance tiles={glance} sample={mode === "demo"} onOpen={openBusiness} />}
       <div className="stack" style={{ gap: 18 }}>
         <TwinCard onOpen={() => setTwin(true)} />
@@ -270,6 +272,27 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
       )}
     </>
   );
+}
+
+/** Last week's report: the coach's own records when live, the sample clients in the demo. */
+function useWeeklyReport(live: CoachLiveProps | undefined, clients: LiveClient[] | null | undefined): WeeklyReport | null {
+  const [report, setReport] = useState<WeeklyReport | null>(() => {
+    if (live) return null;
+    const now = new Date();
+    const health = Object.fromEntries(Object.entries(sampleHealth(now)).map(([k, v]) => [String(k), v]));
+    return weeklyReport({ clients: CLIENTS.map((c) => ({ id: String(c.id), name: c.name })), health, biz: sampleBusiness(now), now });
+  });
+  const key = clients?.map((c) => c.id).join(",") ?? "";
+  useEffect(() => {
+    if (!live || !clients) return;
+    let on = true;
+    Promise.all([cachedRosterInputs(live.db, live.coachId, clients).data, loadBusiness(live.db, live.coachId)]).then(
+      ([health, biz]) => { if (on) setReport(weeklyReport({ clients: clients.map((c) => ({ id: c.id, name: c.name })), health, biz: biz.input, now: new Date() })); },
+      (e: unknown) => console.error("Couldn't build last week's report", e),
+    );
+    return () => { on = false; };
+  }, [live?.db, live?.coachId, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return report;
 }
 
 /** The four business numbers for the Brief: the coach's own records when live, sample figures in the demo. */

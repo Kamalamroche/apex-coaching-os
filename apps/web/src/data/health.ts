@@ -94,6 +94,13 @@ export function scoreRoster<T extends HealthClient>(clients: T[], inputs: Record
 // One load shared by Brief and Clients, refreshed after a minute.
 let cache: { key: string; at: number; data: Promise<Record<string, HealthInput>> } | null = null;
 
+/** The roster's health inputs, shared between Brief, Clients and the weekly report for a minute. */
+export function cachedRosterInputs(db: SupabaseClient, coachId: string, clients: LiveClient[]): { data: Promise<Record<string, HealthInput>> } {
+  const key = `${coachId}:${clients.map((c) => c.id).join(",")}`;
+  if (!cache || cache.key !== key || Date.now() - cache.at > 60_000) cache = { key, at: Date.now(), data: loadRosterHealth(db, coachId, clients) };
+  return cache;
+}
+
 /** Health rows for the coach's live clients, most in need first. Null while loading. */
 export function useRosterHealth(db: SupabaseClient | undefined, coachId: string | undefined, clients: LiveClient[] | null | undefined): RosterRow<LiveClient>[] | null {
   const [rowsState, setRows] = useState<RosterRow<LiveClient>[] | null>(null);
@@ -101,8 +108,7 @@ export function useRosterHealth(db: SupabaseClient | undefined, coachId: string 
   useEffect(() => {
     if (!db || !coachId || !clients) return;
     let on = true;
-    if (!cache || cache.key !== key || Date.now() - cache.at > 60_000) cache = { key, at: Date.now(), data: loadRosterHealth(db, coachId, clients) };
-    const mine = cache;
+    const mine = cachedRosterInputs(db, coachId, clients);
     mine.data.then(
       (inputs) => { if (on) setRows(scoreRoster(clients, inputs)); },
       (e: unknown) => { console.error("Couldn't work out client health", e); if (cache === mine) cache = null; if (on) setRows([]); },

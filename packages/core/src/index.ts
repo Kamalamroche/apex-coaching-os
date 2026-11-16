@@ -73,6 +73,7 @@ export * from "./quiet";
 export * from "./report";
 export * from "./firstWeek";
 export * from "./onboarding";
+export * from "./weeklyReport";
 export * from "./planUpdate";
 export * from "./outbox";
 export * from "./business";
