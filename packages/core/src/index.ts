@@ -22,6 +22,8 @@ export * from "./mealPlans";
 export * from "./nutritionDays";
 export * from "./smartTargets";
 export * from "./repCounter";
+export * from "./checkInTimeline";
+export * from "./liveSession";
 export * from "./budget";
 export { EATING_OUT, type EatingOutGuide } from "./data/eatingOut";
 export * from "./barcode";

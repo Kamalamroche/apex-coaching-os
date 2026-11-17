@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { LiveProvider, liveSessionLink } from "../data/live";
 import { useEffect, useMemo, useState } from "react";
 import { WEARABLES } from "@apex/core";
 import type { StravaLink, WearableLink } from "../data/ActivityContext";
@@ -62,6 +63,8 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const coachRecipes = useMemo(() => (coach ? liveCoachRecipes(db, coach.id) : null), [db, coach]);
   const programmes = useMemo(() => (coach ? liveProgrammes(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
+  const liveLink = useMemo(() => (coach ? liveSessionLink(db, { side: "client", coachId: coach.id, me: { id: profile.id, name: (profile.full_name ?? "").split(" ")[0] || "Client" } }) : null), [db, coach, profile.id, profile.full_name]);
+  useEffect(() => () => liveLink?.close(), [liveLink]);
   const growth = useMemo(() => (coach ? liveGrowth(db, { side: "client", coachId: coach.id, coachName: coach.name, me: profile.id }) : null), [db, coach, profile.id]);
   const grow = useMemo(() => (coach ? liveGrow(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const marketing = useMemo(() => (coach ? liveMarketing(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
@@ -89,11 +92,11 @@ export function ClientLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
+                    <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientApp notice={notice} /></ExtrasProvider></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider>
+                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>

@@ -1,4 +1,5 @@
 import { createDemoStore, emptyFormCheckStore, emptyGoalStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
+import { LiveProvider, liveSessionLink } from "../data/live";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
@@ -66,6 +67,8 @@ export function CoachLive({ db, profile, signOut }: Live) {
   const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
   const coachRecipes = useMemo(() => liveCoachRecipes(db, profile.id), [db, profile.id]);
   const team = useMemo(() => liveTeam(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
+  const liveLink = useMemo(() => liveSessionLink(db, { side: "coach", coachId: profile.id, me: { id: profile.id, name: (profile.full_name ?? "").split(" ")[0] || "Coach" } }), [db, profile.id, profile.full_name]);
+  useEffect(() => () => liveLink.close(), [liveLink]);
   const growth = useMemo(() => liveGrowth(db, { side: "coach", coachId: profile.id, coachName: profile.full_name, me: profile.id }), [db, profile.id, profile.full_name]);
   const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
   const clientsRef = useRef<LiveClient[]>([]);
@@ -87,7 +90,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
+                    <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
@@ -97,7 +100,7 @@ export function CoachLive({ db, profile, signOut }: Live) {
                         </TwinProvider>
                       </NotesProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider>
+                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>

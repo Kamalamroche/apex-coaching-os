@@ -7,6 +7,8 @@ import { demoAutomations, liveAutomations } from "../../data/automations";
 import type { CoachLiveProps } from "../CoachApp";
 import { Automations } from "./Automations";
 import { CoachChallenges } from "./CoachChallenges";
+import { CoachLiveSession } from "../../app/LiveParts";
+import { useLiveLink } from "../../data/live";
 import { GroupMessage } from "./GroupMessage";
 import { CoachResources } from "./CoachResources";
 import { CoachTeam } from "./CoachTeam";
@@ -24,13 +26,15 @@ const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").sli
 
 /** The coach's side of the chat: pick a client, read their thread (workout summaries included) and reply. */
 export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string) => void }) {
-  const { clientName } = useAppInfo();
+  const { clientName, coachName } = useAppInfo();
+  const liveLink = useLiveLink();
+  const coachFirst = (coachName || "Your coach").split(" ")[0]!;
   const { status } = useStoreStatus();
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const replies = useMemo(() => (live ? liveReplies(live.db, live.coachId) : demoReplies()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
-  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | "answers" | null>(() => (openedForLeads() ? "grow" : null));
+  const [extra, setExtra] = useState<"group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers" | null>(() => (openedForLeads() ? "grow" : null));
   const teamApi = useTeamApi();
   const extras = useExtras();
   const growApi = useGrowthApi();
@@ -42,6 +46,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   if (auto) return <Automations api={api} clientNames={Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]))} onBack={() => setAuto(false)} say={say} />;
   if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
+  if (extra === "live" && liveLink) return <CoachLiveSession coach={coachFirst} onBack={() => setExtra(null)} say={say} />;
   if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
   if (extra === "answers") return <CoachAnswers onBack={() => setExtra(null)} say={say} />;
   if (extra === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} onBack={() => setExtra(null)} say={say} /></Suspense>;
@@ -62,6 +67,13 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
         <button className="li" onClick={() => setExtra("answers")}>
           <Icons.replies width={18} height={18} style={{ color: "var(--act)" }} />
           <div className="grow"><div className="h3">Quick answers</div><div className="tiny">Your answers to common questions, shown to clients the moment they ask</div></div>
+          <span className="tiny">›</span>
+        </button>
+      )}
+      {liveLink && (
+        <button className="li" onClick={() => setExtra("live")}>
+          <Icons.play width={18} height={18} style={{ color: "var(--crit)" }} />
+          <div className="grow"><div className="h3">Live session</div><div className="tiny">Run one timer, your clients follow it live</div></div>
           <span className="tiny">›</span>
         </button>
       )}
