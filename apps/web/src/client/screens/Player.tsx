@@ -1,8 +1,9 @@
 import {
+  carsLifted, topSet,
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
+import { CarsMoment, CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -263,6 +264,9 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
   const [sharing, setSharing] = useState(false);
   const [posting, setPosting] = useState(false);
   const team = useTeamApi();
+  // "You lifted three cars" comes first when today's total is at least one car; Continue opens the summary.
+  const [cars] = useState(() => carsLifted(sessionVolume(sets)));
+  const [carsOpen, setCarsOpen] = useState(cars !== null);
   // Freeze the duration when the summary opens, so time spent here doesn't count as training.
   const [mins] = useState(minutes);
   const volume = sessionVolume(sets);
@@ -277,6 +281,18 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
     store.sendMessage("client", summaryMessage(log));
     onDone();
   };
+  const shareSheet = sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />;
+  if (cars && carsOpen) {
+    return (
+      <div className="shell">
+        <main className="main" style={{ paddingBottom: 24, minHeight: "100dvh" }}>
+          <Celebrate big />
+          <CarsMoment eyebrow={`Session done · ${w.name}`} cars={cars} totalKg={volume} vsLastKg={summary.vsLast?.volumeKg ?? null} vsLastLabel={w.name} top={topSet(w, sets)} onShare={() => setSharing(true)} onContinue={() => setCarsOpen(false)} />
+        </main>
+        {shareSheet}
+      </div>
+    );
+  }
   return (
     <div className="shell">
       <main className="main" style={{ paddingBottom: 40 }}>
@@ -301,7 +317,7 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
         <div className="tiny" style={{ textAlign: "center" }}>{coachName} gets this summary as soon as you save.</div>
       </main>
       {posting && <PostToTeam draft={workoutDraft({ workoutName: w.name, sets: count, minutes: mins, prs })} onClose={() => setPosting(false)} />}
-      {sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />}
+      {shareSheet}
     </div>
   );
 }

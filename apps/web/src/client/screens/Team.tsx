@@ -3,6 +3,7 @@ import { EffortBoard, Icons, TeamFeed, TeamHero, type IconName } from "@apex/ui"
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { InviteFriend } from "../../app/GrowthParts";
+import { LaurelRanks } from "../../app/RewardParts";
 import { PostToTeam, TeamStatus, useTeam, useTeamSuggestions } from "../../app/TeamParts";
 import { effortWeekLabel, useTeamApi } from "../../data/team";
 
@@ -66,6 +67,7 @@ export function Team({ say }: { say: (m: string) => void }) {
               </div>
             </section>
           )}
+          <LaurelRanks />
           <EffortBoard lines={data.effort} week={effortWeekLabel()} />
           <div className="sect" style={{ marginBottom: 0 }}><h2 className="h3">Latest</h2></div>
           {data.posts.length ? (

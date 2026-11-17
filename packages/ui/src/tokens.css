@@ -12,6 +12,8 @@
   --ai:#A78BFA; --ai-soft:rgba(167,139,250,.14);
   /* Data-viz series: four calm hues, checked for colour-blind separation and 3:1 contrast on both themes. */
   --viz-1:#5468E0; --viz-2:#DB6A30; --viz-3:#159A86; --viz-4:#A85CC8;
+  /* Laurel rank metals (fun rewards). Olympian uses --act. */
+  --bronze:#C98A5A; --silver:#B4BAC3; --gold:#D4AD3C; --marble:#9AA8BD;
   --head:"Archivo",system-ui,sans-serif; --ui:"Archivo",system-ui,sans-serif; --num:"JetBrains Mono",ui-monospace,monospace; --serif:"Libre Bodoni","Bodoni 72",Didot,Georgia,serif;
   --r:16px; --r-sm:10px; --r-lg:24px; --pill:999px;
   /* Glass: frosted pills and bars laid over photos and maps. Same values on both themes, because they sit on imagery. */
@@ -34,6 +36,7 @@
   --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
   --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
   --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  --bronze:#A86A3D; --silver:#8E959F; --gold:#B8901F; --marble:#6F7E95;
   --page-light:radial-gradient(120% 60% at 0% 0%,rgba(232,90,12,.07),transparent 60%),radial-gradient(90% 60% at 100% 85%,rgba(84,104,224,.06),transparent 65%);
   --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
   --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
@@ -48,6 +51,7 @@
   --warn:#B45309; --warn-soft:rgba(180,83,9,.10);
   --crit:#C62828; --crit-soft:rgba(198,40,40,.09);
   --ai:#6D28D9; --ai-soft:rgba(109,40,217,.09);
+  --bronze:#A86A3D; --silver:#8E959F; --gold:#B8901F; --marble:#6F7E95;
   --page-light:radial-gradient(120% 60% at 0% 0%,rgba(232,90,12,.07),transparent 60%),radial-gradient(90% 60% at 100% 85%,rgba(84,104,224,.06),transparent 65%);
   --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
   --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
