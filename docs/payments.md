@@ -1,6 +1,6 @@
 # Payments (Stripe)
 
-Clients pay for coaching by card, monthly or weekly. The coach makes plans in **Business → Your tools → Card payments**; the client joins from **More → Membership**, pays on Stripe's own checkout page, and manages their card, receipts and cancelling on Stripe's billing page. Every number on the Business tab comes from Stripe.
+Clients pay for coaching by card, monthly or weekly. The coach makes plans in **Business → Your tools → Card payments**; the client joins from **More → Membership**, pays on Stripe's own checkout page, and manages their card, receipts and cancelling on Stripe's billing page. Every number on Card payments comes from Stripe.
 
 How it fits together:
 
