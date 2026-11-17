@@ -1,6 +1,6 @@
 # Payments (Stripe)
 
-Clients pay for coaching by card, monthly or weekly. The coach makes plans in **Business → Coaching plans**; the client joins from **More → Membership**, pays on Stripe's own checkout page, and manages their card, receipts and cancelling on Stripe's billing page. Every number on the Business tab comes from Stripe.
+Clients pay for coaching by card, monthly or weekly. The coach makes plans in **Business → Your tools → Card payments**; the client joins from **More → Membership**, pays on Stripe's own checkout page, and manages their card, receipts and cancelling on Stripe's billing page. Every number on the Business tab comes from Stripe.
 
 How it fits together:
 
@@ -34,10 +34,10 @@ All money goes into one Stripe account (Kamal's). Only coach emails listed in `B
 
 ## Try it
 
-1. Coach app → Business → **New plan**, e.g. "Online coaching", £120, Monthly.
+1. Coach app → Business → Your tools → Card payments → **New plan**, e.g. "Online coaching", £120, Monthly.
 2. Client app (a test client linked to that coach) → More → Membership → **Join**.
 3. On Stripe's page use card `4242 4242 4242 4242`, any future date, any 3-digit CVC, any postcode.
-4. You land back on Membership showing "Renews …". The coach's Business tab shows the client, £120 monthly recurring and the payment.
+4. You land back on Membership showing "Renews …". Card payments (in Business) shows the client, £120 monthly recurring and the payment.
 5. **Manage payments** opens Stripe's billing page. Cancel there and the status changes to "Ends …".
 6. A card that's declined: `4000 0000 0000 0002`.
 
