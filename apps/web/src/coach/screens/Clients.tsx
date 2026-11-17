@@ -7,6 +7,7 @@ import { ClientCheckIns } from "./CheckIns";
 import { ClientReport } from "./Report";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
+import { ClientAssessments } from "./Assessments";
 import { ClientGoals } from "./Goals";
 import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
 import { clientTableRows, hasTag, type SortDir, type TableSortKey } from "@apex/core";
@@ -21,7 +22,7 @@ const OneToOneTab = lazy(() => import("./OneToOne").then((m) => ({ default: m.On
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes" | "In person";
+type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Assessment" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes" | "In person";
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
@@ -115,7 +116,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "In person", "Programme", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Programme", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "In person", "Programme", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Programme", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
@@ -150,6 +151,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
 
       {tab === "Report" && c.id === DEMO_CLIENT_ID && <ClientReport clientName={c.name} say={say} />}
       {tab === "Check-ins" && c.id === DEMO_CLIENT_ID && <ClientCheckIns clientName={c.name} say={say} />}
+      {tab === "Assessment" && <ClientAssessments clientName={c.name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={c.name} say={say} />}
       {tab === "Goals" && <ClientGoals clientName={c.name} say={say} />}
       {tab === "Habits" && <CoachHabits clientName={c.name} say={say} />}

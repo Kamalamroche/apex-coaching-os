@@ -11,10 +11,12 @@ import type { CoachLiveProps } from "../CoachApp";
 import { ClientCheckIns } from "./CheckIns";
 import { CoachHabits, CoachNutritionPanel, IntakeView } from "./Lifestyle";
 import { ClientFormChecks } from "./FormChecks";
+import { ClientAssessments } from "./Assessments";
 import { ClientGoals } from "./Goals";
 import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
 import { hasTag } from "@apex/core";
 import { useFormChecks } from "../../data/FormCheckContext";
+import { useAssessments } from "../../data/AssessmentContext";
 import { awaitingReview } from "@apex/core";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { ClientReport } from "./Report";
@@ -127,10 +129,11 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
   const store = useStore();
   const { workout, progress } = useApexState(store);
   const { status } = useStoreStatus();
-  const [tab, setTab] = useState<"Programme" | "In person" | "Health" | "Report" | "Check-ins" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes">(startTab === "Recovery" ? "Recovery" : startTab === "In person" ? "In person" : "Programme");
+  const [tab, setTab] = useState<"Programme" | "In person" | "Health" | "Report" | "Check-ins" | "Assessment" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes">(startTab === "Recovery" ? "Recovery" : startTab === "In person" ? "In person" : "Programme");
   const unreviewed = progress.checkIns.filter((c) => !c.reviewedAt).length;
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
+  const newAssess = useAssessments().list.filter((a) => a.status === "submitted").length;
   const flags = life.intake ? Object.values(life.intake.answers.health).filter(Boolean).length : 0;
   return (
     <>
@@ -140,11 +143,12 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
       <div className="chips" style={{ flexWrap: "wrap" }}>
-        {(["Programme", "In person", "Health", "Report", "Check-ins", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}</button>)}
+        {(["Programme", "In person", "Health", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}{t === "Assessment" && newAssess ? ` · ${newAssess} new` : ""}</button>)}
       </div>
       {tab === "Health" && (health ? <ClientHealthPanel health={health.health} trend={health.trend} /> : <div className="card small">Working out {name.split(" ")[0]}'s health score…</div>)}
       {tab === "Report" && <ClientReport clientName={name} say={say} />}
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}
+      {tab === "Assessment" && <ClientAssessments clientName={name} say={say} />}
       {tab === "Form checks" && <ClientFormChecks clientName={name} say={say} />}
       {tab === "Goals" && <ClientGoals clientName={name} say={say} />}
       {tab === "Habits" && <CoachHabits clientName={name} say={say} />}
