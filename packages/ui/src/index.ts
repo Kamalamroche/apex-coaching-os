@@ -45,3 +45,4 @@ export { CommentList, CommentTag } from "./exerciseComments";
 export { FunnelView, HappinessGauge, HappinessRow, MarketingHero, OfferBanner, PlanItem, PlanProgress, ProofTiles, ScorePicker, SpotsBadge } from "./marketing";
 export { drawMarketingCard, type MarketingCardData, type MarketingCardTheme } from "./marketingCard";
 export { BestMoment, CarsMoment, LadderPage, LadderPeek, LaurelBoard, LaurelLadder, LaurelPage, LaurelPeek, Wreath, type LaurelLine } from "./rewards";
+export { PocketLock, type PocketView } from "./handsFree";
