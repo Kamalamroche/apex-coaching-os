@@ -1,3 +1,5 @@
+import { EXERCISES } from "./data/exercises";
+import { distanceFrom, type DistanceUnit } from "./units";
 import { MEASURES, changeOver, measurementSeries, type MeasureKey, type Measurement, type Pose, type ProgressPhoto } from "./checkins";
 import { sportLabel, type Activity, type Sport } from "./activity";
 import { addDays, habitDays, type Habit, type HabitTick } from "./lifestyle";
@@ -111,11 +113,11 @@ export interface CardioWeek {
   lastWeekMetres: number;
 }
 
-/** "12.4 km" for most sports, "1,500 m" for a swim under 10 km. */
-export function distanceText(metres: number, sport: Sport): string {
+/** "12.4 km" (or "7.7 mi") for most sports, "1,500 m" for a swim under 10 km. */
+export function distanceText(metres: number, sport: Sport, unit: DistanceUnit = "km"): string {
   if (sport === "swim" && metres < 10000) return `${Math.round(metres).toLocaleString("en-GB")} m`;
-  const km = metres / 1000;
-  return `${km >= 100 ? Math.round(km).toLocaleString("en-GB") : (Math.round(km * 10) / 10).toLocaleString("en-GB")} km`;
+  const d = distanceFrom(metres, unit);
+  return `${d >= 100 ? Math.round(d).toLocaleString("en-GB") : (Math.round(d * 10) / 10).toLocaleString("en-GB")} ${unit}`;
 }
 
 /** Distance per sport in the week starting `monday`, with the week before. Sports with no distance are left out. */
@@ -223,4 +225,59 @@ export function recentBests(sessions: RecentSession[]): (PersonalBest & { at: st
 export function storyCaption(kind: "week" | "photos" | "body" | "best", coach: string | null, link: string): string {
   const lead = { week: "My week in training.", photos: "Progress, one week at a time.", body: "Small changes add up.", best: "New personal best." }[kind];
   return `${lead} ${coach ? `Coached by ${coach} on APEX.` : "Tracked on APEX."} ${link}`;
+}
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const LONG_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const LONG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+export interface TrainingDay {
+  /** "Mon" … "Sun". */
+  label: string;
+  /** YYYY-MM-DD. */
+  day: string;
+  /** Day of the month, e.g. 16. */
+  date: number;
+  trained: boolean;
+  planned: boolean;
+  today: boolean;
+}
+
+export interface TrainingWeek {
+  days: TrainingDay[];
+  done: number;
+  /** Training days the plan has each week (at least the days already trained). */
+  planned: number;
+  /** "Monday 16 November". */
+  todayLabel: string;
+}
+
+/**
+ * This calendar week for the client's Today screen: real dates, the days they trained (from finished sessions, plus
+ * today when a session was just saved) and the weekdays their programme trains on.
+ */
+export function trainingWeek(input: { today: string; sessions: RecentSession[]; plannedDays: number[]; trainedToday?: boolean }): TrainingWeek {
+  const monday = mondayOf(input.today);
+  const trainedDays = new Set(input.sessions.map((s) => dayOf(s.at)));
+  if (input.trainedToday) trainedDays.add(input.today);
+  const plan = new Set(input.plannedDays);
+  const days = WEEKDAYS.map((label, i) => {
+    const day = addDays(monday, i);
+    return { label, day, date: Number(day.slice(8)), trained: trainedDays.has(day), planned: plan.has(i), today: day === input.today };
+  });
+  const done = days.filter((d) => d.trained).length;
+  const t = new Date(`${input.today}T12:00:00`);
+  const todayLabel = `${LONG_DAYS[(t.getDay() + 6) % 7]} ${t.getDate()} ${LONG_MONTHS[t.getMonth()]}`;
+  return { days, done, planned: Math.max(plan.size, done), todayLabel };
+}
+
+/** The lift with the longest record of session bests (at least two), for the client's strength chart. Null before that. */
+export function headlineLift(trend: Record<number, number[]> | undefined): { exerciseId: number; name: string; points: number[] } | null {
+  let best: { exerciseId: number; name: string; points: number[] } | null = null;
+  for (const [id, points] of Object.entries(trend ?? {})) {
+    const ex = EXERCISES.find((e) => e.id === Number(id));
+    if (!ex || points.length < 2) continue;
+    if (!best || points.length > best.points.length) best = { exerciseId: ex.id, name: ex.name, points: points.slice(-8) };
+  }
+  return best;
 }

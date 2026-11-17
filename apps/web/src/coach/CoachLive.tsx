@@ -14,12 +14,17 @@ import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
+import { GrowProvider, liveGrow } from "../data/grow";
+import { liveMarketing, MarketingProvider } from "../data/marketing";
 import { ChallengeProvider, liveChallenges } from "../data/challenges";
 import { TeamProvider, liveTeam } from "../data/team";
 import { GrowthProvider, liveGrowth } from "../data/growth";
 import { ResourceProvider, liveResources } from "../data/resources";
+import { CoachRecipeProvider, liveCoachRecipes } from "../data/coachRecipes";
 import { NotesProvider, liveNotes } from "../data/clientNotes";
 import { TwinProvider, liveTwin } from "../data/twin";
+import { GymProvider, liveGym } from "../data/gym";
+import { ExtrasProvider, liveExtras } from "../data/extras";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { CoachApp } from "./CoachApp";
 
@@ -59,12 +64,17 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
   const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
+  const coachRecipes = useMemo(() => liveCoachRecipes(db, profile.id), [db, profile.id]);
   const team = useMemo(() => liveTeam(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const growth = useMemo(() => liveGrowth(db, { side: "coach", coachId: profile.id, coachName: profile.full_name, me: profile.id }), [db, profile.id, profile.full_name]);
   const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
   const clientsRef = useRef<LiveClient[]>([]);
   clientsRef.current = clients ?? [];
   const twin = useMemo(() => liveTwin(db, profile.id, () => clientsRef.current), [db, profile.id]);
+  const gym = useMemo(() => liveGym(db, profile.id), [db, profile.id]);
+  const extras = useMemo(() => liveExtras(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
+  const grow = useMemo(() => liveGrow(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
+  const marketing = useMemo(() => liveMarketing(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const bookings = useMemo(() => liveBookings(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
 
   const active = clients?.find((c) => c.id === activeId);
@@ -77,15 +87,17 @@ export function CoachLive({ db, profile, signOut }: Live) {
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}>
-                    <ResourceProvider value={resources}>
+                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
+                    <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
+                        <GymProvider value={gym}><ExtrasProvider value={extras}>
                         <CoachApp live={{ db, coachId: profile.id, clients, activeClientId: activeId, setActiveClientId: setActiveId, refreshClients }} />
+                        </ExtrasProvider></GymProvider>
                         </TwinProvider>
                       </NotesProvider>
-                    </ResourceProvider>
-                    </GrowthProvider></TeamProvider>
+                    </CoachRecipeProvider></ResourceProvider>
+                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>

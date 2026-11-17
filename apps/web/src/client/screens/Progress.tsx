@@ -1,22 +1,27 @@
-import { HERO_IMAGES, bestPerDay, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
+import { HERO_IMAGES, bestPerDay, headlineLift, changeOver, formatSleep, measurementSeries, newestFirst, shortDate, signed, type MeasureKey, type PhotoUpload } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { BackLink, CountUp, EditorialTitle, HeroBackdrop, Icons, Sheet, Spark } from "@apex/ui";
+import { BackLink, CountUp, EditorialTitle, HeroBackdrop, Icons, Sheet, Spark, useT, useUnits } from "@apex/ui";
 import { useState } from "react";
-import { SampleNote, useAppInfo } from "../../app/AppContext";
+import { useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, MeasurementHub, PoseSlots, ProgressHub, ProgressNotice, WeightTrend, blankMeasures, parseMeasures } from "../../app/ProgressParts";
 import { useActivities } from "../../data/ActivityContext";
 import { useStore } from "../../data/StoreContext";
+import { CoachNotes } from "./CoachNotes";
 import { ConnectedApps } from "./ConnectedApps";
 import { Recovery } from "./Recovery";
 import { ShareProgress } from "./ShareProgress";
+import { LiftLadderRow } from "../../app/RewardParts";
 import { WeekStoryViewer } from "./WeekStory";
 
 const WEEK_MS = 7 * 86400000;
 
 export function Progress({ say, openCheckIn }: { say: (m: string) => void; openCheckIn: () => void }) {
   const store = useStore();
-  const { coachName } = useAppInfo();
-  const { progress } = useApexState(store);
+  const { coachName, mode: appMode } = useAppInfo();
+  const u = useUnits();
+  const t = useT();
+  const { progress, history } = useApexState(store);
+  const lift = headlineLift(history.trend);
   const [sheet, setSheet] = useState<"measure" | "photos" | "share" | "week" | null>(null);
   const [mode, setMode] = useState<"body" | "recovery" | "apps">("body");
   const { recovery } = useActivities();
@@ -46,8 +51,8 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
         </div>
         <div className="hero-body">
           <div className="cv-stats">
-            <div style={{ ["--i" as string]: 0 }}><b>{weight ? <CountUp value={weight.last} decimals={1} /> : "–"}</b><small>Weight, kg</small>{weight && weight.delta !== 0 && <i>{signed(weight.delta)} since start</i>}</div>
-            <div style={{ ["--i" as string]: 1 }}><b>{waist ? <CountUp value={waist.last} decimals={1} /> : "–"}</b><small>Waist, cm</small>{waist && waist.delta !== 0 && <i>{signed(waist.delta)} since start</i>}</div>
+            <div style={{ ["--i" as string]: 0 }}><b>{weight ? <CountUp value={u.w(weight.last)} decimals={1} /> : "–"}</b><small>{t("Weight, {unit}", { unit: u.weight })}</small>{weight && weight.delta !== 0 && <i>{signed(u.w(weight.delta))} since start</i>}</div>
+            <div style={{ ["--i" as string]: 1 }}><b>{waist ? <CountUp value={u.len(waist.last)} decimals={1} /> : "–"}</b><small>{t("Waist, {unit}", { unit: u.length })}</small>{waist && waist.delta !== 0 && <i>{signed(u.len(waist.delta))} since start</i>}</div>
           </div>
           <button className="gr-cta" onClick={() => setSheet("share")}><Icons.share width={16} height={16} /> Share my progress</button>
         </div>
@@ -66,7 +71,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
           {checkIns.slice(0, 6).map((c) => (
             <div key={c.id} className="li" style={{ alignItems: "flex-start" }}>
               <div className="grow">
-                <div className="h3">{shortDate(c.submittedAt)}{c.weightKg !== null && <> · <span className="num">{c.weightKg} kg</span></>}</div>
+                <div className="h3">{shortDate(c.submittedAt)}{c.weightKg !== null && <> · <span className="num">{u.fw(c.weightKg)}</span></>}</div>
                 <div className="small">{[c.energy && `Energy ${c.energy}/5`, c.sleepHours !== null && `sleep ${c.sleepHours} h`, c.training && `training ${c.training}/5`].filter(Boolean).join(" · ") || "No ratings"}</div>
                 {c.coachReply ? (
                   <div className="small" style={{ marginTop: 6, color: "var(--text)" }}><b>{coachName}:</b> {c.coachReply}</div>
@@ -79,11 +84,22 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
         </div>
       </section>
 
-      <SampleNote />
-      <div className="card">
-        <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Trap bar deadlift, top set</h3></div>
-        <Spark data={[55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70]} unit="kg" />
-      </div>
+      <CoachNotes />
+
+      {lift ? (
+        <div className="card">
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">{lift.name}, estimated best</h3></div>
+          <Spark data={lift.points.map((kg) => u.w(kg))} unit={u.weight} />
+        </div>
+      ) : appMode === "demo" ? (
+        <div className="card">
+          <div className="sect" style={{ marginBottom: 6 }}><h3 className="h3">Trap bar deadlift, top set</h3></div>
+          <Spark data={[55, 57.5, 60, 62.5, 62.5, 65, 67.5, 70].map((kg) => u.w(kg))} unit={u.weight} />
+        </div>
+      ) : (
+        <div className="card small">Your strength chart appears after two sessions of the same lift.</div>
+      )}
+      <LiftLadderRow />
       <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setMode("recovery")}>
         <div><div className="h3">Recovery</div><div className="small num">{last ? [last.sleepMinutes ? `${formatSleep(last.sleepMinutes)} sleep` : null, last.hrvMs ? `HRV ${Math.round(last.hrvMs)} ms` : null, last.restingHr ? `${last.restingHr} bpm resting` : null].filter(Boolean).join(" · ") : "Sleep, HRV and resting heart rate from your watch"}</div></div>
         <span className="tiny">›</span>
@@ -99,10 +115,11 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
 function MeasureSheet({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const store = useStore();
   const { progress } = useApexState(store);
+  const u = useUnits();
   const [value, setValue] = useState(blankMeasures);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const parsed = parseMeasures(value);
+  const parsed = parseMeasures(value, u);
   const any = Object.values(parsed).some((v) => v !== null);
   const save = async () => {
     setBusy(true);

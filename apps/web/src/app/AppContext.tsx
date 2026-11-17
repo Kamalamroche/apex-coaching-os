@@ -1,3 +1,4 @@
+import { outboxLabel } from "@apex/core";
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 import { useStore } from "../data/StoreContext";
 import type { LiveStore } from "../data/supabaseStore";
@@ -39,4 +40,18 @@ export function SampleNote() {
 export function useProgressError(): string | null {
   const store = useStore() as Partial<LiveStore> & ReturnType<typeof useStore>;
   return useSyncExternalStore(store.subscribe, () => store.progressError?.() ?? null);
+}
+
+/** Client, live: a quiet line while the app runs from the copy on the phone, and what's waiting to send. */
+export function OfflineBanner() {
+  const store = useStore() as Partial<LiveStore> & ReturnType<typeof useStore>;
+  const snap = useSyncExternalStore(store.subscribe, () => `${store.offline?.() ? 1 : 0}|${outboxLabel(store.pending?.() ?? [])}`);
+  const [off, waiting] = [snap.startsWith("1"), snap.slice(2)];
+  if (!off && !waiting) return null;
+  return (
+    <div className="offline-pill full" role="status">
+      <span className="dot" aria-hidden />
+      {off ? `No signal. You can still train: ${waiting ? waiting.replace("waiting to send", "will send") : "your session saves on this phone"} when you're back online.` : `Back online. Sending ${waiting.replace(" waiting to send", "")}…`}
+    </div>
+  );
 }

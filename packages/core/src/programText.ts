@@ -30,6 +30,8 @@ export interface ParsedItem {
   candidates: ExerciseMatch[];
   /** True when the match can be used without the coach checking it. */
   confident: boolean;
+  /** Anything else written with the exercise: "each side", "tempo 3-1-1", or a "Coach:" line under it. */
+  note?: string;
 }
 
 export interface ParsedDay {
@@ -51,7 +53,7 @@ export interface ParsedProgram {
 
 const LB_TO_KG = 0.45359237;
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-const REPS = String.raw`(\d{1,3}(?:\s*[-–]\s*\d{1,3})?\s*(?:s|sec|secs|seconds)?|amrap|max)`;
+const REPS = String.raw`(\d{1,4}(?:\s*[-–]\s*\d{1,4})?\s*(?:secs?|seconds|s|km|m)?(?![a-z])|amrap|max)`;
 const SETS_X_REPS = new RegExp(String.raw`(\d{1,2})\s*(?:sets?\s*)?[x×*]\s*${REPS}(?:\s*reps?)?`, "i");
 const SETS_OF_REPS = new RegExp(String.raw`(\d{1,2})\s*sets?\s*(?:of\s*)?${REPS}(?:\s*reps?)?`, "i");
 const LOAD = /@?\s*(\d+(?:[.,]\d+)?)\s*(kg|kgs|kilos?|lb|lbs|pounds?)\b/i;
@@ -62,8 +64,39 @@ const GROUP = /^([A-Ha-h])(\d)?\s*[).:\-–]\s*/;
 const BULLET = /^(?:[•·▪◦*\-–]|\d{1,2}[.)])\s*/;
 const HEADING = /^(week\s*\d+|day\s*\d+|session\s*\d+|workout\s*[a-z0-9]+|(?:mon|tues|wednes|thurs|fri|satur|sun)day|upper|lower|push|pull|legs|full[\s-]?body|conditioning|arms|chest|back|shoulders)\b/i;
 const PROGRAM_NAME = /\b(program|programme|plan|block|phase|cycle)\b/i;
+/* A table's column header ("Exercise  Sets  Reps  Load  Rest"): not an exercise, and not worth listing as skipped. */
+const TABLE_HEADER = /^(exercises?|movements?|name)\b.*\b(sets?|reps?)\b/i;
+/* A bare time at the end of a row, e.g. the Rest column of a table: "Back Squat  4  6-8  100kg  150s". */
+const TRAILING_REST = /(?:^|\s)(\d+(?:[.,]\d+)?)\s*(s|secs?|seconds|mins?|minutes|')\s*$/i;
+
+/* A line of advice under an exercise: "Note: keep the hips square", "Coach: pause at the bottom", "Cue - drive through the heel". */
+/* Only straight under an exercise: a "Notes:" heading at the end of a plan is about the whole plan, not the last lift. */
+const NOTE_LINE = /^(?:note|coach(?:'?s)?(?:\s*note)?|cues?|tips?|focus)\s*[:\-–]\s*(.+)$/i;
+const NOTE_MAX = 300;
+/* Every way a rest can be written, longest units first, so nothing like "in" (of "min") is left behind. */
+const REST_ANY = /\brest\s*:?\s*\d+(?:[.,]\d+)?\s*(?:seconds|secs?|minutes|mins?|m|s|')?|\d+(?:[.,]\d+)?\s*(?:seconds|secs?|minutes|mins?|m|s|')\s*rest\b/gi;
 
 const num = (s: string) => Number(s.replace(",", "."));
+
+/** What's left of a row once the numbers are taken out, kept as the exercise note when it reads like one. */
+function leftoverNote(rest: string): string | undefined {
+  const t = rest
+    .replace(LOAD, " ").replace(BARE_LOAD, " ").replace(RPE, " ").replace(REST_ANY, " ").replace(TRAILING_REST, " ")
+    .replace(/\b(?:reps?|sets?)\b/gi, " ")
+    .replace(/[()[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s,;:·|\-–]+|[\s,;:·|\-–]+$/g, "")
+    .trim();
+  // A note has words, not just a stray number or unit.
+  if (!/[a-z]{2,}/i.test(t) || /^(?:kg|lbs?|s|secs?|mins?)$/i.test(t)) return undefined;
+  return t.slice(0, NOTE_MAX);
+}
+
+const addNote = (it: ParsedItem, note: string) => {
+  const clean = note.trim().replace(/\s+/g, " ");
+  if (!clean) return;
+  it.note = (it.note ? `${it.note} · ${clean}` : clean).slice(0, NOTE_MAX);
+};
 
 function restSeconds(text: string): number | null {
   const m = REST.exec(text);
@@ -103,13 +136,15 @@ function parseLine(raw: string, line: number, library: Exercise[]): ParsedItem |
   let sets: number;
   let reps: string;
   let name: string;
+  let tableRest: string | null = null;
+  let nameAfter = false;
   const m = SETS_X_REPS.exec(text) ?? SETS_OF_REPS.exec(text);
   if (m) {
     sets = Number(m[1]);
     reps = cleanReps(m[2] ?? "");
     name = cleanName(text.slice(0, m.index));
     // "4x8 Back squat" puts the name after the numbers.
-    if (!name) name = cleanName(text.slice(m.index + m[0].length).replace(LOAD, "").replace(RPE, "").replace(REST, "").replace(BARE_LOAD, ""));
+    if (!name) { name = cleanName(text.slice(m.index + m[0].length).replace(LOAD, "").replace(RPE, "").replace(REST, "").replace(BARE_LOAD, "")); nameAfter = true; }
   } else {
     // A table row from a PDF: "Back Squat   4   8   60kg".
     const t = /^(.*?[a-z].*?)\s+(\d{1,2})\s+(\d{1,3}(?:\s*[-–]\s*\d{1,3})?s?)\b/i.exec(text);
@@ -119,16 +154,25 @@ function parseLine(raw: string, line: number, library: Exercise[]): ParsedItem |
     if (!guess.best || guess.best.score < 0.6) return null;
     sets = Number(t[2]);
     reps = cleanReps(t[3] ?? "");
+    tableRest = text.slice(t[0].length);
   }
   if (!name || sets < 1 || sets > 20) return null;
   const rpe = RPE.exec(text);
+  const after = text.slice((m?.index ?? 0) + (m?.[0].length ?? 0));
+  let rest = restSeconds(text);
+  if (rest === null) {
+    const t = TRAILING_REST.exec(m ? after : tableRest ?? "");
+    if (t) { const v = num(t[1] ?? "0"); rest = Math.round(/^m/i.test(t[2] ?? "") || t[2] === "'" ? v * 60 : v); }
+  }
   const result = matchExercise(name, library);
+  const note = nameAfter ? undefined : leftoverNote(m ? after : tableRest ?? "");
   return {
     line, text: raw, name, group, sets, reps,
     kg: load(text),
     rpe: rpe ? Math.min(10, num(rpe[1] ?? "0")) : null,
-    restSeconds: restSeconds(text),
+    restSeconds: rest,
     match: result.best, candidates: result.candidates, confident: result.confident,
+    ...(note ? { note } : {}),
   };
 }
 
@@ -151,6 +195,8 @@ export function parseProgramText(text: string, library: Exercise[] = EXERCISES):
   let week = 1;
   let pendingTitle: string | null = null;
   let current: ParsedDay | null = null;
+  /** The line number of the last exercise or note, so a note line counts only straight under one. */
+  let lastItemLine = -2;
 
   const openDay = (title: string | null) => {
     const sameWeek = days.filter((d) => d.week === week);
@@ -163,12 +209,20 @@ export function parseProgramText(text: string, library: Exercise[] = EXERCISES):
 
   text.split(/\r?\n/).forEach((rawLine, i) => {
     const raw = rawLine.replace(/\s+/g, " ").trim();
-    if (!raw || /^(page\s*)?\d+(\s*(of|\/)\s*\d+)?$/i.test(raw)) return;
+    if (!raw || /^(page\s*)?\d+(\s*(of|\/)\s*\d+)?$/i.test(raw) || TABLE_HEADER.test(raw)) return;
     const item = parseLine(raw, i + 1, library);
     if (item) {
       if (!current || pendingTitle !== null) openDay(pendingTitle);
       pendingTitle = null;
       current!.items.push(item);
+      lastItemLine = i;
+      return;
+    }
+    const nl = NOTE_LINE.exec(raw);
+    const last = current ? (current as ParsedDay).items.at(-1) : undefined;
+    if (nl && last && lastItemLine === i - 1) {
+      addNote(last, nl[1] ?? "");
+      lastItemLine = i;
       return;
     }
     const wk = /^week\s*(\d+)\b(.*)$/i.exec(raw);

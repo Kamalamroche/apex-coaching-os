@@ -1,6 +1,6 @@
 import { applyPlateauFix, programPlateaus, type Plateau, type PlateauFix } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Label } from "@apex/ui";
+import { Label, useUnits } from "@apex/ui";
 import { useStore } from "../../data/StoreContext";
 
 /** The open client's stalled exercises this week. */
@@ -11,6 +11,7 @@ export function usePlateaus(): Plateau[] {
 
 /** The evidence and the two ways out. Nothing changes until the coach picks one. */
 export function PlateauFixes({ plateau: p, say, onDone }: { plateau: Plateau; say: (m: string) => void; onDone?: () => void }) {
+  const u = useUnits();
   const store = useStore();
   const { program, workout, activeDay } = useApexState(store);
   const apply = (fix: PlateauFix, msg: string) => {
@@ -27,8 +28,8 @@ export function PlateauFixes({ plateau: p, say, onDone }: { plateau: Plateau; sa
       <div className="row" style={{ gap: 8 }}><Label kind="ai">AI suggestion</Label><span className="tiny">Pick one, or leave it as it is</span></div>
       <div className="plat-acts">
         {p.item.kg > 0 && (
-          <button className="btn ghost sm" onClick={() => apply({ kind: "deload" }, `${p.exercise.name} deloaded to ${p.deload.kg} kg this week`)}>
-            Deload this week: <span className="num">{p.item.kg} → {p.deload.kg} kg</span>
+          <button className="btn ghost sm" onClick={() => apply({ kind: "deload" }, `${p.exercise.name} deloaded to ${u.fw(p.deload.kg ?? 0)} this week`)}>
+            Deload this week: <span className="num">{u.w(p.item.kg)} → {u.fw(p.deload.kg ?? 0)}</span>
           </button>
         )}
         {p.swaps.map((s) => (

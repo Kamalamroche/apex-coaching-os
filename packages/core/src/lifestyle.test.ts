@@ -175,3 +175,86 @@ describe("water", () => {
     expect(waterOn(createDemoLifestyleStore(storage, null, new Date("2026-11-02T12:00:00")).get().water, TODAY)).toBe(before);
   });
 });
+
+describe("steps and bedtime goals", () => {
+  it("reads the step goal", async () => {
+    const { stepsGoal } = await import("./lifestyle");
+    expect(stepsGoal("Walk 8,000 steps")).toBe(8000);
+    expect(stepsGoal("10k steps a day")).toBe(10000);
+    expect(stepsGoal("Walk 12000 steps")).toBe(12000);
+    expect(stepsGoal("Go for a walk")).toBe(8000);
+  });
+  it("reads the bedtime goal and compares clock times across midnight", async () => {
+    const { bedtimeGoal } = await import("./lifestyle");
+    const { clockLabel, clockMinutes } = await import("./recoveryTrends");
+    expect(bedtimeGoal("In bed by 10:30 pm")).toBe(270);
+    expect(bedtimeGoal("Bed by 23:00")).toBe(300);
+    expect(bedtimeGoal("in bed by 11pm")).toBe(300);
+    expect(bedtimeGoal("Bed by 10.30")).toBe(270);
+    expect(bedtimeGoal("Early night")).toBe(270);
+    expect(bedtimeGoal("Bed by 12:30 am")).toBe(390);
+    expect(clockLabel(bedtimeGoal("In bed by 10:30 pm"))).toBe("22:30");
+    const d = new Date(); d.setHours(0, 15, 0, 0);
+    expect(clockMinutes(d.toISOString())).toBeGreaterThan(bedtimeGoal("In bed by 10:30 pm"));
+  });
+});
+
+describe("week of food, recent foods, repeat a meal", () => {
+  const f = (id: string, day: string, meal: "breakfast" | "lunch", name: string, kcal: number) => ({ id, day, meal, name, kcal, proteinG: 10, carbsG: 20, fatG: 5 });
+  const food = [f("1", "2026-11-02", "breakfast", "Oats", 300), f("2", "2026-11-02", "breakfast", "Banana", 100), f("3", "2026-11-04", "lunch", "Rice", 400), f("4", "2026-11-04", "breakfast", "Oats", 300), f("5", "2026-11-05", "lunch", "Lunch (quick add)", 600)];
+  it("builds Monday to Sunday and averages over logged days", async () => {
+    const { weekDaysOf, weekNutrition } = await import("./lifestyle");
+    const days = weekDaysOf("2026-11-05");
+    expect(days[0]).toBe("2026-11-02");
+    expect(days[6]).toBe("2026-11-08");
+    const w = weekNutrition(food, days);
+    expect(w.loggedDays).toBe(3);
+    expect(w.total.kcal).toBe(1700);
+    expect(w.avg.kcal).toBe(567);
+  });
+  it("lists recent foods once each, without quick adds", async () => {
+    const { recentFoods } = await import("./lifestyle");
+    expect(recentFoods(food).map((x) => x.name)).toEqual(["Rice", "Oats", "Banana"]);
+  });
+  it("finds the last earlier meal to repeat", async () => {
+    const { lastMeal } = await import("./lifestyle");
+    expect(lastMeal(food, "2026-11-04", "breakfast")?.items.map((x) => x.name)).toEqual(["Oats", "Banana"]);
+    expect(lastMeal(food, "2026-11-08", "breakfast")?.day).toBe("2026-11-04");
+    expect(lastMeal(food, "2026-11-02", "breakfast")).toBeNull();
+  });
+});
+
+describe("food search, portions, macro split, logging streak", () => {
+  it("searches by every word, best match first", async () => {
+    const { searchFoods } = await import("./lifestyle");
+    const { FOODS } = await import("./data/foods");
+    expect(FOODS.length).toBeGreaterThan(100);
+    expect(searchFoods(FOODS, "chicken")[0]?.name).toMatch(/^Chicken/);
+    expect(searchFoods(FOODS, "rice brown").every((f) => /brown/i.test(f.name) && /rice/i.test(f.name))).toBe(true);
+    expect(searchFoods(FOODS, "")).toEqual([]);
+  });
+  it("scales a portion", async () => {
+    const { scalePortion } = await import("./lifestyle");
+    expect(scalePortion({ kcal: 165, proteinG: 31, carbsG: 0, fatG: 4 }, 1.5)).toEqual({ kcal: 248, proteinG: 46.5, carbsG: 0, fatG: 6 });
+  });
+  it("splits calories by macro", async () => {
+    const { macroSplit } = await import("./lifestyle");
+    expect(macroSplit({ proteinG: 120, carbsG: 210, fatG: 60 })).toEqual({ protein: 26, carbs: 45, fat: 29 });
+    expect(macroSplit({ proteinG: 0, carbsG: 0, fatG: 0 })).toBeNull();
+  });
+  it("counts logging days in a row", async () => {
+    const { loggingStreak } = await import("./lifestyle");
+    const food = ["2026-11-05", "2026-11-06", "2026-11-07"].map((day) => ({ day }));
+    expect(loggingStreak(food, "2026-11-08")).toBe(3);
+    expect(loggingStreak(food, "2026-11-07")).toBe(3);
+    expect(loggingStreak(food, "2026-11-10")).toBe(0);
+  });
+});
+
+describe("food search order", () => {
+  it("puts plain foods before ready meals", async () => {
+    const { searchFoods } = await import("./lifestyle");
+    const { FOODS } = await import("./data/foods");
+    expect(searchFoods(FOODS, "chicken")[0]?.group).toBe("Protein");
+  });
+});

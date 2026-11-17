@@ -1,10 +1,11 @@
-import { Shell, useToast, type TabDef } from "@apex/ui";
+import { Shell, useT, useToast, type TabDef } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { firstName } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
+import { openedForLeads } from "../data/growth";
 import type { CoachLiveInfo } from "./CoachLive";
 import { Brief } from "./screens/Brief";
 import { Builder } from "./screens/Builder";
@@ -13,8 +14,15 @@ import { Clients } from "./screens/Clients";
 import { LiveClients } from "./screens/LiveClients";
 import { Messages } from "./screens/Messages";
 import { CoachNutrition } from "./screens/Nutrition";
+import { coachRunLog } from "./runLog";
+import { acceptGymInvite, gymInviteNote, useGymApi } from "../data/gym";
 import { AccountScreen } from "../app/Privacy";
+import { UnitsAndLanguage } from "../app/Settings";
+import { useOpenFromNotification } from "../app/PushParts";
 import { BackLink } from "@apex/ui";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachGym = lazy(() => import("./screens/CoachGym").then((m) => ({ default: m.CoachGym })));
 
 type Tab = "brief" | "clients" | "chat" | "build" | "food" | "money";
 const TABS: TabDef<Tab>[] = [
@@ -33,26 +41,53 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const { messages } = useApexState(useStore());
   // A dot on Messages while the client has the last word.
   const tabs = TABS.map((t) => (t.id === "chat" ? { ...t, dot: messages.at(-1)?.from === "client" } : t));
-  const [tab, setTab] = useState<Tab>("brief");
+  const [tab, setTab] = useState<Tab>(() => (openedForLeads() ? "chat" : "brief"));
   const [clientId, setClientId] = useState<number | null>(null);
+  // A live client opened from the Brief (health card): Clients opens straight onto their profile.
+  const [liveOpen, setLiveOpen] = useState<string | null>(null);
+  // The profile tab to open on, when the Brief sends the coach straight to one (e.g. Recovery).
+  const [startTab, setStartTab] = useState<string | undefined>(undefined);
   const [account, setAccount] = useState(false);
+  const [gym, setGym] = useState(false);
+  const gymApi = useGymApi();
   const [toast, say] = useToast();
+  const t = useT();
   useFinishedAlert(say);
-  const openClient = (id: number) => { setClientId(id); setTab("clients"); };
+  useGymInviteLink(live?.db, () => { setAccount(false); setTab("money"); setGym(true); });
+  useOpenFromNotification<Tab>({ chat: "chat", clients: "clients" }, (t) => { setAccount(false); setGym(false); setTab(t); });
+  const openClient = (id: number, tab?: string) => { setStartTab(tab); setClientId(id); setTab("clients"); };
+  const openLiveClient = (id: string, tab?: string) => { setStartTab(tab); live?.setActiveClientId(id); setLiveOpen(id); setTab("clients"); };
   const goBuild = () => setTab("build");
-  const changeTab = (t: Tab) => { setAccount(false); setTab(t); if (t !== "clients") setClientId(null); };
+  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } setStartTab(undefined); };
   return (
-    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || tab === "money" || tab === "build"} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>Account</button>{signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}</>}>
-      {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>Back</BackLink></div><AccountScreen say={say} /></>}
-      {!account && tab === "brief" && <Brief openClient={openClient} say={say} clientCount={live?.clients?.length} clients={live?.clients} />}
-      {!account && tab === "clients" && (live ? <LiveClients live={live} say={say} goBuild={goBuild} /> : <Clients id={clientId} setId={setClientId} say={say} goBuild={goBuild} />)}
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
+      <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}>
+      {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
+      {!account && tab === "brief" && <Brief openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
+      {!account && tab === "clients" && (live ? <LiveClients key={liveOpen ?? ""} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} startTab={startTab} /> : <Clients id={clientId} setId={(id) => { setStartTab(undefined); setClientId(id); }} say={say} goBuild={goBuild} startTab={startTab} />)}
       {!account && tab === "chat" && <Messages live={live} say={say} />}
       {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
-      {!account && tab === "money" && <Business live={live} say={say} />}
+      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business live={live} say={say} openGym={gymApi ? () => setGym(true) : undefined} />)}
+      </Suspense>
       {toast}
     </Shell>
   );
+}
+
+/** A coach who opened a gym invite link (/coach/?gym=…): join the gym, drop the token from the address, open the Gym screen. */
+function useGymInviteLink(db: SupabaseClient | undefined, show: () => void) {
+  const done = useRef(false);
+  useEffect(() => {
+    const token = new URLSearchParams(location.search).get("gym");
+    if (!token || !db || done.current) return;
+    done.current = true;
+    history.replaceState(null, "", location.pathname);
+    void acceptGymInvite(db, token).then(
+      (name) => { gymInviteNote.text = `Welcome to ${name}. You're in the team.`; },
+      (e: unknown) => { gymInviteNote.text = e instanceof Error ? e.message : String(e); },
+    ).then(show);
+  }, [db, show]);
 }
 
 /** Toasts the coach when the client finishes a session while the app is open, whatever tab they are on. */
@@ -70,7 +105,7 @@ function useFinishedAlert(say: (m: string) => void) {
       seen.current = { store, key };
       return;
     }
-    if (key && key !== seen.current.key && log) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
+    if (key && key !== seen.current.key && log && key !== coachRunLog.key) say(`${firstName(clientName) || "Your client"} finished ${log.workoutName}${log.prs ? ` · ${log.prs} PR` : ""}`);
     seen.current.key = key;
   }, [store, status, log, clientName, say]);
 }

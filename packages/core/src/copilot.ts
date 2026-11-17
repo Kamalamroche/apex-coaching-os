@@ -111,7 +111,7 @@ const scopeText = (s: Scope): string => {
   if (s.weeks?.length) parts.push(s.weeks.length === 1 ? `in week ${s.weeks[0]}` : `in weeks ${s.weeks.slice(0, -1).join(", ")} and ${s.weeks.at(-1)}`);
   if (s.fromWeek) parts.push(`from week ${s.fromWeek}`);
   if (s.dayIndex !== null) parts.push(`on ${DAY_NAMES[s.dayIndex]}`);
-  return parts.length ? ` ${parts.join(" ")}` : " across the whole program";
+  return parts.length ? ` ${parts.join(" ")}` : " across the whole programme";
 };
 
 /** Reads one instruction. Null when it isn't one Copilot knows. */

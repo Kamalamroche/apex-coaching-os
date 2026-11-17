@@ -3,6 +3,8 @@
    pure: a list of track points in, distance, pace, splits, elevation, heart-rate zones and best
    efforts out, so the numbers on screen can be checked by a test. */
 
+import { distanceFrom, metresPer, speedFrom, speedUnit, type DistanceUnit } from "./units";
+
 export type Sport = "run" | "swim" | "ride" | "row" | "walk" | "hike" | "other";
 export type ActivitySource = "manual" | "file" | "strava";
 
@@ -218,6 +220,19 @@ export function splitsFor(points: TrackPoint[], metres: number[], moving: number
   return out;
 }
 
+/**
+ * The splits to show in the person's distance unit. Saved splits are per km (5 km on a ride); for miles
+ * they are worked out again from the chart profile, a mile (5 miles on a ride) each. Swims and rows keep
+ * their metre splits.
+ */
+export function splitsIn(a: Activity, unit: DistanceUnit): Split[] {
+  const saved = a.detail?.splits ?? [];
+  const profile = a.detail?.profile ?? [];
+  if (unit === "km" || a.sport === "swim" || a.sport === "row" || profile.length < 3) return saved;
+  const every = metresPer(unit) * (a.sport === "ride" ? 5 : 1);
+  return splitsFor(profile.map((p) => ({ ...(p.ele !== undefined ? { ele: p.ele } : {}), ...(p.hr ? { hr: p.hr } : {}) })), profile.map((p) => p.m), profile.map((p) => p.s), every);
+}
+
 /** Fastest stretch of each standard distance the activity covers, by moving time. */
 export function bestEfforts(metres: number[], moving: number[], sport: Sport): BestEffort[] {
   const total = metres.at(-1) ?? 0;
@@ -380,20 +395,21 @@ export function formatDuration(seconds: number): string {
   return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
-/** "5.02 km" or "1,500 m" for a swim and anything under a kilometre. */
-export function formatDistance(metres: number, sport?: Sport): string {
-  if (sport === "swim" || metres < 1000) return `${Math.round(metres).toLocaleString("en-GB")} m`;
-  const km = metres / 1000;
-  return `${km >= 100 ? km.toFixed(0) : km.toFixed(2)} km`;
+/** "5.02 km" (or "3.12 mi"), or "1,500 m" for a swim and anything under a kilometre. */
+export function formatDistance(metres: number, sport?: Sport, unit: DistanceUnit = "km"): string {
+  if (sport === "swim" || (unit === "km" && metres < 1000)) return `${Math.round(metres).toLocaleString("en-GB")} m`;
+  if (unit === "mi" && metres < 160) return `${Math.round(metres / 0.9144).toLocaleString("en-GB")} yd`;
+  const d = distanceFrom(metres, unit);
+  return `${d >= 100 ? d.toFixed(0) : d.toFixed(2)} ${unit}`;
 }
 
-/** The way each sport talks about speed: /km for running, /100 m for swimming, /500 m for rowing, km/h on a bike. */
-export function formatPace(metres: number, seconds: number, sport: Sport): string {
+/** The way each sport talks about speed: /km (or /mi) for running, /100 m for swimming, /500 m for rowing, km/h (or mph) on a bike. */
+export function formatPace(metres: number, seconds: number, sport: Sport, unit: DistanceUnit = "km"): string {
   if (metres <= 0 || seconds <= 0) return "–";
-  if (sport === "ride") return `${((metres / seconds) * 3.6).toFixed(1)} km/h`;
-  const per = sport === "swim" ? 100 : sport === "row" ? 500 : 1000;
-  const unit = sport === "swim" ? "/100 m" : sport === "row" ? "/500 m" : "/km";
-  return `${formatDuration((seconds / metres) * per)} ${unit}`;
+  if (sport === "ride") return `${speedFrom(metres / seconds, unit).toFixed(1)} ${speedUnit(unit)}`;
+  const per = sport === "swim" ? 100 : sport === "row" ? 500 : metresPer(unit);
+  const label = sport === "swim" ? "/100 m" : sport === "row" ? "/500 m" : `/${unit}`;
+  return `${formatDuration((seconds / metres) * per)} ${label}`;
 }
 
 export const paceLabel = (sport: Sport): string => (sport === "ride" ? "Speed" : "Pace");

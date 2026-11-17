@@ -3,7 +3,7 @@ import {
   type Badge, type Goal, type GoalInputs, type GoalKind, type GoalState,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Bar, Icons, Label, LiquidPill, NumberField } from "@apex/ui";
+import { Bar, Icons, Label, LiquidPill, NumberField, useUnits } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useFormChecks } from "../data/FormCheckContext";
 import { useGoals } from "../data/GoalContext";
@@ -52,26 +52,28 @@ const KIND_ICON: Record<GoalKind, keyof typeof Icons> = { lift: "train", bodywei
 
 /** One goal: where they are, how far is left, and the date. */
 export function GoalCard({ goal, inputs, onEdit, onLog }: { goal: Goal; inputs: GoalInputs; onEdit?: () => void; onLog?: () => void }) {
+  const u = useUnits();
   const p = goalProgress(goal, inputs);
   const days = daysToGo(goal, localDate(new Date()));
   const I = Icons[KIND_ICON[goal.kind]];
   const colour = p.achieved ? "var(--good)" : goal.kind === "lift" ? "var(--viz-1)" : goal.kind === "bodyweight" ? "var(--viz-2)" : "var(--viz-3)";
-  const where = p.current === null ? "No number yet" : `${fmt(p.current)} ${goal.unit}`;
-  const left = p.achieved ? "Reached" : p.left === null ? null : `${fmt(p.left)} ${goal.unit} to go`;
+  const gu = u.unit(goal.unit);
+  const where = p.current === null ? "No number yet" : `${fmt(u.show(p.current, goal.unit))} ${gu}`;
+  const left = p.achieved ? "Reached" : p.left === null ? null : `${fmt(u.show(p.left, goal.unit))} ${gu} to go`;
   const when = !goal.dueOn ? null : p.achieved ? null : days === null ? null : days < 0 ? `Due ${shortDate(goal.dueOn)}, passed` : days === 0 ? "Due today" : `${days} day${days === 1 ? "" : "s"} left · ${shortDate(goal.dueOn)}`;
   return (
     <div className="card stack goal" style={{ gap: 10 }}>
       <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
         <span className="hb-ico" aria-hidden style={p.achieved ? { background: "var(--good-soft)", color: "var(--good)" } : undefined}>{p.achieved ? <Icons.trophy /> : <I />}</span>
         <div className="grow">
-          <div className="h3">{goalTitle(goal, exerciseName(goal.exerciseId), p.direction)}</div>
+          <div className="h3">{u.kt(goalTitle(goal, exerciseName(goal.exerciseId), p.direction))}</div>
           <div className="tiny">{GOAL_KINDS.find((k) => k.kind === goal.kind)?.title}{goal.kind === "lift" && exerciseName(goal.exerciseId) && goal.title ? ` · ${exerciseName(goal.exerciseId)}` : ""}{goal.kind !== "custom" ? " · updates itself" : ""}</div>
         </div>
         {onEdit && <button className="iconbtn" onClick={onEdit} aria-label={`Edit ${goalTitle(goal, exerciseName(goal.exerciseId), p.direction)}`}>Edit</button>}
       </div>
       <LiquidPill value={p.pct} colour={colour} size="sm" label={`${Math.round(p.pct)}% of the way`} />
       <div className="row" style={{ justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-        <span className="small"><span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{where}</span> · target {fmt(goal.target)} {goal.unit}{left ? ` · ${left}` : ""}</span>
+        <span className="small"><span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{where}</span> · target {fmt(u.show(goal.target, goal.unit))} {gu}{left ? ` · ${left}` : ""}</span>
         <span className="row" style={{ gap: 8 }}>
           {when && <span className="tiny" style={days !== null && days < 0 ? { color: "var(--warn)" } : undefined}>{when}</span>}
           {onLog && goal.kind === "custom" && !p.achieved && <button className="chip" onClick={onLog}><Icons.plus width={12} height={12} /> Update</button>}
@@ -91,10 +93,14 @@ export function GoalEditor({ initial, inputs, who, onSave, onRemove, onCancel }:
   onRemove?: () => Promise<void>;
   onCancel: () => void;
 }) {
+  // The boxes are in the person's units (kg or lb); built() turns them back into what's stored.
+  const u = useUnits();
   const [g, setG] = useState<Goal>(() => initial ?? newGoal("lift", inputs));
-  const [target, setTarget] = useState(initial ? fmt(initial.target) : "");
-  const [start, setStart] = useState(initial?.startValue != null ? fmt(initial.startValue) : g.startValue != null ? fmt(g.startValue) : "");
-  const [current, setCurrent] = useState(initial?.currentValue != null ? fmt(initial.currentValue) : "");
+  const shown = (n: number, unit = g.unit) => fmt(u.show(n, unit));
+  const [target, setTarget] = useState(initial ? shown(initial.target) : "");
+  const [start, setStart] = useState(initial?.startValue != null ? shown(initial.startValue) : g.startValue != null ? shown(g.startValue) : "");
+  const [current, setCurrent] = useState(initial?.currentValue != null ? shown(initial.currentValue) : "");
+  const stored = (raw: string) => { const n = parseNumber(raw); return n === null ? null : u.store(n, g.unit); };
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,20 +110,20 @@ export function GoalEditor({ initial, inputs, who, onSave, onRemove, onCancel }:
   const pickKind = (kind: GoalKind) => {
     const fresh = newGoal(kind, inputs);
     setG({ ...fresh, id: g.id, createdAt: g.createdAt, title: kind === g.kind ? g.title : "" });
-    setStart(fresh.startValue != null ? fmt(fresh.startValue) : "");
+    setStart(fresh.startValue != null ? shown(fresh.startValue, fresh.unit) : "");
     setCurrent("");
   };
   const pickExercise = (id: number) => {
     const best = inputs.bestKg[id];
     setG({ ...g, exerciseId: id, startValue: best ?? null });
-    setStart(best !== undefined ? fmt(best) : "");
+    setStart(best !== undefined ? shown(best) : "");
     setQuery("");
   };
   const built = (): Goal => ({
     ...g,
-    target: parseNumber(target) ?? 0,
-    startValue: parseNumber(start) ?? (g.kind === "lift" ? 0 : null),
-    currentValue: g.kind === "custom" ? parseNumber(current) : null,
+    target: stored(target) ?? 0,
+    startValue: stored(start) ?? (g.kind === "lift" ? 0 : null),
+    currentValue: g.kind === "custom" ? stored(current) : null,
   });
   const save = async () => {
     const next = built();
@@ -156,7 +162,7 @@ export function GoalEditor({ initial, inputs, who, onSave, onRemove, onCancel }:
                 <div className="card flat list">
                   {hits.map(({ exercise }) => (
                     <button key={exercise.id} className="li" onClick={() => pickExercise(exercise.id)}>
-                      <div className="grow"><div className="h3">{exercise.name}</div><div className="tiny">{inputs.bestKg[exercise.id] !== undefined ? `Best so far ${fmt(inputs.bestKg[exercise.id]!)} kg` : "Nothing logged yet"}</div></div>
+                      <div className="grow"><div className="h3">{exercise.name}</div><div className="tiny">{inputs.bestKg[exercise.id] !== undefined ? `Best so far ${u.fw(inputs.bestKg[exercise.id]!)}` : "Nothing logged yet"}</div></div>
                     </button>
                   ))}
                 </div>
@@ -174,9 +180,9 @@ export function GoalEditor({ initial, inputs, who, onSave, onRemove, onCancel }:
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10 }}>
-        <NumberField id="goal-target" label="Target" unit={g.unit} value={target} onChange={setTarget} />
-        <NumberField id="goal-start" label={g.kind === "bodyweight" ? "Starting weight" : "Starting from"} unit={g.unit} value={start} onChange={setStart} />
-        {g.kind === "custom" && <NumberField id="goal-now" label="Now" unit={g.unit} value={current} onChange={setCurrent} />}
+        <NumberField id="goal-target" label="Target" unit={u.unit(g.unit)} value={target} onChange={setTarget} />
+        <NumberField id="goal-start" label={g.kind === "bodyweight" ? "Starting weight" : "Starting from"} unit={u.unit(g.unit)} value={start} onChange={setStart} />
+        {g.kind === "custom" && <NumberField id="goal-now" label="Now" unit={u.unit(g.unit)} value={current} onChange={setCurrent} />}
         {g.kind === "custom" && (
           <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             Unit
@@ -188,7 +194,7 @@ export function GoalEditor({ initial, inputs, who, onSave, onRemove, onCancel }:
       {g.kind !== "custom" && (
         <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           Name (optional)
-          <input className="field" maxLength={120} placeholder={parseNumber(target) ? goalTitle({ ...built(), title: "" }, ex, (parseNumber(target) ?? 0) < (parseNumber(start) ?? 0) ? "down" : "up") : "e.g. Wedding fit"} value={g.title} onChange={(e) => setG({ ...g, title: e.target.value })} />
+          <input className="field" maxLength={120} placeholder={parseNumber(target) ? u.kt(goalTitle({ ...built(), title: "" }, ex, (parseNumber(target) ?? 0) < (parseNumber(start) ?? 0) ? "down" : "up")) : "e.g. Wedding fit"} value={g.title} onChange={(e) => setG({ ...g, title: e.target.value })} />
         </label>
       )}
 

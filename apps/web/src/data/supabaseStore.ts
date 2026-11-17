@@ -1,13 +1,16 @@
 import {
+  addJob, isNetworkError, readOutbox, withSessionId, type OutboxJob,
+  cleanQuestions, questionsProblem, readQuestions, type CheckInQuestion,
   INITIAL_WORKOUT, bestKgByExercise, emptyProgress, hasMeasurements, latestSetByExercise, newKey, nextDayKey, nextHistory, photoPath, programFromWorkout, stateForWorkout,
   toCheckIn, toCheckInRow, toItemRows, toLoggedSetRows, toMeasurement, toMeasurementRow, toMessages, toPhoto, toPreviousSession, toSessionLog, toWorkout, trendFromSets,
   withDayWorkout, withProgram,
   type ApexState, type ApexStore, type CheckInRow, type LoggedSetRow, type MeasurementInput, type MeasurementRow, type MessageRow, type PhotoRow, type PhotoUpload,
-  MAX_RECENT, toRecentSession, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionRow, type Workout, type WorkoutItemRow, type WorkoutRow,
+  MAX_RECENT, toRecentSession, VOICE_MAX_SECONDS, VOICE_MIN_SECONDS, voiceBody, voicePath, type PersonalBest, type PreviousSessionRow, type Program, type ProgramDay, type ProgressState, type ReadinessPoint, type SessionLog, type SessionRow, type SessionSets, type Workout, type WorkoutItemRow, type WorkoutRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 export const PHOTO_BUCKET = "progress-photos";
+const VOICE_BUCKET = "voice-notes";
 /** Signed photo links last an hour; every progress reload makes fresh ones. */
 const PHOTO_URL_SECONDS = 3600;
 
@@ -20,10 +23,22 @@ export interface LiveStore extends ApexStore {
   createProgram(): Promise<void>;
   /** True once the program-builder migration (per-set targets, circuits) is in the database. */
   hasPlanColumns(): boolean;
+  /** True once the exercise-notes SQL is in the database, so a note on an exercise is saved. */
+  hasNoteColumn(): boolean;
   close(): void;
+  /** Client: shown from the copy saved on this phone because there's no connection. */
+  offline(): boolean;
+  /** Client: sessions and messages done offline, still waiting to send. */
+  pending(): OutboxJob[];
   /** Resolves once the last program change has been written (or failed: see error()). */
   flush(): Promise<void>;
+  /** Loads the program again, e.g. after the client started an on-demand programme on the server. */
+  reload(): Promise<void>;
+  /** Coach only: save a session the coach ran in person. It lands in the client's history, marked as run by the coach. */
+  saveCoachSession(log: SessionLog, sets: SessionSets): Promise<void>;
 }
+
+export const ONE_TO_ONE_SQL = "Saving sessions you run needs the latest database update (20261123090000_one_to_one.sql)";
 
 interface Ids {
   coachId: string;
@@ -44,7 +59,9 @@ interface DayRow extends WorkoutRow {
 
 /** The new columns from the program-builder migration. Stripped when the database doesn't have them yet. */
 const PLAN_COLUMNS = ["set_plan", "block_style"] as const;
-const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_style: _b, ...r }) => r);
+const withoutPlan = (rows: WorkoutItemRow[]) => rows.map(({ set_plan: _p, block_style: _b, coach_note: _n, ...r }) => r);
+/** Exercise notes came later than per-set targets, so they are dropped on their own first. */
+const withoutNote = (rows: WorkoutItemRow[]) => rows.map(({ coach_note: _n, ...r }) => r);
 
 /** Postgres "undefined column" (select) and PostgREST "column not in schema cache" (insert). */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
@@ -65,6 +82,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let savedKeys = new Set<string>();
   let savedDays = new Set<string>();
   let hasPlanColumns = true;
+  let hasNoteColumn = true;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let lastLocalEdit = 0;
   let channel: RealtimeChannel | null = null;
@@ -81,6 +99,67 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   let channelWorkoutId: string | null = null;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
+
+  /* ---------- Offline (client side only) ---------- */
+  const isClient = ids.me === ids.clientId;
+  const SNAP = `apex-offline-v1-${ids.clientId}`;
+  const OUTBOX = `apex-outbox-v1-${ids.clientId}`;
+  let offline = false;
+  const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
+  const store = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* full or blocked */ } };
+  const outbox = (): OutboxJob[] => { try { return readOutbox(localStorage.getItem(OUTBOX)); } catch { return []; } };
+  const queue = (job: OutboxJob) => { store(OUTBOX, addJob(outbox(), job)); emit(); };
+  /** The last good copy, so the app opens in the gym with no signal. Photos' links expire, so they're left out. */
+  const saveSnapshot = () => {
+    if (!isClient || status !== "ready") return;
+    store(SNAP, { state: { ...state, progress: { ...state.progress, photos: [] } }, workoutId, programId, versionId, at: new Date().toISOString() });
+  };
+  const fromSnapshot = (): boolean => {
+    if (!isClient) return false;
+    try {
+      const snap = JSON.parse(localStorage.getItem(SNAP) ?? "null") as { state: ApexState; workoutId: string | null; programId: string | null; versionId: string | null } | null;
+      if (!snap?.state) return false;
+      state = snap.state;
+      workoutId = snap.workoutId;
+      programId = snap.programId;
+      versionId = snap.versionId;
+      status = "ready";
+      error = null;
+      offline = true;
+      emit();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  let flushing = false;
+  /** Sends what waited, oldest first. Stops at the first failure and keeps the rest for next time. */
+  async function sendOutbox() {
+    if (!isClient || flushing || !online()) return;
+    flushing = true;
+    try {
+      for (let list = outbox(); list.length; list = outbox()) {
+        const job = list[0]!;
+        if (job.kind === "message") {
+          const { error: e } = await db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: job.body, created_at: job.at });
+          if (e) break;
+        } else {
+          let r = await db.from("sessions").insert(hasSummaryColumn ? { ...job.row, summary: job.summary } : job.row).select("id").single();
+          if (r.error && isMissingColumn(r.error)) r = await db.from("sessions").insert(job.row).select("id").single();
+          if (r.error || !r.data) break;
+          if (job.sets.length) await db.from("logged_sets").insert(withSessionId(job.sets, (r.data as { id: string }).id));
+        }
+        store(OUTBOX, outbox().filter((j) => j.id !== job.id));
+        emit();
+      }
+    } finally {
+      flushing = false;
+    }
+  }
+  if (isClient && typeof window !== "undefined") {
+    window.addEventListener("online", () => { void sendOutbox().then(() => load()); });
+    window.addEventListener("offline", () => emit());
+  }
   const fail = (e: unknown) => {
     error = message(e);
     status = "error";
@@ -161,6 +240,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       }
       if (sErr) throw sErr;
       hasPlanColumns = !(items ?? []).length || PLAN_COLUMNS.every((c) => c in (items?.[0] ?? {}));
+      hasNoteColumn = !(items ?? []).length || "coach_note" in (items?.[0] ?? {});
       if (stale()) return;
       const next = withProgram({ ...state, messages, progress, history: { bestKg: bestKgByExercise(recentSets), previous: previous ? toPreviousSession(previous) : null, trend: trendFromSets(recentSets, lighter), readiness, sessions } }, plan, active ?? undefined);
       savedKeys = new Set(next.workout.items.map((i) => i.key));
@@ -168,15 +248,26 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       state = { ...next, log: session ? toSessionLog(session, next.workout.name) : null };
       status = "ready";
       error = null;
+      offline = false;
+      saveSnapshot();
       emit();
+      void sendOutbox();
       if (listeners.size) openChannel();
     } catch (e) {
+      if (isNetworkError(e, online()) && fromSnapshot()) return;
       fail(e);
     }
   }
 
+  // Voice note columns arrive with the chat-tools SQL; until then messages load without them.
+  let hasVoiceColumns = true;
   async function loadMessages() {
-    const { data, error: mErr } = await db.from("messages").select("sender_id, body, created_at").eq("coach_id", ids.coachId).eq("client_id", ids.clientId).order("created_at").returns<MessageRow[]>();
+    const thread = (cols: string) => db.from("messages").select(cols).eq("coach_id", ids.coachId).eq("client_id", ids.clientId).order("created_at").returns<MessageRow[]>();
+    let { data, error: mErr } = await thread(hasVoiceColumns ? "sender_id, body, created_at, voice_path, voice_seconds" : "sender_id, body, created_at");
+    if (mErr && hasVoiceColumns && isMissingColumn(mErr)) {
+      hasVoiceColumns = false;
+      ({ data, error: mErr } = await thread("sender_id, body, created_at"));
+    }
     if (mErr) throw mErr;
     return toMessages(data ?? [], ids.coachId);
   }
@@ -204,11 +295,18 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         measurements: (ms.data ?? []).map(toMeasurement),
         photos: photos.map((r) => toPhoto(r, urls.get(r.storage_path) ?? null)),
         checkInDay: rel.data?.check_in_day ?? 0,
+        questions: await loadQuestions(),
       };
     } catch (e) {
       progressError = message(e);
       return state.progress ?? emptyProgress();
     }
+  }
+
+  /** The coach's own check-in questions. None until the questions SQL is run. */
+  async function loadQuestions(): Promise<CheckInQuestion[]> {
+    const { data, error: e } = await db.from("coach_check_in_forms").select("questions").eq("coach_id", ids.coachId).maybeSingle<{ questions: unknown }>();
+    return e ? [] : readQuestions(data?.questions);
   }
 
   async function reloadProgress() {
@@ -279,8 +377,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
 
   /** Writes item rows, dropping the per-set and circuit columns if the migration hasn't run yet. */
   async function upsertItems(rows: WorkoutItemRow[]) {
-    const send = hasPlanColumns ? rows : withoutPlan(rows);
+    const send = !hasPlanColumns ? withoutPlan(rows) : hasNoteColumn ? rows : withoutNote(rows);
     const { error: e } = await db.from("workout_items").upsert(send);
+    if (e && isMissingColumn(e) && hasNoteColumn) {
+      hasNoteColumn = false;
+      emit();
+      return upsertItems(rows);
+    }
     if (e && isMissingColumn(e) && hasPlanColumns) {
       hasPlanColumns = false;
       emit();
@@ -359,9 +462,12 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
   return {
     get: () => state,
     status: () => status,
+    offline: () => offline || (isClient && !online()),
+    pending: () => (isClient ? outbox() : []),
     error: () => error,
     progressError: () => progressError,
     hasPlanColumns: () => hasPlanColumns,
+    hasNoteColumn: () => hasNoteColumn,
     subscribe(listener) {
       listeners.add(listener);
       openChannel();
@@ -414,12 +520,16 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     finishSession(log, sets) {
       state = { ...state, log, history: nextHistory(state.history, log, state.workout, sets) };
       emit();
+      saveSnapshot();
+      const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
+      const row: Record<string, unknown> = {
+        client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
+        session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
+      };
+      // No signal: keep it on the phone and send it when the connection is back.
+      const later = () => queue({ kind: "session", id: crypto.randomUUID(), at: new Date().toISOString(), row, summary: log.summary ?? null, sets: toLoggedSetRows(sets, state.workout, "").map(({ session_id: _s, ...r }) => r) });
+      if (isClient && !online()) return later();
       void (async () => {
-        const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
-        const row: Record<string, unknown> = {
-          client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
-          session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
-        };
         const insert = (withSummary: boolean) =>
           db.from("sessions").insert(withSummary ? { ...row, summary: log.summary ?? null } : row).select("id").single();
         let { data, error: e1 } = await insert(hasSummaryColumn);
@@ -427,6 +537,7 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
           hasSummaryColumn = false;
           ({ data, error: e1 } = await insert(false));
         }
+        if (e1 && isClient && isNetworkError(e1, online())) return later();
         if (e1 || !data) throw e1 ?? new Error("The session wasn't saved");
         const rows = toLoggedSetRows(sets, state.workout, data.id);
         if (rows.length) {
@@ -435,10 +546,61 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
         }
       })().catch(fail);
     },
+    async saveCoachSession(log, sets) {
+      if (isClient) throw new Error("Only the coach can run a session for a client");
+      const startedAt = new Date(Date.now() - log.minutes * 60000).toISOString();
+      const row: Record<string, unknown> = {
+        client_id: ids.clientId, workout_id: workoutId, started_at: startedAt, finished_at: new Date().toISOString(),
+        session_rpe: log.rpe, sets_completed: log.sets, volume_kg: log.volumeKg, prs: log.prs, note: log.note ?? null,
+        source: "coach", coached_by: ids.me,
+      };
+      const insert = (withSummary: boolean) =>
+        db.from("sessions").insert(withSummary ? { ...row, summary: log.summary ?? null } : row).select("id").single();
+      let { data, error: e1 } = await insert(hasSummaryColumn);
+      if (e1 && isMissingColumn(e1) && hasSummaryColumn) {
+        hasSummaryColumn = false;
+        ({ data, error: e1 } = await insert(false));
+      }
+      // Missing column, the old source check, or no insert policy yet: all mean the SQL hasn't been run.
+      if (e1 && (isMissingColumn(e1) || e1.code === "23514" || e1.code === "42501")) throw new Error(ONE_TO_ONE_SQL);
+      if (e1 || !data) throw new Error(`The session wasn't saved (${message(e1)})`);
+      const rows = toLoggedSetRows(sets, state.workout, data.id);
+      if (rows.length) {
+        const { error: e2 } = await db.from("logged_sets").insert(rows);
+        if (e2) throw new Error(`The session was saved, but its sets weren't (${e2.message})`);
+      }
+      state = { ...state, history: nextHistory(state.history, log, state.workout, sets) };
+      emit();
+    },
     sendMessage(from, text) {
       state = { ...state, messages: [...state.messages, { from, text, time: "Now" }] };
       emit();
-      void db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: text }).then(({ error: e }) => { if (e) fail(e); });
+      const later = () => queue({ kind: "message", id: crypto.randomUUID(), at: new Date().toISOString(), body: text });
+      if (isClient && !online()) return later();
+      void db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: text }).then(({ error: e }) => {
+        if (e && isClient && isNetworkError(e, online())) later();
+        else if (e) fail(e);
+      });
+    },
+    async sendVoice(from, audio, seconds) {
+      if (!online()) throw new Error("Voice notes need a connection. Try again when you're back online.");
+      const secs = Math.max(VOICE_MIN_SECONDS, Math.min(VOICE_MAX_SECONDS, Math.round(seconds)));
+      const type = audio.type || "audio/webm";
+      const path = voicePath(ids.clientId, crypto.randomUUID(), type);
+      const up = await db.storage.from(VOICE_BUCKET).upload(path, audio, { contentType: type.split(";")[0], upsert: false });
+      if (up.error) throw new Error(/bucket not found/i.test(up.error.message) ? "Voice notes need the latest database update (20261120090000_business_chat_tools.sql)" : `Couldn't send the voice note (${up.error.message})`);
+      const { error: e } = await db.from("messages").insert({ coach_id: ids.coachId, client_id: ids.clientId, sender_id: ids.me, body: voiceBody(secs), voice_path: path, voice_seconds: secs });
+      if (e) {
+        void db.storage.from(VOICE_BUCKET).remove([path]);
+        throw new Error(isMissingColumn(e) ? "Voice notes need the latest database update (20261120090000_business_chat_tools.sql)" : `Couldn't send the voice note (${e.message})`);
+      }
+      state = { ...state, messages: [...state.messages, { from, text: voiceBody(secs), time: "Now", voice: { path, seconds: secs } }] };
+      emit();
+    },
+    async voiceUrl(path) {
+      const { data, error: e } = await db.storage.from(VOICE_BUCKET).createSignedUrl(path, 3600);
+      if (e || !data) throw e ?? new Error("Couldn't open the voice note");
+      return data.signedUrl;
     },
     async submitCheckIn(checkIn, measurements, photos) {
       const id = crypto.randomUUID();
@@ -478,6 +640,13 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
       if (!data?.length) throw new Error("Couldn't save the reply. Check the database update has been run.");
       await reloadProgress();
     },
+    async saveCheckInQuestions(questions) {
+      const problem = questionsProblem(questions);
+      if (problem) throw new Error(problem);
+      const { error: e1 } = await db.from("coach_check_in_forms").upsert({ coach_id: ids.coachId, questions: cleanQuestions(questions), updated_at: new Date().toISOString() });
+      if (e1) throw new Error(e1.code === "42P01" || e1.code === "PGRST205" ? "Your own questions need the check-in questions SQL in Supabase first." : e1.message);
+      await reloadProgress();
+    },
     async setCheckInDay(day) {
       const { data, error: e1 } = await db.from("coach_clients").update({ check_in_day: day }).eq("coach_id", ids.coachId).eq("client_id", ids.clientId).select("check_in_day");
       if (e1) throw e1;
@@ -498,6 +667,10 @@ export function createSupabaseStore(db: SupabaseClient, ids: Ids): LiveStore {
     },
     flush() {
       return writes;
+    },
+    reload() {
+      chosenDay = null;
+      return load();
     },
     close() {
       clearTimeout(saveTimer);
@@ -527,9 +700,11 @@ export async function insertProgram(db: SupabaseClient, ids: { coachId: string; 
   if (e3) throw e3;
   const rows = plan.days.flatMap((d) => toItemRows(d, d.key));
   if (!rows.length) return;
-  const first = await db.from("workout_items").insert(ids.hasPlanColumns === false ? withoutPlan(rows) : rows);
-  if (first.error && isMissingColumn(first.error)) {
-    const { error: e5 } = await db.from("workout_items").insert(withoutPlan(rows));
-    if (e5) throw e5;
-  } else if (first.error) throw first.error;
+  // Try with everything, then without notes (newest column), then without per-set targets too.
+  const tries = ids.hasPlanColumns === false ? [withoutPlan(rows)] : [rows, withoutNote(rows), withoutPlan(rows)];
+  for (const [i, send] of tries.entries()) {
+    const { error } = await db.from("workout_items").insert(send);
+    if (!error) return;
+    if (!isMissingColumn(error) || i === tries.length - 1) throw error;
+  }
 }

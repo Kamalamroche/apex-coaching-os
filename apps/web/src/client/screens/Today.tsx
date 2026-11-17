@@ -1,6 +1,6 @@
-import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate } from "@apex/core";
+import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate, trainingWeek } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop } from "@apex/ui";
+import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useMemo, useState } from "react";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
@@ -11,19 +11,21 @@ import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
 import { TeamPeek } from "../../app/TeamParts";
+import { PushPrompt } from "../../app/PushParts";
+import { FirstWeek, useFirstWeek } from "../FirstWeek";
+import { PlanChanged } from "../PlanChanged";
+import { ReviewPrompt } from "../Review";
+import { HappinessPrompt } from "../Happiness";
+import type { FirstWeekStepId } from "@apex/core";
 
 const MOODS = ["Rough", "Low", "OK", "Good", "Great"];
-/* 1 = done, 2 = today, 0 = rest or not yet */
-const WEEK: [string, 0 | 1 | 2][] = [["Mon", 1], ["Tue", 1], ["Wed", 0], ["Thu", 1], ["Fri", 0], ["Sat", 2], ["Sun", 0]];
-const TODAY_INDEX = 5;
-/* Sample week: Monday 20 to Sunday 26 October. */
-const WEEK_DATES = [20, 21, 22, 23, 24, 25, 26];
-/* Sample plan: which days have a session. */
-const PLANNED = [true, true, false, true, false, true, false];
+/* Demo week pattern: the sample client trains Mon, Tue, Thu and Sat. */
+const DEMO_PLANNED = [0, 1, 3, 5];
 
-export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; say?: (m: string) => void }) {
+export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, openTeam, go, say }: { start: () => void; checkedIn: boolean; onCheckIn: () => void; openCheckIn: () => void; openIntake: () => void; openTeam?: () => void; go?: (id: FirstWeekStepId) => void; say?: (m: string) => void }) {
+  const u = useUnits();
   const store = useStore();
-  const { clientName, coachName } = useAppInfo();
+  const { clientName, coachName, mode } = useAppInfo();
   const { status } = useStoreStatus();
   const { workout: w, log, progress, history } = useApexState(store);
   const { activities } = useActivitiesIfAny();
@@ -32,12 +34,21 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
   const [levels, setLevels] = useState(false);
   const lv = useLevels();
   const life = useLifestyle();
+  const firstWeek = useFirstWeek();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
-  const doneCount = WEEK.filter((d) => d[1] === 1).length + (log ? 1 : 0);
   const totalSets = w.items.reduce((a, it) => a + it.sets, 0);
   const hero = HERO_IMAGES[heroForWorkout(w)];
   const day = localDate(new Date());
+  const { program } = useApexState(store);
+  const week = useMemo(() => {
+    if (mode === "demo") {
+      const base = trainingWeek({ today: day, sessions: [], plannedDays: DEMO_PLANNED, trainedToday: !!log });
+      const days = base.days.map((d) => ({ ...d, trained: d.trained || (d.planned && d.day < day) }));
+      return { ...base, days, done: days.filter((d) => d.trained).length };
+    }
+    return trainingWeek({ today: day, sessions: history.sessions ?? [], plannedDays: [...new Set(program.days.map((d) => d.dayIndex))], trainedToday: !!log });
+  }, [mode, day, history.sessions, program.days, log]);
   const rings = useMemo(() => {
     const input: RingInput = { sessions: history.sessions ?? [], activities, habits: life.habits, ticks: life.ticks, water: life.water, food: life.food, targets: life.targets };
     const today = dayRings(input, day);
@@ -53,15 +64,14 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <section className="hero cover" aria-label="Today's session">
           <HeroBackdrop art={hero} word={null} />
           <div className="cv-top">
-            <div className="cv-hi"><span>Hi {clientName.split(" ")[0]}</span><small>Saturday 25 October</small></div>
+            <div className="cv-hi"><span>Hi {clientName.split(" ")[0]}</span><small>{week.todayLabel}</small></div>
             <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={38} />
           </div>
           <div className="cv-days" role="list" aria-label="Your week">
-            {WEEK.map(([d, st], i) => {
-              const today = i === TODAY_INDEX;
-              const I = st === 1 ? Icons.flame : PLANNED[i] ? Icons.train : null;
+            {week.days.map(({ label: d, date, trained, planned, today }, i) => {
+              const I = trained ? Icons.flame : planned ? Icons.train : null;
               return (
-                <span key={d} role="listitem" className={`cv-day${st === 1 ? " done" : ""}${today ? " today" : ""}`} style={{ ["--i" as string]: i }} aria-label={`${d} ${WEEK_DATES[i]}${st === 1 ? ", trained" : today ? ", today" : PLANNED[i] ? ", planned" : ", rest"}`}>
+                <span key={d} role="listitem" className={`cv-day${trained ? " done" : ""}${today ? " today" : ""}`} style={{ ["--i" as string]: i }} aria-label={`${d} ${date}${trained ? ", trained" : today ? ", today" : planned ? ", planned" : ", rest"}`}>
                   <small>{d.slice(0, d === "Thu" || d === "Tue" || d === "Sat" || d === "Sun" ? 2 : 1)}</small>
                   {I ? <I width={13} height={13} /> : <i />}
                 </span>
@@ -87,6 +97,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
+      <PlanChanged />
+      {go && <FirstWeek go={go} />}
       <section aria-label="Today's rings">
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
         <RingWeek days={rings.week} labels={ringLabels} />
@@ -96,18 +108,19 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         {openTeam && <TeamPeek onOpen={openTeam} />}
         {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
       </section>
+      {!(go && firstWeek.visible) && <PushPrompt say={say ?? (() => {})} />}
+      <HappinessPrompt say={say} fallback={<ReviewPrompt say={say} />} />
 
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>
           <h2 className="h3">Your week</h2>
-          <span className="tiny num">{doneCount} of 4 done</span>
+          <span className="tiny num">{week.done} of {week.planned} done</span>
         </div>
         {!cover && <div className="daystrip">
-          {WEEK.map(([d, s], i) => {
-            const st = i === TODAY_INDEX && log ? 1 : s;
+          {week.days.map(({ label: d, date, trained, today }) => {
             return (
-              <div key={d} className={`day ${st === 1 ? "done" : ""} ${i === TODAY_INDEX ? "today" : ""}`} aria-label={`${d} ${WEEK_DATES[i]}${st === 1 ? ", trained" : i === TODAY_INDEX ? ", today" : ""}`}>
-                <small>{d}</small><b>{WEEK_DATES[i]}</b><i />
+              <div key={d} className={`day ${trained ? "done" : ""} ${today ? "today" : ""}`} aria-label={`${d} ${date}${trained ? ", trained" : today ? ", today" : ""}`}>
+                <small>{d}</small><b>{date}</b><i />
               </div>
             );
           })}
@@ -118,7 +131,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
       {status === "loading" ? (
         <div className="card"><div className="small">Loading today's session…</div></div>
       ) : status === "no-program" ? (
-        <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your program. It will appear here as soon as it's ready.</div></div>
+        <div className="card"><h2 className="h2">No workout yet</h2><div className="small" style={{ marginTop: 4 }}>{coachName} is setting up your programme. It will appear here as soon as it's ready.</div></div>
       ) : !log ? (
         <>
           {!cover && <div className="hero">
@@ -143,8 +156,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
             {w.items.map((it) => (
               <li key={it.key} className="row small" style={{ gap: 8 }}>
                 <span className="grp" style={{ width: 28, fontSize: 11 }}>{it.group}</span>
-                <span style={{ color: "var(--text)" }}>{exerciseFor(it).name}</span>
-                <span className="num" style={{ marginLeft: "auto" }}>{it.sets}×{it.reps}{it.kg ? ` · ${it.kg} kg` : ""}</span>
+                <span style={{ color: "var(--text)", minWidth: 0 }}>{exerciseFor(it).name}{it.note && <span className="tiny" style={{ display: "block" }}>{it.note}</span>}</span>
+                <span className="num" style={{ marginLeft: "auto" }}>{it.sets}×{it.reps}{it.kg ? ` · ${u.fw(it.kg)}` : ""}</span>
               </li>
             ))}
             </ul>
@@ -154,18 +167,18 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
           <div className="eyebrow" style={{ color: "var(--good)" }}>Done for today</div>
           <h2 className="h2" style={{ marginTop: 6 }}>{log.workoutName}</h2>
-          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {log.volumeKg.toLocaleString()} kg · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
+          <div className="small num" style={{ marginTop: 4 }}>{log.sets} sets{log.summary?.totalReps ? ` · ${log.summary.totalReps} reps` : ""} · {u.fw(log.volumeKg, 0)} · {log.minutes} min · RPE {log.rpe}{log.prs ? ` · ${log.prs} PR` : ""}</div>
           {log.summary && <div style={{ marginTop: 12 }}><WorkoutSummaryCard summary={log.summary} compact /></div>}
         </div>
       )}
 
       <div className="tiles">
-        <div className="tile c1"><span className="ic"><Icons.check /></span><b>{doneCount}<small> / 4</small></b><span>Sessions this week</span></div>
+        <div className="tile c1"><span className="ic"><Icons.check /></span><b>{week.done}<small> / {week.planned}</small></b><span>Sessions this week</span></div>
         <div className="tile c2"><span className="ic"><Icons.flame /></span><b>{rings.streak.days}<small> day{rings.streak.days === 1 ? "" : "s"}</small></b><span>Streak</span></div>
         <button className="tile c3" onClick={openCheckIn}><span className="ic"><Icons.target /></span><b style={{ fontSize: 16, lineHeight: 1.25 }}>{due.due ? "Due" : (WEEKDAY_NAMES[progress.checkInDay] ?? "Weekly").slice(0, 3)}</b><span>Check-in</span></button>
       </div>
 
-      {life.status === "ready" && !life.intake && (
+      {life.status === "ready" && !life.intake && !(go && firstWeek.visible) && (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--act) 40%,var(--line))" }}>
           <div className="eyebrow" style={{ color: "var(--act)" }}>Before you start</div>
           <h2 className="h2" style={{ marginTop: 6 }}>Tell {coachName} about you</h2>

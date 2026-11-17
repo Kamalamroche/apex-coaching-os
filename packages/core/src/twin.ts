@@ -149,7 +149,7 @@ export function readWeek(s: TwinSignals, now: Date): Omit<TwinDraft, "message"> 
 
 const ADJUST_TEXT: Record<TwinAdjustKind | "injury", string> = {
   progress: "Progress: add load where every rep was hit last time",
-  hold: "Hold: same program next week",
+  hold: "Hold: same programme next week",
   lighter: "Lighter week: one set fewer on every exercise",
   deload: "Deload: 10% lighter on every loaded exercise",
   none: "No change",
@@ -172,7 +172,7 @@ export const DEFAULT_PHRASES: Record<Exclude<TwinSituation, "injury">, string> =
   quiet: "Hi {first}, just checking in, I haven't heard from you for a bit. No pressure at all. I've made next week shorter so it's easy to get going again. {coach}",
   tired: "Hi {first}, your check-in says you're running low, so I've eased next week off. Recover well and we'll build again after. Prioritise sleep where you can. {coach}",
   new: "Hi {first}, great start. Next week builds on the same sessions. Tell me how the weights feel so I can fine-tune them. {coach}",
-  noprogram: "Hi {first}, I'm putting your program together now. Anything you'd like me to know before you start? {coach}",
+  noprogram: "Hi {first}, I'm putting your programme together now. Anything you'd like me to know before you start? {coach}",
 };
 
 export const SITUATION_TITLE: Record<TwinSituation, string> = {
@@ -183,7 +183,7 @@ export const SITUATION_TITLE: Record<TwinSituation, string> = {
   progress: "Ready to progress",
   steady: "Steady week",
   new: "New client",
-  noprogram: "No program yet",
+  noprogram: "No programme yet",
 };
 
 export const firstOf = (name: string): string => name.trim().split(/\s+/)[0] ?? name;

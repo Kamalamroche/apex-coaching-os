@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentMembership, formatPlanPrice, formatPounds, membershipLabel, monthlyRecurring, parsePounds, revenueByMonth, type Membership } from "./billing";
+import { currentMembership, formatPlanPrice, formatPounds, membershipLabel, monthlyRecurring, parsePlanPrice, revenueByMonth, type Membership } from "./billing";
 
 const m = (over: Partial<Membership>): Membership => ({
   id: "sub_1", clientId: "c1", planId: "p1", status: "active", amountPence: 15000, interval: "month", currentPeriodEnd: "2026-12-02T10:00:00Z", cancelAtPeriodEnd: false, ...over,
@@ -13,13 +13,13 @@ describe("prices", () => {
     expect(formatPlanPrice(3500, "week")).toBe("£35 a week");
   });
   it("reads what a coach types", () => {
-    expect(parsePounds("150")).toBe(15000);
-    expect(parsePounds("£49.50")).toBe(4950);
-    expect(parsePounds(" 1,200 ")).toBe(120000);
-    expect(parsePounds("0.50")).toBeNull();
-    expect(parsePounds("abc")).toBeNull();
-    expect(parsePounds("12.345")).toBeNull();
-    expect(parsePounds("20000")).toBeNull();
+    expect(parsePlanPrice("150")).toBe(15000);
+    expect(parsePlanPrice("£49.50")).toBe(4950);
+    expect(parsePlanPrice(" 1,200 ")).toBe(120000);
+    expect(parsePlanPrice("0.50")).toBeNull();
+    expect(parsePlanPrice("abc")).toBeNull();
+    expect(parsePlanPrice("12.345")).toBeNull();
+    expect(parsePlanPrice("20000")).toBeNull();
   });
 });
 

@@ -1,4 +1,4 @@
-import { addDays, draftProblem, fromTeamFeedRow, localDate, mondayOf, sampleTeam, type EffortLine, type TeamDraft, type TeamFeedRow, type TeamPost } from "@apex/core";
+import { addDays, draftProblem, sampleLaurelTeam, fromTeamFeedRow, localDate, mondayOf, sampleTeam, type EffortLine, type TeamDraft, type TeamFeedRow, type TeamPost } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useContext } from "react";
 
@@ -12,6 +12,8 @@ export interface TeamApi {
   leave(): Promise<void>;
   feed(): Promise<TeamPost[]>;
   effort(): Promise<EffortLine[]>;
+  /** Every workout since joining APEX, for Laurel ranks. Same lines as the effort board, counted from the start. */
+  allTime(): Promise<EffortLine[]>;
   post(d: TeamDraft): Promise<void>;
   remove(id: string): Promise<void>;
   five(id: string, on: boolean): Promise<void>;
@@ -46,6 +48,11 @@ export function liveTeam(db: SupabaseClient, who: { side: "coach" | "client"; co
     },
     async effort() {
       const { data, error } = await db.rpc("team_effort", { p_coach: who.coachId, p_since: mondayOf(localDate(new Date())) });
+      if (error) throw err(error);
+      return ((data ?? []) as { name: string; workouts: number; minutes: number; is_me: boolean }[]).map((r) => ({ name: r.name, workouts: Number(r.workouts), minutes: Number(r.minutes), isMe: r.is_me }));
+    },
+    async allTime() {
+      const { data, error } = await db.rpc("team_effort", { p_coach: who.coachId, p_since: "2000-01-01" });
       if (error) throw err(error);
       return ((data ?? []) as { name: string; workouts: number; minutes: number; is_me: boolean }[]).map((r) => ({ name: r.name, workouts: Number(r.workouts), minutes: Number(r.minutes), isMe: r.is_me }));
     },
@@ -99,6 +106,10 @@ export function demoTeam(side: "coach" | "client"): TeamApi {
     async effort() {
       const s = read();
       return s.joined ? s.effort : s.effort.filter((l) => !l.isMe);
+    },
+    async allTime() {
+      const all = sampleLaurelTeam();
+      return read().joined ? all : all.filter((l) => !l.isMe);
     },
     async post(d) {
       const problem = draftProblem(d);

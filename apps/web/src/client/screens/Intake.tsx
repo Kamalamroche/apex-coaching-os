@@ -1,11 +1,12 @@
-import { EXPERIENCE, HEALTH_QUESTIONS, blankIntake, healthFlags, intakeProblem, type IntakeAnswers } from "@apex/core";
+import { DIETS, EXPERIENCE, HEALTH_QUESTIONS, blankIntake, healthFlags, intakeProblem, type IntakeAnswers } from "@apex/core";
 import { BackLink } from "@apex/ui";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 /** The onboarding questionnaire: a health check, goals, training background and lifestyle. Sent once, can be updated. */
-export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
+/** `bare`: inside the welcome flow, which shows its own title and skip. */
+export function Intake({ onExit, onDone, bare }: { onExit: () => void; onDone: () => void; bare?: boolean }) {
   const store = useLifestyleStore();
   const { intake } = useLifestyle();
   const { coachName } = useAppInfo();
@@ -28,7 +29,7 @@ export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => v
     }
   };
 
-  const text = (k: "goal" | "why" | "injuries" | "equipment" | "lifestyle" | "healthDetail", label: string, hint: string, rows = 2) => (
+  const text = (k: "goal" | "why" | "injuries" | "equipment" | "lifestyle" | "healthDetail" | "foodNotes", label: string, hint: string, rows = 2) => (
     <label className="small" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {label}
       <textarea id={`in-${k}`} className="field" rows={rows} maxLength={1500} placeholder={hint} value={a[k]} onChange={(e) => set(k, e.target.value)} />
@@ -37,8 +38,8 @@ export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => v
 
   return (
     <>
-      <BackLink onClick={onExit}>Back</BackLink>
-      <div><div className="eyebrow">About you</div><h1 className="h1">Help {coachName} plan for you</h1><p className="sub">About five minutes. Only {coachName} sees your answers.</p></div>
+      {!bare && <BackLink onClick={onExit}>Back</BackLink>}
+      {!bare && <div><div className="eyebrow">About you</div><h1 className="h1">Help {coachName} plan for you</h1><p className="sub">About five minutes. Only {coachName} sees your answers.</p></div>}
 
       <section className="card stack">
         <div><h2 className="h2">Health check</h2><div className="small" style={{ marginTop: 4 }}>A yes doesn't stop you training. It means {coachName} will talk it through with you first, and may ask you to check with your doctor.</div></div>
@@ -72,6 +73,17 @@ export function Intake({ onExit, onDone }: { onExit: () => void; onDone: () => v
         </div>
         {text("equipment", "Where do you train, and with what?", "e.g. Commercial gym, or home with dumbbells up to 20 kg")}
         {text("injuries", "Injuries or niggles", "Past or present, and anything that hurts during exercise")}
+      </section>
+
+      <section className="card stack">
+        <div><h2 className="h2">Food</h2><div className="small" style={{ marginTop: 4 }}>Your recipes are matched to this. Skip it if you eat everything.</div></div>
+        <div>
+          <div className="h3" style={{ marginBottom: 6 }}>How do you eat?</div>
+          <div className="chips" style={{ flexWrap: "wrap" }} role="group" aria-label="Diet">
+            {DIETS.map((x) => { const on = (a.diet ?? []).includes(x); return <button key={x} type="button" className={`chip ${on ? "on" : ""}`} aria-pressed={on} onClick={() => set("diet", on ? a.diet.filter((d) => d !== x) : [...(a.diet ?? []), x])}>{x}</button>; })}
+          </div>
+        </div>
+        {text("foodNotes", "Allergies or foods you don't eat", "e.g. Peanut allergy, no pork, don't like fish")}
       </section>
 
       <section className="card stack">

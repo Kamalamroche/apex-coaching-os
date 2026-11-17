@@ -338,7 +338,7 @@ export function readTables(tables: SourceTable[], options: ReadOptions = {}): Im
       if (!exercise) return void problems.push(`${where}: no exercise`);
 
       if (kind === "program") {
-        const program = (client.program ??= { name: cell(row, "program") || "Imported program", workouts: [] });
+        const program = (client.program ??= { name: cell(row, "program") || "Imported programme", workouts: [] });
         const week = Math.min(52, Math.max(1, parseNum(cell(row, "week")) ?? 1));
         const dayText = cell(row, "day");
         const workoutName = cell(row, "workout") || (dayText ? (/^\d+$/.test(dayText) ? `Day ${dayText}` : dayText) : "Workout");

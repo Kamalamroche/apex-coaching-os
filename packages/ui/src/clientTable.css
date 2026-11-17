@@ -1,0 +1,40 @@
+/* Trainer's desktop client table. Shown from 900px; phones keep the card list. */
+.ct-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg,20px);overflow:auto}
+.ct{border-collapse:collapse;width:100%;font-size:13px}
+.ct th,.ct td{padding:10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+.ct .l{text-align:left}
+.ct thead th{position:sticky;top:0;background:var(--card);z-index:1;padding:0}
+.ct-sort{display:inline-flex;align-items:center;gap:4px;width:100%;justify-content:flex-end;border:0;background:none;padding:12px 10px;font:700 11px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--text3);cursor:pointer}
+.ct thead th.l .ct-sort{justify-content:flex-start}
+.ct-sort:hover,.ct-sort.on{color:var(--text)}
+.ct-arrow{display:inline-block;width:10px;color:var(--act)}
+.ct tbody tr{cursor:pointer;transition:background .15s;animation:m-fade .35s var(--ease-out) backwards;animation-delay:calc(var(--i,0) * .03s)}
+.ct tbody tr:hover{background:var(--bg2)}
+.ct tbody th{font-weight:400}
+.ct-name{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;text-align:left;color:inherit;cursor:pointer}
+.ct-who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ct-who b{font-weight:700;color:var(--text);font-size:14px}
+.ct-who small{color:var(--text3);font-size:12px}
+.ct-health{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.ct-part{min-width:0}
+.ct-part .num{display:inline-block;min-width:24px;font-weight:700;color:var(--text)}
+.ct-bar{display:inline-block;width:32px;height:4px;border-radius:var(--pill);background:var(--line2);margin-right:8px;vertical-align:middle;overflow:hidden}
+.ct-bar i{display:block;height:100%;border-radius:inherit}
+.ct-blank{color:var(--text3)}
+.ct-last{color:var(--text2)}
+.ct-last.late{color:var(--crit);font-weight:700}
+.ct-why{font-style:normal;font-size:12px;line-height:1.35;white-space:normal;max-width:300px;color:var(--text2)}
+.ct-why.b-low{color:var(--crit)}
+.ct-why.b-watch{color:var(--warn)}
+.ct tfoot th,.ct tfoot td{border-bottom:0;font-weight:700;color:var(--text2);background:var(--bg2)}
+.ct-foot-note{font-weight:500!important;color:var(--text3)!important}
+.ct tbody tr:last-child>*{border-bottom:1px solid var(--line)}
+
+/* Phones keep the list; desktops get the table. */
+.cl-desk{display:none}
+@media (min-width:900px){
+  .cl-desk{display:block}
+  .cl-phone{display:none}
+}
+/* A client profile opened from the wide Clients screen stays a readable column. */
+.cl-profile{display:flex;flex-direction:column;gap:18px;width:100%;max-width:640px;margin:0 auto}

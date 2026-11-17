@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useT } from "./prefs";
 
 type Mode = "system" | "dark" | "light";
 const KEY = "apex-theme";
@@ -34,9 +35,10 @@ export function ThemeButton() {
     }
   }, [mode]);
   const next = NEXT[mode];
+  const t = useT();
   return (
     <button className="iconbtn" onClick={() => { crossFade(); setMode(next); }} aria-label={`Theme: ${mode}. Switch to ${next}`}>
-      {mode === "dark" ? "Dark" : mode === "light" ? "Light" : "Auto"}
+      {t(mode === "dark" ? "Dark" : mode === "light" ? "Light" : "Auto")}
     </button>
   );
 }

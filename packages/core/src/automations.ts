@@ -1,9 +1,9 @@
-/* Automatic messages: a welcome when a client joins, a nudge after missed workouts, and a check-in reminder.
+/* Automatic messages: a welcome when a client joins, a nudge after missed workouts, a check-in reminder and a low-protein nudge.
    The coach turns each one on and writes the wording; the database sends them every hour
-   (public.run_automations in supabase/migrations/20261103090000_automatic_messages.sql).
+   (public.run_automations, last defined in supabase/migrations/20261112090000_nutrition_nudge.sql).
    This file holds the settings, the wording placeholders and the row converters. Pure, so it is unit tested. */
 
-export type AutomationKind = "welcome" | "missed" | "checkin";
+export type AutomationKind = "welcome" | "missed" | "checkin" | "protein";
 
 export interface AutomationSettings {
   welcomeOn: boolean;
@@ -14,6 +14,9 @@ export interface AutomationSettings {
   missedBody: string;
   checkinOn: boolean;
   checkinBody: string;
+  /** Low protein: food logged on each of the last 3 days, every one under 80% of the protein target. */
+  proteinOn: boolean;
+  proteinBody: string;
   /** Local hour (0–23) the nudge and the reminder go out. The welcome goes within the hour of joining. */
   sendHour: number;
   /** IANA time zone the send hour is in. */
@@ -35,14 +38,20 @@ export const DEFAULT_AUTOMATIONS: AutomationSettings = {
   missedBody: "Hi {first_name}, it's been {days} days since your last session. No stress, life gets busy. Want me to shorten this week's workouts so you can get one in? {coach}",
   checkinOn: false,
   checkinBody: "Morning {first_name}! Your weekly check-in is due today. It takes about two minutes and helps me plan your next week. {coach}",
+  proteinOn: false,
+  proteinBody: "Hi {first_name}, protein has been a little low the last few days. Easy wins: skyr or Greek yogurt, eggs, a tin of tuna, or a shake after training. Want me to add a high-protein recipe to your plan? {coach}",
   sendHour: 9,
   timezone: "Europe/London",
 };
+
+/** Share of the protein target under which a day counts as low, and how many days in a row it takes. */
+export const PROTEIN_NUDGE = { share: 0.8, days: 3 };
 
 export const AUTOMATIONS: { kind: AutomationKind; title: string; when: (s: AutomationSettings) => string }[] = [
   { kind: "welcome", title: "Welcome", when: () => "When a client joins, unless you've already messaged them" },
   { kind: "missed", title: "Missed workouts", when: (s) => `When a client hasn't finished a workout for ${s.missedDays} days. Once per gap` },
   { kind: "checkin", title: "Check-in reminder", when: (s) => `On their check-in day at ${hourLabel(s.sendHour)}, if they haven't sent one yet` },
+  { kind: "protein", title: "Low protein", when: (s) => `When a client logs food ${PROTEIN_NUDGE.days} days in a row and every day is under ${PROTEIN_NUDGE.share * 100}% of their protein target. At ${hourLabel(s.sendHour)}, at most once a week` },
 ];
 
 export const MISSED_DAY_CHOICES = [2, 3, 4, 5, 7, 10, 14];
@@ -54,8 +63,14 @@ export function fillMessage(body: string, v: { firstName: string; coach: string;
   return body.replaceAll("{first_name}", v.firstName).replaceAll("{coach}", v.coach).replaceAll("{days}", String(v.days ?? ""));
 }
 
-export const isOn = (s: AutomationSettings, k: AutomationKind): boolean => (k === "welcome" ? s.welcomeOn : k === "missed" ? s.missedOn : s.checkinOn);
-export const bodyOf = (s: AutomationSettings, k: AutomationKind): string => (k === "welcome" ? s.welcomeBody : k === "missed" ? s.missedBody : s.checkinBody);
+export const isOn = (s: AutomationSettings, k: AutomationKind): boolean => (k === "welcome" ? s.welcomeOn : k === "missed" ? s.missedOn : k === "protein" ? s.proteinOn : s.checkinOn);
+export const bodyOf = (s: AutomationSettings, k: AutomationKind): string => (k === "welcome" ? s.welcomeBody : k === "missed" ? s.missedBody : k === "protein" ? s.proteinBody : s.checkinBody);
+
+/** True when the client's last `days` days (before today) were all logged and all under the protein share. Mirrors the SQL. */
+export function proteinLow(dayProtein: (number | null)[], target: number): boolean {
+  if (!(target > 0) || dayProtein.length < PROTEIN_NUDGE.days) return false;
+  return dayProtein.slice(-PROTEIN_NUDGE.days).every((p) => p !== null && p < target * PROTEIN_NUDGE.share);
+}
 export const countOn = (s: AutomationSettings): number => AUTOMATIONS.filter((a) => isOn(s, a.kind)).length;
 
 /** What stops the settings from saving, or null. */
@@ -88,6 +103,9 @@ export interface AutomationRow {
   missed_body: string;
   checkin_on: boolean;
   checkin_body: string;
+  /** Missing until the nutrition nudge SQL has run. */
+  protein_on?: boolean;
+  protein_body?: string;
   send_hour: number;
   timezone: string;
 }
@@ -100,12 +118,13 @@ export interface AutomationSendRow {
 
 export const toAutomationRow = (s: AutomationSettings, coachId: string): AutomationRow => ({
   coach_id: coachId, welcome_on: s.welcomeOn, welcome_body: s.welcomeBody.trim(), missed_on: s.missedOn, missed_days: s.missedDays, missed_body: s.missedBody.trim(),
-  checkin_on: s.checkinOn, checkin_body: s.checkinBody.trim(), send_hour: s.sendHour, timezone: s.timezone,
+  checkin_on: s.checkinOn, checkin_body: s.checkinBody.trim(), protein_on: s.proteinOn, protein_body: s.proteinBody.trim(), send_hour: s.sendHour, timezone: s.timezone,
 });
 
 export const fromAutomationRow = (r: AutomationRow): AutomationSettings => ({
   welcomeOn: r.welcome_on, welcomeBody: r.welcome_body, missedOn: r.missed_on, missedDays: Number(r.missed_days), missedBody: r.missed_body,
-  checkinOn: r.checkin_on, checkinBody: r.checkin_body, sendHour: Number(r.send_hour), timezone: r.timezone,
+  checkinOn: r.checkin_on, checkinBody: r.checkin_body,
+  proteinOn: r.protein_on ?? false, proteinBody: r.protein_body || DEFAULT_AUTOMATIONS.proteinBody, sendHour: Number(r.send_hour), timezone: r.timezone,
 });
 
 export const fromSendRow = (r: AutomationSendRow): AutomationSend => ({ clientId: r.client_id, kind: r.kind, sentAt: r.sent_at });

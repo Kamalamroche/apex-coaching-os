@@ -1,6 +1,6 @@
 import { formatDistance, formatDuration, formatPace, loadVsUsual, newBests, paceLabel, sportLabel, type Activity } from "@apex/core";
 import { useState } from "react";
-import { HrZones, Label, LoadCompare, RouteMap, RunAnalysis, SplitsChart, RouteThumb, SplitsTable, SportIcon } from "@apex/ui";
+import { HrZones, Label, LoadCompare, RouteMap, RunAnalysis, SplitsChart, RouteThumb, SplitsTable, SportIcon, useUnits, type Units } from "@apex/ui";
 
 /* One activity, the same for the client and the coach: big numbers, the route, the chart,
    splits, heart-rate zones and best efforts. Every number here is Data: measured, not guessed. */
@@ -18,10 +18,11 @@ export const whenLabel = (iso: string): string => {
 };
 
 /** "5.62 km · 5:08 /km · 28:51". */
-export const activityLine = (a: Activity): string =>
-  [a.metres ? formatDistance(a.metres, a.sport) : null, a.metres ? formatPace(a.metres, a.movingSeconds, a.sport) : null, formatDuration(a.movingSeconds)].filter(Boolean).join(" · ");
+export const activityLine = (a: Activity, u?: Units): string =>
+  [a.metres ? (u ? u.dist(a.metres, a.sport) : formatDistance(a.metres, a.sport)) : null, a.metres ? (u ? u.pace(a.metres, a.movingSeconds, a.sport) : formatPace(a.metres, a.movingSeconds, a.sport)) : null, formatDuration(a.movingSeconds)].filter(Boolean).join(" · ");
 
 export function ActivityRow({ activity, all, onOpen }: { activity: Activity; all: Activity[]; onOpen: () => void }) {
+  const u = useUnits();
   const pbs = newBests(activity, all);
   return (
     <button className="li" onClick={onOpen}>
@@ -29,7 +30,7 @@ export function ActivityRow({ activity, all, onOpen }: { activity: Activity; all
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="tiny">{whenLabel(activity.startedAt)}</div>
         <div className="h3" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activity.name}</div>
-        <div className="small num">{activityLine(activity)}</div>
+        <div className="small num">{activityLine(activity, u)}</div>
       </div>
       {pbs.length > 0 && <span className="cx-pb">★ {pbs.length > 1 ? `${pbs.length} PBs` : "PB"}</span>}
       <span className="tiny">›</span>
@@ -39,13 +40,14 @@ export function ActivityRow({ activity, all, onOpen }: { activity: Activity; all
 
 /** `showNote` false when the note is being edited below instead. */
 export function ActivityView({ activity, all, showNote = true }: { activity: Activity; all: Activity[]; showNote?: boolean }) {
+  const u = useUnits();
   const a = activity;
   const [mapAt, setMapAt] = useState<number | null>(null);
   const pbs = newBests(a, all);
   const vsUsual = loadVsUsual(a, all);
   const stats: [string, string, string?][] = [
     [formatDuration(a.movingSeconds), "Moving time"],
-    a.metres ? [formatPace(a.metres, a.movingSeconds, a.sport).replace(/ .*$/, ""), paceLabel(a.sport), formatPace(a.metres, a.movingSeconds, a.sport).replace(/^\S+ /, "")] : ["–", "Pace"],
+    a.metres ? [u.pace(a.metres, a.movingSeconds, a.sport).replace(/ .*$/, ""), paceLabel(a.sport), u.pace(a.metres, a.movingSeconds, a.sport).replace(/^\S+ /, "")] : ["–", "Pace"],
     a.avgHr ? [String(a.avgHr), "Avg heart rate", "bpm"] : a.rpe ? [String(a.rpe), "Effort", "/10"] : ["–", "Avg heart rate"],
   ];
   const extra: [string, string][] = [
@@ -56,7 +58,7 @@ export function ActivityView({ activity, all, showNote = true }: { activity: Act
     ...(a.detail?.poolLengthM ? [[`${a.detail.poolLengthM} m`, "Pool"] as [string, string]] : []),
     ...(a.rpe && a.avgHr ? [[`${a.rpe}/10`, "How it felt"] as [string, string]] : []),
   ];
-  const [dist, unit] = a.sport === "swim" || a.metres < 1000 ? [Math.round(a.metres).toLocaleString("en-GB"), "m"] : [(a.metres / 1000).toFixed(2), "km"];
+  const [dist, unit] = (() => { const d = u.dist(a.metres, a.sport); const i = d.lastIndexOf(" "); return [d.slice(0, i), d.slice(i + 1)]; })();
   return (
     <>
       <div className="runmode">

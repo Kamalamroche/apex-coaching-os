@@ -1,7 +1,8 @@
 import { useApexState } from "@apex/core/react";
-import { Shell, useToast, type TabDef } from "@apex/ui";
+import { Shell, useT, useToast, type TabDef } from "@apex/ui";
 import { useEffect, useState } from "react";
-import { useAppInfo } from "../app/AppContext";
+import { OfflineBanner, useAppInfo } from "../app/AppContext";
+import { useOpenFromNotification } from "../app/PushParts";
 import { useStore } from "../data/StoreContext";
 import { Chat } from "./screens/Chat";
 import { CheckIn } from "./screens/CheckIn";
@@ -10,7 +11,9 @@ import { More, type MoreView } from "./screens/More";
 import { Player } from "./screens/Player";
 import { Progress } from "./screens/Progress";
 import { Today } from "./screens/Today";
+import { SignRequired, useClientAgreements } from "./screens/Agreements";
 import { Train } from "./screens/Train";
+import { Onboarding, useOnboarding } from "./Onboarding";
 
 type Tab = "today" | "train" | "progress" | "chat" | "more";
 
@@ -28,6 +31,11 @@ export function ClientApp({ notice, startOn }: { notice?: string | null; startOn
   // Opens More straight on a screen, e.g. Team from Today or Membership after Stripe. Changing tab clears it.
   const [moreStart, setMoreStart] = useState<{ view: MoreView; n: number } | null>(startOn ? { view: startOn, n: 0 } : null);
   const [toast, say] = useToast();
+  const agreements = useClientAgreements();
+  const welcome = useOnboarding(agreements);
+  const [welcomed, setWelcomed] = useState(false);
+  const inWelcome = !!welcome?.length && !welcomed;
+  const t = useT();
   const tabs: TabDef<Tab>[] = [
     { id: "today", icon: "today", label: "Today" },
     { id: "train", icon: "train", label: "Train" },
@@ -35,6 +43,7 @@ export function ClientApp({ notice, startOn }: { notice?: string | null; startOn
     { id: "chat", icon: "chat", label: "Messages", dot: messages.at(-1)?.from === "coach" },
     { id: "more", icon: "more", label: "More" },
   ];
+  useOpenFromNotification<Tab>({ chat: "chat", today: "today" }, (t) => { setCheckingIn(false); setIntaking(false); setTab(t); });
   const start = () => setPlaying(true);
   const openCheckIn = () => { setCheckingIn(true); window.scrollTo(0, 0); };
   const openIntake = () => { setIntaking(true); window.scrollTo(0, 0); };
@@ -47,14 +56,21 @@ export function ClientApp({ notice, startOn }: { notice?: string | null; startOn
     return <Player onExit={() => setPlaying(false)} onDone={() => { setPlaying(false); setTab("today"); say(`Session saved · ${coachName} can see it`); }} />;
   }
   return (
-    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>Sign out</button>}>
+    <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}>
+      <OfflineBanner />
+      {welcome === null ? <div className="card"><div className="small">Loading…</div></div> : inWelcome ? <Onboarding steps={welcome} agreements={agreements} onFinish={() => { setWelcomed(true); setTab("today"); }} say={say} /> : agreements.required.length > 0 ? <SignRequired list={agreements.required} onSigned={agreements.reload} say={say} /> : <>
       {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
       {intaking && <Intake onExit={() => setIntaking(false)} onDone={() => { setIntaking(false); setTab("today"); window.scrollTo(0, 0); say(`Sent · ${coachName} can see your answers`); }} />}
-      {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} />}
+      {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} go={(id) => {
+        const more = (view: "account" | "habits") => { setMoreStart((p) => ({ view, n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); };
+        if (id === "intake") openIntake(); else if (id === "checkin") openCheckIn(); else if (id === "notifications") more("account"); else if (id === "habit") more("habits");
+        else { setTab(id === "hello" ? "chat" : "train"); window.scrollTo(0, 0); }
+      }} />}
       {!checkingIn && !intaking && tab === "train" && <Train start={start} say={say} />}
       {!checkingIn && !intaking && tab === "progress" && <Progress say={say} openCheckIn={openCheckIn} />}
-      {!checkingIn && !intaking && tab === "chat" && <Chat />}
-      {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} />}
+      {!checkingIn && !intaking && tab === "chat" && <Chat say={say} />}
+      {!checkingIn && !intaking && tab === "more" && <More key={moreStart?.n ?? 0} say={say} start={moreStart?.view ?? null} goTrain={() => { setTab("train"); window.scrollTo(0, 0); }} />}
+      </>}
       {toast}
     </Shell>
   );

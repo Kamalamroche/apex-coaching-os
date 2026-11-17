@@ -1,6 +1,6 @@
 import { countOn, firstName, type AutomationSettings } from "@apex/core";
 import { Avatar, Icons } from "@apex/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense, lazy } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { Thread } from "../../app/Thread";
 import { demoAutomations, liveAutomations } from "../../data/automations";
@@ -11,8 +11,14 @@ import { GroupMessage } from "./GroupMessage";
 import { CoachResources } from "./CoachResources";
 import { CoachTeam } from "./CoachTeam";
 import { useTeamApi } from "../../data/team";
-import { useGrowthApi } from "../../data/growth";
-import { CoachGrow } from "./CoachGrow";
+import { openedForLeads, useGrowthApi } from "../../data/growth";
+
+import { demoReplies, liveReplies } from "../../data/savedReplies";
+import { CoachAnswers } from "./CoachAnswers";
+import { useExtras } from "../../data/extras";
+
+/* Loaded when first opened, so the app starts faster. */
+const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.CoachGrow })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -22,9 +28,11 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const { status } = useStoreStatus();
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
+  const replies = useMemo(() => (live ? liveReplies(live.db, live.coachId) : demoReplies()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(false);
-  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | null>(null);
+  const [extra, setExtra] = useState<"group" | "challenges" | "resources" | "team" | "grow" | "answers" | null>(() => (openedForLeads() ? "grow" : null));
   const teamApi = useTeamApi();
+  const extras = useExtras();
   const growApi = useGrowthApi();
   const [on, setOn] = useState<number | null>(null);
   useEffect(() => {
@@ -35,7 +43,8 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;
   if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
-  if (extra === "grow") return <CoachGrow onBack={() => setExtra(null)} say={say} />;
+  if (extra === "answers") return <CoachAnswers onBack={() => setExtra(null)} say={say} />;
+  if (extra === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} onBack={() => setExtra(null)} say={say} /></Suspense>;
   if (extra === "resources") return <CoachResources live={live} onBack={() => setExtra(null)} say={say} />;
   const autoButton = (
     <div className="card flat list">
@@ -49,6 +58,13 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
         <div className="grow"><div className="h3">Message everyone</div><div className="tiny">One message to all your clients, each in their own chat</div></div>
         <span className="tiny">›</span>
       </button>
+      {extras && (
+        <button className="li" onClick={() => setExtra("answers")}>
+          <Icons.replies width={18} height={18} style={{ color: "var(--act)" }} />
+          <div className="grow"><div className="h3">Quick answers</div><div className="tiny">Your answers to common questions, shown to clients the moment they ask</div></div>
+          <span className="tiny">›</span>
+        </button>
+      )}
       <button className="li" onClick={() => setExtra("challenges")}>
         <Icons.trophy width={18} height={18} style={{ color: "var(--act)" }} />
         <div className="grow"><div className="h3">Challenges</div><div className="tiny">Group challenges with a leaderboard</div></div>
@@ -64,7 +80,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
       {growApi && (
         <button className="li" onClick={() => setExtra("grow")}>
           <Icons.globe width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Your public page, your link and requests from new people</div></div>
+          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Leads, your enquiry form, your public page, referral rewards and reviews</div></div>
           <span className="tiny">›</span>
         </button>
       )}
@@ -97,7 +113,7 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
           ))}
         </div>
       )}
-      {status === "loading" ? <div className="small">Loading messages…</div> : status === "error" ? <div className="card small">Couldn't load messages. Reload the page to try again.</div> : <Thread me="coach" to={firstName(clientName)} />}
+      {status === "loading" ? <div className="small">Loading messages…</div> : status === "error" ? <div className="card small">Couldn't load messages. Reload the page to try again.</div> : <Thread me="coach" to={firstName(clientName)} replies={replies} say={say} />}
     </>
   );
 }

@@ -31,3 +31,23 @@ describe("automatic messages", () => {
     expect(fromAutomationRow(toAutomationRow(s, "c"))).toEqual(s);
   });
 });
+
+describe("low-protein nudge", () => {
+  it("needs three logged low days", async () => {
+    const { proteinLow, AUTOMATIONS, isOn, bodyOf, fromAutomationRow, toAutomationRow } = await import("./automations");
+    expect(proteinLow([50, 60, 70], 120)).toBe(true);
+    expect(proteinLow([50, null, 70], 120)).toBe(false);
+    expect(proteinLow([50, 100, 70], 120)).toBe(false);
+    expect(proteinLow([50, 60], 120)).toBe(false);
+    expect(proteinLow([50, 60, 70], 0)).toBe(false);
+    expect(AUTOMATIONS.some((a) => a.kind === "protein")).toBe(true);
+    const s = { ...DEFAULT_AUTOMATIONS, proteinOn: true, proteinBody: "Eat protein" };
+    expect(isOn(s, "protein")).toBe(true);
+    expect(bodyOf(s, "protein")).toBe("Eat protein");
+    expect(fromAutomationRow(toAutomationRow(s, "c"))).toEqual(s);
+    // A row from before the SQL update has no protein columns.
+    const { protein_on: _a, protein_body: _b, ...old } = toAutomationRow(s, "c");
+    expect(fromAutomationRow(old).proteinOn).toBe(false);
+    expect(fromAutomationRow(old).proteinBody).toBe(DEFAULT_AUTOMATIONS.proteinBody);
+  });
+});

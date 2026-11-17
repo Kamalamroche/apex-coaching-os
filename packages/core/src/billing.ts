@@ -46,7 +46,7 @@ export function formatPlanPrice(pence: number, interval: BillingInterval): strin
 }
 
 /** What a coach types in the price box ("150", "£49.50", "1,200") as pence. null if it isn't a sensible price. */
-export function parsePounds(input: string): number | null {
+export function parsePlanPrice(input: string): number | null {
   const clean = input.replace(/[£,\s]/g, "");
   if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
   const pence = Math.round(Number(clean) * 100);

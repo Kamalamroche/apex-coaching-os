@@ -3,7 +3,7 @@
 
 import { progressWorkout } from "./progression";
 import type { Program, ProgramDay, ProgramTemplate, TemplateDay, Workout, WorkoutItem } from "./types";
-import { newKey } from "./workout";
+import { appendItems, newKey, type DraftItem } from "./workout";
 
 export const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
@@ -121,4 +121,30 @@ export function templateSummary(t: ProgramTemplate): string {
   const perWeek = new Set(t.days.filter((d) => d.week === 1).map((d) => d.dayIndex)).size || t.days.length;
   const exercises = new Set(t.days.flatMap((d) => d.items.map((i) => i.exerciseId))).size;
   return `${perWeek} day${perWeek === 1 ? "" : "s"} a week · ${t.weeks} week${t.weeks === 1 ? "" : "s"} · ${exercises} exercises`;
+}
+
+/** One training day read from a PDF or pasted text, after the coach has checked the exercise matches. */
+export interface ImportedDay { title: string; week: number; dayIndex: number; drafts: DraftItem[] }
+
+/** Rough session length from sets and rest: about 40 seconds of work per set plus the rest, rounded to 5 minutes. */
+export function estimateMinutes(items: Pick<WorkoutItem, "sets" | "restSeconds">[]): number {
+  const secs = items.reduce((t, i) => t + i.sets * (40 + i.restSeconds), 0) + 5 * 60;
+  return Math.min(180, Math.max(15, Math.round(secs / 300) * 5));
+}
+
+/** A whole programme from an imported PDF: every week and day, in the app's own format, ready to edit and send.
+    Days that land on a weekday already taken in that week move to the next free one; empty days are left out. */
+export function programFromImport(name: string, days: ImportedDay[]): Program {
+  let program: Program = { name: name.trim() || "Imported programme", weeks: 1, days: [] };
+  for (const d of days) {
+    if (!d.drafts.length) continue;
+    const week = Math.max(1, d.week);
+    const at = daysInWeek(program, week).some((x) => x.dayIndex === d.dayIndex) ? freeDayIndex(program, week, d.dayIndex) : d.dayIndex;
+    if (at === null) continue;
+    // "Day 1 - Upper" → "Upper": the weekday already shows where it sits.
+    const title = /^(?:day|session|workout)\s*\d+\s*[-–:]\s*(.+)$/i.exec(d.title.trim())?.[1] ?? d.title.trim();
+    const items = appendItems({ name: title, week, ofWeeks: 1, minutes: 45, items: [] }, d.drafts).items;
+    program = addDay(program, week, at, { name: title, week, ofWeeks: 1, minutes: estimateMinutes(items), items }).program;
+  }
+  return { ...program, days: program.days.map((d) => ({ ...d, ofWeeks: program.weeks })) };
 }

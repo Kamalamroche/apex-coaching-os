@@ -1,21 +1,27 @@
 import {
   addExercise, alternativesFor, estimatedOneRepMax, exerciseById, exerciseFor, insertExercise, isSuperset, kgFromPercent, moveItem, parseLastTime, removeItem, searchExercises,
   swapExercise, toggleSuperset, updateItem, DAY_NAMES, addDay, blockAt, blockLabel, freeDayIndex, setCircuit, setRounds, setTargets, setVarySets, updateSetTarget,
-  type Exercise, type Workout, type WorkoutItem,
+  type Exercise, type Program, type Workout, type WorkoutItem,
+  planChanges, toTemplate,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, Sheet } from "@apex/ui";
-import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
+import { Icons, Sheet, useUnits } from "@apex/ui";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent, lazy } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
+import { PlanUpdateSheet } from "./PlanUpdate";
 import { Copilot } from "./Copilot";
 import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Templates } from "./Templates";
+import { demoTemplates, liveTemplates } from "../../data/templates";
 import type { CoachLiveProps } from "../CoachApp";
 import { EXERCISE_MIME, LibraryPanel } from "./LibraryPanel";
+
+/* Loaded when first opened, so the app starts faster. */
+const PlanBuilder = lazy(() => import("./PlanBuilder").then((m) => ({ default: m.PlanBuilder })));
 
 const RECENT_IDS = [2, 9, 13];
 /** Drag payload for a workout row being moved. */
@@ -32,6 +38,7 @@ const highlight = (name: string, q: string) => {
 };
 
 export function Builder({ say, onInvite, live }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps }) {
+  const u = useUnits();
   const store = useStore();
   const { clientName, mode } = useAppInfo();
   const { status, error } = useStoreStatus();
@@ -40,9 +47,11 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [plateauOpen, setPlateauOpen] = useState<number | null>(null);
+  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
   const [importing, setImporting] = useState<File | "text" | null>(null);
@@ -53,6 +62,16 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const hits = useMemo(() => searchExercises(q), [q]);
+  /* What each day looked like when the coach opened it (or last told the client), to say what changed on publish. */
+  const baselines = useRef<Record<string, Workout>>({});
+  const [publishing, setPublishing] = useState(false);
+  /* A whole programme just brought in from a PDF or text: offer to send it and to keep it as a template. */
+  const [imported, setImported] = useState<{ name: string; sessions: number; weeks: number; perWeek: number; sent: boolean; saved: boolean } | null>(null);
+  useEffect(() => {
+    if (status === "ready" && activeDay && !baselines.current[activeDay]) baselines.current[activeDay] = structuredClone(workout);
+  }, [status, activeDay, workout]);
+  const changes = useMemo(() => { const b = baselines.current[activeDay]; return b ? planChanges(b, workout) : []; }, [activeDay, workout]);
+  const published = () => { baselines.current[activeDay] = structuredClone(store.get().workout); setPublishing(false); };
 
   const edit = (fn: (w: Workout) => Workout) => store.saveWorkout(fn(store.get().workout));
   const upd = (key: string, patch: Partial<WorkoutItem>) => edit((w) => updateItem(w, key, patch));
@@ -69,11 +88,12 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   /* "75%" in the kg box loads 75% of the estimated 1RM from the last logged set. */
   const setKg = (it: WorkoutItem, raw: string) => {
     const pct = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(raw.trim());
-    if (!pct) return upd(it.key, { kg: Number(raw.replace(",", ".")) || 0 });
+    // Typed in the coach's unit (kg or lb), stored in kg.
+    if (!pct) return upd(it.key, { kg: u.toKg(Number(raw.replace(",", ".")) || 0) });
     const kg = kgFromPercent(it, Number(pct[1]?.replace(",", ".")));
     if (kg === null) return say("No logged sets yet, so there's no 1RM to work from");
     upd(it.key, { kg });
-    say(`${pct[1]}% of the estimated 1RM = ${kg} kg`);
+    say(`${pct[1]}% of the estimated 1RM = ${u.fw(kg)}`);
   };
 
   /* Where a drop at this pointer height lands: before the first row whose middle is below it. */
@@ -107,9 +127,9 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     if (!hasType(e, "Files")) return;
     e.preventDefault();
     setFileOver(false);
-    const file = Array.from(e.dataTransfer.files).find(isPdf);
+    const file = Array.from(e.dataTransfer.files).find((f) => isPdf(f) || f.type.startsWith("image/"));
     if (file) setImporting(file);
-    else say("Drop a PDF program to import it");
+    else say("Drop a PDF or a photo of a programme to import it");
   };
 
   const first = clientName.split(" ")[0] ?? clientName;
@@ -122,16 +142,59 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     store.saveProgram(p, day.key);
     say(`${workout.name} duplicated to ${DAY_NAMES[at]}`);
   };
+  const bringInProgram = (p: Program, msg: string) => {
+    const hasPlan = status === "ready" && program.days.some((d) => d.items.length > 0);
+    if (hasPlan && !confirm(`Replace ${first}'s current programme with “${p.name}”? Their past sessions and records are kept.`)) return;
+    store.startProgram(p);
+    setImporting(null);
+    const perWeek = Math.max(...Array.from({ length: p.weeks }, (_, w) => p.days.filter((d) => d.week === w + 1).length), 1);
+    setImported({ name: p.name, sessions: p.days.length, weeks: p.weeks, perWeek, sent: false, saved: false });
+    say(msg);
+  };
+  const sendImported = () => {
+    if (!imported) return;
+    store.sendMessage("coach", `Your new programme “${imported.name}” is ready in the app: ${imported.perWeek} session${imported.perWeek === 1 ? "" : "s"} a week${imported.weeks > 1 ? ` for ${imported.weeks} weeks` : ""}. Open Train to see your first session, and message me with any questions.`);
+    baselines.current = {};
+    setImported({ ...imported, sent: true });
+    say(`Sent · ${first} can start ${imported.name} now`);
+  };
+  const saveImported = async () => {
+    if (!imported) return;
+    try {
+      await (live ? liveTemplates(live.db) : demoTemplates()).save(toTemplate(store.get().program, imported.name));
+      setImported({ ...imported, saved: true });
+      say(`Saved “${imported.name}” to your templates, ready for other clients`);
+    } catch (e) { say(e instanceof Error ? e.message : String(e)); }
+  };
+  const pdfInput = <input ref={fileRef} type="file" accept="application/pdf,.pdf,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />;
+  const importSheet = importing && (
+    <ImportPdf
+      file={importing === "text" ? null : importing}
+      workout={workout}
+      wholeOnly={status !== "ready"}
+      onClose={() => setImporting(null)}
+      onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
+      onProgram={bringInProgram}
+    />
+  );
   if (mode === "live" && !clientName) {
-    return <Empty title="No clients yet" body="Invite your first client, then build their program here." action="Invite a client" onAction={onInvite} />;
+    return <Empty title="No clients yet" body="Invite your first client, then build their programme here." action="Invite a client" onAction={onInvite} />;
   }
-  if (status === "loading") return <Empty title="Loading program…" body={`Fetching ${first}'s program.`} />;
-  if (status === "error") return <Empty title="Couldn't load the program" body={error ?? "Unknown error"} />;
+  if (status === "loading") return <Empty title="Loading programme…" body={`Fetching ${first}'s programme.`} />;
+  if (status === "error") return <Empty title="Couldn't load the programme" body={error ?? "Unknown error"} />;
   if (status === "no-program") {
     return (
       <>
-        <Empty title={`${first} has no program yet`} body="Start from a template (yours or an APEX starter), or from the Foundations day, then edit it here. Changes save as you type." action="Choose a template" onAction={() => setTemplatesOpen(true)} secondary="Start with Foundations" onSecondary={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()} />
+        <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF (even a scan), a photo or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
+        <div className="row full" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button className="btn ghost sm pb-cop" onClick={() => setPlanOpen(true)}>Describe {first}, get a plan</button>
+          <button className="btn ghost sm" onClick={() => setImporting("text")}>Paste or speak a programme</button>
+          <button className="btn ghost sm" onClick={() => void (store as { createProgram?: () => Promise<void> }).createProgram?.()}>Start with Foundations</button>
+        </div>
+        {pdfInput}
+        {importSheet}
         {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
+        {planOpen && <PlanBuilder live={live} say={say} onClose={() => setPlanOpen(false)} />}
       </>
     );
   }
@@ -145,10 +208,15 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     >
       <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
       <section className="bld-main">
-      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} />
+      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} onPlan={() => setPlanOpen(true)} />
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
-          <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the program builder SQL is run in Supabase.</span>
+          <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the programme builder SQL is run in Supabase.</span>
+        </div>
+      )}
+      {"hasNoteColumn" in store && !(store as { hasNoteColumn: () => boolean }).hasNoteColumn() && workout.items.some((x) => x.note) && (
+        <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
+          <span className="small" style={{ color: "var(--text)" }}>Exercise notes are only kept on this screen until the exercise notes SQL is run in Supabase.</span>
         </div>
       )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -158,8 +226,22 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
           <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste or speak</button>
           <button className="btn ghost sm" style={{ whiteSpace: "nowrap" }} onClick={() => setAiOpen(true)}>Adjust with AI</button>
         </div>
-        <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setImporting(f); e.target.value = ""; }} />
+        {pdfInput}
       </div>
+      {imported && (
+        <div className="card imp-ready" role="status">
+          <div className="grow">
+            <div className="eyebrow">Imported · ready for {first}</div>
+            <div className="h3">{imported.name}</div>
+            <div className="tiny">{imported.sessions} session{imported.sessions === 1 ? "" : "s"}{imported.weeks > 1 ? ` over ${imported.weeks} weeks` : ""}, laid out in APEX with demos, timers and logging. Check each day above, then send it.</div>
+          </div>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button className="btn act sm" disabled={imported.sent} onClick={sendImported}><Icons.send width={14} height={14} /> {imported.sent ? `Sent to ${first}` : `Send to ${first}`}</button>
+            <button className="btn ghost sm" disabled={imported.saved} onClick={() => void saveImported()}>{imported.saved ? "Saved as template" : "Save as template"}</button>
+            <button className="iconbtn" aria-label="Hide" onClick={() => setImported(null)}>Close</button>
+          </div>
+        </div>
+      )}
 
       <div className="bld-quick" style={{ position: "relative" }}>
         <input id="exsearch" className="field" placeholder='Add exercise: try "rdl", "hinge" or "cable"' value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
@@ -198,7 +280,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         {workout.items.length === 0 && (
           <div className="bld-empty">
             <b>Drag movements here</b>
-            <span className="small">From the library, or drop a PDF program anywhere on this page. Search above works too.</span>
+            <span className="small">From the library, or drop a PDF or photo of a programme anywhere on this page. Search above works too.</span>
           </div>
         )}
         {workout.items.map((it, i) => {
@@ -262,7 +344,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
               <div className="mini">
                 <label>{circuit ? "Rounds" : "Sets"}<input id={`s-${it.key}`} inputMode="numeric" value={it.sets} onChange={(e) => { const n = Math.min(20, Number(e.target.value.replace(/\D/g, "")) || 1); edit((w) => (circuit ? setRounds(w, it.key, n) : updateItem(w, it.key, { sets: n }))); }} /></label>
                 <label>{circuit ? "Reps / time" : "Reps"}<input id={`r-${it.key}`} value={vary ? "per set" : it.reps} disabled={vary} onChange={(e) => upd(it.key, { reps: e.target.value })} /></label>
-                <label>kg<input id={`k-${it.key}`} inputMode="decimal" value={vary ? "per set" : it.kg} disabled={vary} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
+                <label>{u.weight}<input id={`k-${it.key}`} inputMode="decimal" value={vary ? "per set" : u.w(it.kg)} disabled={vary} title="Type a percentage such as 75% to load from the estimated 1RM" onChange={(e) => setKg(it, e.target.value)} /></label>
                 <label>RPE<input id={`p-${it.key}`} inputMode="decimal" value={it.rpe} onChange={(e) => upd(it.key, { rpe: Number(e.target.value) || 0 })} /></label>
                 <label>Rest s<input id={`t-${it.key}`} inputMode="numeric" value={it.restSeconds} onChange={(e) => upd(it.key, { restSeconds: Number(e.target.value) || 0 })} /></label>
               </div>
@@ -272,16 +354,24 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
                     <div key={n} className="bld-set">
                       <span className="tiny num">Set {n + 1}</span>
                       <label>Reps<input value={t.reps} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { reps: e.target.value })))} aria-label={`Set ${n + 1} reps`} /></label>
-                      <label>kg<input inputMode="decimal" value={t.kg} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { kg: Number(e.target.value.replace(",", ".")) || 0 })))} aria-label={`Set ${n + 1} kg`} /></label>
+                      <label>{u.weight}<input inputMode="decimal" value={u.w(t.kg)} onChange={(e) => edit((w) => updateItem(w, it.key, updateSetTarget(it, n, { kg: u.toKg(Number(e.target.value.replace(",", ".")) || 0) })))} aria-label={`Set ${n + 1} ${u.weight}`} /></label>
                     </div>
                   ))}
                 </div>
               )}
+              {(it.note !== undefined || notesOpen[it.key]) && (
+                <label className="bld-note">
+                  <span className="tiny">Note for the client</span>
+                  <input id={`n-${it.key}`} maxLength={300} placeholder="e.g. each side · tempo 3-1-1 · pause at the bottom" value={it.note ?? ""}
+                    onChange={(e) => upd(it.key, { note: e.target.value || undefined })} />
+                </label>
+              )}
               {plateauOpen === it.exerciseId && stalled && <PlateauFixes plateau={stalled} say={say} onDone={() => setPlateauOpen(null)} />}
               <div className="bld-foot">
-                <span className="tiny">Last time: <span className="num">{it.lastTime}</span>{e1rm ? <> · e1RM <span className="num">{e1rm} kg</span></> : null}</span>
+                <span className="tiny">Last time: <span className="num">{u.kt(it.lastTime)}</span>{e1rm ? <> · e1RM <span className="num">{u.fw(e1rm)}</span></> : null}</span>
                 <span className="row" style={{ gap: 6 }}>
                   {stalled && <button className="chip plat-chip" aria-expanded={plateauOpen === it.exerciseId} onClick={() => setPlateauOpen(plateauOpen === it.exerciseId ? null : it.exerciseId)} title={stalled.reason}>Stalled</button>}
+                  {it.note === undefined && !notesOpen[it.key] && <button className="chip bld-ss" onClick={() => setNotesOpen((o) => ({ ...o, [it.key]: true }))} title="A short note the client sees with this exercise">+ Note</button>}
                   <button className={`chip bld-ss ${vary ? "on" : ""}`} aria-pressed={vary} onClick={() => edit((w) => updateItem(w, it.key, setVarySets(it, !vary)))} title="Different reps and kg on each set: pyramids, top set and back-offs">{vary ? "Per set ✓" : "Per set"}</button>
                   {i > 0 && (
                     <button className={`chip bld-ss ${linked ? "on" : ""}`} aria-pressed={linked} onClick={() => edit((w) => toggleSuperset(w, it.key))} title={linked ? "Unlink from the exercise above" : "Link with the exercise above: superset, tri-set, giant set or circuit"}>
@@ -297,12 +387,12 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
       </div>
       <div className="row">
         <button className="btn ghost" style={{ flex: 1 }} onClick={duplicateDay}>Duplicate day</button>
-        <button className="btn act" style={{ flex: 1.4 }} onClick={() => say(`Published · ${first}'s app updated`)}>Publish to client</button>
+        <button className="btn act" style={{ flex: 1.4 }} onClick={() => { if (changes.length) setPublishing(true); else say(`Published · ${first}'s app updated`); }}>Publish to client{changes.length ? ` · ${changes.length} change${changes.length === 1 ? "" : "s"}` : ""}</button>
       </div>
-      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s program as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
+      <p className="tiny" style={{ margin: 0 }}>Edits save to {first}'s programme as you type{mode === "demo" ? ". Open the client app to see them" : " and show in their app straight away"}. Drag the dots to reorder. Type a percentage such as 75% in kg to load from the estimated 1RM.</p>
       </section>
 
-      {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF to import it</b><span className="small">You review every exercise before it's added</span></div>}
+      {fileOver && <div className="bld-filedrop" aria-hidden><Icons.file width={28} height={28} /><b>Drop the PDF or photo to import it</b><span className="small">You review every exercise before it's added</span></div>}
 
       {templatesOpen && <Templates live={live} say={say} onClose={() => setTemplatesOpen(false)} />}
 
@@ -328,7 +418,19 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         </Sheet>
       )}
 
+      {publishing && (
+        <PlanUpdateSheet
+          first={first}
+          workoutName={workout.name}
+          changes={changes}
+          onClose={() => setPublishing(false)}
+          onSkip={() => { published(); say(`Published · ${first}'s app updated`); }}
+          onSend={(msg) => { store.sendMessage("coach", msg); published(); say(`Published · ${first} can see what changed and why`); }}
+        />
+      )}
+
       {copilotOpen && <Copilot onClose={() => setCopilotOpen(false)} say={say} />}
+      {planOpen && <PlanBuilder live={live} say={say} onClose={() => setPlanOpen(false)} />}
 
       {aiOpen && (
         <AiAdjust
@@ -338,14 +440,7 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
         />
       )}
 
-      {importing && (
-        <ImportPdf
-          file={importing === "text" ? null : importing}
-          workout={workout}
-          onClose={() => setImporting(null)}
-          onApply={(next, msg) => { edit(() => next); setImporting(null); say(msg); }}
-        />
-      )}
+      {importSheet}
     </div>
   );
 }

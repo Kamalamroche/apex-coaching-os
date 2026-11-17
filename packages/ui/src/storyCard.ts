@@ -1,4 +1,22 @@
-import { distanceText, signedUnit, type BodyChange, type CardioWeek, type PersonalBest, type StorySlide } from "@apex/core";
+import { distanceText, shownUnit, signedUnit, toShown, weightFromKg, type BodyChange, type CardioWeek, type PersonalBest, type StorySlide } from "@apex/core";
+import { getPrefs } from "./prefs";
+
+/* Cards are drawn in the person's units: the slide's kg and cm are converted on the way in. */
+const units = () => getPrefs().units;
+const WU = () => units().weight;
+const toW = (kg: number) => weightFromKg(kg, units().weight, 2);
+const shownChange = (ch: BodyChange): BodyChange => {
+  const u = units();
+  return { ...ch, delta: toShown(ch.delta, ch.unit, u, 2), first: toShown(ch.first, ch.unit, u, 2), last: toShown(ch.last, ch.unit, u, 2), unit: shownUnit(ch.unit, u) };
+};
+function shownSlide(s: StorySlide): StorySlide {
+  switch (s.kind) {
+    case "lifted": return { ...s, kg: toW(s.kg), vsLastWeekKg: s.vsLastWeekKg === null ? null : toW(s.vsLastWeekKg) };
+    case "best": return { ...s, best: { ...s.best, kg: toW(s.best.kg), previousKg: toW(s.best.previousKg) } };
+    case "body": return { ...s, change: shownChange(s.change) };
+    default: return s;
+  }
+}
 
 /* The weekly story and the progress cards, drawn on a canvas so they can be saved and posted.
    One quiet style for all of them: a deep near-black field, thin large numbers, small spaced capitals, one orange
@@ -99,7 +117,7 @@ function frame(c: Ctx, h: number, corner: string, coach: string | null, site: st
 
 /** "12.4 km" → ["12.4", "km"]. */
 function splitDistance(r: CardioWeek): [string, string] {
-  const d = distanceText(r.metres, r.sport);
+  const d = distanceText(r.metres, r.sport, units().distance);
   const i = d.lastIndexOf(" ");
   return [d.slice(0, i), d.slice(i + 1)];
 }
@@ -109,7 +127,7 @@ function vsText(r: CardioWeek): string | null {
   if (!r.lastWeekMetres) return null;
   const diff = r.metres - r.lastWeekMetres;
   if (Math.abs(diff) < 50) return "Same as last week";
-  return `${diff > 0 ? "+" : "−"}${distanceText(Math.abs(diff), r.sport)} on last week`;
+  return `${diff > 0 ? "+" : "−"}${distanceText(Math.abs(diff), r.sport, units().distance)} on last week`;
 }
 
 /** A large thin number with its unit, centred block at baseline y. Returns the bottom of the block. */
@@ -170,7 +188,7 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
   canvas.height = h;
   const c = canvas.getContext("2d");
   if (!c) return;
-  const s = p.slide;
+  const s = shownSlide(p.slide);
   const t = p.t;
   if (p.photo && p.photo.width) {
     photoCard(c, h, p.photo, slideBand(s, p.week), p.coach, p.site, t, p.place, p.size);
@@ -208,16 +226,16 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
     }
     case "lifted": {
       eyebrow(c, "Lifted this week", mid - 280, part(t, 0));
-      bigNumber(c, num(s.kg * ease(t / 0.8)), "kg", mid, big, part(t, 0.05));
+      bigNumber(c, num(s.kg * ease(t / 0.8)), WU(), mid, big, part(t, 0.05));
       if (s.fun) line(c, `That's ${s.fun}.`, mid + 110, part(t, 0.45));
-      if (s.vsLastWeekKg) line(c, `${s.vsLastWeekKg > 0 ? "+" : "−"}${num(Math.abs(s.vsLastWeekKg))} kg on last week`, mid + 180, part(t, 0.55), s.vsLastWeekKg > 0 ? C.good : C.text3, 34, 500);
+      if (s.vsLastWeekKg) line(c, `${s.vsLastWeekKg > 0 ? "+" : "−"}${num(Math.abs(s.vsLastWeekKg))} ${WU()} on last week`, mid + 180, part(t, 0.55), s.vsLastWeekKg > 0 ? C.good : C.text3, 34, 500);
       break;
     }
     case "best": {
       eyebrow(c, "Personal best", mid - 300, part(t, 0));
       line(c, s.best.exercise, mid - 200, part(t, 0.08), C.text, 60, 600);
-      bigNumber(c, kgText(s.best.previousKg + (s.best.kg - s.best.previousKg) * ease((t - 0.15) / 0.6)), "kg", mid + 100, big, part(t, 0.12));
-      line(c, `Up from ${kgText(s.best.previousKg)} kg${s.others > 0 ? ` · ${s.others} more best${s.others > 1 ? "s" : ""} this week` : ""}`, mid + 200, part(t, 0.5));
+      bigNumber(c, kgText(s.best.previousKg + (s.best.kg - s.best.previousKg) * ease((t - 0.15) / 0.6)), WU(), mid + 100, big, part(t, 0.12));
+      line(c, `Up from ${kgText(s.best.previousKg)} ${WU()}${s.others > 0 ? ` · ${s.others} more best${s.others > 1 ? "s" : ""} this week` : ""}`, mid + 200, part(t, 0.5));
       break;
     }
     case "habits": {
@@ -275,7 +293,7 @@ export function drawStorySlide(canvas: HTMLCanvasElement, p: StoryDraw) {
         setFont(c, 500, 42, 0);
         text(c, r.label, PAD, y, k, C.text);
         setFont(c, 200, 72, -1);
-        text(c, distanceText(r.metres, r.sport), CARD_W - PAD, y + 14, k, C.text, "right");
+        text(c, distanceText(r.metres, r.sport, units().distance), CARD_W - PAD, y + 14, k, C.text, "right");
         const d = vsText(r);
         setFont(c, 400, 30, 0);
         text(c, `${r.sessions} session${r.sessions === 1 ? "" : "s"} · ${hm(r.minutes)}`, PAD, y + 46, k, C.text2);
@@ -400,7 +418,9 @@ export interface MeasureDraw {
   t: number;
 }
 
-export function drawMeasureCard(canvas: HTMLCanvasElement, p: MeasureDraw) {
+export function drawMeasureCard(canvas: HTMLCanvasElement, given: MeasureDraw) {
+  const metric = given.change.unit;
+  const p: MeasureDraw = { ...given, change: shownChange(given.change), series: given.series.map((q) => ({ ...q, value: toShown(q.value, metric, units(), 2) })) };
   const h = cardHeight(p.format);
   canvas.width = CARD_W;
   canvas.height = h;
@@ -486,8 +506,8 @@ interface Band {
 function slideBand(s: StorySlide, week: string): Band {
   switch (s.kind) {
     case "cover": return { eyebrow: `${s.soFar ? "My week so far" : "My week"} · ${week}`, value: String(s.workouts), unit: s.workouts === 1 ? "workout" : "workouts", sub: hm(s.minutes), days: s.days };
-    case "lifted": return { eyebrow: `Lifted · ${week}`, value: num(s.kg), unit: "kg", sub: s.fun ? `That's ${s.fun}` : `${s.sets} sets` };
-    case "best": return { eyebrow: `Personal best · ${s.best.exercise}`, value: kgText(s.best.kg), unit: "kg", sub: `Up from ${kgText(s.best.previousKg)} kg` };
+    case "lifted": return { eyebrow: `Lifted · ${week}`, value: num(s.kg), unit: WU(), sub: s.fun ? `That's ${s.fun}` : `${s.sets} sets` };
+    case "best": return { eyebrow: `Personal best · ${s.best.exercise}`, value: kgText(s.best.kg), unit: WU(), sub: `Up from ${kgText(s.best.previousKg)} ${WU()}` };
     case "habits": return { eyebrow: `Habits · ${week}`, value: String(Math.round((s.done / s.due) * 100)), unit: "%", sub: `${s.done} of ${s.due} ticked off`, ring: s.done / s.due };
     case "streak": return { eyebrow: "Streak", value: String(s.weeks), unit: s.weeks === 1 ? "week" : "weeks", sub: "in a row with at least one workout" };
     case "body": return { eyebrow: s.change.label, value: signedUnit(s.change.delta, "").trim(), unit: s.change.unit, sub: `Since ${new Date(s.change.since).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` };
@@ -495,7 +515,7 @@ function slideBand(s: StorySlide, week: string): Band {
     case "cardio": {
       const top = s.rows[0]!;
       const [v, u] = splitDistance(top);
-      const others = s.rows.slice(1).map((r) => `${r.label} ${distanceText(r.metres, r.sport)}`).join(" · ");
+      const others = s.rows.slice(1).map((r) => `${r.label} ${distanceText(r.metres, r.sport, units().distance)}`).join(" · ");
       return { eyebrow: `Distance · ${week}`, value: v, unit: `${u} ${top.label.toLowerCase()}`, sub: others || vsText(top) || `${top.sessions} session${top.sessions === 1 ? "" : "s"}` };
     }
     case "end": return { eyebrow: "Train with me", value: "APEX", unit: "", sub: "" };

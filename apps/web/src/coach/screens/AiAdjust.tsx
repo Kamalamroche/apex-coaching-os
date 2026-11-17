@@ -1,5 +1,5 @@
 import { ADJUSTMENTS, diffWorkouts, exerciseById, formatRest, type Adjustment, type Workout } from "@apex/core";
-import { Label, Sheet } from "@apex/ui";
+import { Label, Sheet, useUnits } from "@apex/ui";
 import { useState } from "react";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 
 /** AI proposals shown as a diff. Nothing changes until the coach accepts. */
 export function AiAdjust({ workout, onClose, onApply }: Props) {
+  const u = useUnits();
   const [picked, setPicked] = useState<Adjustment | null>(ADJUSTMENTS[0] ?? null);
   const next = picked?.apply(workout);
   const reasons = picked?.reasons?.(workout) ?? {};
@@ -37,7 +38,7 @@ export function AiAdjust({ workout, onClose, onApply }: Props) {
                   <span className={`label ${change.kind === "changed" ? "l-ai" : "l-data"}`}>{change.kind === "changed" ? "Changed" : "Same"}</span>
                   <div className="grow small">
                     <b style={{ color: "var(--text)" }}>{exerciseById(change.after.exerciseId).name}</b>{" "}
-                    <span className="num">{change.after.sets}×{change.after.reps}{change.after.kg ? ` · ${change.after.kg} kg` : ""} · RPE {change.after.rpe} · {formatRest(change.after.restSeconds)}</span>
+                    <span className="num">{change.after.sets}×{change.after.reps}{change.after.kg ? ` · ${u.fw(change.after.kg)}` : ""} · RPE {change.after.rpe} · {formatRest(change.after.restSeconds)}</span>
                     {reasons[change.before.key] && <div className="tiny" style={{ marginTop: 3 }}>{reasons[change.before.key]}</div>}
                   </div>
                 </div>

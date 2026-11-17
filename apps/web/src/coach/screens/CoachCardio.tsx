@@ -1,5 +1,5 @@
-import { firstName, formatDistance, formatDuration, sportLabel, weekTotals } from "@apex/core";
-import { Label, Sheet } from "@apex/ui";
+import { firstName, formatDuration, sportLabel, weekTotals } from "@apex/core";
+import { Label, Sheet, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { ActivityRow, ActivityView } from "../../app/ActivityView";
 import { RecoveryView } from "../../app/RecoveryView";
@@ -8,6 +8,7 @@ import { useActivities } from "../../data/ActivityContext";
 
 /** The client's runs, swims and rides on the coach's Brief. Read-only: the client owns their cardio. */
 export function CoachCardio() {
+  const u = useUnits();
   const { activities, connections, status } = useActivities();
   const { clientName } = useAppInfo();
   const [open, setOpen] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export function CoachCardio() {
         <div className="li">
           <div className="grow">
             <div className="tiny">This week</div>
-            <div className="h3 num">{week.length ? week.map((w) => `${sportLabel(w.sport)} ${w.metres ? formatDistance(w.metres, w.sport) : formatDuration(w.seconds)}`).join(" · ") : "Nothing logged yet"}</div>
+            <div className="h3 num">{week.length ? week.map((w) => `${sportLabel(w.sport)} ${w.metres ? u.dist(w.metres, w.sport) : formatDuration(w.seconds)}`).join(" · ") : "Nothing logged yet"}</div>
           </div>
         </div>
         {activities.slice(0, 4).map((a) => <ActivityRow key={a.id} activity={a} all={activities} onOpen={() => setOpen(a.id)} />)}

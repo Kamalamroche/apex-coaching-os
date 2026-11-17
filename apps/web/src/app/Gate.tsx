@@ -3,17 +3,22 @@ import { Icons } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
-import { SignIn } from "../auth/SignIn";
+import { SignIn, type SignInMode } from "../auth/SignIn";
 import { Welcome, welcomeSeen } from "../auth/Welcome";
 import { useAuth, type Profile } from "../auth/useAuth";
+import { useAccountPrefs } from "../data/prefs";
 import { ActivityProvider } from "../data/ActivityContext";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { GoalProvider } from "../data/GoalContext";
 import { BookingProvider, demoBookings, type BookingApi } from "../data/bookings";
+import { demoGrow, GrowProvider, type GrowApi } from "../data/grow";
+import { demoMarketing, MarketingProvider, type MarketingApi } from "../data/marketing";
+import { newPack } from "@apex/core";
 import { ChallengeProvider, demoChallenges, type ChallengeApi } from "../data/challenges";
 import { TeamProvider, demoTeam, type TeamApi } from "../data/team";
 import { GrowthProvider, demoGrowth, type GrowthApi } from "../data/growth";
 import { ResourceProvider, demoResources } from "../data/resources";
+import { CoachRecipeProvider, demoCoachRecipes } from "../data/coachRecipes";
 import { NotesProvider, demoNotes } from "../data/clientNotes";
 import { LifestyleProvider } from "../data/LifestyleContext";
 import { StoreProvider } from "../data/StoreContext";
@@ -24,20 +29,27 @@ import { AppInfoProvider } from "./AppContext";
 import { PrivacyProvider, demoPrivacy, livePrivacy, type PrivacyApi } from "../data/privacy";
 import { PrivacyGate } from "./Privacy";
 import { TwinProvider, demoTwin, type TwinApi } from "../data/twin";
+import { GymProvider, demoGym, type GymApi } from "../data/gym";
+import { ExtrasProvider, demoExtras, type ExtrasApi } from "../data/extras";
 
 const demoStore: { current: ApexStore | null } = { current: null };
 const demoActivities: { current: ActivityStore | null } = { current: null };
 const demoLifestyle: { current: LifestyleStore | null } = { current: null };
 const demoFormChecks: { current: FormCheckStore | null } = { current: null };
 const demoGoals: { current: GoalStore | null } = { current: null };
-const demoBookingApi: { current: BookingApi | null } = { current: null };
+const demoBookingApis: Partial<Record<"coach" | "client", BookingApi>> = {};
 const demoChallengeApis: Partial<Record<"coach" | "client", ChallengeApi>> = {};
 const demoTeamApis: Partial<Record<"coach" | "client", TeamApi>> = {};
 const demoGrowthApis: Partial<Record<"coach" | "client", GrowthApi>> = {};
+const demoGrowApis: Partial<Record<"coach" | "client", GrowApi>> = {};
+const demoMarketingApis: Partial<Record<"coach" | "client", MarketingApi>> = {};
 const demoResourceApi = demoResources();
+const demoCoachRecipeApi = demoCoachRecipes();
 const demoNotesApi = demoNotes();
 const demoTwinApi: { current: TwinApi | null } = { current: null };
+const demoGymApi: { current: GymApi | null } = { current: null };
 const demoPrivacyApis: Partial<Record<"coach" | "client", PrivacyApi>> = {};
+const demoExtrasApis: Partial<Record<"coach" | "client", ExtrasApi>> = {};
 
 export interface Live {
   db: SupabaseClient;
@@ -51,6 +63,7 @@ export interface Live {
  */
 export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () => ReactNode; live: (l: Live) => ReactNode }) {
   const [welcomed, setWelcomed] = useState(() => side !== "client" || welcomeSeen());
+  const [mode, setMode] = useState<SignInMode | undefined>();
   if (isDemo() || !supabase) {
     if (!welcomed) return <Welcome demo onContinue={() => setWelcomed(true)} />;
     demoStore.current ??= createDemoStore();
@@ -58,30 +71,34 @@ export function Gate({ side, demo, live }: { side: "coach" | "client"; demo: () 
     demoLifestyle.current ??= createDemoLifestyleStore();
     demoFormChecks.current ??= createDemoFormCheckStore((b) => URL.createObjectURL(b));
     demoGoals.current ??= createDemoGoalStore();
-    demoBookingApi.current ??= demoBookings();
+    demoBookingApis[side] ??= demoBookings(side === "coach" ? "coach" : undefined);
     demoChallengeApis[side] ??= demoChallenges(side);
     demoTeamApis[side] ??= demoTeam(side);
     demoGrowthApis[side] ??= demoGrowth(side);
+    demoMarketingApis[side] ??= demoMarketing(side);
+    demoGrowApis[side] ??= demoGrow(side, async (clientId, sessions, note) => demoBookingApis[side]?.addPack(newPack(clientId, sessions, 0, "free", 0, note, "referral")));
     demoTwinApi.current ??= demoTwin(() => demoStore.current as ApexStore);
+    demoGymApi.current ??= demoGym();
+    demoExtrasApis[side] ??= demoExtras(side);
     demoPrivacyApis[side] ??= demoPrivacy(side, side === "coach" ? "Kamal" : "Priya Sharma");
     return (
       <AppInfoProvider info={{ mode: "demo", coachName: "Kamal", clientName: "Priya Sharma" }}>
         <StoreProvider store={demoStore.current}>
-          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApi.current}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><ResourceProvider value={demoResourceApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}>{demo()}</TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></ResourceProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
+          <ActivityProvider store={demoActivities.current} strava={demoStravaLink(demoActivities.current)} wearables={demoWearableLink(demoActivities.current)} editable={side === "client"}><LifestyleProvider store={demoLifestyle.current}><FormCheckProvider store={demoFormChecks.current}><GoalProvider store={demoGoals.current}><BookingProvider value={demoBookingApis[side] ?? null}><ChallengeProvider value={demoChallengeApis[side] ?? null}><TeamProvider value={demoTeamApis[side] ?? null}><GrowthProvider value={demoGrowthApis[side] ?? null}><GrowProvider value={demoGrowApis[side] ?? null}><MarketingProvider value={demoMarketingApis[side] ?? null}><ResourceProvider value={demoResourceApi}><CoachRecipeProvider value={demoCoachRecipeApi}><NotesProvider value={side === "coach" ? demoNotesApi : null}><PrivacyProvider value={demoPrivacyApis[side] ?? null}><PrivacyGate><TwinProvider value={side === "coach" ? demoTwinApi.current : null}><GymProvider value={side === "coach" ? demoGymApi.current : null}><ExtrasProvider value={demoExtrasApis[side] ?? null}>{demo()}</ExtrasProvider></GymProvider></TwinProvider></PrivacyGate></PrivacyProvider></NotesProvider></CoachRecipeProvider></ResourceProvider></MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></ChallengeProvider></BookingProvider></GoalProvider></FormCheckProvider></LifestyleProvider></ActivityProvider>
         </StoreProvider>
       </AppInfoProvider>
     );
   }
-  return <LiveGate db={supabase} side={side} live={live} welcome={welcomed ? null : <Welcome demo={false} onContinue={() => setWelcomed(true)} />} />;
+  return <LiveGate db={supabase} side={side} live={live} mode={mode} welcome={welcomed ? null : <Welcome demo={false} onContinue={(m) => { setMode(m); setWelcomed(true); }} />} />;
 }
 
-function LiveGate({ db, side, live, welcome }: { db: SupabaseClient; side: "coach" | "client"; live: (l: Live) => ReactNode; welcome: ReactNode }) {
+function LiveGate({ db, side, live, welcome, mode }: { db: SupabaseClient; side: "coach" | "client"; live: (l: Live) => ReactNode; welcome: ReactNode; mode?: SignInMode }) {
   const [auth, refresh] = useAuth(db);
   const invite = useInviteForExistingClient(db, auth.kind === "ready" ? auth.profile : null);
   const signOut = () => void db.auth.signOut();
 
   if (auth.kind === "loading" || invite === "pending") return <Splash />;
-  if (auth.kind === "signed-out") return welcome ?? <SignIn db={db} side={side} />;
+  if (auth.kind === "signed-out") return welcome ?? <SignIn db={db} side={side} mode={mode} />;
   if (auth.kind === "no-profile") return <Onboarding db={db} session={auth.session} side={side} onDone={refresh} />;
   if (auth.profile.role !== side) {
     const other = auth.profile.role;
@@ -93,11 +110,12 @@ function LiveGate({ db, side, live, welcome }: { db: SupabaseClient; side: "coac
       </Splash>
     );
   }
-  return <LiveReady db={db} profile={auth.profile} email={auth.session.user.email ?? ""} signOut={signOut} live={live} />;
+  return <LiveReady db={db} profile={auth.profile} email={auth.session.user.email ?? ""} metadata={auth.session.user.user_metadata} signOut={signOut} live={live} />;
 }
 
 /** Signed in with the right kind of account: check the person's agreements, then open the app. */
-function LiveReady({ db, profile, email, signOut, live }: { db: SupabaseClient; profile: Profile; email: string; signOut: () => void; live: (l: Live) => ReactNode }) {
+function LiveReady({ db, profile, email, metadata, signOut, live }: { db: SupabaseClient; profile: Profile; email: string; metadata?: Record<string, unknown>; signOut: () => void; live: (l: Live) => ReactNode }) {
+  useAccountPrefs(db, metadata);
   const privacy = useMemo(() => livePrivacy(db, { id: profile.id, role: profile.role, name: profile.full_name, email }), [db, profile.id, profile.role, profile.full_name, email]);
   return (
     <AppInfoProvider info={{ mode: "live", coachName: "", clientName: "", signOut }}>

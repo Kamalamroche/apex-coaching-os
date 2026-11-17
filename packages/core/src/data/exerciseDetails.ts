@@ -4,6 +4,7 @@ import type { Exercise } from "../types";
    Keyed by exercise id; merged over the generated library. */
 export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "aliases" | "muscles" | "steps" | "cues" | "commonMistake">>> = {
   16: {
+    aliases: ["barbell curls", "bb curl", "straight bar curl"],
     muscles: ["Biceps", "Forearms"],
     steps: ["Stand tall holding a barbell with an underhand grip, hands about shoulder width apart.", "Let the bar hang at arm's length against your thighs and brace your core.", "Keep your elbows by your sides and curl the bar up towards your shoulders.", "Squeeze at the top, then lower slowly until your arms are straight."],
     cues: ["Elbows stay by your sides", "No hip swing", "Full stretch at the bottom"],
@@ -102,6 +103,7 @@ export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "aliases" |
     commonMistake: "Front knee collapsing inwards",
   },
   112: {
+    aliases: ["deadlift", "barbell deadlift", "conventional deadlifts", "dl"],
     muscles: ["Glutes", "Hamstrings", "Back", "Quads"],
     steps: ["Stand with the bar over your mid-foot, feet hip width apart.", "Hinge down and grip the bar just outside your legs.", "Drop your hips until your shins touch the bar, chest up and back flat.", "Take a big breath, brace, and push the floor away until you stand tall.", "Lower the bar by pushing your hips back first, keeping it close to your legs."],
     cues: ["Bar over mid-foot", "Brace before you pull", "Push the floor away"],
@@ -114,6 +116,7 @@ export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "aliases" |
     commonMistake: "Bouncing the bar off the chest",
   },
   132: {
+    aliases: ["single-arm db row", "dumbbell row", "db row", "one arm dumbbell row", "one-arm row", "single arm row"],
     muscles: ["Lats", "Upper back", "Biceps"],
     steps: ["Place one knee and the same hand on a bench, back flat and parallel to the floor.", "Hold a dumbbell in the other hand with your arm straight.", "Row the dumbbell towards your hip, leading with your elbow.", "Pause at the top, then lower slowly to a full stretch."],
     cues: ["Elbow to hip", "Flat back", "Don't twist"],
@@ -143,4 +146,14 @@ export const EXERCISE_DETAILS: Record<number, Partial<Pick<Exercise, "aliases" |
     cues: ["Hips high", "Long spine before straight legs", "Spread your fingers wide"],
     commonMistake: "Rounding the back to force the heels down",
   },
+  62: { aliases: ["chest fly", "cable flye", "cable crossover"] },
+  63: { aliases: ["pec deck", "machine fly", "pec fly"] },
+  416: { aliases: ["ab wheel", "ab roller", "rollout"] },
+  100: { aliases: ["shrug", "shrugs", "barbell shrugs"] },
+  54: { aliases: ["calf raise", "calf raises", "standing calf raises"] },
+  77: { aliases: ["hip abduction machine", "abduction machine", "hip abduction"] },
+  79: { aliases: ["cable kickback", "glute kickback", "cable kickbacks"] },
+  499: { aliases: ["pallof press", "pallof"] },
+  225: { aliases: ["wall sit", "wall sits"] },
+  448: { aliases: ["leg raise", "leg raises", "lying leg raise"] },
 };

@@ -1,13 +1,15 @@
 import {
+  EXERCISES, bestMoment, carsLifted, topSet,
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
-  sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WheelInput } from "@apex/ui";
+import { BestMoment, CarsMoment, CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { FormCheckSheet } from "./FormCheck";
+import { ExerciseCommentSheet } from "./ExerciseComment";
 import { PlateCalculator } from "./PlateCalculator";
 import { ReadinessCheck } from "./Readiness";
 import { ShareWorkout } from "./ShareWorkout";
@@ -20,6 +22,7 @@ const RPE_SCALE = [6, 7, 8, 9, 10];
     move station to station and rest after the round; timed stations get a work countdown. */
 export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => void }) {
   const store = useStore();
+  const u = useUnits();
   // Snapshot the program at start so a coach edit mid-session can't reshuffle the sets being logged.
   const [w, setW] = useState(() => store.get().workout);
   /** Undefined until the client answers or skips the readiness check. */
@@ -36,6 +39,8 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const [finishing, setFinishing] = useState(false);
   const [plates, setPlates] = useState(false);
   const [filming, setFilming] = useState(false);
+  const [commenting, setCommenting] = useState(false);
+  const [comments, setComments] = useState<ExerciseComment[]>([]);
   /** Exercises a form check video was sent for in this session. */
   const [filmed, setFilmed] = useState<Record<number, boolean>>({});
   /** Bar chosen in the plate calculator, per exercise, for this session. */
@@ -111,10 +116,11 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const circuit = it.blockStyle === "circuit";
   const targets = setTargets(it);
   const hasKg = targets.some((t) => t.kg > 0);
+  const showKg = (raw: string | number) => { const n = Number(String(raw).replace(",", ".")); return Number.isFinite(n) ? u.w(n) : raw; };
   const workSecs = timedSeconds(it.reps);
   const round = itemSets.filter((s) => s.done).length + 1;
 
-  if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} minutes={minutes} onDone={onDone} />;
+  if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} comments={comments} minutes={minutes} onDone={onDone} />;
 
   // The plate calculator opens on the next set still to do.
   const nextSet = itemSets.find((s) => !s.done) ?? itemSets.at(-1);
@@ -145,12 +151,12 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
         <div className="tiles">
           <div className="tile mid"><b>{Math.min(itemSets.filter((x) => x.done).length + 1, it.sets)}<small> / {it.sets}</small></b><span>{circuit ? "Round" : "Set"}</span></div>
           <div className="tile mid"><b>{workSecs ? `${workSecs}s` : (nextSet?.reps || it.reps)}</b><span>{workSecs ? "Work" : distanceMetres(it.reps) ? "Metres" : "Reps"}</span></div>
-          <div className="tile mid"><b>{hasKg ? (nextSet?.kg || it.kg) : "BW"}{hasKg && <small> kg</small>}</b><span>{hasKg ? "Weight" : "Bodyweight"}</span></div>
+          <div className="tile mid"><b>{hasKg ? showKg(nextSet?.kg || it.kg) : "BW"}{hasKg && <small> {u.weight}</small>}</b><span>{hasKg ? "Weight" : "Bodyweight"}</span></div>
         </div>
         <div>
           <div className="small num">
             {circuit ? `Round ${Math.min(round, it.sets)} of ${it.sets} · ${it.reps}` : `Target ${it.sets}×${it.setPlan ? targets.map((t) => t.reps).join("/") : it.reps}`}
-            {it.kg ? ` @ ${it.setPlan ? `up to ${Math.max(...targets.map((t) => t.kg))}` : it.kg} kg` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
+            {it.kg ? ` @ ${it.setPlan ? `up to ${u.w(Math.max(...targets.map((t) => t.kg)))}` : u.w(it.kg)} ${u.weight}` : ""} · RPE {it.rpe} · rest {it.restSeconds ? formatRest(it.restSeconds) : inBlock ? "none, next station" : "none, go to next"}
           </div>
           {inBlock && (
             <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -161,26 +167,28 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
             <button className="link" onClick={() => setShowCues(!showCues)}>{showCues ? "Hide cues" : "Show cues"}</button>
             {usesPlates(ex) && it.kg > 0 && <button className="link" onClick={() => setPlates(true)}>Plate calculator</button>}
             <button className="link" onClick={() => setFilming(true)}>{filmed[ex.id] ? "Video sent · film another" : "Film my form"}</button>
+            <button className="link" onClick={() => setCommenting(true)}>{comments.some((c) => c.exerciseId === ex.id) ? `Comment sent · add another` : "Comment"}</button>
           </div>
           {showCues && <ol className="small" style={{ margin: "6px 0 0", paddingLeft: 20 }}>{ex.cues.map((c) => <li key={c}>{c}</li>)}</ol>}
         </div>
+        {it.note && <div className="coach-note"><span className="tiny">From your coach</span>{it.note}</div>}
         <div className="card" style={{ padding: "10px 12px" }}>
-          <div className="small">Last time: <b className="num" style={{ color: "var(--text)" }}>{it.lastTime}</b></div>
+          <div className="small">Last time: <b className="num" style={{ color: "var(--text)" }}>{u.kt(it.lastTime)}</b></div>
         </div>
         <div>
           <div className="sets" style={{ marginBottom: 6 }}>
-            {[circuit ? "Rnd" : "Set", hasKg ? "kg" : "—", workSecs ? "Secs" : distanceMetres(it.reps) ? "Metres" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
+            {[circuit ? "Rnd" : "Set", hasKg ? u.weight : "—", workSecs ? "Secs" : distanceMetres(it.reps) ? "Metres" : "Reps", "Target", ""].map((h, i) => <span key={i} className="tiny" style={{ textAlign: "center", fontWeight: 700 }}>{h}</span>)}
           </div>
           {itemSets.map((s, i) => (
             <div key={i} className="sets" style={{ marginBottom: 8, opacity: s.done ? 0.75 : 1 }}>
               <span className="num" style={{ textAlign: "center", fontWeight: 800, color: s.done ? "var(--good)" : "var(--text2)" }}>{i + 1}</span>
               {hasKg ? (
-                <WheelInput id={`pk-${it.key}-${i}`} className="cell" title={`Set ${i + 1} weight`} unit="kg" min={0} max={400} step={0.25} fallback={targets[i]?.kg || it.kg || 20} value={s.kg} onChange={(v) => patchSet(i, { kg: v })} />
+                <WeightWheel id={`pk-${it.key}-${i}`} className="cell" title={`Set ${i + 1} weight`} min={0} max={400} step={0.25} fallback={targets[i]?.kg || it.kg || 20} value={s.kg} onChange={(v) => patchSet(i, { kg: v })} />
               ) : (
                 <span className="tiny" style={{ textAlign: "center" }}>BW</span>
               )}
               <WheelInput id={`pr-${it.key}-${i}`} className="cell" title={`Set ${i + 1} ${workSecs ? "seconds" : distanceMetres(it.reps) ? "metres" : "reps"}`} unit={workSecs ? "s" : distanceMetres(it.reps) ? "m" : "reps"} min={0} max={distanceMetres(it.reps) ? 5000 : workSecs ? 600 : 100} step={distanceMetres(it.reps) ? 10 : workSecs ? 5 : 1} fallback={Number(targets[i]?.reps ?? it.reps) || 8} value={s.reps} onChange={(v) => patchSet(i, { reps: v })} />
-              <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{targets[i]?.kg} kg</> : null}</span>
+              <span className="num tiny" style={{ textAlign: "center" }}>{targets[i]?.reps ?? it.reps}{it.setPlan && targets[i]?.kg ? <><br />{u.fw(targets[i]?.kg ?? 0)}</> : null}</span>
               <button className={`tick ${s.done ? "on" : ""}`} onClick={() => toggle(i)} aria-label={`Complete set ${i + 1}`}><Icons.check width={20} height={20} strokeWidth={2.25} /></button>
             </div>
           ))}
@@ -200,6 +208,15 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
         )}
       </main>
+      {commenting && (
+        <ExerciseCommentSheet
+          exerciseId={ex.id}
+          exercise={ex.name}
+          set={itemSets.some((x) => x.done) ? Math.min(itemSets.filter((x) => x.done).length, it.sets) : null}
+          onClose={() => setCommenting(false)}
+          onSent={(c) => { setComments((l) => [...l, c]); setCommenting(false); }}
+        />
+      )}
       {filming && <FormCheckSheet exerciseId={ex.id} exercise={ex.name} onClose={() => setFilming(false)} onSent={() => { setFilming(false); setFilmed((f) => ({ ...f, [ex.id]: true })); }} />}
       {plates && (
         <PlateCalculator exercise={ex} kg={plateKg} barKg={barKg[ex.id] ?? defaultBarFor(ex)} setBarKg={(kg) => setBarKg((b) => ({ ...b, [ex.id]: kg }))} onClose={() => setPlates(false)} />
@@ -238,20 +255,26 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   );
 }
 
-function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; minutes: () => number; onDone: () => void }) {
+function Finish({ workout: w, sets, history, readiness, comments, minutes, onDone }: { workout: Workout; sets: SessionSets; history: TrainingHistory; readiness: Readiness | null; comments: ExerciseComment[]; minutes: () => number; onDone: () => void }) {
   const store = useStore();
+  const u = useUnits();
   const { clientName, coachName } = useAppInfo();
   const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [sharing, setSharing] = useState(false);
   const [posting, setPosting] = useState(false);
   const team = useTeamApi();
+  // "You lifted three cars" comes first when today's total is at least one car; Continue opens the summary.
+  const [cars] = useState(() => carsLifted(sessionVolume(sets)));
+  // A new personal best comes first, on its photo; then the cars; then the summary.
+  const [best] = useState(() => bestMoment(buildSummary(w, sets, minutes(), history).bests));
+  const [step, setStep] = useState<"best" | "cars" | "summary">(best ? "best" : cars ? "cars" : "summary");
   // Freeze the duration when the summary opens, so time spent here doesn't count as training.
   const [mins] = useState(minutes);
   const volume = sessionVolume(sets);
   const prs = countPersonalBests(w, sets, history.bestKg);
   const count = completedSets(sets);
-  const summary = useMemo(() => ({ ...buildSummary(w, sets, mins, history), ...(readiness ? { readiness } : {}) }), [w, sets, mins, history, readiness]);
+  const summary = useMemo(() => ({ ...buildSummary(w, sets, mins, history), ...(readiness ? { readiness } : {}), ...(comments.length ? { comments } : {}) }), [w, sets, mins, history, readiness, comments]);
   const save = () => {
     if (sessionRpe === null) return;
     const log: SessionLog = { workoutName: w.name, sets: count, volumeKg: volume, minutes: mins, rpe: sessionRpe, prs, summary, ...(note.trim() ? { note: note.trim() } : {}) };
@@ -260,15 +283,38 @@ function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { wor
     store.sendMessage("client", summaryMessage(log));
     onDone();
   };
+  const shareSheet = sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />;
+  if (best && step === "best") {
+    const ex = EXERCISES.find((e) => e.id === best.exerciseId);
+    const art = HERO_IMAGES[ex ? heroForExercise(ex) : "dumbbell"];
+    return (
+      <div className="shell">
+        <Celebrate big />
+        <BestMoment moment={best} photo={{ src: art.src, focus: art.focus, alt: art.alt }} onShare={() => setSharing(true)} onContinue={() => setStep(cars ? "cars" : "summary")} />
+        {shareSheet}
+      </div>
+    );
+  }
+  if (cars && step === "cars") {
+    return (
+      <div className="shell">
+        <main className="main" style={{ paddingBottom: 24, minHeight: "100dvh" }}>
+          <Celebrate big />
+          <CarsMoment eyebrow={`Session done · ${w.name}`} cars={cars} totalKg={volume} vsLastKg={summary.vsLast?.volumeKg ?? null} vsLastLabel={w.name} top={topSet(w, sets)} onShare={() => setSharing(true)} onContinue={() => setStep("summary")} />
+        </main>
+        {shareSheet}
+      </div>
+    );
+  }
   return (
     <div className="shell">
       <main className="main" style={{ paddingBottom: 40 }}>
-        <Celebrate big={prs > 0} />
+        {step === "summary" && !best && !cars && <Celebrate big={prs > 0} />}
         <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete{prs > 0 ? ` · ${prs} personal best${prs > 1 ? "s" : ""}` : ""}</div>
         <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">
           <div className="kpi"><b><CountUp value={count} /></b><small>Sets · {summary.totalReps ?? 0} reps</small></div>
-          <div className="kpi"><b><CountUp value={volume} duration={1400} /></b><small>kg lifted</small></div>
+          <div className="kpi"><b><CountUp value={u.w(volume, 0)} duration={1400} /></b><small>{u.weight} lifted</small></div>
           <div className="kpi"><b><CountUp value={mins} /></b><small>Minutes</small></div>
         </div>
         <WorkoutSummaryCard summary={summary} />
@@ -284,7 +330,7 @@ function Finish({ workout: w, sets, history, readiness, minutes, onDone }: { wor
         <div className="tiny" style={{ textAlign: "center" }}>{coachName} gets this summary as soon as you save.</div>
       </main>
       {posting && <PostToTeam draft={workoutDraft({ workoutName: w.name, sets: count, minutes: mins, prs })} onClose={() => setPosting(false)} />}
-      {sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />}
+      {shareSheet}
     </div>
   );
 }

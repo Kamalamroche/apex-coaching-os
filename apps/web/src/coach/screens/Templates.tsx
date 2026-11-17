@@ -58,10 +58,10 @@ export function Templates({ live, onClose, say }: { live?: CoachLiveProps; onClo
 
   return (
     <Sheet onClose={onClose} label="Templates">
-      <div><div className="eyebrow">Program library</div><h2 className="h2">Templates</h2></div>
+      <div><div className="eyebrow">Programme library</div><h2 className="h2">Templates</h2></div>
 
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div className="h3">Save {first}'s program as a template</div>
+        <div className="h3">Save {first}'s programme as a template</div>
         <div className="row" style={{ gap: 8 }}>
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} aria-label="Template name" />
           <button className="btn act" disabled={busy} onClick={() => void save()}>Save</button>
@@ -85,7 +85,7 @@ export function Templates({ live, onClose, say }: { live?: CoachLiveProps; onClo
             </div>
             {confirm === t.id ? (
               <div className="tpl-confirm">
-                <span className="small">Replaces {first}'s current program. The old one stays in their history.</span>
+                <span className="small">Replaces {first}'s current programme. The old one stays in their history.</span>
                 <div className="row" style={{ gap: 8 }}>
                   <button className="btn ghost sm" onClick={() => setConfirm(null)}>Cancel</button>
                   <button className="btn act sm" onClick={() => useFor(t)}>Start {first} on it</button>

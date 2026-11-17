@@ -1,6 +1,7 @@
 /* Domain types shared by the coach and client apps.
    They mirror the Supabase schema in supabase/migrations: a workout item is a
    prescription, a logged set is what the client actually did. */
+import type { ExerciseComment } from "./exerciseComments";
 
 import type { Readiness } from "./readiness";
 
@@ -72,6 +73,8 @@ export interface WorkoutItem {
   setPlan?: SetTarget[];
   /** "circuit": the block runs round by round with timed stations. Absent = a straight set, superset, tri-set or giant set. */
   blockStyle?: BlockStyle;
+  /** The coach's note for this exercise, shown to the client: "each side", "tempo 3-1-1", "pause at the bottom". */
+  note?: string;
 }
 
 export interface SetTarget {
@@ -217,12 +220,16 @@ export interface WorkoutSummary {
   fun: string;
   /** The pre-session check, when the client did it. */
   readiness?: Readiness;
+  /** What the client said about single exercises during the session. */
+  comments?: ExerciseComment[];
 }
 
 export interface Message {
   from: "coach" | "client";
   text: string;
   time: string;
+  /** A voice note: where the recording is stored (or a local link in the demo) and how long it runs. */
+  voice?: { path: string; seconds: number };
 }
 
 export interface Food {
@@ -232,6 +239,14 @@ export interface Food {
   protein: number;
   carbs: number;
   fat: number;
+  /** Weight of one portion in grams (or ml for drinks), so the amount can be changed by weight. */
+  grams?: number;
+  /** Shelf in the food list, e.g. "Protein", "Carbs", "Fruit". */
+  group?: string;
+  /** Per portion, when known (scanned packs). */
+  fibre?: number;
+  sugar?: number;
+  salt?: number;
 }
 
 /** A set as the client fills it in during a session. */

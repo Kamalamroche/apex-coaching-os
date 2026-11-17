@@ -18,7 +18,7 @@ const img = (file: string, alt: string, focus: string, word: string, ink: HeroIn
   ({ src: `/hero/${file}.webp`, cut: cut ? `/hero/${file}-cut.webp` : undefined, alt, focus, word, ink });
 
 export const HERO_IMAGES: Record<HeroImage, HeroArt> = {
-  squat: img("squat", "HELIX athlete in a barbell back squat in a burgundy studio", "center 50%", "Squat", "light"),
+  squat: img("squat", "HELIX athlete in a barbell back squat in a misty burgundy studio", "center 50%", "Squat", "light"),
   lower: img("lower", "HELIX athlete doing a dumbbell split squat off a box in a burgundy studio", "center 60%", "Legs", "light"),
   "hip-thrust": img("hip-thrust", "HELIX athlete at the top of a barbell hip thrust in a burgundy studio", "center 55%", "Glutes", "light"),
   hinge: img("hinge", "HELIX athlete setting up a barbell deadlift in a burgundy studio", "center 55%", "Hinge", "light"),
@@ -34,11 +34,11 @@ export const HERO_IMAGES: Record<HeroImage, HeroArt> = {
   kettlebell: img("kettlebell", "HELIX athlete at the top of a kettlebell swing in a rust-lit studio", "center 45%", "Swing", "light"),
   core: img("core", "HELIX athlete holding a forearm plank under a single studio light", "center 60%", "Core", "light"),
   mobility: img("mobility", "HELIX athlete in a low lunge with a rotation stretch under a single studio light", "center 50%", "Flow", "light"),
-  run: img("run", "HELIX athlete sprinting in a rust-lit studio", "center 45%", "Run", "light"),
+  run: img("run", "HELIX athlete sprinting past tall windows in a misty burgundy studio", "center 45%", "Run", "light"),
   swim: img("swim", "HELIX swimmer taking a breath mid-stroke in a dark pool", "center 50%", "Swim", "light", false),
   ride: img("ride", "HELIX athlete riding a road bike in a rust-lit studio", "center 60%", "Ride", "light"),
   recovery: img("recovery", "HELIX athlete foam rolling under a single warm studio light", "center 65%", "Rest", "light"),
-  coach: img("coach", "Coach talking a HELIX athlete through her plan in a burgundy studio", "center 45%", "Coach", "light"),
+  coach: img("coach", "Coach talking a HELIX athlete through her plan in a misty burgundy studio", "center 45%", "Coach", "light"),
   meal: img("meal", "A chicken, quinoa and avocado bowl on a dark burgundy table", "center 65%", "Fuel", "light", false),
 };
 

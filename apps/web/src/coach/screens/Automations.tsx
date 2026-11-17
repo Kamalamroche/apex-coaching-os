@@ -7,10 +7,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { NEEDS_UPDATE, type AutomationsApi } from "../../data/automations";
 
-const KEYS: Record<AutomationKind, { on: "welcomeOn" | "missedOn" | "checkinOn"; body: "welcomeBody" | "missedBody" | "checkinBody" }> = {
+const KEYS: Record<AutomationKind, { on: "welcomeOn" | "missedOn" | "checkinOn" | "proteinOn"; body: "welcomeBody" | "missedBody" | "checkinBody" | "proteinBody" }> = {
   welcome: { on: "welcomeOn", body: "welcomeBody" },
   missed: { on: "missedOn", body: "missedBody" },
   checkin: { on: "checkinOn", body: "checkinBody" },
+  protein: { on: "proteinOn", body: "proteinBody" },
 };
 
 function timeZones(current: string): string[] {

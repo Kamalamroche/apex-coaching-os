@@ -25,6 +25,8 @@ export interface WorkoutItemRow {
   /** Per-set targets. Missing until the program-builder migration has run. */
   set_plan?: SetTarget[] | null;
   block_style?: BlockStyle | null;
+  /** The coach's note on the exercise. Missing until the exercise-notes SQL has run. */
+  coach_note?: string | null;
 }
 
 export interface LoggedSetRow {
@@ -63,6 +65,9 @@ export interface MessageRow {
   sender_id: string;
   body: string;
   created_at: string;
+  /** Voice notes only. Missing on databases that haven't run the chat-tools SQL yet. */
+  voice_path?: string | null;
+  voice_seconds?: number | null;
 }
 
 /** "67.5 kg × 5", "35 s" or "8 reps" from the client's most recent set of an exercise. */
@@ -106,6 +111,7 @@ export function toWorkout(
         lastTime: formatLastTime(lastSets.get(Number(r.exercise_id))),
         ...(r.set_plan?.length ? { setPlan: r.set_plan } : {}),
         ...(r.block_style ? { blockStyle: r.block_style } : {}),
+        ...(r.coach_note ? { note: r.coach_note } : {}),
       })),
   };
 }
@@ -124,6 +130,7 @@ export const toItemRows = (workout: Workout, workoutId: string): WorkoutItemRow[
     rest_seconds: it.restSeconds,
     set_plan: it.setPlan ?? null,
     block_style: it.blockStyle ?? null,
+    coach_note: it.note?.trim() ? it.note.trim().slice(0, 300) : null,
   }));
 
 /** Completed sets only. A rep target such as "40s" is a hold, so its number goes to `seconds`.
@@ -191,4 +198,9 @@ export function bestKgByExercise(rows: Pick<LoggedSetRow, "exercise_id" | "load_
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 export const toMessages = (rows: MessageRow[], coachId: string): Message[] =>
-  rows.map((r) => ({ from: r.sender_id === coachId ? "coach" : "client", text: r.body, time: hhmm(r.created_at) }));
+  rows.map((r) => ({
+    from: r.sender_id === coachId ? "coach" : "client",
+    text: r.body,
+    time: hhmm(r.created_at),
+    ...(r.voice_path ? { voice: { path: r.voice_path, seconds: r.voice_seconds ?? 0 } } : {}),
+  }));

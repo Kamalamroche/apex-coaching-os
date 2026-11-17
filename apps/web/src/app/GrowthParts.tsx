@@ -1,6 +1,7 @@
-import { inviteFriendText, type ReferralSummary } from "@apex/core";
+import { inviteFriendText, rewardText, type GrowOffer, type ReferralSummary } from "@apex/core";
 import { Icons, InviteFriendCard } from "@apex/ui";
 import { useEffect, useState } from "react";
+import { useGrowApi } from "../data/grow";
 import { useGrowthApi } from "../data/growth";
 import { useAppInfo } from "./AppContext";
 
@@ -28,7 +29,11 @@ export function useFriendInvite(): { link: string; summary: ReferralSummary } | 
 export function InviteFriend({ say }: { say: (m: string) => void }) {
   const { coachName } = useAppInfo();
   const invite = useFriendInvite();
+  const grow = useGrowApi();
+  const [offer, setOffer] = useState<GrowOffer | null>(null);
+  useEffect(() => { grow?.offer().then(setOffer, () => setOffer(null)); }, [grow]);
   if (!invite) return null;
+  const reward = offer ? rewardText(offer, coachName) : null;
   const text = inviteFriendText(coachName, invite.link);
   const share = async () => {
     if (navigator.share) {
@@ -38,6 +43,7 @@ export function InviteFriend({ say }: { say: (m: string) => void }) {
   };
   return (
     <InviteFriendCard coachName={coachName} asked={invite.summary.asked} joined={invite.summary.joined}>
+      {reward && <p className="gr-reward"><Icons.gift width={16} height={16} aria-hidden /> {reward}</p>}
       <p className="gr-headline" style={{ fontSize: 14 }}>Your link takes them to {coachName}'s page. {coachName} sees you sent them.</p>
       <button className="gr-cta" onClick={() => void share()}><Icons.share width={15} height={15} /> Invite a friend</button>
     </InviteFriendCard>
