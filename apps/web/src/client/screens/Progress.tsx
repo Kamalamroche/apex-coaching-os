@@ -10,6 +10,7 @@ import { CoachNotes } from "./CoachNotes";
 import { ConnectedApps } from "./ConnectedApps";
 import { Recovery } from "./Recovery";
 import { ShareProgress } from "./ShareProgress";
+import { LiftLadderRow } from "../../app/RewardParts";
 import { WeekStoryViewer } from "./WeekStory";
 
 const WEEK_MS = 7 * 86400000;
@@ -98,6 +99,7 @@ export function Progress({ say, openCheckIn }: { say: (m: string) => void; openC
       ) : (
         <div className="card small">Your strength chart appears after two sessions of the same lift.</div>
       )}
+      <LiftLadderRow />
       <button className="card" style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }} onClick={() => setMode("recovery")}>
         <div><div className="h3">Recovery</div><div className="small num">{last ? [last.sleepMinutes ? `${formatSleep(last.sleepMinutes)} sleep` : null, last.hrvMs ? `HRV ${Math.round(last.hrvMs)} ms` : null, last.restingHr ? `${last.restingHr} bpm resting` : null].filter(Boolean).join(" · ") : "Sleep, HRV and resting heart rate from your watch"}</div></div>
         <span className="tiny">›</span>

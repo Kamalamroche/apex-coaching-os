@@ -45,3 +45,27 @@
 .rw-sect{font:800 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-top:4px}
 @media (prefers-reduced-motion:reduce){.rw-ribbons i,.rw-carrow svg,.rw-bar i{animation:none}}
 .rw-pill{font:800 10px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;border-radius:99px;background:var(--blue-soft);color:var(--blue)}
+/* New best on its photo */
+.rw-best{display:flex;flex-direction:column;min-height:100dvh;background:#0D0F13;color:#fff}
+.rw-best-photo{position:relative;height:min(66dvh,560px);overflow:hidden}
+.rw-best-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rw-best-fade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,15,19,.15) 30%,rgba(13,15,19,.95) 100%)}
+.rw-best-text{position:absolute;left:0;right:0;bottom:26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;animation:rw-pop .6s cubic-bezier(.34,1.56,.64,1) .1s backwards}
+.rw-glass{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-line);color:var(--glass-ink);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:99px;padding:7px 12px;font:700 12.5px var(--ui)}
+.rw-best-ed{margin:0;font-family:var(--serif);font-weight:500;text-transform:uppercase;letter-spacing:.09em;line-height:1;font-size:34px;color:#fff}
+.rw-best-n{font-size:72px;font-weight:700;letter-spacing:-.03em}
+.rw-best-u{font-size:22px;opacity:.8}
+.rw-best-sheet{flex:1;background:var(--bg);color:var(--text);border-radius:28px 28px 0 0;margin-top:-18px;position:relative;padding:22px 20px 24px;display:flex;flex-direction:column;gap:14px}
+.rw-thing{display:flex;align-items:center;gap:14px;padding:14px 16px}
+.rw-thing-ico{width:48px;height:48px;flex:none;border-radius:14px;background:var(--act-soft);color:var(--act);display:grid;place-items:center}
+/* Lift ladder */
+.rw-total{text-align:center;padding:18px}
+.rw-total-n{font-size:54px;font-weight:700;letter-spacing:-.03em}
+.rw-total-u{font-size:20px;color:var(--text2)}
+.rw-ladder-list{padding:6px 16px}
+.rw-rung{display:flex;align-items:center;gap:10px;padding:9px 0}
+.rw-rung+.rw-rung{border-top:1px solid var(--line)}
+.rw-rung.off{opacity:.5}
+.rw-rung-ico{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;background:var(--card2);color:var(--text3)}
+.rw-rung.got .rw-rung-ico{background:var(--act-soft);color:var(--act)}
+.rw-rung.next .rw-rung-ico{color:var(--text)}

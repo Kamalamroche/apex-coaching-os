@@ -1,9 +1,9 @@
 import {
-  carsLifted, topSet,
+  EXERCISES, bestMoment, carsLifted, topSet,
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
   sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { CarsMoment, CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
+import { BestMoment, CarsMoment, CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -266,7 +266,9 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
   const team = useTeamApi();
   // "You lifted three cars" comes first when today's total is at least one car; Continue opens the summary.
   const [cars] = useState(() => carsLifted(sessionVolume(sets)));
-  const [carsOpen, setCarsOpen] = useState(cars !== null);
+  // A new personal best comes first, on its photo; then the cars; then the summary.
+  const [best] = useState(() => bestMoment(buildSummary(w, sets, minutes(), history).bests));
+  const [step, setStep] = useState<"best" | "cars" | "summary">(best ? "best" : cars ? "cars" : "summary");
   // Freeze the duration when the summary opens, so time spent here doesn't count as training.
   const [mins] = useState(minutes);
   const volume = sessionVolume(sets);
@@ -282,12 +284,23 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
     onDone();
   };
   const shareSheet = sharing && <ShareWorkout data={shareCardData(summary, { workoutName: w.name, volumeKg: volume, sets: count, minutes: mins }, coachName)} onClose={() => setSharing(false)} />;
-  if (cars && carsOpen) {
+  if (best && step === "best") {
+    const ex = EXERCISES.find((e) => e.id === best.exerciseId);
+    const art = HERO_IMAGES[ex ? heroForExercise(ex) : "dumbbell"];
+    return (
+      <div className="shell">
+        <Celebrate big />
+        <BestMoment moment={best} photo={{ src: art.src, focus: art.focus, alt: art.alt }} onShare={() => setSharing(true)} onContinue={() => setStep(cars ? "cars" : "summary")} />
+        {shareSheet}
+      </div>
+    );
+  }
+  if (cars && step === "cars") {
     return (
       <div className="shell">
         <main className="main" style={{ paddingBottom: 24, minHeight: "100dvh" }}>
           <Celebrate big />
-          <CarsMoment eyebrow={`Session done · ${w.name}`} cars={cars} totalKg={volume} vsLastKg={summary.vsLast?.volumeKg ?? null} vsLastLabel={w.name} top={topSet(w, sets)} onShare={() => setSharing(true)} onContinue={() => setCarsOpen(false)} />
+          <CarsMoment eyebrow={`Session done · ${w.name}`} cars={cars} totalKg={volume} vsLastKg={summary.vsLast?.volumeKg ?? null} vsLastLabel={w.name} top={topSet(w, sets)} onShare={() => setSharing(true)} onContinue={() => setStep("summary")} />
         </main>
         {shareSheet}
       </div>
@@ -296,7 +309,7 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
   return (
     <div className="shell">
       <main className="main" style={{ paddingBottom: 40 }}>
-        <Celebrate big={prs > 0} />
+        {step === "summary" && !best && !cars && <Celebrate big={prs > 0} />}
         <div className="eyebrow" style={{ color: "var(--good)" }}>Workout complete{prs > 0 ? ` · ${prs} personal best${prs > 1 ? "s" : ""}` : ""}</div>
         <h1 className="h1">Nice work, {clientName.split(" ")[0]}.</h1>
         <div className="kpis">

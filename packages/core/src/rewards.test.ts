@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXERCISES } from "./data/exercises";
-import { CAR_KG, LAUREL_RANKS, carsLifted, laurelBoard, laurelState, sampleLaurelTeam, topSet } from "./rewards";
+import { CAR_KG, LAUREL_RANKS, bestMoment, carsLifted, laurelBoard, liftLadder, laurelState, sampleLaurelTeam, topSet } from "./rewards";
 import type { Workout } from "./types";
 
 describe("rewards", () => {
@@ -53,5 +53,27 @@ describe("laurel board", () => {
     const b = laurelBoard([{ name: "B", workouts: 30, isMe: false }, { name: "A", workouts: 30, isMe: true }, { name: "C", workouts: 120, isMe: false }, { name: "D", workouts: 3, isMe: false }]);
     expect(b.map((l) => [l.name, l.place, l.rank])).toEqual([["C", 1, "marble"], ["A", 2, "silver"], ["B", 2, "silver"], ["D", 4, null]]);
     expect(sampleLaurelTeam().filter((l) => l.isMe)).toHaveLength(1);
+  });
+});
+
+describe("new best and lift ladder", () => {
+  it("picks the biggest jump and what it outweighs", () => {
+    expect(bestMoment([])).toBeNull();
+    const m = bestMoment([{ exerciseId: 1, exercise: "Squat", kg: 100, previousKg: 97.5 }, { exerciseId: 2, exercise: "Deadlift", kg: 140, previousKg: 135 }])!;
+    expect(m.exercise).toBe("Deadlift");
+    expect(m.gainKg).toBe(5);
+    expect(m.thing?.name).toBe("a small motorbike");
+    expect(bestMoment([{ exerciseId: 3, exercise: "Curl", kg: 12, previousKg: 0 }])).toMatchObject({ gainKg: 0, thing: null });
+  });
+
+  it("climbs the ladder in tonnes", () => {
+    const l = liftLadder(52_400);
+    expect(l.tonnes).toBe(52.4);
+    expect(l.next?.name).toBe("Jumbo jet");
+    expect(l.line).toBe("More than a train carriage. Next up: a jumbo jet.");
+    expect(l.rungs[0]!.name).toBe("Space rocket");
+    expect(l.rungs.filter((r) => r.reached)).toHaveLength(5);
+    expect(liftLadder(0).line).toBe("Next up: a grand piano.");
+    expect(liftLadder(600_000).next).toBeNull();
   });
 });
