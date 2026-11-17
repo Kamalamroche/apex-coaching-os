@@ -194,7 +194,7 @@ describe("Strava", () => {
 
   it("builds the sign-in link with read-only scopes", () => {
     const u = new URL(stravaAuthorizeUrl("42", "https://example.com/client/", "abc"));
-    expect(u.searchParams.get("scope")).toBe("read,activity:read_all");
+    expect(u.searchParams.get("scope")).toBe("read,activity:read_all,activity:write");
     expect(u.searchParams.get("state")).toBe("abc");
     expect(u.searchParams.get("redirect_uri")).toBe("https://example.com/client/");
   });

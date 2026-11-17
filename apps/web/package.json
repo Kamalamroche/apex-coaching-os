@@ -3,13 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/copy-ocr.mjs && vite",
-    "build": "node scripts/copy-ocr.mjs && vite build",
+    "dev": "node scripts/copy-ocr.mjs && node scripts/copy-pose.mjs && vite",
+    "build": "node scripts/copy-ocr.mjs && node scripts/copy-pose.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@apex/core": "*",
     "@apex/ui": "*",
+    "@mediapipe/tasks-vision": "0.10.21",
     "@supabase/supabase-js": "^2.118.0",
     "@tesseract.js-data/eng": "^1.0.0",
     "@zxing/browser": "^0.2.1",

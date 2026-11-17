@@ -46,3 +46,4 @@ export { FunnelView, HappinessGauge, HappinessRow, MarketingHero, OfferBanner, P
 export { drawMarketingCard, type MarketingCardData, type MarketingCardTheme } from "./marketingCard";
 export { BestMoment, CarsMoment, LadderPage, LadderPeek, LaurelBoard, LaurelLadder, LaurelPage, LaurelPeek, Wreath, type LaurelLine } from "./rewards";
 export { PocketLock, type PocketView } from "./handsFree";
+export { RepCamOverlay, RepCamResult, type RepCamLive, type RepCamResultView } from "./repCam";
