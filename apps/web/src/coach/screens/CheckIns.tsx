@@ -1,6 +1,6 @@
-import { QUESTION_IDEAS, QUESTION_KINDS, MAX_QUESTIONS, answerText, cleanQuestions, newQuestion, questionsProblem, type CheckInQuestion, type QuestionKind, WEEKDAY_NAMES, checkInDue, checkInFlags, compareCheckIns, firstName, newestFirst, shortDate, type CheckIn, type ProgressPhoto } from "@apex/core";
+import { QUESTION_IDEAS, QUESTION_KINDS, MAX_QUESTIONS, answerText, cleanQuestions, newQuestion, questionsProblem, type CheckInQuestion, type QuestionKind, WEEKDAY_NAMES, checkInDue, checkInFlags, checkInTimeline, compareCheckIns, firstName, newestFirst, shortDate, type CheckIn, type ProgressPhoto } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Icons, Label, PhotoFrame, useUnits } from "@apex/ui";
+import { CheckInTimelineCard, Icons, Label, PhotoFrame, useUnits } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { POSE_LABEL, ProgressNotice, ProgressSection } from "../../app/ProgressParts";
 import { useStore } from "../../data/StoreContext";
@@ -41,6 +41,8 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
           {waiting.map((c) => card(c, true))}
         </div>
       </section>
+
+      <CheckInTimelineCard t={checkInTimeline(checkIns)} first={first} />
 
       <ProgressSection progress={progress} />
 

@@ -1,0 +1,28 @@
+.lt{display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px;text-align:center}
+.lt-top{align-self:stretch}
+.lt-title{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.lt-ring{position:relative;width:min(78vw,320px);aspect-ratio:1}
+.lt-ring svg{width:100%;height:100%}
+.lt-track{fill:none;stroke:var(--bg2);stroke-width:5}
+.lt-arc{fill:none;stroke:var(--act);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .25s linear}
+.lt.rest .lt-arc{stroke:var(--good)}
+.lt.paused .lt-arc{stroke:var(--text3)}
+.lt-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.lt-mid b{font-size:min(19vw,76px);line-height:1;letter-spacing:-.03em}
+.lt-kind{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--act)}
+.lt.rest .lt-kind{color:var(--good)}
+.lt.paused .lt-kind{color:var(--text3)}
+.lt-name{font-size:20px;font-weight:700;max-width:80%;line-height:1.2}
+.lt-round{font-size:14px;font-weight:600;color:var(--text2)}
+.lt-next{font-size:15px;padding:8px 14px;border-radius:999px;background:var(--bg2)}
+.lt-next span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-right:4px}
+@media (prefers-reduced-motion:reduce){.lt-arc{transition:none}}
+.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--crit)}
+.live-dot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--crit);animation:live-pulse 1.6s ease-in-out infinite}
+.live-ctrl{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:4px}
+.live-ctrl .btn.act{min-width:132px;min-height:52px}
+.live-ctrl .btn.ghost{width:52px;height:52px;padding:0;display:grid;place-items:center;border-radius:50%}
+.live-banner{display:flex;align-items:center;gap:12px;width:100%;border:1px solid var(--crit);color:var(--text);text-align:left;cursor:pointer}
+.live-follow{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;flex-direction:column;gap:12px;padding:max(16px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));overflow:auto}
+@keyframes live-pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.live-dot::before{animation:none}}
