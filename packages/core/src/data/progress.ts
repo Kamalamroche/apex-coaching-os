@@ -23,6 +23,11 @@ const MEASUREMENTS: Measurement[] = [
   { id: "demo-m-1", measuredAt: "2026-10-04T10:02:00Z", checkInId: "demo-ci-1", weightKg: 63.1 },
   { id: "demo-m-2", measuredAt: "2026-10-11T08:40:00Z", checkInId: "demo-ci-2", weightKg: 62.9, waistCm: 73.2 },
   { id: "demo-m-3", measuredAt: "2026-10-18T09:12:00Z", checkInId: "demo-ci-3", weightKg: 62.6, bodyFatPct: 23.2, waistCm: 72.5, hipsCm: 97, chestCm: 88, armCm: 28.5, thighCm: 55.5 },
+  // Home weigh-ins since: the loss has stalled, which the coach's smart targets check picks up.
+  { id: "demo-m-4", measuredAt: "2026-10-25T07:40:00Z", checkInId: null, weightKg: 62.4 },
+  { id: "demo-m-5", measuredAt: "2026-11-01T07:35:00Z", checkInId: null, weightKg: 62.3 },
+  { id: "demo-m-6", measuredAt: "2026-11-08T07:45:00Z", checkInId: null, weightKg: 62.4 },
+  { id: "demo-m-7", measuredAt: "2026-11-15T07:30:00Z", checkInId: null, weightKg: 62.3 },
 ];
 
 /** A plain silhouette as a data URL. `t` from 0 (start) to 1 (latest) narrows the waist a little. */

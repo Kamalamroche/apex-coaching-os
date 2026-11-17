@@ -1,4 +1,4 @@
-import type { ActivityState, ActivityStore, WearableProvider } from "@apex/core";
+import type { ActivityState, ActivityStore, StravaPost, WearableProvider } from "@apex/core";
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 
 /** What the Connected apps screen can do. The demo fakes it; the live app talks to the `strava` edge function. */
@@ -10,6 +10,8 @@ export interface StravaLink {
   /** Brings in activities since the last sync. Resolves to how many were new or changed. */
   sync(): Promise<number>;
   disconnect(): Promise<void>;
+  /** Posts a finished strength session to the client's Strava. Resolves to the new activity's id when Strava gives one. */
+  post?(activity: StravaPost): Promise<number | null>;
 }
 
 /** The same for watches and rings (Whoop, Oura, Fitbit, Polar; Garmin once approved). */
@@ -59,4 +61,13 @@ export function useActivitiesIfAny(): ActivityState {
 export function emptyActivityStore(): ActivityStore {
   const state: ActivityState = { activities: [], connections: [], recovery: [], status: "ready" };
   return { get: () => state, subscribe: () => () => {}, save: () => {}, remove: () => {}, saveRecovery: () => {}, setConnection: () => {}, removeConnection: () => {} };
+}
+
+/** Send-to-Strava for a finished session: only for the client, only once Strava is connected. Null otherwise. */
+export function useStravaPost(): ((a: StravaPost) => Promise<number | null>) | null {
+  const v = useContext(Ctx);
+  const state = useActivitiesIfAny();
+  const link = v?.strava;
+  if (!v?.editable || !link?.post || !state.connections.some((c) => c.provider === "strava")) return null;
+  return (a) => link.post!(a);
 }

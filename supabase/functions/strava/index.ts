@@ -2,6 +2,7 @@
 // The browser never sees the app's secret or the client's tokens: it sends one of
 //   { action: "connect", code }   after Strava sends the client back with ?code=…
 //   { action: "activities", after? }  to bring in activities since a Unix time
+//   { action: "post", activity }   to post a finished APEX strength session (the client taps Send to Strava)
 //   { action: "disconnect" }
 // with the signed-in user's token, and gets plain JSON back.
 // Secrets (Supabase dashboard → Edge Functions → Secrets): STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET.
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
   const user = auth?.user;
   if (!user) return json({ error: "Sign in again, then try once more." }, 401);
 
-  let body: { action?: string; code?: string; after?: number };
+  let body: { action?: string; code?: string; after?: number; activity?: Record<string, unknown> };
   try {
     body = await req.json();
   } catch {
@@ -96,6 +97,24 @@ Deno.serve(async (req) => {
       }
       await admin.from("device_connections").update({ last_sync_at: new Date().toISOString() }).eq("client_id", user.id).eq("provider", "strava");
       return json({ activities: all });
+    }
+
+    if (body.action === "post") {
+      const a = body.activity ?? {};
+      // Only the fields APEX builds (packages/core stravaStrengthPost), and only as a strength session.
+      const form = new URLSearchParams({
+        name: String(a.name ?? "Strength session").slice(0, 120),
+        sport_type: "WeightTraining",
+        start_date_local: String(a.start_date_local ?? ""),
+        elapsed_time: String(Math.max(60, Math.min(6 * 3600, Number(a.elapsed_time) || 60))),
+        description: String(a.description ?? "").slice(0, 2000),
+        trainer: "1",
+      });
+      const res = await fetch(`${STRAVA}/api/v3/activities`, { method: "POST", headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/x-www-form-urlencoded" }, body: form });
+      if (res.status === 401 || res.status === 403) return json({ error: "Strava needs one more permission. Disconnect and connect Strava again, and leave “Upload your activities” ticked." }, 403);
+      if (!res.ok) throw new Error(`Strava post: ${res.status}`);
+      const made = (await res.json()) as { id?: number };
+      return json({ id: made.id ?? null });
     }
 
     if (body.action === "disconnect") {

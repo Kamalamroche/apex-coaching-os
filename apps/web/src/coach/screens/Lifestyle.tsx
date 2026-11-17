@@ -2,7 +2,7 @@ import {
   feetInches, fromFeetInches, ACTIVITY_LEVELS, EVERY_DAY, HABIT_PRESETS, NUTRITION_GOALS, suggestTargets, targetInputsProblem, HEALTH_QUESTIONS, againstTarget, dayTotals, microTotals, firstName, habitCompliance, habitDays, habitStreak, formatMl, kcalFromMacros, localDate, loggedAverage, parseNumber, shortDate, waterGoalMl, waterOn,
   type ActivityLevel, type Habit, type HabitKind, type NutritionGoal, type Sex, type SuggestedTargets,
   weekDaysOf, weekNutrition, restDayProblem, suggestRestDay, nutritionNudge, nutritionScore, targetsFor, workoutOn,
-  type NutritionTargets,
+  type NutritionTargets, estimateExpenditure, guessSmartGoal, smartSuggestion, weighInsFrom, SMART_GOALS, type SmartGoal, type FoodEntry,
 } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { useStore } from "../../data/StoreContext";
@@ -154,6 +154,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           ))}
         </div>
       )}
+      {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => { store.setTargets(next); say(`New targets saved · ${name} sees them now`); }} />}
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{t ? (form.rest ? "Training-day targets" : "Daily targets") : `Set ${name}'s daily targets`}</h3><Label kind="dec">Coach decision</Label></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(88px,1fr))", gap: 10 }}>
@@ -188,6 +189,70 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
         : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
     </>
+  );
+}
+
+/** Coach: what the client really burns, from their food log and weigh-ins, and new targets to accept or ignore. */
+function SmartTargetsCard({ name, targets, food, today, intakeGoal, onAccept }: { name: string; targets: NutritionTargets; food: FoodEntry[]; today: string; intakeGoal: string; onAccept: (t: NutritionTargets) => void }) {
+  const store = useStore();
+  const { progress } = useApexState(store);
+  const weighIns = weighInsFrom(
+    progress.checkIns.map((c) => ({ at: c.submittedAt, kg: c.weightKg })),
+    progress.measurements.map((m) => ({ at: m.measuredAt, kg: m.weightKg })),
+  );
+  const check = estimateExpenditure(food, weighIns, today);
+  const est = check.status === "ready" ? check.est : null;
+  const [goal, setGoal] = useState<SmartGoal>(() => guessSmartGoal(intakeGoal, targets.kcal, est));
+  const [kept, setKept] = useState(false);
+  if (!est) {
+    return (
+      <section className="card stack smart">
+        <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Smart targets</h3><Label kind="insight">Insight</Label></div>
+        <div className="small">Once {name} logs food most days and weighs in each week, APEX works out how many calories {name} really burns and suggests targets for you to approve.</div>
+        <div className="tiny">{check.status === "waiting" ? check.reason : ""} So far: {check.status === "waiting" ? check.loggedDays : 0} full days logged, {check.status === "waiting" ? check.weighIns : 0} weigh-ins.</div>
+      </section>
+    );
+  }
+  const sug = smartSuggestion(est, targets, goal, name);
+  const trendWord = Math.abs(est.trendKgPerWeek) < 0.05 ? "Steady" : `${est.trendKgPerWeek > 0 ? "+" : "−"}${Math.abs(est.trendKgPerWeek).toFixed(2)} kg`;
+  return (
+    <section className="card stack smart">
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Smart targets</h3><Label kind="insight">Insight</Label></div>
+      <div className="smart-burn">
+        <span className="tiny">{name} really burns about</span>
+        <b className="num">{est.kcal.toLocaleString("en-GB")}<span> kcal a day</span></b>
+      </div>
+      <div className="smart-stats">
+        <div><b className="num">{est.avgIntake.toLocaleString("en-GB")}</b><span className="tiny">Eats a day</span></div>
+        <div><b className="num">{trendWord}</b><span className="tiny">Weight a week</span></div>
+        <div><b className="num">{est.loggedDays}<span className="of"> days</span></b><span className="tiny">{est.weighIns} weigh-ins</span></div>
+      </div>
+      <div className="tiny">From the last four weeks of food logs and weigh-ins{est.confidence === "fair" ? ". A rough read: more logging makes it sharper." : "."}</div>
+      <div className="row" style={{ gap: 6, flexWrap: "wrap" }} role="group" aria-label="Goal">
+        {SMART_GOALS.map((g) => <button key={g.key} type="button" className={`chip ${goal === g.key ? "on" : ""}`} aria-pressed={goal === g.key} onClick={() => { setGoal(g.key); setKept(false); }}>{g.label}</button>)}
+      </div>
+      <div className="smart-sug stack" style={{ gap: 8 }}>
+        <div className="row" style={{ justifyContent: "space-between" }}><span className="h3">{sug.keep ? "Keep the current targets" : "Suggested targets"}</span><Label kind="ai">AI suggestion</Label></div>
+        <div className="small">{sug.why}</div>
+        {!sug.keep && !kept && (
+          <>
+            <div className="smart-new">
+              <div><span className="tiny">Calories</span><b className="num">{sug.kcal.toLocaleString("en-GB")}</b><span className={`smart-delta ${sug.delta < 0 ? "down" : "up"}`}>{sug.delta > 0 ? "+" : "−"}{Math.abs(sug.delta)}</span></div>
+              <div><span className="tiny">Protein</span><b className="num">{sug.proteinG} g</b></div>
+              <div><span className="tiny">Carbs</span><b className="num">{sug.carbsG} g</b></div>
+              <div><span className="tiny">Fat</span><b className="num">{sug.fatG} g</b></div>
+            </div>
+            {sug.restDay && <div className="tiny">Rest days move by the same amount, to {sug.restDay.kcal.toLocaleString("en-GB")} kcal.</div>}
+            <div className="tiny">Nothing changes for {name} until you accept.</div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn act grow" onClick={() => onAccept({ ...targets, kcal: sug.kcal, proteinG: sug.proteinG, carbsG: sug.carbsG, fatG: sug.fatG, ...(sug.restDay ? { restDay: sug.restDay } : {}) })}>Accept new targets</button>
+              <button className="btn ghost" onClick={() => setKept(true)}>Keep current</button>
+            </div>
+          </>
+        )}
+        {kept && <div className="tiny">Kept {targets.kcal.toLocaleString("en-GB")} kcal. Edit the targets below any time.</div>}
+      </div>
+    </section>
   );
 }
 

@@ -61,7 +61,7 @@ export function ConnectedApps({ say }: { say: (m: string) => void }) {
   return (
     <>
       <div><div className="eyebrow">Settings</div><h1 className="h1">Connected apps</h1></div>
-      <p className="small" style={{ margin: 0 }}>What you connect shows up in Cardio, and {coachName} sees it on your profile. APEX only reads; it never posts or changes anything in your other apps.</p>
+      <p className="small" style={{ margin: 0 }}>What you connect shows up in Cardio, and {coachName} sees it on your profile. APEX only reads, with one exception: a workout goes to your Strava when you tap Send to Strava after a session. Nothing else is ever posted or changed.</p>
       <section>
         <div className="sect"><h2 className="h2">Works now</h2></div>
         <div className="card flat list">
