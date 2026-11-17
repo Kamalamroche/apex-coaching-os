@@ -1,0 +1,25 @@
+/* Hands-free pocket screen (handsFree.tsx). Dark always: it sits in a pocket or on a bench, so it should be dim. */
+.hf-lock{position:fixed;inset:0;z-index:80;background:#0D0F13;color:#F5F5F3;display:flex;flex-direction:column;gap:18px;padding:max(18px,env(safe-area-inset-top)) 20px max(22px,env(safe-area-inset-bottom));touch-action:none;user-select:none;-webkit-user-select:none}
+.hf-top{display:flex;justify-content:space-between;align-items:center}
+.hf-mic{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;font:700 12.5px var(--ui);background:rgba(255,255,255,.08);color:#AAAFB9}
+.hf-mic.on{color:#fff;background:rgba(255,106,26,.18)}
+.hf-mic.on svg{color:var(--act);animation:hf-pulse 1.4s ease-in-out infinite}
+@keyframes hf-pulse{50%{opacity:.35}}
+.hf-prog{font-size:12px;color:#717783}
+.hf-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px}
+.hf-ex{font-family:var(--serif);font-weight:500;text-transform:uppercase;letter-spacing:.09em;line-height:1;font-size:32px}
+.hf-line{font:600 16px/1.4 var(--ui);color:#AAAFB9}
+.hf-timer{display:flex;flex-direction:column;align-items:center;margin-top:10px}
+.hf-timer small{font:800 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:#717783}
+.hf-timer b{font-size:84px;font-weight:700;letter-spacing:-.03em;color:var(--act)}
+.hf-heard{font:500 14px/1.4 var(--ui);color:#717783;margin-top:6px}
+.hf-heard q{color:#F5F5F3}
+.hf-say{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.hf-say span{padding:6px 10px;border-radius:99px;border:1px solid #272C36;font:600 12px var(--ui);color:#AAAFB9}
+.hf-unlock{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:99px;border:1px solid #353B47;background:transparent;color:#F5F5F3;font:700 15px var(--ui)}
+.hf-unlock i{position:absolute;inset:0;background:rgba(255,106,26,.28);transform-origin:left;transform:scaleX(0)}
+.hf-unlock svg,.hf-unlock span{position:relative}
+@media (prefers-reduced-motion:reduce){.hf-mic.on svg{animation:none}}
+.hf-bar{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:var(--r);background:var(--act-soft);border:1px solid var(--act);font:700 13px var(--ui);color:var(--text)}
+.hf-bar>span{flex:1;display:inline-flex;align-items:center;gap:6px}
+.hf-bar svg{color:var(--act)}

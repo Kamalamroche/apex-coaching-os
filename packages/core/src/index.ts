@@ -61,6 +61,7 @@ export * from "./story";
 export * from "./rings";
 export * from "./levels";
 export * from "./rewards";
+export * from "./voiceCoach";
 export * from "./team";
 export * from "./growth";
 export * from "./leads";

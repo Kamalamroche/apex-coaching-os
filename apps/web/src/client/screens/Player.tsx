@@ -1,9 +1,9 @@
 import {
   EXERCISES, bestMoment, carsLifted, topSet,
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
-  sessionVolume, setTargets, workoutDraft, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, setTargets, workoutDraft, VOICE_HELP, cuesLine, introLine, loggedLine, restStartLine, restTickLine, spokenTarget, type SpokenSet, type VoiceCommand, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
-import { BestMoment, CarsMoment, CountUp, Icons, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
+import { BestMoment, CarsMoment, CountUp, Icons, PocketLock, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
@@ -15,6 +15,7 @@ import { ReadinessCheck } from "./Readiness";
 import { ShareWorkout } from "./ShareWorkout";
 import { PostToTeam } from "../../app/TeamParts";
 import { useTeamApi } from "../../data/team";
+import { useHandsFree, useWakeLock } from "../../app/handsFree";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
 
@@ -46,6 +47,56 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   /** Bar chosen in the plate calculator, per exercise, for this session. */
   const [barKg, setBarKg] = useState<Record<number, number>>({});
   const startedAt = useRef(Date.now());
+  /** Hands-free: the coach voice talks the client through, and they answer by voice. The pocket screen ignores stray touches. */
+  const [hf, setHf] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const hfCmd = useRef<(c: VoiceCommand) => void>(() => {});
+  const voice = useHandsFree(hf && readiness !== undefined && !finishing, (c) => hfCmd.current(c));
+  useWakeLock(hf && !finishing);
+  /** Where the client goes after the rest that is starting, for the rest announcement. */
+  const afterRestIdx = useRef<number | null>(null);
+  const loadWords = (kg: number) => (kg > 0 ? `${u.w(kg)} ${u.weight === "kg" ? "kilos" : "pounds"}` : null);
+  const spokenSetAt = (i: number, from: SessionSets = sets): SpokenSet | null => {
+    const item = w.items[i];
+    if (!item) return null;
+    const list = from[item.key] ?? [];
+    const n = list.findIndex((x) => !x.done);
+    const k = n < 0 ? Math.max(0, list.length - 1) : n;
+    const tg = setTargets(item)[k];
+    const kg = Number(String(list[k]?.kg ?? "").replace(",", ".")) || tg?.kg || item.kg;
+    return { exercise: exerciseFor(item).name, set: Math.min(k + 1, item.sets), sets: item.sets, reps: tg?.reps ?? item.reps, load: tg && tg.kg === 0 && !item.kg ? null : loadWords(kg), circuit: item.blockStyle === "circuit" };
+  };
+  const hfRef = useRef(hf);
+  hfRef.current = hf && !finishing;
+  // A new exercise (not mid-rest): say what it is and the set to do.
+  useEffect(() => {
+    if (!hfRef.current || rest) return;
+    const sp = spokenSetAt(idx);
+    if (sp) voice.say(introLine(sp, w.items[idx]?.note));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx]);
+  // The rest: announce it, count the end down, then say the next set.
+  const restWas = useRef(false);
+  useEffect(() => {
+    if (!hfRef.current) { restWas.current = !!rest; return; }
+    if (rest) {
+      if (!restWas.current) voice.say(restStartLine(rest.total, spokenSetAt(afterRestIdx.current ?? idx)));
+      else { const line = restTickLine(rest.left, rest.total); if (line) voice.say(line); }
+    } else if (restWas.current) {
+      const sp = spokenSetAt(idx);
+      if (sp) voice.say(introLine(sp, null));
+    }
+    restWas.current = !!rest;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rest?.left, rest === null]);
+  // A timed set: count the end down.
+  useEffect(() => {
+    if (!hfRef.current || !work) return;
+    if (work.left === work.total) voice.say(`Go. ${work.total} seconds.`);
+    else if (work.left === 10 && work.total > 15) voice.say("10 seconds.");
+    else if (work.left > 0 && work.left <= 3) voice.say(String(work.left));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [work?.left]);
 
   useEffect(() => {
     if (!rest) return;
@@ -73,11 +124,12 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   }, [work]);
 
   /** Marks a set done, then rests and/or moves to the next station of the block. */
-  function complete(key: string, i: number) {
+  function complete(key: string, i: number, patch: Partial<SetEntry> = {}) {
     const at = w.items.findIndex((x) => x.key === key);
-    const after = { ...sets, [key]: (sets[key] ?? []).map((x, j) => (j === i ? { ...x, done: true } : x)) };
+    const after = { ...sets, [key]: (sets[key] ?? []).map((x, j) => (j === i ? { ...x, ...patch, done: true } : x)) };
     setSets(after);
     const { next, restSeconds } = afterSet(w, after, at);
+    afterRestIdx.current = next ?? at;
     if (restSeconds) setRest({ left: restSeconds, total: restSeconds });
     if (next !== null) setTimeout(() => { setIdx(next); setShowCues(false); window.scrollTo(0, 0); }, 350);
   }
@@ -120,6 +172,72 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
   const workSecs = timedSeconds(it.reps);
   const round = itemSets.filter((s) => s.done).length + 1;
 
+  const allDone = done >= total;
+  hfCmd.current = (c) => {
+    const say = voice.say;
+    switch (c.kind) {
+      case "done": {
+        if (work) { setWork(null); complete(work.key, work.set); say("Logged."); return; }
+        const n = itemSets.findIndex((x) => !x.done);
+        if (n < 0) { say(next ? `All sets done. Say next for ${exerciseFor(next).name}.` : "All sets done. Say finish workout."); return; }
+        const patch: Partial<SetEntry> = {};
+        if (c.reps !== undefined) patch.reps = String(c.reps);
+        if (c.kg !== undefined) patch.kg = String(u.toKg(c.kg));
+        const kg = Number((patch.kg ?? itemSets[n]?.kg ?? "").replace(",", ".")) || 0;
+        say(loggedLine(c.reps ?? (Number(itemSets[n]?.reps) || null), hasKg ? loadWords(kg) : null));
+        complete(it.key, n, patch);
+        if (allDone || done + 1 >= total) say("That's every set. Say finish workout when you're ready.");
+        return;
+      }
+      case "start": {
+        const n = itemSets.findIndex((x) => !x.done);
+        if (workSecs && n >= 0 && !work) { setRest(null); setWork({ key: it.key, set: n, left: workSecs, total: workSecs }); }
+        else if (rest) setRest(null);
+        else say("Say done when you finish the set.");
+        return;
+      }
+      case "restMore":
+        if (rest) { setRest((r) => r && { left: r.left + c.seconds, total: Math.max(r.total, r.left + c.seconds) }); say(`Added ${c.seconds} seconds.`); }
+        else say("You're not resting right now.");
+        return;
+      case "skipRest":
+        if (rest) setRest(null);
+        else say("No rest running.");
+        return;
+      case "next":
+        if (next) { setRest(null); setIdx(idx + 1); setShowCues(false); }
+        else say("This is the last exercise. Say finish workout when you're done.");
+        return;
+      case "back":
+        if (idx > 0) { setRest(null); setIdx(idx - 1); setShowCues(false); }
+        else say("This is the first exercise.");
+        return;
+      case "repeat": {
+        if (rest) { say(`${rest.left} seconds of rest left.`); return; }
+        const sp = spokenSetAt(idx);
+        if (sp) say(introLine(sp, it.note));
+        return;
+      }
+      case "cues": say(cuesLine(ex.name, ex.cues)); return;
+      case "finish":
+        setRest(null); setWork(null); setLocked(false);
+        say("Workout complete. Great work. Take your phone out to see your summary.");
+        setFinishing(true);
+        return;
+      case "stop":
+        setHf(false); setLocked(false);
+        say("Hands-free off.");
+        return;
+    }
+  };
+  const startHandsFree = () => {
+    const sp = spokenSetAt(idx);
+    setHf(true);
+    setLocked(true);
+    voice.say(`Hands-free on. Put your phone away. ${VOICE_HELP}`, { interrupt: true });
+    if (sp && !rest) voice.say(introLine(sp, it.note));
+  };
+
   if (finishing) return <Finish workout={w} sets={sets} history={history} readiness={readiness} comments={comments} minutes={minutes} onDone={onDone} />;
 
   // The plate calculator opens on the next set still to do.
@@ -140,6 +258,7 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           <div className="bar-top">
             <button className="gbtn round" onClick={onExit} aria-label="Exit workout"><Icons.close width={18} height={18} /></button>
             <span className="gpill dim num">{done}/{total} sets · {idx + 1} of {w.items.length}</span>
+            {voice.supported.speak && <button className={`gbtn round${hf ? " on" : ""}`} onClick={() => (hf ? setLocked(true) : startHandsFree())} aria-label={hf ? "Hands-free on: lock for pocket" : "Start hands-free"}><Icons.headphones width={18} height={18} /></button>}
             <span className="gpill dim">{inBlock ? `${blockLabel(block.items)} · ${it.group}` : `Block ${it.group}`}</span>
           </div>
           <div className="bar-bot">
@@ -148,6 +267,13 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
           <div className="pl-prog"><div style={{ width: `${(done / total) * 100}%` }} /></div>
         </div>
+        {hf && !locked && (
+          <div className="hf-bar">
+            <span><Icons.headphones width={15} height={15} /> Hands-free on</span>
+            <button className="link" onClick={() => setLocked(true)}>Lock for pocket</button>
+            <button className="link" onClick={() => { setHf(false); voice.say("Hands-free off.", { interrupt: true }); }}>Turn off</button>
+          </div>
+        )}
         <div className="tiles">
           <div className="tile mid"><b>{Math.min(itemSets.filter((x) => x.done).length + 1, it.sets)}<small> / {it.sets}</small></b><span>{circuit ? "Round" : "Set"}</span></div>
           <div className="tile mid"><b>{workSecs ? `${workSecs}s` : (nextSet?.reps || it.reps)}</b><span>{workSecs ? "Work" : distanceMetres(it.reps) ? "Metres" : "Reps"}</span></div>
@@ -232,6 +358,23 @@ export function Player({ onExit, onDone }: { onExit: () => void; onDone: () => v
           </div>
         </div>
       )}
+      {hf && locked && (() => {
+        const sp = spokenSetAt(idx);
+        return (
+          <PocketLock
+            view={{
+              exercise: ex.name,
+              line: sp ? `${sp.circuit ? "Round" : "Set"} ${sp.set} of ${sp.sets} · ${u.kt(spokenTarget(sp.reps))}${hasKg && sp.load ? ` · ${u.fw(Number(String(itemSets[sp.set - 1]?.kg ?? "").replace(",", ".")) || targets[sp.set - 1]?.kg || it.kg)}` : ""}` : "",
+              timer: work ? { label: "Work", left: work.left } : rest ? { label: "Rest", left: rest.left } : null,
+              progress: `${done}/${total} sets`,
+            }}
+            heard={voice.heard}
+            listening={voice.listening}
+            micProblem={voice.micProblem ? "Mic blocked" : !voice.supported.listen ? "Voice commands not available in this browser" : null}
+            onUnlock={() => setLocked(false)}
+          />
+        );
+      })()}
       {rest && !work && (
         <div className="rest rest-lq" role="timer" aria-live="polite" aria-label={`Rest, ${formatRest(rest.left)} left`}>
           <LiquidPill value={rest.left} max={rest.total} size="lg" label="Rest time left">
