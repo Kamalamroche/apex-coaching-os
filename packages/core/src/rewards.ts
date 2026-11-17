@@ -127,3 +127,79 @@ export function sampleLaurelTeam(): { name: string; workouts: number; minutes: n
     { name: "Aisha R.", workouts: 12, minutes: 640, isMe: false },
   ];
 }
+
+/* ---------- New best: what a single lift weighs as much as ---------- */
+
+export type LiftThingIcon = "luggage" | "dog" | "washer" | "paw" | "motorbike" | "piano";
+
+/** Everyday things to picture one lift against, lightest first. Approximate weights in kg. */
+export const LIFT_THINGS: { kg: number; name: string; icon: LiftThingIcon }[] = [
+  { kg: 23, name: "a full suitcase", icon: "luggage" },
+  { kg: 30, name: "a golden retriever", icon: "dog" },
+  { kg: 70, name: "a washing machine", icon: "washer" },
+  { kg: 100, name: "a giant panda", icon: "paw" },
+  { kg: 130, name: "a small motorbike", icon: "motorbike" },
+  { kg: 230, name: "an upright piano", icon: "piano" },
+  { kg: 270, name: "a grizzly bear", icon: "paw" },
+];
+
+export interface BestMoment {
+  exerciseId: number;
+  exercise: string;
+  kg: number;
+  /** kg more than the last best; 0 for a first ever best. */
+  gainKg: number;
+  /** The heaviest thing this lift beats, or null under the lightest. */
+  thing: { kg: number; name: string; icon: LiftThingIcon } | null;
+}
+
+/** The best to celebrate from today's personal bests: the biggest jump, then the heaviest. Null when there are none. */
+export function bestMoment(bests: { exerciseId: number; exercise: string; kg: number; previousKg: number }[]): BestMoment | null {
+  const real = bests.filter((b) => b.kg > 0);
+  if (!real.length) return null;
+  const gain = (b: (typeof real)[number]) => (b.previousKg > 0 ? b.kg - b.previousKg : 0);
+  const b = [...real].sort((x, y) => gain(y) - gain(x) || y.kg - x.kg)[0]!;
+  const thing = [...LIFT_THINGS].reverse().find((t) => b.kg >= t.kg) ?? null;
+  return { exerciseId: b.exerciseId, exercise: b.exercise, kg: b.kg, gainKg: Math.max(0, gain(b)), thing };
+}
+
+/* ---------- Lift ladder: everything lifted, as ever-bigger things ---------- */
+
+export type LadderIcon = "piano" | "car" | "tractor" | "bus" | "train" | "plane" | "rocket";
+
+/** Rungs in tonnes, lightest first. Approximate. */
+export const LIFT_LADDER: { tonnes: number; name: string; icon: LadderIcon }[] = [
+  { tonnes: 0.5, name: "Grand piano", icon: "piano" },
+  { tonnes: 1.5, name: "Car", icon: "car" },
+  { tonnes: 5, name: "Tractor", icon: "tractor" },
+  { tonnes: 12, name: "Double-decker bus", icon: "bus" },
+  { tonnes: 40, name: "Train carriage", icon: "train" },
+  { tonnes: 180, name: "Jumbo jet", icon: "plane" },
+  { tonnes: 550, name: "Space rocket", icon: "rocket" },
+];
+
+export interface LadderRung { tonnes: number; name: string; icon: LadderIcon; reached: boolean; next: boolean }
+
+export interface LadderState {
+  tonnes: number;
+  /** Heaviest first, as the screen lists them. */
+  rungs: LadderRung[];
+  next: LadderRung | null;
+  /** "More than a train carriage. Next up: a jumbo jet." */
+  line: string;
+}
+
+const lower = (n: string) => `${/^[aeiou]/i.test(n) ? "an" : "a"} ${n.charAt(0).toLowerCase()}${n.slice(1)}`;
+
+/** Lifetime volume (sum of finished sessions) as the ladder. */
+export function liftLadder(totalKg: number): LadderState {
+  const tonnes = Math.max(0, Math.round(totalKg / 100) / 10);
+  const nextIdx = LIFT_LADDER.findIndex((r) => tonnes < r.tonnes);
+  const rungs = LIFT_LADDER.map((r, i) => ({ ...r, reached: tonnes >= r.tonnes, next: i === nextIdx }));
+  const top = [...rungs].reverse().find((r) => r.reached);
+  const next = nextIdx >= 0 ? rungs[nextIdx]! : null;
+  const line = !top
+    ? `Next up: ${lower(next!.name)}.`
+    : next ? `More than ${lower(top.name)}. Next up: ${lower(next.name)}.` : `More than ${lower(top.name)}. Top of the ladder.`;
+  return { tonnes, rungs: [...rungs].reverse(), next, line };
+}

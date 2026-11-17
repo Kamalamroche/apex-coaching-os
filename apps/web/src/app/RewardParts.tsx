@@ -1,7 +1,7 @@
-import { laurelBoard, laurelState, type LaurelBoardLine, type LaurelState } from "@apex/core";
+import { laurelBoard, laurelState, liftLadder, type LaurelBoardLine, type LaurelState } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { LaurelPage, LaurelPeek } from "@apex/ui";
-import { useEffect, useState } from "react";
+import { LadderPage, LadderPeek, LaurelPage, LaurelPeek } from "@apex/ui";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../data/StoreContext";
 import { useTeamApi } from "../data/team";
 import { useAppInfo } from "./AppContext";
@@ -36,6 +36,19 @@ export function LaurelRanks() {
     <>
       <LaurelPeek state={state} onOpen={() => setOpen(true)} />
       {open && <LaurelPage state={state} lines={lines} teamTitle={`${coachName}'s team · all time`} onBack={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/** The Lift ladder row on Progress, opening the full page. Every finished session's kg added up. */
+export function LiftLadderRow() {
+  const { history } = useApexState(useStore());
+  const state = useMemo(() => liftLadder((history.sessions ?? []).reduce((a, x) => a + (x.volumeKg || 0), 0)), [history.sessions]);
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <LadderPeek state={state} onOpen={() => setOpen(true)} />
+      {open && <LadderPage state={state} onBack={() => setOpen(false)} />}
     </>
   );
 }

@@ -1,7 +1,8 @@
-import type { CarsLifted, LaurelBoardLine, LaurelId, LaurelState, TopSet } from "@apex/core";
+import type { BestMoment as BestMomentData, CarsLifted, LadderIcon, LadderState, LaurelBoardLine, LaurelId, LaurelState, LiftThingIcon, TopSet } from "@apex/core";
 import { CAR_KG, LAUREL_RANKS } from "@apex/core";
 import type { ReactNode } from "react";
-import { Icons } from "./icons";
+import { Icons, type IconName } from "./icons";
+import { Label } from "./primitives";
 import { useUnits } from "./prefs";
 import "./rewards.css";
 
@@ -163,5 +164,100 @@ export function LaurelPage({ state, lines, teamTitle, onBack }: { state: LaurelS
         )}
       </div>
     </div>
+  );
+}
+
+const THING_ICON: Record<LiftThingIcon, IconName> = { luggage: "luggage", dog: "dog", washer: "washer", paw: "paw", motorbike: "motorbike", piano: "piano" };
+
+/** A new personal best on its photo: the lift, the number, and what it outweighs. */
+export function BestMoment({ moment: m, photo, onShare, onContinue, continueLabel = "Continue" }: {
+  moment: BestMomentData; photo: { src: string; focus: string; alt: string }; onShare: () => void; onContinue: () => void; continueLabel?: string;
+}) {
+  const u = useUnits();
+  const T = m.thing ? Icons[THING_ICON[m.thing.icon]] : null;
+  return (
+    <section className="rw-best" aria-label={`New personal best, ${m.exercise}, ${u.fw(m.kg)}`}>
+      <div className="rw-best-photo">
+        <img src={photo.src} alt={photo.alt} style={{ objectPosition: photo.focus }} />
+        <div className="rw-best-fade" />
+        <div className="rw-ribbons" aria-hidden="true">
+          {RIBBONS.map(([x, y, r, c], i) => <i key={i} style={{ left: `${x}%`, top: `${y + 4}%`, transform: `rotate(${r}deg)`, background: `var(${c})`, opacity: i % 3 ? 0.9 : 0.6 }} />)}
+        </div>
+        <div className="rw-best-text">
+          <span className="rw-glass"><Icons.trophy width={14} height={14} /> New personal best</span>
+          <h1 className="rw-best-ed">{m.exercise}</h1>
+          <div><span className="num rw-best-n">{u.w(m.kg).toLocaleString("en-GB")}</span><span className="num rw-best-u"> {u.weight}</span></div>
+          <span className="rw-glass">{m.gainKg > 0 ? `+${u.w(m.gainKg).toLocaleString("en-GB")} ${u.weight} on your last best` : "Your first logged best"}</span>
+        </div>
+      </div>
+      <div className="rw-best-sheet">
+        {m.thing && T && (
+          <div className="card rw-thing">
+            <span className="rw-thing-ico"><T width={26} height={26} /></span>
+            <span className="rw-who"><b>Heavier than {m.thing.name}</b><span className="small">About {u.fw(m.thing.kg, 0)}. You picked up more than that.</span></span>
+          </div>
+        )}
+        <button className="btn act block rw-btn" onClick={onShare}><Icons.share width={18} height={18} /> Share it</button>
+        <button className="btn ghost block rw-btn" onClick={onContinue}>{continueLabel}</button>
+      </div>
+    </section>
+  );
+}
+
+const LADDER_ICON: Record<LadderIcon, IconName> = { piano: "piano", car: "car", tractor: "tractor", bus: "bus", train: "trainCar", plane: "plane", rocket: "rocket" };
+const tonnes = (t: number) => t.toLocaleString("en-GB", { maximumFractionDigits: 1 });
+
+/** Every kg ever lifted, climbing from a grand piano to a space rocket. */
+export function LadderPage({ state: l, onBack }: { state: LadderState; onBack: () => void }) {
+  return (
+    <div className="rw-page" role="dialog" aria-label="Lift ladder">
+      <div className="rw-page-in">
+        <div className="rw-top">
+          <button onClick={onBack} aria-label="Back"><Icons.back width={22} height={22} /></button>
+          <Label kind="data">Data</Label>
+        </div>
+        <div>
+          <h1 className="rw-title">Lift ladder</h1>
+          <div className="rw-cap">Every kg you've ever lifted</div>
+        </div>
+        <div className="card rw-total">
+          <span className="num rw-total-n">{tonnes(l.tonnes)}</span><span className="num rw-total-u"> tonnes</span>
+          <div className="small" style={{ marginTop: 4 }}>{l.line}</div>
+        </div>
+        <div className="card rw-ladder-list">
+          {l.rungs.map((r) => {
+            const I = Icons[LADDER_ICON[r.icon]];
+            return (
+              <div key={r.name} className={`rw-rung${r.reached ? " got" : r.next ? " next" : " off"}`}>
+                <span className="rw-rung-ico"><I width={24} height={24} /></span>
+                <span className="rw-who">
+                  <b>{r.name}</b>
+                  {r.next ? (
+                    <><div className="rw-bar" style={{ marginTop: 6 }}><i style={{ width: `${Math.min(100, (l.tonnes / r.tonnes) * 100)}%` }} /></div><span className="small">{tonnes(r.tonnes - l.tonnes)} t to go</span></>
+                  ) : <span className="small num">{tonnes(r.tonnes)} t</span>}
+                </span>
+                {r.reached && <span style={{ color: "var(--good)" }}><Icons.trophy width={18} height={18} /></span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A slim row that opens the ladder. */
+export function LadderPeek({ state: l, onOpen }: { state: LadderState; onOpen: () => void }) {
+  const top = l.rungs.find((r) => r.reached);
+  const I = Icons[LADDER_ICON[(top ?? l.rungs[l.rungs.length - 1]!).icon]];
+  return (
+    <button className="card rw-peek" onClick={onOpen}>
+      <span className="rw-rung-ico" style={{ background: "var(--act-soft)", color: "var(--act)" }}><I width={24} height={24} /></span>
+      <span className="rw-who">
+        <b>Lift ladder · <span className="num">{tonnes(l.tonnes)} t</span></b>
+        <span className="small">{l.line}</span>
+      </span>
+      <Icons.forward width={16} height={16} style={{ flex: "none", color: "var(--text3)" }} />
+    </button>
   );
 }
