@@ -29,6 +29,7 @@ export { EATING_OUT, type EatingOutGuide } from "./data/eatingOut";
 export * from "./barcode";
 export * from "./automations";
 export * from "./formChecks";
+export * from "./assessments";
 export * from "./goals";
 export * from "./booking";
 export * from "./sessions";

@@ -1,29 +1,11 @@
 import { CAMERA_MOVES, FLAG_TEXT, repResultText, startReps, stepReps, type CameraMove, type BodyPoint, type RepState } from "@apex/core";
 import { Icons, RepCamOverlay, RepCamResult } from "@apex/ui";
 import { useEffect, useRef, useState } from "react";
+import { loadPose } from "../../app/pose";
 
 /* The camera rep counter for a coach's push-up or squat challenge. MediaPipe's pose model runs in the browser,
    loaded from APEX's own site (public/pose, public/pose-model). Nothing from the camera is uploaded: only the
    final count goes to the challenge, and a one-line note goes to the coach. */
-
-type PoseLandmarker = import("@mediapipe/tasks-vision").PoseLandmarker;
-
-let loading: Promise<PoseLandmarker> | null = null;
-function loadPose(): Promise<PoseLandmarker> {
-  loading ??= (async () => {
-    const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
-    const files = await FilesetResolver.forVisionTasks("/pose");
-    const make = (delegate: "GPU" | "CPU") => PoseLandmarker.createFromOptions(files, {
-      baseOptions: { modelAssetPath: "/pose-model/pose_landmarker_lite.task", delegate },
-      runningMode: "VIDEO",
-      numPoses: 1,
-    });
-    // Older phones without WebGL2: fall back to the processor.
-    return make("GPU").catch(() => make("CPU"));
-  })();
-  loading.catch(() => { loading = null; });
-  return loading;
-}
 
 export const cameraCountSupported = (): boolean => typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 

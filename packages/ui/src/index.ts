@@ -49,3 +49,5 @@ export { PocketLock, type PocketView } from "./handsFree";
 export { RepCamOverlay, RepCamResult, type RepCamLive, type RepCamResultView } from "./repCam";
 export { CheckInTimelineCard } from "./checkInTimeline";
 export { LiveTimerFace, type LiveFace } from "./liveTimer";
+export { AssessmentProfile, CameraGuide, CompareTable, PostureView, ScoreScale } from "./assessment";
+export { TestDemo } from "./testDemo";
