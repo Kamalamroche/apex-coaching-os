@@ -71,7 +71,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const goBuild = () => setTab("build");
   const find = useMemo(() => coachQuickFind(
     live ? (live.clients ?? []).map((c) => ({ id: c.id, name: c.name })) : CLIENTS.map((c) => ({ id: String(c.id), name: c.name, hint: `${c.plan} · ${c.mode}` })),
-    { gym: !!gymApi },
+    { gym: !!gymApi, share: (live?.clients?.length ?? 0) > 1 },
   ), [live, gymApi]);
   const onFind = (item: QuickItem) => {
     const person = parseClientItem(item.id);
@@ -94,10 +94,10 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const subFor = (t: Tab) => (sub?.tab === t ? sub : null);
   const changeTab = (t: Tab) => { setAccount(false); setGym(false); setSub(null); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } setStartTab(undefined); };
   return (
-    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn qf-open" onClick={openFind} aria-label={t("Find")} title={`${t("Find")} (/ or ⌘K)`}><Icons.search width={16} height={16} aria-hidden="true" /><span>{t("Find")}</span></button><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn ib" onClick={openFind} aria-label={t("Find")} title={`${t("Find")} (/ or ⌘K)`}><Icons.search width={16} height={16} aria-hidden="true" /><span>{t("Find")}</span></button><button className="iconbtn ib" aria-pressed={account} aria-label={t("Account")} title={t("Account")} onClick={() => setAccount((a) => !a)}><Icons.account width={16} height={16} aria-hidden="true" /><span>{t("Account")}</span></button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
       <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
-      {!account && tab === "brief" && <Brief key={subFor("brief")?.nonce} start={subFor("brief")?.to as "calendar" | "twin" | undefined} openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
+      {!account && tab === "brief" && <Brief planBlock={(id) => { if (live) live.setActiveClientId(id); changeTab("build"); setSub({ tab: "build", to: "block", nonce: Date.now() }); }} key={subFor("brief")?.nonce} start={subFor("brief")?.to as "calendar" | "twin" | "review" | undefined} openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
       {!account && tab === "clients" && (live ? <LiveClients key={`${liveOpen ?? ""}:${openNonce}`} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} startTab={startTab} /> : <Clients key={openNonce} id={clientId} setId={(id) => { setStartTab(undefined); setClientId(id); }} say={say} goBuild={goBuild} startTab={startTab} />)}
       {!account && tab === "chat" && <Messages key={subFor("chat")?.nonce} start={subFor("chat")?.to as MessagesStart | undefined} live={live} say={say} />}
       {!account && tab === "build" && <Builder key={subFor("build")?.nonce} start={subFor("build")?.to as BuilderStart | undefined} say={say} onInvite={() => setTab("clients")} live={live} />}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { STARTER_TEMPLATES } from "./data/starterTemplates";
-import { COPILOT_EXAMPLES, counterpart, parseCommand, runCommand } from "./copilot";
+import { COPILOT_EXAMPLES, changeCount, counterpart, parseCommand, runCommand } from "./copilot";
 import { exerciseById } from "./library";
 import { fromTemplate } from "./program";
 
@@ -71,5 +71,28 @@ describe("running instructions", () => {
     expect(runCommand(p, parseCommand("rest 90 s on everything")!).program.days.flatMap((d) => d.items).every((i) => i.restSeconds === 90)).toBe(true);
     const reps = runCommand(p, parseCommand("reps 8-10 on face pulls in week 2", p)!);
     expect(reps.changes.every((c) => c.after.reps === "8-10" && c.day.startsWith("Week 2"))).toBe(true);
+  });
+});
+
+describe("copilot: move a day", () => {
+  const item = { key: "i", group: "A", exerciseId: 1, sets: 3, reps: "5", kg: 100, rpe: 8, restSeconds: 120, lastTime: "" };
+  const prog = { name: "P", weeks: 2, days: [
+    { key: "a", week: 1, dayIndex: 3, name: "Lower", ofWeeks: 2, minutes: 45, items: [item] },
+    { key: "b", week: 2, dayIndex: 3, name: "Lower", ofWeeks: 2, minutes: 45, items: [item] },
+    { key: "c", week: 2, dayIndex: 4, name: "Upper", ofWeeks: 2, minutes: 45, items: [item] },
+  ] };
+
+  it("reads spoken ways of moving a day", () => {
+    expect(parseCommand("Move Thursday to Friday", prog)?.summary).toBe("Move Thursday to Friday across the whole programme");
+    expect(parseCommand("move thursday's session to saturday in week 2.", prog)?.summary).toBe("Move Thursday to Saturday in week 2");
+    expect(parseCommand("move thursday to thursday", prog)).toBeNull();
+  });
+
+  it("moves the day where the new day is free and says where it can't", () => {
+    const r = runCommand(prog, parseCommand("Move Thursday to Friday", prog)!);
+    expect(r.moves).toEqual([{ day: "Week 1 · Lower", text: "Thursday → Friday" }]);
+    expect(r.skipped.map((s) => s.why)).toEqual(["Friday already has a session in week 2"]);
+    expect(r.program.days.find((d) => d.key === "a")?.dayIndex).toBe(4);
+    expect(changeCount(r)).toBe(1);
   });
 });
