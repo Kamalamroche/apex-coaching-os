@@ -659,17 +659,19 @@ button.lv-row{cursor:pointer}
 .cv-stats.three b,.cv-stats.three b *{font-size:32px}
 .hero.cover.br-cover{min-height:min(440px,calc(100svh - 230px))}
 
-/* Habit tiles (StepsTile, NightTile): same 36 px tile as the mini water tank */
-.ht-tile{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;overflow:hidden;background:var(--bg2);box-shadow:inset 0 0 0 1px var(--line)}
-.ht-steps .ht-track{fill:none;stroke:var(--line2);stroke-width:3}
-.ht-steps .ht-arc{fill:none;stroke:var(--act);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1.4s var(--ease-liquid,cubic-bezier(.2,.8,.2,1))}
-.ht-foot{fill:var(--text2);transform-box:fill-box;transform-origin:center}
-.ht-steps.done .ht-foot{fill:var(--act)}
-.ht-night{background:linear-gradient(180deg,color-mix(in srgb,var(--blue) 42%,black),color-mix(in srgb,var(--blue) 16%,black));box-shadow:none}
-.ht-moon{fill:#fff;opacity:.94;transform-box:fill-box;transform-origin:center}
-.ht-star{fill:#fff}
+/* Habit tiles (StepsTile, NightTile): the same 36 px liquid tile as the water habit, glyph over the liquid */
+.ht-tile{width:36px;height:36px;border-radius:10px;flex:none;background:var(--bg2);box-shadow:inset 0 0 0 1px var(--line)}
+.ht-tile .lq-content{display:block}
+.ht-glyph{position:absolute;inset:0;display:block}
+.ht-glyph svg{position:absolute;inset:0;display:block}
+.ht-glyph svg.ht-lit{transition:clip-path 1.2s var(--ease-liquid,cubic-bezier(.2,.8,.2,1))}
+.ht-foot{transform-box:fill-box;transform-origin:center}
+.ht-ink .ht-foot{fill:var(--text2)}
+.ht-lit .ht-foot{fill:#fff}
+.ht-ink .ht-moon path,.ht-ink .ht-star{fill:color-mix(in srgb,var(--blue) 70%,var(--text2))}
+.ht-lit .ht-moon path,.ht-lit .ht-star{fill:#fff}
+.ht-moon{opacity:.94;transform-box:fill-box;transform-origin:center}
 .ht-z{fill:#fff;font:700 6px/1 var(--ui);opacity:0}
-.ht-night:not(.done){background:linear-gradient(180deg,color-mix(in srgb,var(--blue) 50%,black),color-mix(in srgb,var(--act) 34%,black))}
 @media (prefers-reduced-motion:no-preference){
   .ht-foot.l{animation:ht-step 1.3s var(--ease-out,ease-out) infinite}
   .ht-foot.r{animation:ht-step 1.3s var(--ease-out,ease-out) infinite .65s}
