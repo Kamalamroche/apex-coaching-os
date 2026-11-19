@@ -16,11 +16,13 @@ const CoachMarketing = lazy(() => import("./CoachMarketing").then((m) => ({ defa
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's business from their own records: fees, packs, programme sales, clients joining and leaving, leads, sessions. */
-export function Business({ live, say = () => {}, openGym }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void }) {
+export type BusinessStart = "programmes" | "agreements" | "classes" | "marketing";
+
+export function Business({ live, say = () => {}, openGym, start }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void; /** Open straight onto one of the tools (from quick find). */ start?: BusinessStart }) {
   const { mode, coachName } = useAppInfo();
   const marketing = useMarketingApi();
-  const [shop, setShop] = useState(false);
-  const [view, setView] = useState<"agreements" | "classes" | "marketing" | null>(null);
+  const [shop, setShop] = useState(start === "programmes");
+  const [view, setView] = useState<"agreements" | "classes" | "marketing" | null>(start && start !== "programmes" ? start : null);
   const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);

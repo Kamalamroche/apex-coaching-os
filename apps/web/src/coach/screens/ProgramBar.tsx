@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
 
 /** Weeks and days of the program. Pick a day to edit it; add days, copy a week forward (as is or progressed), remove. */
-export function ProgramBar({ say, onTemplates, onCopilot, onPlan }: { say: (m: string) => void; onTemplates: () => void; onCopilot: () => void; onPlan?: () => void }) {
+export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { say: (m: string) => void; onTemplates: () => void; onCopilot: () => void; onPlan?: () => void; /** Live coaches with other clients: copy the whole programme to them. */ onCopyTo?: () => void }) {
   const store = useStore();
   const { program, activeDay, workout } = useApexState(store);
   const [week, setWeek] = useState(workout.week);
@@ -102,6 +102,11 @@ export function ProgramBar({ say, onTemplates, onCopilot, onPlan }: { say: (m: s
             <button className="li" disabled={!days.length} onClick={() => copyForward(false)}>
               <div className="grow"><div className="h3">Copy to week {week + 1} as it is</div><div className="small">Same exercises, sets and loads on the same weekdays.</div></div>
             </button>
+            {onCopyTo && (
+              <button className="li" disabled={!program.days.length} onClick={() => { setTools(false); onCopyTo(); }}>
+                <div className="grow"><div className="h3">Copy this programme to other clients</div><div className="small">Every week and day. Each client gets their own copy to tweak.</div></div>
+              </button>
+            )}
             {program.days.length > 1 && (
               <button className="li" onClick={() => { save(removeDay(program, activeDay)); setTools(false); say(`${workout.name} removed`); }}>
                 <div className="grow"><div className="h3" style={{ color: "var(--crit)" }}>Delete the open day</div><div className="small">{DAY_NAMES[openDay?.dayIndex ?? 0]} · {workout.name}</div></div>

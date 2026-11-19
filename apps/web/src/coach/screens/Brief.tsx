@@ -47,7 +47,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps }) {
+export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -74,8 +74,8 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
   const handle = (id: string) => setHandled((d) => ({ ...d, [id]: true }));
   const glance = useBusinessGlance(mode === "live" ? live : undefined);
   const openToday = (tab?: string) => (mode === "live" ? (live?.activeClientId ? openLiveClient?.(live.activeClientId, tab) : undefined) : openClient(DEMO_CLIENT_ID, tab));
-  const [calendar, setCalendar] = useState(false);
-  const [twin, setTwin] = useState(false);
+  const [calendar, setCalendar] = useState(start === "calendar");
+  const [twin, setTwin] = useState(start === "twin");
   if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
 

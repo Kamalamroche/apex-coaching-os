@@ -24,6 +24,9 @@ type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
 type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Assessment" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes" | "In person";
 
+/** The tabs on a sample client's profile: the demo client has every tab, the others the basics. */
+const profileTabs = (id: number) => (id === DEMO_CLIENT_ID ? (["Overview", "In person", "Programme", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Programme", "Check-ins", "Notes"] as const));
+
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
   { date: "Sat 11 Oct", weight: "62.9 kg", stats: "Energy 3/5 · sleep 6 h", note: "Busy week at work" },
@@ -105,7 +108,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
   const u = useUnits();
   const store = useStore();
   const { workout } = useApexState(store);
-  const [tab, setTab] = useState<ProfileTab>(() => (startTab === "In person" ? "In person" : clientId === DEMO_CLIENT_ID && startTab === "Recovery" ? "Recovery" : "Overview"));
+  const [tab, setTab] = useState<ProfileTab>(() => (profileTabs(clientId) as readonly string[]).includes(startTab ?? "") ? (startTab as ProfileTab) : "Overview");
   const c = CLIENTS.find((x) => x.id === clientId);
   const health = useMemo(() => demoRosterHealth().find((r) => r.client.id === String(clientId)) ?? null, [clientId]);
   if (!c) return null;
@@ -116,7 +119,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{(c.id === DEMO_CLIENT_ID ? (["Overview", "In person", "Programme", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Programme", "Check-ins", "Notes"] as const)).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <div className="chips" style={{ flexWrap: "wrap" }}>{profileTabs(c.id).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
 
       {tab === "Overview" && (
         <>
