@@ -104,7 +104,7 @@ export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { 
             </button>
             {onCopyTo && (
               <button className="li" disabled={!program.days.length} onClick={() => { setTools(false); onCopyTo(); }}>
-                <div className="grow"><div className="h3">Copy this programme to other clients</div><div className="small">Every week and day. Each client gets their own copy to tweak.</div></div>
+                <div className="grow"><div className="h3">Share this programme with clients</div><div className="small">Fix it once, then update everyone on it. See exactly what changes for each client first.</div></div>
               </button>
             )}
             {program.days.length > 1 && (

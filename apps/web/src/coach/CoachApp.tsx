@@ -71,7 +71,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const goBuild = () => setTab("build");
   const find = useMemo(() => coachQuickFind(
     live ? (live.clients ?? []).map((c) => ({ id: c.id, name: c.name })) : CLIENTS.map((c) => ({ id: String(c.id), name: c.name, hint: `${c.plan} · ${c.mode}` })),
-    { gym: !!gymApi },
+    { gym: !!gymApi, share: (live?.clients?.length ?? 0) > 1 },
   ), [live, gymApi]);
   const onFind = (item: QuickItem) => {
     const person = parseClientItem(item.id);

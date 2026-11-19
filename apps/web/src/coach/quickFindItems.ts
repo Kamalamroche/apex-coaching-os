@@ -9,7 +9,7 @@ const screen = (id: string, title: string, hint: string, jump: Jump, keywords: s
 const action = (id: string, title: string, hint: string, jump: Jump, keywords: string[]): Place => ({ id, kind: "action", title, hint, jump, keywords });
 
 /** Every screen and everyday job in the coach app, in the words a trainer would type. */
-export function coachPlaces(opts: { gym: boolean }): Place[] {
+export function coachPlaces(opts: { gym: boolean; share?: boolean }): Place[] {
   return [
     screen("tab:brief", "Brief", "Your morning list", { tab: "brief" }, ["home", "dashboard", "today", "morning", "needs attention"]),
     screen("tab:clients", "Clients", "Everyone you coach", { tab: "clients" }, ["roster", "list", "table", "people", "athletes"]),
@@ -38,6 +38,7 @@ export function coachPlaces(opts: { gym: boolean }): Place[] {
     screen("account", "Account and settings", "Units, language, privacy", { account: true }, ["settings", "units", "kg", "lb", "language", "privacy", "delete", "export", "profile"]),
     action("act:invite", "Invite a client", "Clients · send a join link", { tab: "clients" }, ["add", "new", "join", "link", "onboard"]),
     action("act:paste", "Paste or speak a programme", "Builder · turn notes or a PDF into a workout", { tab: "build", sub: "paste" }, ["import", "pdf", "text", "voice", "notes", "dictate"]),
+    ...(opts.share ? [action("act:share", "Share this programme with clients", "Builder · update everyone on the same programme", { tab: "build", sub: "share" }, ["master", "update", "sync", "copy", "everyone", "push", "programme", "program"])] : []),
     action("act:broadcast", "Message everyone", "Messages · one message to all clients", { tab: "chat", sub: "group" }, ["broadcast", "group", "mass", "all clients", "announce"]),
   ];
 }
@@ -46,7 +47,7 @@ export function coachPlaces(opts: { gym: boolean }): Place[] {
 export const STARTER_IDS = ["brief:review", "brief:calendar", "act:broadcast", "build:templates", "act:invite", "chat:auto", "act:paste"];
 
 /** Clients plus places, and a lookup from item id to where it lands. */
-export function coachQuickFind(clients: { id: string; name: string; hint?: string }[], opts: { gym: boolean }) {
+export function coachQuickFind(clients: { id: string; name: string; hint?: string }[], opts: { gym: boolean; share?: boolean }) {
   const places = coachPlaces(opts);
   const people = clientItems(clients);
   const byId = new Map(places.map((p) => [p.id, p.jump] as const));

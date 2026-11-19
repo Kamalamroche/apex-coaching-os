@@ -38,7 +38,7 @@ const highlight = (name: string, q: string) => {
   return <>{name.slice(0, i)}<mark>{name.slice(i, i + s.length)}</mark>{name.slice(i + s.length)}</>;
 };
 
-export type BuilderStart = "templates" | "plan" | "copilot" | "paste";
+export type BuilderStart = "templates" | "plan" | "copilot" | "paste" | "share";
 
 export function Builder({ say, onInvite, live, start }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps; /** Open straight onto a tool (from quick find). */ start?: BuilderStart }) {
   const u = useUnits();
@@ -55,7 +55,7 @@ export function Builder({ say, onInvite, live, start }: { say: (m: string) => vo
   const [aiOpen, setAiOpen] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(start === "copilot");
   const [planOpen, setPlanOpen] = useState(start === "plan");
-  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(start === "share" && !!live && (live.clients?.length ?? 0) > 1);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
   const [importing, setImporting] = useState<File | "text" | null>(start === "paste" ? "text" : null);
