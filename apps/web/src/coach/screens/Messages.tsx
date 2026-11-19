@@ -25,7 +25,9 @@ const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.Coa
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's side of the chat: pick a client, read their thread (workout summaries included) and reply. */
-export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string) => void }) {
+export type MessagesStart = "auto" | "group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers";
+
+export function Messages({ live, say, start }: { live?: CoachLiveProps; say: (m: string) => void; /** Open straight onto one of the tools (from quick find). */ start?: MessagesStart }) {
   const { clientName, coachName } = useAppInfo();
   const liveLink = useLiveLink();
   const coachFirst = (coachName || "Your coach").split(" ")[0]!;
@@ -33,8 +35,8 @@ export function Messages({ live, say }: { live?: CoachLiveProps; say: (m: string
   const clients = live?.clients;
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const replies = useMemo(() => (live ? liveReplies(live.db, live.coachId) : demoReplies()), [live?.db, live?.coachId]);
-  const [auto, setAuto] = useState(false);
-  const [extra, setExtra] = useState<"group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers" | null>(() => (openedForLeads() ? "grow" : null));
+  const [auto, setAuto] = useState(start === "auto");
+  const [extra, setExtra] = useState<"group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers" | null>(() => (start && start !== "auto" ? start : openedForLeads() ? "grow" : null));
   const teamApi = useTeamApi();
   const extras = useExtras();
   const growApi = useGrowthApi();
