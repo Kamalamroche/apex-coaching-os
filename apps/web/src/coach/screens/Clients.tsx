@@ -10,6 +10,7 @@ import { ClientFormChecks } from "./FormChecks";
 import { ClientAssessments } from "./Assessments";
 import { ClientGoals } from "./Goals";
 import { ClientNotes, TagFilter, TagList, useClientTags } from "./ClientNotes";
+import { BulkActions } from "./BulkActions";
 import { clientTableRows, hasTag, type SortDir, type TableSortKey } from "@apex/core";
 import { useMemo } from "react";
 import { demoRosterHealth } from "../../data/health";
@@ -46,6 +47,7 @@ export function Clients({ id, setId, say, goBuild, startTab }: Props) {
   const [q, setQ] = useState("");
   const [seg, setSeg] = useState<Segment>("All");
   const [transfer, setTransfer] = useState(false);
+  const [bulk, setBulk] = useState(false);
   const [tag, setTag] = useState<string | null>(null);
   const { tags, reload: reloadTags } = useClientTags();
   const [sort, setSort] = useState<{ key: TableSortKey; dir: SortDir }>({ key: "need", dir: "asc" });
@@ -65,6 +67,8 @@ export function Clients({ id, setId, say, goBuild, startTab }: Props) {
       <input id="clientsearch" className="field" placeholder="Search clients" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="chips">{SEGMENTS.map((s) => <button key={s} className={`chip ${seg === s ? "on" : ""}`} onClick={() => setSeg(s)}>{s}</button>)}</div>
       <TagFilter tags={tags} value={tag} onChange={setTag} />
+      {list.length > 1 && <button className="btn ghost sm bulk-open" onClick={() => setBulk(true)}>Message, programme or tag several ({list.length} shown)</button>}
+      {bulk && <BulkActions clients={list.map((x) => ({ id: String(x.id), name: x.name }))} say={say} onClose={() => setBulk(false)} onDone={() => void reloadTags()} />}
       <div className="cl-desk">
         <ClientTable rows={tableRows} sort={sort.key} dir={sort.dir} onSort={(key, dir) => setSort({ key, dir })} onOpen={(cid) => setId(Number(cid))} below={(r) => <TagList tags={tags[r.id]} />} />
         <div className="tiny" style={{ marginTop: 8 }}>Health and its parts are worked out from the last two weeks (Insight). Click a column to sort, or a client to open them.</div>

@@ -40,6 +40,7 @@ export function coachPlaces(opts: { gym: boolean; share?: boolean }): Place[] {
     action("act:paste", "Paste or speak a programme", "Builder · turn notes or a PDF into a workout", { tab: "build", sub: "paste" }, ["import", "pdf", "text", "voice", "notes", "dictate"]),
     ...(opts.share ? [action("act:share", "Share this programme with clients", "Builder · update everyone on the same programme", { tab: "build", sub: "share" }, ["master", "update", "sync", "copy", "everyone", "push", "programme", "program"])] : []),
     action("act:block", "Add the next block", "Builder · new weeks with progressed loads", { tab: "build", sub: "block" }, ["next", "block", "extend", "renew", "ending", "more weeks", "progress"]),
+    action("act:bulk", "Do it for several clients", "Clients · message, programme or tag many at once", { tab: "clients" }, ["bulk", "several", "many", "select", "tag", "assign", "batch"]),
     action("act:broadcast", "Message everyone", "Messages · one message to all clients", { tab: "chat", sub: "group" }, ["broadcast", "group", "mass", "all clients", "announce"]),
   ];
 }
