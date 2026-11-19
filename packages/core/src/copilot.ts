@@ -20,6 +20,7 @@ export const COPILOT_EXAMPLES = [
   "Replace bench press with push-ups from week 2",
   "Add 2.5 kg to deadlifts",
   "Rest 90 s on everything",
+  "Move Thursday to Friday",
 ];
 
 export interface Scope {
@@ -35,7 +36,8 @@ export type Action =
   | { kind: "load"; kg: number | null; percent: number | null }
   | { kind: "deload"; percent: number }
   | { kind: "rest"; seconds: number }
-  | { kind: "reps"; reps: string };
+  | { kind: "reps"; reps: string }
+  | { kind: "moveDay"; from: number; to: number };
 
 export interface Command {
   action: Action;
@@ -59,7 +61,12 @@ export interface CopilotResult {
   changes: CopilotChange[];
   /** Items in scope the instruction couldn't apply to, e.g. no dumbbell version of a movement. */
   skipped: { day: string; item: WorkoutItem; why: string }[];
+  /** Whole days moved to another weekday ("Week 2 · Lower A: Thursday → Friday"). */
+  moves?: { day: string; text: string }[];
 }
+
+/** Every change the coach would accept: exercise edits plus whole days moved. */
+export const changeCount = (r: CopilotResult) => r.changes.length + (r.moves?.length ?? 0);
 
 const EQUIPMENT: Record<string, string> = {
   barbell: "Barbell", barbells: "Barbell", bar: "Barbell",
@@ -69,6 +76,7 @@ const EQUIPMENT: Record<string, string> = {
   bodyweight: "Bodyweight", band: "Resistance band", bands: "Resistance band",
 };
 const EQUIP_WORD = Object.keys(EQUIPMENT).join("|");
+const FULL_DAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const WORD_NUM: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
 
 /** Week and day words, removed from the text so they don't read as an exercise name. */
@@ -118,6 +126,17 @@ const scopeText = (s: Scope): string => {
 export function parseCommand(input: string, program?: Program): Command | null {
   const inProgram = [...new Set(program?.days.flatMap((d) => d.items.map((i) => i.exerciseId)) ?? [])].map(exerciseById);
   const readExercise = (name: string) => readNamed(name, inProgram);
+  // "move Thursday to Friday", "move Thursday's session to Saturday in week 3": whole days, read before the scope takes the day words.
+  const DAY_WORD = "mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?|sundays?|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun";
+  const dayOf = (w: string) => DAY_NAMES.findIndex((d) => w.toLowerCase().startsWith(d.toLowerCase().slice(0, 3)));
+  const mv = new RegExp(String.raw`^(?:move|shift|switch)\s+(?:the\s+)?(${DAY_WORD})(?:'s)?(?:\s+(?:session|workout|training|day))?\s+(?:to|onto)\s+(${DAY_WORD})\b(.*)$`, "i").exec(input.trim().replace(/[.!]+$/, ""));
+  if (mv) {
+    const from = dayOf(mv[1] ?? ""), to = dayOf(mv[2] ?? "");
+    if (from < 0 || to < 0 || from === to) return null;
+    const { scope: sc } = readScope(mv[3] ?? "");
+    const moveScope = { ...sc, dayIndex: from };
+    return { action: { kind: "moveDay", from, to }, scope: moveScope, target: null, summary: `Move ${FULL_DAY[from]} to ${FULL_DAY[to]}${scopeText({ ...sc, dayIndex: null })}` };
+  }
   const { scope, rest } = readScope(input.trim().replace(/[.!]+$/, ""));
   const where = scopeText(scope);
   const num = (s: string | undefined) => (s ? WORD_NUM[s.toLowerCase()] ?? Number(s.replace(",", ".")) : 1);
@@ -201,6 +220,21 @@ const inScope = (d: ProgramDay, s: Scope) =>
 /** Runs a command over the program. Nothing is saved: the coach sees the changes first. */
 export function runCommand(program: Program, command: Command): CopilotResult {
   const { action, scope, target } = command;
+  if (action.kind === "moveDay") {
+    const moves: { day: string; text: string }[] = [];
+    const skipped: CopilotResult["skipped"] = [];
+    const days = program.days.map((d): ProgramDay => {
+      if (!inScope(d, scope)) return d;
+      const label = `Week ${d.week} · ${d.name}`;
+      if (program.days.some((o) => o.week === d.week && o.dayIndex === action.to)) {
+        skipped.push({ day: label, item: d.items[0]!, why: `${FULL_DAY[action.to]} already has a session in week ${d.week}` });
+        return d;
+      }
+      moves.push({ day: label, text: `${FULL_DAY[action.from]} → ${FULL_DAY[action.to]}` });
+      return { ...d, dayIndex: action.to };
+    });
+    return { command, program: { ...program, days: sortDays(days) }, changes: [], skipped: skipped.filter((s) => s.item), moves };
+  }
   const changes: CopilotChange[] = [];
   const skipped: CopilotResult["skipped"] = [];
   const days = program.days.map((d): ProgramDay => {
