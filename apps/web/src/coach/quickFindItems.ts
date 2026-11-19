@@ -18,6 +18,7 @@ export function coachPlaces(opts: { gym: boolean }): Place[] {
     screen("tab:food", "Nutrition", "Meal plans and food", { tab: "food" }, ["food", "macros", "meal", "recipes", "diet", "calories"]),
     screen("tab:money", "Business", "Income, packs and tools", { tab: "money" }, ["money", "income", "revenue", "fees", "earnings"]),
     screen("brief:calendar", "Calendar", "Brief · bookings", { tab: "brief", sub: "calendar" }, ["bookings", "diary", "schedule", "appointments", "sessions", "availability"]),
+    action("brief:review", "Weekly review", "Brief · every client who needs you, one at a time", { tab: "brief", sub: "review" }, ["review", "check-ins", "checkins", "sunday", "round", "inbox"]),
     screen("brief:twin", "APEX Twin drafts", "Brief · weekly drafts to review", { tab: "brief", sub: "twin" }, ["twin", "drafts", "weekly", "review", "ai"]),
     screen("chat:auto", "Automatic messages", "Messages · welcome, missed workouts, reminders", { tab: "chat", sub: "auto" }, ["automations", "automatic", "reminders", "welcome", "missed"]),
     screen("chat:answers", "Quick answers", "Messages · saved replies", { tab: "chat", sub: "answers" }, ["faq", "answers", "saved", "replies", "templates"]),
@@ -42,7 +43,7 @@ export function coachPlaces(opts: { gym: boolean }): Place[] {
 }
 
 /** What shows before the coach types: the jobs they reach for most. */
-export const STARTER_IDS = ["brief:calendar", "act:broadcast", "build:templates", "act:invite", "chat:auto", "act:paste"];
+export const STARTER_IDS = ["brief:review", "brief:calendar", "act:broadcast", "build:templates", "act:invite", "chat:auto", "act:paste"];
 
 /** Clients plus places, and a lookup from item id to where it lands. */
 export function coachQuickFind(clients: { id: string; name: string; hint?: string }[], opts: { gym: boolean }) {

@@ -1021,3 +1021,17 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .coach-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r-sm);border-left:3px solid var(--act);background:var(--act-soft);color:var(--text);font-size:14px;line-height:1.4}
 .coach-note .tiny{color:var(--act);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .btn.strava-send.sent:disabled{opacity:1;color:var(--good);border-color:var(--good)}
+/* ---------- weekly review mode ---------- */
+.rv{max-width:880px;margin-inline:auto;width:100%}
+.rv .rv-why{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rv .rv-why .chip{min-height:0;padding:4px 10px;font-size:12px}
+.rv .rv-why .chip.warn{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 40%,transparent);background:var(--crit-soft)}
+.rv-n{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--pill);background:var(--card2);border:1px solid var(--line);font-size:12px;color:var(--text2);flex:0 0 auto}
+.rv-score{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;border-radius:var(--r);background:var(--card2);border:1px solid var(--line)}
+.rv-score b{font-size:24px;line-height:1}
+.rv-parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:10px}
+.rv-part{display:flex;flex-direction:column;gap:6px}
+.rv-done{display:flex;flex-direction:column;gap:12px;text-align:center;align-items:center;padding:28px 20px}
+.rv-cta{display:flex;align-items:center;gap:14px;padding:14px 16px;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:var(--r);box-shadow:var(--card-shadow);color:var(--text)}
+.rv-cta .rv-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:var(--pill);background:var(--act);color:var(--act-ink);flex:0 0 auto}
+.rv-cta b{font:800 15px/1.2 var(--ui)}

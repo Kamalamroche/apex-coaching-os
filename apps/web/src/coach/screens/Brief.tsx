@@ -9,6 +9,7 @@ import { useStore } from "../../data/StoreContext";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
+import { ReviewMode } from "./ReviewMode";
 import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
 import { GoingQuiet } from "./Quiet";
@@ -47,7 +48,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" }) {
+export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" | "review" }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -76,6 +77,8 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
   const openToday = (tab?: string) => (mode === "live" ? (live?.activeClientId ? openLiveClient?.(live.activeClientId, tab) : undefined) : openClient(DEMO_CLIENT_ID, tab));
   const [calendar, setCalendar] = useState(start === "calendar");
   const [twin, setTwin] = useState(start === "twin");
+  const [review, setReview] = useState(start === "review");
+  if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} />;
   if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
 
@@ -99,6 +102,11 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
         </div>
       </section>
       <PushPrompt say={say} full />
+      <button className="rv-cta full" onClick={() => setReview(true)}>
+        <span className="rv-ic"><Icons.check width={20} height={20} /></span>
+        <span className="grow"><b>Weekly review</b><br /><span className="small">Every client who needs you, one at a time, with a drafted reply</span></span>
+        <Icons.forward width={18} height={18} aria-hidden="true" />
+      </button>
       <section>
         <div className="sect"><h2 className="h2">Needs you today</h2><span className="tiny">Ranked by urgency</span></div>
         {mode === "live" ? (

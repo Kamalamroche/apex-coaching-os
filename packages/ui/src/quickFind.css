@@ -25,9 +25,9 @@
 @media (max-width:520px){.qf{margin-top:0;max-height:70vh}}
 @keyframes qf-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.qf-scrim{animation:none}}
-/* The Find button in the coach's top bar: icon and word on wide screens, icon only on a phone. */
-.qf-open{display:inline-flex;align-items:center;gap:6px}
-@media (max-width:520px){.qf-open span{display:none}.qf-open{padding:0 11px}}
+/* Top-bar buttons with an icon and a word (Find, Account): the word hides on a phone so the bar never crowds the logo. */
+.iconbtn.ib{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:520px){.iconbtn.ib span{display:none}.iconbtn.ib{padding:0 11px}}
 /* The panel itself shows focus; a ring around the text box inside it is just noise. */
 .qf-input:focus-visible{outline:none}
 .qf-head small{font:500 12px/1.3 var(--ui);letter-spacing:0;text-transform:none;color:var(--text3);margin-left:8px}

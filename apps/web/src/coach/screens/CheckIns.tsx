@@ -69,11 +69,11 @@ export function ClientCheckIns({ clientName, say }: { clientName: string; say: (
   );
 }
 
-function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { checkIn: CheckIn; previous?: CheckIn; photos: ProgressPhoto[]; first: string; say: (m: string) => void; startOpen: boolean }) {
+export function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen, draft, onSent }: { checkIn: CheckIn; previous?: CheckIn; photos: ProgressPhoto[]; first: string; say: (m: string) => void; startOpen: boolean; /** A first-draft reply the coach edits (Weekly review). */ draft?: string; onSent?: () => void }) {
   const u = useUnits();
   const store = useStore();
   const [open, setOpen] = useState(startOpen);
-  const [reply, setReply] = useState("");
+  const [reply, setReply] = useState(draft ?? "");
   const [busy, setBusy] = useState(false);
   const flags = checkInFlags(c, previous);
   const rows = compareCheckIns(c, previous);
@@ -86,6 +86,7 @@ function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { 
       if (reply.trim()) store.sendMessage("coach", reply.trim());
       say(reply.trim() ? `Reply sent to ${first}` : "Marked as reviewed");
       setReply("");
+      onSent?.();
     } catch (e) {
       say(e instanceof Error ? e.message : "Couldn't save the reply");
     } finally {
@@ -147,7 +148,8 @@ function CheckInCard({ checkIn: c, previous, photos, first, say, startOpen }: { 
           )}
           {!c.reviewedAt && (
             <>
-              <textarea className="field" rows={3} maxLength={4000} placeholder={`Reply to ${first}. It also goes to your message thread.`} value={reply} onChange={(e) => setReply(e.target.value)} aria-label={`Reply to ${first}`} />
+              {draft && <div className="row" style={{ gap: 8 }}><Label kind="ai">AI suggestion</Label><span className="tiny">Drafted from this check-in. Edit it, then send.</span></div>}
+              <textarea className="field" rows={draft ? 8 : 3} maxLength={4000} placeholder={`Reply to ${first}. It also goes to your message thread.`} value={reply} onChange={(e) => setReply(e.target.value)} aria-label={`Reply to ${first}`} />
               <button className="btn act block" disabled={busy} onClick={() => void send()}>{busy ? "Saving…" : reply.trim() ? "Send reply and mark reviewed" : "Mark as reviewed"}</button>
             </>
           )}
