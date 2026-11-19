@@ -619,3 +619,10 @@ export function loggingStreak(food: { day: string }[], today: string): number {
   while (days.has(d)) { n++; d = addDays(d, -1); }
   return n;
 }
+
+/** How far the evening has run towards bedtime, 0–1. Both in minutes after 18:00 (the `bedtimeGoal` and `clockMinutes`
+    scale), so a goal after midnight still counts as that night. Daytime (from 6 am, the far end of the scale) is 0. */
+export function eveningProgress(nowAfter18: number, goalAfter18: number): number {
+  if (goalAfter18 <= 0 || nowAfter18 >= 12 * 60) return 0;
+  return Math.max(0, Math.min(1, nowAfter18 / goalAfter18));
+}

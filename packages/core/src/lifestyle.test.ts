@@ -258,3 +258,14 @@ describe("food search order", () => {
     expect(searchFoods(FOODS, "chicken")[0]?.group).toBe("Protein");
   });
 });
+
+describe("eveningProgress", () => {
+  it("fills from 6 pm to the bedtime goal and is empty in the day", async () => {
+    const { eveningProgress, bedtimeGoal } = await import("./lifestyle");
+    const goal = bedtimeGoal("In bed by 10:30 pm"); // 270
+    expect(eveningProgress(0, goal)).toBe(0);
+    expect(eveningProgress(135, goal)).toBeCloseTo(0.5);
+    expect(eveningProgress(300, goal)).toBe(1);
+    expect(eveningProgress(16 * 60, goal)).toBe(0); // 10 am
+  });
+});

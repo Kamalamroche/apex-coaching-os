@@ -1,5 +1,5 @@
-import { bedtimeGoal, clockLabel, clockMinutes, formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, stepsGoal, waterGoalMl, waterOn, type Habit, type RecoveryDay } from "@apex/core";
-import { useEffect, useRef } from "react";
+import { bedtimeGoal, clockLabel, clockMinutes, eveningProgress, formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, stepsGoal, waterGoalMl, waterOn, type Habit, type RecoveryDay } from "@apex/core";
+import { useEffect, useRef, useState } from "react";
 import { HabitDays, Icons, LiquidTile, NightTile, StepsTile } from "@apex/ui";
 import { useAppInfo } from "../../app/AppContext";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
@@ -16,6 +16,9 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
   // What the watch or ring measured: today's steps, and the night that ended this morning.
   const day = useActivitiesIfAny().recovery.find((d) => d.date === today);
   useAutoTicks(due, day, today);
+  // Ticks once a minute so the bedtime tile keeps filling through the evening.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
   if (!due.length) return null;
   return (
     <div className="card flat list">
@@ -26,7 +29,7 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
           <div key={h.id} className="hb-row">
             {h.kind === "water" && s.waterReady ? <WaterIcon />
               : h.kind === "steps" ? <StepsTile pct={done ? 1 : (day?.steps ?? 0) / stepsGoal(h.title)} label={day?.steps != null ? `${day.steps.toLocaleString("en-GB")} steps today` : h.title} />
-              : h.kind === "sleep" ? <NightTile done={done} label={h.title} />
+              : h.kind === "sleep" ? <NightTile done={done} pct={eveningProgress(clockMinutes(new Date(now).toISOString()), bedtimeGoal(h.title))} label={h.title} />
               : <HabitIcon kind={h.kind} />}
             <div className="grow">
               <div className="h3" style={{ textDecoration: done && compact ? "line-through" : undefined, color: done && compact ? "var(--text2)" : undefined }}>{h.title}</div>

@@ -101,7 +101,7 @@ interface Bubble { x: number; y: number; r: number; v: number; p: number }
  *
  * `size="mini"` is the 36 px tile used as a habit icon (no number, no bubbles).
  */
-export function LiquidTank({ pct, size = "full", className = "", label, showNumber = true, children, top = 0.12, bottom = 0.04, numberTop = 0, numberBottom = 0 }: {
+export function LiquidTank({ pct, size = "full", className = "", label, showNumber = true, children, top = 0.12, bottom = 0.04, numberTop = 0, numberBottom = 0, tone = "water" }: {
   /** 0–1 of the goal. Over 1 shows full. */
   pct: number;
   size?: "full" | "mini";
@@ -117,6 +117,8 @@ export function LiquidTank({ pct, size = "full", className = "", label, showNumb
   numberTop?: number;
   /** Px kept clear above the covered bottom, e.g. for buttons over the water. */
   numberBottom?: number;
+  /** The liquid's colour: water (blue), energy (the action orange, for steps) or night (deep indigo, for sleep). */
+  tone?: "water" | "energy" | "night";
 }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -153,7 +155,14 @@ export function LiquidTank({ pct, size = "full", className = "", label, showNumb
     if (!s.colours || s.frames++ % 90 === 0) {
       const data = token(el, "--data", [56, 189, 248]);
       const blue = token(el, "--blue", [90, 115, 214]);
-      s.colours = { a: mix(data, WHITE, 0.18), b: mix(data, blue, 0.45), deep: mix(blue, [6, 14, 40], 0.45), ink: WHITE };
+      if (tone === "energy") {
+        const act = token(el, "--act", [255, 106, 26]);
+        const warn = token(el, "--warn", [245, 158, 11]);
+        s.colours = { a: mix(act, warn, 0.35), b: act, deep: mix(act, [60, 18, 4], 0.4), ink: WHITE };
+      } else if (tone === "night") {
+        const viz4 = token(el, "--viz-4", [168, 92, 200]);
+        s.colours = { a: mix(viz4, blue, 0.45), b: mix(blue, [20, 18, 60], 0.3), deep: mix(blue, [6, 8, 30], 0.62), ink: WHITE };
+      } else s.colours = { a: mix(data, WHITE, 0.18), b: mix(data, blue, 0.45), deep: mix(blue, [6, 14, 40], 0.45), ink: WHITE };
     }
     const col = s.colours;
 
