@@ -1049,3 +1049,9 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .bulk-open{align-self:flex-start}
 .sheet input[type=checkbox]{accent-color:var(--act);width:18px;height:18px}
 .cop-mic{white-space:nowrap;display:inline-flex;align-items:center;gap:6px}@media (max-width:520px){.cop-mic .t{display:none}.cop-mic{padding-inline:14px}}
+/* ---------- before-session card ---------- */
+.prep-block{display:flex;flex-direction:column;gap:6px}
+.prep-block .h3{display:inline-flex;align-items:center;gap:6px}
+.prep-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font:500 14px/1.45 var(--ui);color:var(--text)}
+.prep-watch{padding:12px 14px;border-radius:var(--r);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
+.prep-plan{font-size:13px!important;color:var(--text2)!important}

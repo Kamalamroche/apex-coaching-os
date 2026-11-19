@@ -11,6 +11,7 @@ import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
 import { ReviewMode } from "./ReviewMode";
 import { EndingCard } from "./EndingCard";
+import { SessionPrep } from "./SessionPrep";
 import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
 import { GoingQuiet } from "./Quiet";
@@ -79,6 +80,7 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
   const [calendar, setCalendar] = useState(start === "calendar");
   const [twin, setTwin] = useState(start === "twin");
   const [review, setReview] = useState(start === "review");
+  const [prep, setPrep] = useState<{ clientId: string; name: string; startsAt: string } | null>(null);
   if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} />;
   if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
@@ -172,7 +174,8 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
       <div className="stack" style={{ gap: 18 }}>
         <EndingCard live={live} planBlock={planBlock} openClient={openClient} />
         <TwinCard onOpen={() => setTwin(true)} />
-        <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
+        <CalendarCard clients={clients} onOpen={() => setCalendar(true)} onPrep={setPrep} />
+        {prep && <SessionPrep {...prep} live={live} onClose={() => setPrep(null)} onOpenClient={() => { const id = prep.clientId; setPrep(null); if (live) openLiveClient?.(id, "In person"); else openClient(DEMO_CLIENT_ID, "In person"); }} />}
       </div>
 
       <GoingQuiet live={live} say={say} />

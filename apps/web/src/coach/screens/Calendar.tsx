@@ -16,7 +16,7 @@ const TIMES = Array.from({ length: 37 }, (_, i) => 300 + i * 30); // 05:00 to 23
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** Small entry card for the Brief: what's next in the calendar. */
-export function CalendarCard({ clients, onOpen }: { clients?: LiveClient[] | null; onOpen: () => void }) {
+export function CalendarCard({ clients, onOpen, onPrep }: { clients?: LiveClient[] | null; onOpen: () => void; /** Before-session card for the next booking. */ onPrep?: (b: { clientId: string; name: string; startsAt: string }) => void }) {
   const api = useBookingApi();
   const data = useBookings(api);
   if (!api) return null;
@@ -34,6 +34,13 @@ export function CalendarCard({ clients, onOpen }: { clients?: LiveClient[] | nul
         </div>
         <span className="tiny">›</span>
       </button>
+      {first && onPrep && Date.parse(first.startsAt) - Date.now() < 24 * 36e5 && (
+        <button className="li" onClick={() => onPrep({ clientId: first.clientId, name: names[first.clientId] ?? "Client", startsAt: first.startsAt })}>
+          <Icons.note width={18} height={18} style={{ color: "var(--act)" }} />
+          <div className="grow"><div className="h3">Before you see {firstName(names[first.clientId] ?? "your client")}</div><div className="tiny">Watch-outs, last time, today's plan. One page.</div></div>
+          <span className="tiny">›</span>
+        </button>
+      )}
       {first && callOpen(first, new Date()) && first.kind === "call" && (
         <div className="li"><Icons.video width={18} height={18} style={{ color: "var(--act)" }} /><div className="grow small">Your call with {firstName(names[first.clientId] ?? "your client")} is starting</div><JoinCall booking={first} settings={data.settings} /></div>
       )}
