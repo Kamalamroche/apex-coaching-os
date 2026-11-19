@@ -1,3 +1,4 @@
+import { ProfileTabs } from "./ProfileTabs";
 import { BulkActions } from "./BulkActions";
 import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
@@ -149,9 +150,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
         <Avatar initials={initials(name)} size={56} tone="var(--act)" />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{name}</h1><div className="small">{mode} · {ago(lastSession).toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>
-        {LIVE_TABS.map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}{t === "Check-ins" && unreviewed ? ` · ${unreviewed} new` : ""}{t === "About" && flags ? ` · ${flags} health` : ""}{t === "Form checks" && newVideos ? ` · ${newVideos} new` : ""}{t === "Assessment" && newAssess ? ` · ${newAssess} new` : ""}</button>)}
-      </div>
+      <ProfileTabs tabs={LIVE_TABS} tab={tab} setTab={setTab} badge={(t) => (t === "Check-ins" && unreviewed ? `${unreviewed} new` : t === "About" && flags ? `${flags} health` : t === "Form checks" && newVideos ? `${newVideos} new` : t === "Assessment" && newAssess ? `${newAssess} new` : null)} />
       {tab === "Health" && (health ? <ClientHealthPanel health={health.health} trend={health.trend} /> : <div className="card small">Working out {name.split(" ")[0]}'s health score…</div>)}
       {tab === "Report" && <ClientReport clientName={name} say={say} />}
       {tab === "Check-ins" && <ClientCheckIns clientName={name} say={say} />}

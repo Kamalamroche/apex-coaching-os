@@ -102,3 +102,4 @@ export * from "./reviewMode";
 export * from "./programSync";
 export * from "./runway";
 export * from "./sessionPrep";
+export * from "./profileTabs";

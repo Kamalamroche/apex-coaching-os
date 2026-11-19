@@ -1055,3 +1055,6 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .prep-block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font:500 14px/1.45 var(--ui);color:var(--text)}
 .prep-watch{padding:12px 14px;border-radius:var(--r);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
 .prep-plan{font-size:13px!important;color:var(--text2)!important}
+/* Client profile: group chips with a small "something new" dot, and the group's tabs as a segmented row. */
+.pt-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--act);margin-left:6px;vertical-align:2px}
+.pt-sub button{padding:0 8px;white-space:nowrap}

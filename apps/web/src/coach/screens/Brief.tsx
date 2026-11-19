@@ -8,7 +8,7 @@ import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useStore } from "../../data/StoreContext";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Calendar, CalendarCard } from "./Calendar";
-import { TwinCard, TwinQueue } from "./Twin";
+import { TwinQueue } from "./Twin";
 import { ReviewMode } from "./ReviewMode";
 import { EndingCard } from "./EndingCard";
 import { SessionPrep } from "./SessionPrep";
@@ -83,9 +83,9 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
   const [twin, setTwin] = useState(start === "twin");
   const [review, setReview] = useState(start === "review");
   const [prep, setPrep] = useState<{ clientId: string; name: string; startsAt: string } | null>(null);
-  if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} />;
+  if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} backLabel={review ? "Weekly review" : "Brief"} />;
+  if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} openTwin={() => setTwin(true)} />;
   if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
-  if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} />;
 
   return (
     <>
@@ -109,7 +109,7 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
       <PushPrompt say={say} full />
       <button className="rv-cta full" onClick={() => setReview(true)}>
         <span className="rv-ic"><Icons.check width={20} height={20} /></span>
-        <span className="grow"><b>Weekly review</b><br /><span className="small">Every client who needs you, one at a time, with a drafted reply</span></span>
+        <span className="grow"><b>Weekly review</b><br /><span className="small">Every client who needs you, one at a time, then APEX Twin's drafts for everyone else</span></span>
         <Icons.forward width={18} height={18} aria-hidden="true" />
       </button>
       <section>
@@ -170,7 +170,6 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
 
       <div className="stack" style={{ gap: 18 }}>
         <EndingCard live={live} planBlock={planBlock} openClient={openClient} />
-        <TwinCard onOpen={() => setTwin(true)} />
         <CalendarCard clients={clients} onOpen={() => setCalendar(true)} onPrep={setPrep} />
         {prep && <SessionPrep {...prep} live={live} onClose={() => setPrep(null)} onOpenClient={() => { const id = prep.clientId; setPrep(null); if (live) openLiveClient?.(id, "In person"); else openClient(DEMO_CLIENT_ID, "In person"); }} />}
       </div>
