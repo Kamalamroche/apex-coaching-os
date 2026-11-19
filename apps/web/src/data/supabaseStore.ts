@@ -709,14 +709,19 @@ export async function insertProgram(db: SupabaseClient, ids: { coachId: string; 
   }
 }
 
-/** Each client's current programme name (their newest programme), for grouping clients on the same programme. */
-export async function latestProgramNames(db: SupabaseClient, clientIds: string[]): Promise<Record<string, string>> {
+/** Each client's current (newest) programme: name, length and start, for grouping and for spotting ones about to end. */
+export async function latestPrograms(db: SupabaseClient, clientIds: string[]): Promise<Record<string, { name: string; weeks: number; createdAt: string }>> {
   if (!clientIds.length) return {};
-  const { data, error } = await db.from("programs").select("client_id, name, created_at").in("client_id", clientIds).order("created_at", { ascending: false }).limit(2000);
+  const { data, error } = await db.from("programs").select("client_id, name, weeks, created_at").in("client_id", clientIds).order("created_at", { ascending: false }).limit(2000);
   if (error) throw error;
-  const out: Record<string, string> = {};
-  for (const r of (data ?? []) as { client_id: string; name: string }[]) if (!(r.client_id in out)) out[r.client_id] = r.name;
+  const out: Record<string, { name: string; weeks: number; createdAt: string }> = {};
+  for (const r of (data ?? []) as { client_id: string; name: string; weeks: number; created_at: string }[]) if (!(r.client_id in out)) out[r.client_id] = { name: r.name, weeks: r.weeks, createdAt: r.created_at };
   return out;
+}
+
+/** Each client's current programme name. */
+export async function latestProgramNames(db: SupabaseClient, clientIds: string[]): Promise<Record<string, string>> {
+  return Object.fromEntries(Object.entries(await latestPrograms(db, clientIds)).map(([id, p]) => [id, p.name]));
 }
 
 /** A client's current programme as written (no history), to compare with another before sharing changes. */

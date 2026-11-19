@@ -10,6 +10,7 @@ import { PlateauFixes, usePlateaus } from "./Plateaus";
 import { Calendar, CalendarCard } from "./Calendar";
 import { TwinCard, TwinQueue } from "./Twin";
 import { ReviewMode } from "./ReviewMode";
+import { EndingCard } from "./EndingCard";
 import type { LiveClient } from "../../data/coach";
 import { PushPrompt } from "../../app/PushParts";
 import { GoingQuiet } from "./Quiet";
@@ -48,7 +49,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" | "review" }) {
+export function Brief({ planBlock, openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { planBlock?: (clientId: string) => void; openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" | "review" }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -169,6 +170,7 @@ export function Brief({ openClient, openLiveClient, openClients, openBusiness, s
       {report && <WeeklyReportCard report={report} sample={mode === "demo"} onClient={(c) => (mode === "live" ? openLiveClient?.(c.id) : openClient(Number(c.id)))} />}
       {glance && <BusinessGlance tiles={glance} sample={mode === "demo"} onOpen={openBusiness} />}
       <div className="stack" style={{ gap: 18 }}>
+        <EndingCard live={live} planBlock={planBlock} openClient={openClient} />
         <TwinCard onOpen={() => setTwin(true)} />
         <CalendarCard clients={clients} onOpen={() => setCalendar(true)} />
       </div>
