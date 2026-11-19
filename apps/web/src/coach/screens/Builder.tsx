@@ -12,6 +12,7 @@ import { useStore } from "../../data/StoreContext";
 import { AiAdjust } from "./AiAdjust";
 import { PlanUpdateSheet } from "./PlanUpdate";
 import { Copilot } from "./Copilot";
+import { CopyToClients } from "./CopyToClients";
 import { ImportPdf } from "./ImportPdf";
 import { ProgramBar } from "./ProgramBar";
 import { PlateauFixes, usePlateaus } from "./Plateaus";
@@ -37,24 +38,27 @@ const highlight = (name: string, q: string) => {
   return <>{name.slice(0, i)}<mark>{name.slice(i, i + s.length)}</mark>{name.slice(i + s.length)}</>;
 };
 
-export function Builder({ say, onInvite, live }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps }) {
+export type BuilderStart = "templates" | "plan" | "copilot" | "paste";
+
+export function Builder({ say, onInvite, live, start }: { say: (m: string) => void; onInvite: () => void; live?: CoachLiveProps; /** Open straight onto a tool (from quick find). */ start?: BuilderStart }) {
   const u = useUnits();
   const store = useStore();
   const { clientName, mode } = useAppInfo();
   const { status, error } = useStoreStatus();
   const { workout, program, activeDay } = useApexState(store);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(start === "templates");
   const [q, setQ] = useState("");
   const [swapping, setSwapping] = useState<WorkoutItem | null>(null);
   const [plateauOpen, setPlateauOpen] = useState<number | null>(null);
   const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>({});
   const plateaus = usePlateaus();
   const [aiOpen, setAiOpen] = useState(false);
-  const [copilotOpen, setCopilotOpen] = useState(false);
-  const [planOpen, setPlanOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(start === "copilot");
+  const [planOpen, setPlanOpen] = useState(start === "plan");
+  const [copyOpen, setCopyOpen] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
   /* What the importer reads: a PDF, or "text" to paste one in. */
-  const [importing, setImporting] = useState<File | "text" | null>(null);
+  const [importing, setImporting] = useState<File | "text" | null>(start === "paste" ? "text" : null);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const [armed, setArmed] = useState<string | null>(null);
@@ -182,9 +186,11 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
   }
   if (status === "loading") return <Empty title="Loading programme…" body={`Fetching ${first}'s programme.`} />;
   if (status === "error") return <Empty title="Couldn't load the programme" body={error ?? "Unknown error"} />;
+  const who = <ClientSwitch live={live} />;
   if (status === "no-program") {
     return (
       <>
+        {who}
         <Empty title={`${first} has no programme yet`} body="Bring in a programme you already have as a PDF (even a scan), a photo or text, start from a template (yours or an APEX starter), or from the Foundations day. Then edit it here. Changes save as you type." action="Import a PDF programme" onAction={() => fileRef.current?.click()} secondary="Choose a template" onSecondary={() => setTemplatesOpen(true)} />
         <div className="row full" style={{ gap: 8, flexWrap: "wrap" }}>
           <button className="btn ghost sm pb-cop" onClick={() => setPlanOpen(true)}>Describe {first}, get a plan</button>
@@ -208,7 +214,9 @@ export function Builder({ say, onInvite, live }: { say: (m: string) => void; onI
     >
       <aside className="bld-side card flat"><LibraryPanel onAdd={(ex) => add(ex)} /></aside>
       <section className="bld-main">
-      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} onPlan={() => setPlanOpen(true)} />
+      {who}
+      <ProgramBar say={say} onTemplates={() => setTemplatesOpen(true)} onCopilot={() => setCopilotOpen(true)} onPlan={() => setPlanOpen(true)} onCopyTo={live && (live.clients?.length ?? 0) > 1 ? () => setCopyOpen(true) : undefined} />
+      {copyOpen && live && <CopyToClients live={live} say={say} onClose={() => setCopyOpen(false)} />}
       {"hasPlanColumns" in store && !(store as { hasPlanColumns: () => boolean }).hasPlanColumns() && workout.items.some((x) => x.setPlan || x.blockStyle) && (
         <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", padding: "10px 12px" }}>
           <span className="small" style={{ color: "var(--text)" }}>Per-set targets and circuits are only kept on this screen until the programme builder SQL is run in Supabase.</span>
@@ -454,6 +462,28 @@ function Empty({ title, body, action, onAction, secondary, onSecondary }: { titl
         {action && <button className="btn act" onClick={onAction}>{action}</button>}
         {secondary && <button className="btn ghost" onClick={onSecondary}>{secondary}</button>}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Live coaches with more than one client switch who they are programming for right here,
+ * and step to the next client without going back through Clients (TrueCoach-style programming day).
+ */
+function ClientSwitch({ live }: { live?: CoachLiveProps }) {
+  const clients = live?.clients ?? [];
+  if (!live || clients.length < 2) return null;
+  const at = Math.max(0, clients.findIndex((c) => c.id === live.activeClientId));
+  const next = clients[(at + 1) % clients.length]!;
+  return (
+    <div className="bld-who full">
+      <label className="bld-who-pick">
+        <span className="eyebrow">Programming for</span>
+        <select className="field" value={clients[at]?.id ?? ""} onChange={(e) => live.setActiveClientId(e.target.value)} aria-label="Client to programme">
+          {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </label>
+      <button className="btn ghost sm" onClick={() => live.setActiveClientId(next.id)} title={`Open ${next.name}'s programme`}>Next: {next.name.split(" ")[0]}<Icons.forward width={15} height={15} aria-hidden="true" /></button>
     </div>
   );
 }

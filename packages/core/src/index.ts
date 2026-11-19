@@ -97,3 +97,4 @@ export * from "./marketing";
 export * from "./planBuilder";
 export * from "./services";
 export * from "./exerciseComments";
+export * from "./quickFind";

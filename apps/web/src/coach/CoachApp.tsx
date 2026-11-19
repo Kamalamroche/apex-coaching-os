@@ -1,8 +1,8 @@
-import { Shell, useT, useToast, type TabDef } from "@apex/ui";
+import { Icons, QuickFind, Shell, useQuickFindKeys, useT, useToast, type TabDef } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { firstName } from "@apex/core";
+import { CLIENTS, firstName, parseClientItem, type QuickItem } from "@apex/core";
 import { useApexState } from "@apex/core/react";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../app/AppContext";
 import { useStore } from "../data/StoreContext";
 import { openedForLeads } from "../data/growth";
@@ -20,6 +20,10 @@ import { AccountScreen } from "../app/Privacy";
 import { UnitsAndLanguage } from "../app/Settings";
 import { useOpenFromNotification } from "../app/PushParts";
 import { BackLink } from "@apex/ui";
+import { coachQuickFind } from "./quickFindItems";
+import type { MessagesStart } from "./screens/Messages";
+import type { BusinessStart } from "./screens/Business";
+import type { BuilderStart } from "./screens/Builder";
 
 /* Loaded when first opened, so the app starts faster. */
 const CoachGym = lazy(() => import("./screens/CoachGym").then((m) => ({ default: m.CoachGym })));
@@ -47,7 +51,14 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const [liveOpen, setLiveOpen] = useState<string | null>(null);
   // The profile tab to open on, when the Brief sends the coach straight to one (e.g. Recovery).
   const [startTab, setStartTab] = useState<string | undefined>(undefined);
+  // Bumped when quick find opens a client, so the profile opens on the new tab even if it was already open.
+  const [openNonce, setOpenNonce] = useState(0);
   const [account, setAccount] = useState(false);
+  // Quick find: one search box for any client, screen or job. `sub` opens a tool inside the tab; `nonce` remounts it so a second jump lands too.
+  const [finding, setFinding] = useState(false);
+  const [sub, setSub] = useState<{ tab: Tab; to: string; nonce: number } | null>(null);
+  const openFind = useCallback(() => setFinding(true), []);
+  useQuickFindKeys(openFind);
   const [gym, setGym] = useState(false);
   const gymApi = useGymApi();
   const [toast, say] = useToast();
@@ -58,18 +69,42 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const openClient = (id: number, tab?: string) => { setStartTab(tab); setClientId(id); setTab("clients"); };
   const openLiveClient = (id: string, tab?: string) => { setStartTab(tab); live?.setActiveClientId(id); setLiveOpen(id); setTab("clients"); };
   const goBuild = () => setTab("build");
-  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } setStartTab(undefined); };
+  const find = useMemo(() => coachQuickFind(
+    live ? (live.clients ?? []).map((c) => ({ id: c.id, name: c.name })) : CLIENTS.map((c) => ({ id: String(c.id), name: c.name, hint: `${c.plan} · ${c.mode}` })),
+    { gym: !!gymApi },
+  ), [live, gymApi]);
+  const onFind = (item: QuickItem) => {
+    const person = parseClientItem(item.id);
+    if (person) {
+      setAccount(false); setGym(false); setSub(null);
+      if (live) openLiveClient(person.clientId, person.tab ?? "Programme");
+      else openClient(Number(person.clientId), person.tab);
+      setOpenNonce((n) => n + 1);
+      return;
+    }
+    const jump = find.jumpFor(item.id);
+    if (!jump) return;
+    if ("account" in jump) { setGym(false); setAccount(true); return; }
+    changeTab(jump.tab);
+    if (jump.tab === "money" && jump.sub === "gym") { setGym(true); return; }
+    if (jump.tab === "clients") setClientId(null);
+    setSub(jump.sub ? { tab: jump.tab, to: jump.sub, nonce: Date.now() } : null);
+    window.scrollTo(0, 0);
+  };
+  const subFor = (t: Tab) => (sub?.tab === t ? sub : null);
+  const changeTab = (t: Tab) => { setAccount(false); setGym(false); setSub(null); setTab(t); if (t !== "clients") { setClientId(null); setLiveOpen(null); } setStartTab(undefined); };
   return (
-    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
+    <Shell side="Coach" switchHref="/start/" tabs={tabs} tab={tab} setTab={changeTab} wide={tab === "brief" || (tab === "money" && !gym) || tab === "build" || (tab === "clients" && !account)} actions={<><button className="iconbtn qf-open" onClick={openFind} aria-label={t("Find")} title={`${t("Find")} (/ or ⌘K)`}><Icons.search width={16} height={16} aria-hidden="true" /><span>{t("Find")}</span></button><button className="iconbtn" aria-pressed={account} onClick={() => setAccount((a) => !a)}>{t("Account")}</button>{signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}</>}>
       <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}>
       {account && <><div className="full"><BackLink onClick={() => setAccount(false)}>{t("Back")}</BackLink></div><UnitsAndLanguage /><AccountScreen say={say} /></>}
-      {!account && tab === "brief" && <Brief openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
-      {!account && tab === "clients" && (live ? <LiveClients key={liveOpen ?? ""} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} startTab={startTab} /> : <Clients id={clientId} setId={(id) => { setStartTab(undefined); setClientId(id); }} say={say} goBuild={goBuild} startTab={startTab} />)}
-      {!account && tab === "chat" && <Messages live={live} say={say} />}
-      {!account && tab === "build" && <Builder say={say} onInvite={() => setTab("clients")} live={live} />}
+      {!account && tab === "brief" && <Brief key={subFor("brief")?.nonce} start={subFor("brief")?.to as "calendar" | "twin" | undefined} openClient={openClient} openLiveClient={openLiveClient} openClients={() => changeTab("clients")} openBusiness={() => changeTab("money")} say={say} clientCount={live?.clients?.length} clients={live?.clients} live={live} />}
+      {!account && tab === "clients" && (live ? <LiveClients key={`${liveOpen ?? ""}:${openNonce}`} live={live} say={say} goBuild={goBuild} initialOpen={liveOpen} startTab={startTab} /> : <Clients key={openNonce} id={clientId} setId={(id) => { setStartTab(undefined); setClientId(id); }} say={say} goBuild={goBuild} startTab={startTab} />)}
+      {!account && tab === "chat" && <Messages key={subFor("chat")?.nonce} start={subFor("chat")?.to as MessagesStart | undefined} live={live} say={say} />}
+      {!account && tab === "build" && <Builder key={subFor("build")?.nonce} start={subFor("build")?.to as BuilderStart | undefined} say={say} onInvite={() => setTab("clients")} live={live} />}
       {!account && tab === "food" && <CoachNutrition live={live} say={say} />}
-      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business live={live} say={say} openGym={gymApi ? () => setGym(true) : undefined} />)}
+      {!account && tab === "money" && (gym && gymApi ? <CoachGym onBack={() => setGym(false)} say={say} /> : <Business key={subFor("money")?.nonce} start={subFor("money")?.to as BusinessStart | undefined} live={live} say={say} openGym={gymApi ? () => setGym(true) : undefined} />)}
       </Suspense>
+      {finding && <QuickFind items={find.items} starter={find.starter} onPick={onFind} onClose={() => setFinding(false)} />}
       {toast}
     </Shell>
   );
