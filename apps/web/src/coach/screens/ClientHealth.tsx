@@ -3,17 +3,18 @@ import { HealthBadge, HealthBandPill, HealthParts, HealthTrend, Label } from "@a
 import type { HealthClient } from "../../data/health";
 
 /** Brief card: the clients whose health score says they need the coach most, with the reasons in plain words. */
-export function ClientHealthCard<T extends HealthClient>({ rows, open, max = 4 }: { rows: RosterRow<T>[] | null; open: (c: T) => void; max?: number }) {
+export function ClientHealthCard<T extends HealthClient>({ rows, open, max = 4, skip }: { rows: RosterRow<T>[] | null; open: (c: T) => void; max?: number; /** Clients already shown above (Needs you today), left out here. */ skip?: Set<string> }) {
   if (!rows) return null;
   const scored = rows.filter((r) => r.health.score !== null);
-  const need = scored.filter((r) => r.health.band !== "good").slice(0, max);
+  const skipped = skip ? scored.filter((r) => skip.has(r.client.id) && r.health.band !== "good").length : 0;
+  const need = scored.filter((r) => r.health.band !== "good" && !skip?.has(r.client.id)).slice(0, max);
   const good = scored.filter((r) => r.health.band === "good").length;
   return (
     <section>
       <div className="sect"><h2 className="h2">Client health</h2><Label kind="insight">Insight</Label></div>
       <div className="card flat list">
         {scored.length === 0 && <div className="li"><div className="small">Scores show once clients have been with you a week. They come from training, check-ins, habits, food logging and messages.</div></div>}
-        {scored.length > 0 && need.length === 0 && <div className="li"><div className="grow"><div className="h3">Everyone's on track</div><div className="small">All {good} scored clients are at 75 or above.</div></div></div>}
+        {scored.length > 0 && need.length === 0 && <div className="li"><div className="grow"><div className="h3">{skipped ? "Everyone else is on track" : "Everyone's on track"}</div><div className="small">{skipped ? `${skipped} client${skipped === 1 ? " is" : "s are"} in Needs you today above. ` : ""}{good} scored client{good === 1 ? " is" : "s are"} at 75 or above.</div></div></div>}
         {need.map((r) => (
           <button key={r.client.id} className="li" onClick={() => open(r.client)}>
             <HealthBadge score={r.health.score} band={r.health.band} />
@@ -24,7 +25,7 @@ export function ClientHealthCard<T extends HealthClient>({ rows, open, max = 4 }
             <span className="tiny">›</span>
           </button>
         ))}
-        {need.length > 0 && good > 0 && <div className="li"><div className="tiny">{good} more on track.</div></div>}
+        {need.length > 0 && (good > 0 || skipped > 0) && <div className="li"><div className="tiny">{[good > 0 && `${good} more on track`, skipped > 0 && `${skipped} in Needs you today above`].filter(Boolean).join(" · ")}.</div></div>}
       </div>
     </section>
   );

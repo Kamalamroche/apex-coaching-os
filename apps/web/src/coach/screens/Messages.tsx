@@ -1,6 +1,6 @@
 import { countOn, firstName, type AutomationSettings } from "@apex/core";
 import { Avatar, Icons } from "@apex/ui";
-import { useEffect, useMemo, useState, Suspense, lazy } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { Thread } from "../../app/Thread";
 import { demoAutomations, liveAutomations } from "../../data/automations";
@@ -13,19 +13,18 @@ import { GroupMessage } from "./GroupMessage";
 import { CoachResources } from "./CoachResources";
 import { CoachTeam } from "./CoachTeam";
 import { useTeamApi } from "../../data/team";
-import { openedForLeads, useGrowthApi } from "../../data/growth";
+
 
 import { demoReplies, liveReplies } from "../../data/savedReplies";
 import { CoachAnswers } from "./CoachAnswers";
 import { useExtras } from "../../data/extras";
 
 /* Loaded when first opened, so the app starts faster. */
-const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.CoachGrow })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's side of the chat: pick a client, read their thread (workout summaries included) and reply. */
-export type MessagesStart = "auto" | "group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers";
+export type MessagesStart = "auto" | "group" | "challenges" | "live" | "resources" | "team" | "answers";
 
 export function Messages({ live, say, start }: { live?: CoachLiveProps; say: (m: string) => void; /** Open straight onto one of the tools (from quick find). */ start?: MessagesStart }) {
   const { clientName, coachName } = useAppInfo();
@@ -36,10 +35,9 @@ export function Messages({ live, say, start }: { live?: CoachLiveProps; say: (m:
   const api = useMemo(() => (live ? liveAutomations(live.db, live.coachId) : demoAutomations()), [live?.db, live?.coachId]);
   const replies = useMemo(() => (live ? liveReplies(live.db, live.coachId) : demoReplies()), [live?.db, live?.coachId]);
   const [auto, setAuto] = useState(start === "auto");
-  const [extra, setExtra] = useState<"group" | "challenges" | "live" | "resources" | "team" | "grow" | "answers" | null>(() => (start && start !== "auto" ? start : openedForLeads() ? "grow" : null));
+  const [extra, setExtra] = useState<"group" | "challenges" | "live" | "resources" | "team" | "answers" | null>(() => (start && start !== "auto" ? start : null));
   const teamApi = useTeamApi();
   const extras = useExtras();
-  const growApi = useGrowthApi();
   const [on, setOn] = useState<number | null>(null);
   useEffect(() => {
     if (auto) return;
@@ -51,59 +49,33 @@ export function Messages({ live, say, start }: { live?: CoachLiveProps; say: (m:
   if (extra === "live" && liveLink) return <CoachLiveSession coach={coachFirst} onBack={() => setExtra(null)} say={say} />;
   if (extra === "team") return <CoachTeam onBack={() => setExtra(null)} say={say} />;
   if (extra === "answers") return <CoachAnswers onBack={() => setExtra(null)} say={say} />;
-  if (extra === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} onBack={() => setExtra(null)} say={say} /></Suspense>;
   if (extra === "resources") return <CoachResources live={live} onBack={() => setExtra(null)} say={say} />;
+  // Same tile layout as Business › Your tools, so every tab's tools look and work the same way.
+  const tools: { key: string; icon: keyof typeof Icons; colour?: string; title: string; note: string; open: () => void }[] = [
+    { key: "auto", icon: "energy", title: "Automatic messages", note: on ? `${on} on · welcome, missed workouts, reminders` : "Welcome, missed workouts, check-in reminders", open: () => setAuto(true) },
+    { key: "group", icon: "clients", title: "Message everyone", note: "One message, each in their own chat", open: () => setExtra("group") },
+    ...(extras ? [{ key: "answers", icon: "replies" as const, title: "Quick answers", note: "Shown to clients the moment they ask", open: () => setExtra("answers") }] : []),
+    ...(liveLink ? [{ key: "live", icon: "play" as const, title: "Live session", note: "Run one timer, clients follow live", open: () => setExtra("live") }] : []),
+    { key: "challenges", icon: "trophy", title: "Challenges", note: "Group challenges with a leaderboard", open: () => setExtra("challenges") },
+    ...(teamApi ? [{ key: "team", icon: "five" as const, title: "Team", note: "Private feed, high fives, effort board", open: () => setExtra("team") }] : []),
+    { key: "resources", icon: "file", title: "Resource library", note: "Guides, videos and links", open: () => setExtra("resources") },
+  ];
   const autoButton = (
-    <div className="card flat list">
-      <button className="li" onClick={() => setAuto(true)}>
-        <Icons.energy width={18} height={18} style={{ color: "var(--act)" }} />
-        <div className="grow"><div className="h3">Automatic messages</div><div className="tiny">{on ? `${on} on · welcome, missed workouts, check-in reminders` : "Welcome, missed workouts, check-in reminders"}</div></div>
-        <span className="tiny">›</span>
-      </button>
-      <button className="li" onClick={() => setExtra("group")}>
-        <Icons.clients width={18} height={18} style={{ color: "var(--act)" }} />
-        <div className="grow"><div className="h3">Message everyone</div><div className="tiny">One message to all your clients, each in their own chat</div></div>
-        <span className="tiny">›</span>
-      </button>
-      {extras && (
-        <button className="li" onClick={() => setExtra("answers")}>
-          <Icons.replies width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Quick answers</div><div className="tiny">Your answers to common questions, shown to clients the moment they ask</div></div>
-          <span className="tiny">›</span>
-        </button>
-      )}
-      {liveLink && (
-        <button className="li" onClick={() => setExtra("live")}>
-          <Icons.play width={18} height={18} style={{ color: "var(--crit)" }} />
-          <div className="grow"><div className="h3">Live session</div><div className="tiny">Run one timer, your clients follow it live</div></div>
-          <span className="tiny">›</span>
-        </button>
-      )}
-      <button className="li" onClick={() => setExtra("challenges")}>
-        <Icons.trophy width={18} height={18} style={{ color: "var(--act)" }} />
-        <div className="grow"><div className="h3">Challenges</div><div className="tiny">Group challenges with a leaderboard</div></div>
-        <span className="tiny">›</span>
-      </button>
-      {teamApi && (
-        <button className="li" onClick={() => setExtra("team")}>
-          <Icons.five width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Team</div><div className="tiny">Private feed, high fives and the weekly effort board</div></div>
-          <span className="tiny">›</span>
-        </button>
-      )}
-      {growApi && (
-        <button className="li" onClick={() => setExtra("grow")}>
-          <Icons.globe width={18} height={18} style={{ color: "var(--act)" }} />
-          <div className="grow"><div className="h3">Train with me</div><div className="tiny">Leads, your enquiry form, your public page, referral rewards and reviews</div></div>
-          <span className="tiny">›</span>
-        </button>
-      )}
-      <button className="li" onClick={() => setExtra("resources")}>
-        <Icons.file width={18} height={18} style={{ color: "var(--act)" }} />
-        <div className="grow"><div className="h3">Resource library</div><div className="tiny">Guides, videos and links for your clients</div></div>
-        <span className="tiny">›</span>
-      </button>
-    </div>
+    <section className="bz-tools-wrap">
+      <div className="sect"><h2 className="h3">Your tools</h2></div>
+      <div className="bz-tools strip">
+        {tools.map((t, i) => {
+          const I = Icons[t.icon];
+          return (
+            <button key={t.key} className="bz-tool" style={{ ["--i" as string]: i }} onClick={t.open} title={t.note}>
+              <span className={`mi c${(i % 4) + 1}`}><I /></span>
+              <b>{t.title}</b>
+              <small>{t.note}</small>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
   if (live && clients?.length === 0) {
     return (

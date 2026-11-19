@@ -1,16 +1,21 @@
-import { DAY_NAMES, addDay, copyWeek, daysInWeek, deleteWeek, freeDayIndex, removeDay, type Program } from "@apex/core";
+import { DAY_NAMES, addDay, copyWeek, firstName, nextBlock, weeksLeft, daysInWeek, deleteWeek, freeDayIndex, removeDay, type Program } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Label, Sheet } from "@apex/ui";
 import { useState } from "react";
 import { useStore } from "../../data/StoreContext";
+import { useAppInfo } from "../../app/AppContext";
 
 /** Weeks and days of the program. Pick a day to edit it; add days, copy a week forward (as is or progressed), remove. */
-export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { say: (m: string) => void; onTemplates: () => void; onCopilot: () => void; onPlan?: () => void; /** Live coaches with other clients: copy the whole programme to them. */ onCopyTo?: () => void }) {
+export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo, startBlock }: { say: (m: string) => void; onTemplates: () => void; onCopilot: () => void; onPlan?: () => void; /** Live coaches with other clients: copy the whole programme to them. */ onCopyTo?: () => void; /** Open the next-block sheet straight away (from the Brief). */ startBlock?: boolean }) {
   const store = useStore();
   const { program, activeDay, workout } = useApexState(store);
   const [week, setWeek] = useState(workout.week);
   const [tools, setTools] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(!!startBlock);
+  const [blockWeeks, setBlockWeeks] = useState(4);
+  const { clientName } = useAppInfo();
+  const who = firstName(clientName) || "Your client";
   // Follow the open day when it changes from elsewhere (a template, a copy).
   const [seen, setSeen] = useState(activeDay);
   if (seen !== activeDay) { setSeen(activeDay); setWeek(workout.week); }
@@ -40,10 +45,28 @@ export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { 
     say(`Week ${week} copied to week ${to}${progress ? " with next week's loads" : ""}`);
   };
 
+  const addBlock = () => {
+    const r = nextBlock(program, blockWeeks);
+    if (!r.added) return say("Add a training day first");
+    const firstNew = r.program.days.find((d) => d.week === r.firstWeek);
+    save(r.program, firstNew?.key);
+    setWeek(r.firstWeek);
+    setBlockOpen(false);
+    setTools(false);
+    say(`Weeks ${r.firstWeek}–${r.firstWeek + blockWeeks - 1} added. Check them before ${who} gets there.`);
+  };
+  const left = program.days.length ? weeksLeft(program, workout.week) : null;
+
   const openDay = program.days.find((d) => d.key === activeDay);
   const free = freeDayIndex(program, week, openDay?.dayIndex ?? -1);
   return (
     <div className="pb">
+      {left !== null && left <= 1 && (
+        <div className="pb-runway">
+          <div className="grow"><b>{left === 0 ? `Week ${workout.week} is the last week of ${who}'s programme` : `One week left after week ${workout.week}`}</b><span className="small">Add the next block now so {who} never opens the app to an empty week.</span></div>
+          <button className="btn act sm" onClick={() => setBlockOpen(true)}>Add next block</button>
+        </div>
+      )}
       <div className="pb-head">
       <div className="pb-weeks" role="tablist" aria-label="Weeks">
         {weeks.map((w) => {
@@ -89,6 +112,21 @@ export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { 
         </Sheet>
       )}
 
+      {blockOpen && (
+        <Sheet onClose={() => setBlockOpen(false)} label="Add the next block">
+          <div><div className="eyebrow">{program.name} · training written up to week {Math.max(0, ...program.days.map((d) => d.week))}</div><h2 className="h2">Add the next block</h2></div>
+          <div className="small">APEX copies the last week forward, one week at a time, and raises loads where every rep was hit at or under the target RPE. You review each new week here; {who} only reaches it when the current block ends.</div>
+          <div className="chips" role="radiogroup" aria-label="Weeks to add">
+            {[2, 3, 4, 6, 8].map((n) => <button key={n} role="radio" aria-checked={blockWeeks === n} className={`chip ${blockWeeks === n ? "on" : ""}`} onClick={() => setBlockWeeks(n)}>{n} weeks</button>)}
+          </div>
+          <div className="row" style={{ gap: 8 }}><Label kind="ai">AI suggestion</Label><span className="tiny">Progressed loads are a starting point. You decide.</span></div>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn ghost grow" onClick={() => setBlockOpen(false)}>Cancel</button>
+            <button className="btn act grow" disabled={!program.days.length} onClick={addBlock}>Add {blockWeeks} weeks</button>
+          </div>
+        </Sheet>
+      )}
+
       {tools && (
         <Sheet onClose={() => setTools(false)} label="Week tools">
           <div><div className="eyebrow">Week {week} · {days.length} day{days.length === 1 ? "" : "s"}</div><h2 className="h2">Week tools</h2></div>
@@ -102,9 +140,15 @@ export function ProgramBar({ say, onTemplates, onCopilot, onPlan, onCopyTo }: { 
             <button className="li" disabled={!days.length} onClick={() => copyForward(false)}>
               <div className="grow"><div className="h3">Copy to week {week + 1} as it is</div><div className="small">Same exercises, sets and loads on the same weekdays.</div></div>
             </button>
+            <button className="li" disabled={!program.days.length} onClick={() => { setTools(false); setBlockOpen(true); }}>
+              <div className="grow">
+                <div className="row" style={{ gap: 8 }}><span className="h3">Add the next block</span><Label kind="ai">AI suggestion</Label></div>
+                <div className="small">New weeks after the last one, copied from it with loads progressed. Review them before {who} gets there.</div>
+              </div>
+            </button>
             {onCopyTo && (
               <button className="li" disabled={!program.days.length} onClick={() => { setTools(false); onCopyTo(); }}>
-                <div className="grow"><div className="h3">Copy this programme to other clients</div><div className="small">Every week and day. Each client gets their own copy to tweak.</div></div>
+                <div className="grow"><div className="h3">Share this programme with clients</div><div className="small">Fix it once, then update everyone on it. See exactly what changes for each client first.</div></div>
               </button>
             )}
             {program.days.length > 1 && (

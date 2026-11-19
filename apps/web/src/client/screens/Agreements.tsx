@@ -68,7 +68,7 @@ export function MyAgreements({ say, onChange }: { say: (m: string) => void; onCh
   const current = (s: Signature) => data.agreements.some((a) => a.id === s.agreementId && signatureFor(a, data.signatures, me)?.id === s.id);
   return (
     <>
-      <div><div className="eyebrow">More</div><h1 className="h1">Agreements</h1></div>
+      <div><div className="eyebrow">More</div><h1 className="h1">Contracts and waivers</h1></div>
       {optional.map((a) => <SignOne key={`${a.id}-${a.version}`} a={a} say={say} onSigned={async () => { await reload(); onChange?.(); }} />)}
       {mine.length === 0 && optional.length === 0 && <div className="card small">Nothing to sign. Anything your coach asks you to sign shows up here.</div>}
       {mine.length > 0 && (

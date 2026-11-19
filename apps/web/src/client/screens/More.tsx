@@ -80,12 +80,12 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
     ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
     ["assess", "Assessments", assess.list.length ? `${assess.list.filter((a) => a.status === "requested").length ? "One to do · " : ""}${assess.list.length} so far` : `Posture and mobility checks from ${coachName}`],
     ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
-    ...(extras ? [["agreements", "Agreements", "What you've signed with " + coachName] as [View, string, string]] : []),
+    ...(extras ? [["agreements", "Contracts and waivers", "What you've signed with " + coachName] as [View, string, string]] : []),
     ...(teamApi ? [] : [["community", "Community", "Leaderboard and team feed"] as [View, string, string]]),
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], assess: ["target", "c3"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["note", "c4"], review: ["star", "c2"], membership: ["money", "c2"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], assess: ["mobility", "c3"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["edit", "c4"], review: ["star", "c2"], membership: ["money", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -115,18 +115,37 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
       </>
     );
   }
+  // Grouped so each thing has one obvious home: what comes from the coach, the client's own daily tracking, training with others, and settings.
+  const GROUPS: [string, View[]][] = [
+    [`From ${coachName}`, ["book", "classes", "programmes", "resources", "assess", "form", "intake", "agreements"]],
+    ["Your day", ["food", "habits", "goals"]],
+    ["Together", ["team", "community", "challenges", "invite", "review"]],
+  ];
+  const SETTINGS: [View, string, string][] = [
+    ["membership", "Membership", "Your coaching plan and payments"],
+    ["apps", "Connected apps", "Strava, watch files, and what's coming next"],
+    ["account", "Privacy and account", "Privacy consents, download your data, delete your account"],
+    ["settings", "Settings", "Units and language"],
+  ];
+  const row = ([k, title, s]: [View, string, string]) => (
+    <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t(title)}</div><div className="small">{t(s)}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
+  );
   return (
     <>
       <div><p className="sub" style={{ margin: 0 }}>{t("More")}</p><ScriptTitle script={t("Everything")} className="sm">{t("else")}</ScriptTitle></div>
-      <div className="card flat list">
-        <button className="li" onClick={() => setView("membership")}>{chip("membership")}<div className="grow"><div className="h3">{t("Membership")}</div><div className="small">{t("Your coaching plan and payments")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        {MENU.map(([k, title, s]) => (
-          <button key={k} className="li" onClick={() => setView(k)}>{chip(k)}<div className="grow"><div className="h3">{t(title)}</div><div className="small">{s}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        ))}
-        <button className="li" onClick={() => setView("apps")}>{chip("apps")}<div className="grow"><div className="h3">{t("Connected apps")}</div><div className="small">{t("Strava, watch files, and what's coming next")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        <button className="li" onClick={() => setView("account")}>{chip("account")}<div className="grow"><div className="h3">{t("Privacy and account")}</div><div className="small">{t("Your agreements, download your data, delete your account")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-        <button className="li" onClick={() => setView("settings")}>{chip("settings")}<div className="grow"><div className="h3">{t("Settings")}</div><div className="small">{t("Units and language")}</div></div><Icons.forward width={18} height={18} style={{ color: "var(--text3)" }} /></button>
-      </div>
+      {GROUPS.map(([label, keys]) => {
+        const items = keys.map((k) => MENU.find((m) => m[0] === k)).filter((m): m is [View, string, string] => !!m);
+        return items.length ? (
+          <section key={label} className="stack" style={{ gap: 8 }}>
+            <h2 className="eyebrow" style={{ margin: 0 }}>{t(label)}</h2>
+            <div className="card flat list">{items.map(row)}</div>
+          </section>
+        ) : null;
+      })}
+      <section className="stack" style={{ gap: 8 }}>
+        <h2 className="eyebrow" style={{ margin: 0 }}>{t("Settings")}</h2>
+        <div className="card flat list">{SETTINGS.map(row)}</div>
+      </section>
     </>
   );
 }

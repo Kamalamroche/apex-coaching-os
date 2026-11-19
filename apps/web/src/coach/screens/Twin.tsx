@@ -60,7 +60,7 @@ export function TwinCard({ onOpen }: { onOpen: () => void }) {
 }
 
 /** The weekly queue: every client's drafted change and message, risky ones first. Nothing is sent without a tap. */
-export function TwinQueue({ onBack, say }: { onBack: () => void; say: (m: string) => void }) {
+export function TwinQueue({ onBack, say, backLabel = "Brief" }: { onBack: () => void; say: (m: string) => void; backLabel?: string }) {
   const api = useTwinApi();
   const t = useTwin(api);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -101,7 +101,7 @@ export function TwinQueue({ onBack, say }: { onBack: () => void; say: (m: string
 
   return (
     <>
-      <div className="full"><BackLink onClick={onBack}>Brief</BackLink></div>
+      <div className="full"><BackLink onClick={onBack}>{backLabel}</BackLink></div>
       <div className="full row" style={{ justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
         <div><div className="eyebrow">APEX Twin · week of {new Date(`${t.week}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div><h1 className="h1">Weekly drafts</h1></div>
         <button className="btn ghost sm" onClick={() => setVoiceOpen((v) => !v)} aria-expanded={voiceOpen}>Your voice</button>

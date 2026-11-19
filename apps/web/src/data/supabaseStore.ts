@@ -708,3 +708,34 @@ export async function insertProgram(db: SupabaseClient, ids: { coachId: string; 
     if (!isMissingColumn(error) || i === tries.length - 1) throw error;
   }
 }
+
+/** Each client's current (newest) programme: name, length and start, for grouping and for spotting ones about to end. */
+export async function latestPrograms(db: SupabaseClient, clientIds: string[]): Promise<Record<string, { name: string; weeks: number; createdAt: string }>> {
+  if (!clientIds.length) return {};
+  const { data, error } = await db.from("programs").select("client_id, name, weeks, created_at").in("client_id", clientIds).order("created_at", { ascending: false }).limit(2000);
+  if (error) throw error;
+  const out: Record<string, { name: string; weeks: number; createdAt: string }> = {};
+  for (const r of (data ?? []) as { client_id: string; name: string; weeks: number; created_at: string }[]) if (!(r.client_id in out)) out[r.client_id] = { name: r.name, weeks: r.weeks, createdAt: r.created_at };
+  return out;
+}
+
+/** Each client's current programme name. */
+export async function latestProgramNames(db: SupabaseClient, clientIds: string[]): Promise<Record<string, string>> {
+  return Object.fromEntries(Object.entries(await latestPrograms(db, clientIds)).map(([id, p]) => [id, p.name]));
+}
+
+/** A client's current programme as written (no history), to compare with another before sharing changes. */
+export async function loadLatestProgram(db: SupabaseClient, clientId: string): Promise<Program | null> {
+  const { data: program, error: pErr } = await db.from("programs").select("id, name, weeks").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (pErr) throw pErr;
+  if (!program) return null;
+  const { data: version, error: vErr } = await db.from("program_versions").select("id").eq("program_id", program.id).order("version", { ascending: false }).limit(1).maybeSingle();
+  if (vErr) throw vErr;
+  if (!version) return { name: program.name, weeks: program.weeks, days: [] };
+  const { data: dayRows, error: wErr } = await db.from("workouts").select("id, name, week, day_index, est_minutes").eq("program_version_id", version.id).order("week").order("day_index").returns<DayRow[]>();
+  if (wErr) throw wErr;
+  const ids = (dayRows ?? []).map((d) => d.id);
+  const { data: items, error: iErr } = ids.length ? await db.from("workout_items").select("*").in("workout_id", ids).returns<WorkoutItemRow[]>() : { data: [], error: null };
+  if (iErr) throw iErr;
+  return { name: program.name, weeks: program.weeks, days: (dayRows ?? []).map((d) => ({ ...toWorkout(d, (items ?? []).filter((i) => i.workout_id === d.id), program.weeks), key: d.id, dayIndex: d.day_index })) };
+}

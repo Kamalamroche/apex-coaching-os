@@ -19,7 +19,7 @@ type Row = ParsedItem & { on: boolean; pick: number | null };
 
 /* The browser's own speech recognition (Chrome, Edge, Safari). No library, nothing to install;
    where it's missing the Speak button simply doesn't show. */
-interface Recognition {
+export interface Recognition {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
@@ -29,7 +29,7 @@ interface Recognition {
   start(): void;
   stop(): void;
 }
-const speechApi = (): (new () => Recognition) | null => {
+export const speechApi = (): (new () => Recognition) | null => {
   const w = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 };
