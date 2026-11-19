@@ -52,9 +52,11 @@ export function AssessmentList() {
   const [open, setOpen] = useState<string | null>(null);
   const current = list.find((a) => a.id === open);
   if (current) return <AssessmentScreen a={current} onClose={() => setOpen(null)} />;
-  if (status === "loading") return <div className="card small">Loading…</div>;
-  if (!list.length) return <div className="card small">No assessments yet. When {coachName} sends you a posture and mobility check, it shows up here and on Today.</div>;
+  const title = <div><div className="eyebrow">From {coachName}</div><h1 className="h1">Assessments</h1></div>;
+  if (status === "loading") return <>{title}<div className="card small">Loading…</div></>;
+  if (!list.length) return <>{title}<div className="card small">No assessments yet. When {coachName} sends you a posture and mobility check, it shows up here and on Today.</div></>;
   return (
+    <>{title}
     <div className="card flat list">
       {list.map((a) => (
         <button key={a.id} className="li" onClick={() => setOpen(a.id)}>
@@ -63,6 +65,7 @@ export function AssessmentList() {
         </button>
       ))}
     </div>
+    </>
   );
 }
 

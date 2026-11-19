@@ -16,13 +16,13 @@ function demoClients(now: Date) {
 }
 
 /** Brief: clients with no session for a few days, each with a ready-to-edit message. Shows nothing when everyone is training. */
-export function GoingQuiet({ live, say }: { live?: CoachLiveProps; say: (m: string) => void }) {
+export function GoingQuiet({ live, say, skip }: { live?: CoachLiveProps; say: (m: string) => void; /** Clients already shown above, e.g. in Needs you today. */ skip?: Set<string> }) {
   const store = useStore();
   const now = useMemo(() => new Date(), []);
   const list = useMemo(() => goingQuiet(live ? (live.clients ?? []) : demoClients(now), now), [live, now]);
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState<string | null>(null);
-  const shown = list.filter((c) => !sent[c.id]);
+  const shown = list.filter((c) => !sent[c.id] && !skip?.has(c.id));
   if (!shown.length) return null;
   return (
     <section aria-label="Going quiet">

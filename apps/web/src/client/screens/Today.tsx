@@ -98,42 +98,12 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </section>
       ) : (
         <div className="hello">
-          <div><p className="sub">Saturday 25 October</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
+          <div><p className="sub">{week.todayLabel}</p><ScriptTitle script="Hi">{clientName.split(" ")[0]}</ScriptTitle></div>
           <Avatar initials={clientName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()} size={44} />
         </div>
       )}
 
-      <PlanChanged />
-      {go && <FirstWeek go={go} />}
-      <section aria-label="Today's rings">
-        <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
-        <RingWeek days={rings.week} labels={ringLabels} />
-        <p className="tiny dr-nudge">{rings.nudge}</p>
-        <LevelRow level={lv.level} onOpen={() => setLevels(true)} />
-        <FreshMilestone list={lv.list} today={lv.today} say={say} />
-        {openTeam && <TeamPeek onOpen={openTeam} />}
-        {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
-      </section>
-      {!(go && firstWeek.visible) && <PushPrompt say={say ?? (() => {})} />}
-      <HappinessPrompt say={say} fallback={<ReviewPrompt say={say} />} />
 
-      <section aria-label="This week">
-        <div className="sect" style={{ marginBottom: 8 }}>
-          <h2 className="h3">Your week</h2>
-          <span className="tiny num">{week.done} of {week.planned} done</span>
-        </div>
-        {!cover && <div className="daystrip">
-          {week.days.map(({ label: d, date, trained, today }) => {
-            return (
-              <div key={d} className={`day ${trained ? "done" : ""} ${today ? "today" : ""}`} aria-label={`${d} ${date}${trained ? ", trained" : today ? ", today" : ""}`}>
-                <small>{d}</small><b>{date}</b><i />
-              </div>
-            );
-          })}
-        </div>}
-        <WeekStoryCard onOpen={() => setStory(true)} />
-        {story && <WeekStoryViewer onClose={() => setStory(false)} />}
-      </section>
       {status === "loading" ? (
         <div className="card"><div className="small">Loading today's session…</div></div>
       ) : status === "no-program" ? (
@@ -178,11 +148,8 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
-      <div className="tiles">
-        <div className="tile c1"><span className="ic"><Icons.check /></span><b>{week.done}<small> / {week.planned}</small></b><span>Sessions this week</span></div>
-        <div className="tile c2"><span className="ic"><Icons.flame /></span><b>{rings.streak.days}<small> day{rings.streak.days === 1 ? "" : "s"}</small></b><span>Streak</span></div>
-        <button className="tile c3" onClick={openCheckIn}><span className="ic"><Icons.target /></span><b style={{ fontSize: 16, lineHeight: 1.25 }}>{due.due ? "Due" : (WEEKDAY_NAMES[progress.checkInDay] ?? "Weekly").slice(0, 3)}</b><span>Check-in</span></button>
-      </div>
+      <PlanChanged />
+      {go && <FirstWeek go={go} />}
 
       {life.status === "ready" && !life.intake && !(go && firstWeek.visible) && (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--act) 40%,var(--line))" }}>
@@ -216,16 +183,45 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         <div className="card"><div className="small">Check-in sent {shortDate(latest.submittedAt)}. Next one is due {WEEKDAY_NAMES[progress.checkInDay]}.</div></div>
       ) : null}
 
-      {!checkedIn && (
+      {/* On a training day the readiness check before the first set asks this, so the card is for rest days and after the session. */}
+      {!checkedIn && !(status === "ready" && !log && w.items.length > 0) && (
         <div className="card">
           <div className="sect" style={{ marginBottom: 8 }}><h3 className="h3">How are you feeling today?</h3><span className="tiny">10 seconds</span></div>
           <div className="rpe">
             {MOODS.map((m, i) => <button key={m} className={mood === i ? "on" : ""} onClick={() => setMood(i)} style={{ fontFamily: "var(--ui)", fontSize: 13 }}>{m}</button>)}
           </div>
-          {mood !== null && <button className="btn sec block" style={{ marginTop: 10 }} onClick={onCheckIn}>Send to coach</button>}
+          {mood !== null && <button className="btn sec block" style={{ marginTop: 10 }} onClick={() => { store.sendMessage("client", `Feeling ${MOODS[mood]!.toLowerCase()} today`); onCheckIn(); }}>Send to {coachName}</button>}
         </div>
       )}
 
+      <section aria-label="Today's rings">
+        <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
+        <RingWeek days={rings.week} labels={ringLabels} />
+        <p className="tiny dr-nudge">{rings.nudge}</p>
+        <LevelRow level={lv.level} onOpen={() => setLevels(true)} />
+        <FreshMilestone list={lv.list} today={lv.today} say={say} />
+        {openTeam && <TeamPeek onOpen={openTeam} />}
+        {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
+      </section>
+      <section aria-label="This week">
+        <div className="sect" style={{ marginBottom: 8 }}>
+          <h2 className="h3">This week</h2>
+          <span className="tiny num">{week.done} of {week.planned} done</span>
+        </div>
+        {!cover && <div className="daystrip">
+          {week.days.map(({ label: d, date, trained, today }) => {
+            return (
+              <div key={d} className={`day ${trained ? "done" : ""} ${today ? "today" : ""}`} aria-label={`${d} ${date}${trained ? ", trained" : today ? ", today" : ""}`}>
+                <small>{d}</small><b>{date}</b><i />
+              </div>
+            );
+          })}
+        </div>}
+        <WeekStoryCard onOpen={() => setStory(true)} />
+        {story && <WeekStoryViewer onClose={() => setStory(false)} />}
+      </section>
+      {!(go && firstWeek.visible) && <PushPrompt say={say ?? (() => {})} />}
+      <HappinessPrompt say={say} fallback={<ReviewPrompt say={say} />} />
     </>
   );
 }

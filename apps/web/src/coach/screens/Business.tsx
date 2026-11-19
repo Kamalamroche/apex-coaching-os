@@ -1,28 +1,31 @@
 import { businessSummary, parsePounds, pounds, sampleBusiness, type BizClient, type BizInput } from "@apex/core";
 import { Avatar, BusinessHero, ClientFlow, CountUp, Icons, IncomeBars, Label, SourceRows } from "@apex/ui";
-import { useCallback, useEffect, useMemo, useState, lazy } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, lazy } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { loadBusiness, setClientFee, setClientStatus } from "../../data/business";
 import type { CoachLiveProps } from "../CoachApp";
 import { CoachAgreements } from "./CoachAgreements";
 import { CoachClasses } from "./CoachClasses";
 import { useMarketingApi } from "../../data/marketing";
+import { useGrowthApi } from "../../data/growth";
 import { useExtras } from "../../data/extras";
 
 /* Loaded when first opened, so the app starts faster. */
 const CoachProgrammes = lazy(() => import("./CoachProgrammes").then((m) => ({ default: m.CoachProgrammes })));
+const CoachGrow = lazy(() => import("./CoachGrow").then((m) => ({ default: m.CoachGrow })));
 const CoachMarketing = lazy(() => import("./CoachMarketing").then((m) => ({ default: m.CoachMarketing })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's business from their own records: fees, packs, programme sales, clients joining and leaving, leads, sessions. */
-export type BusinessStart = "programmes" | "agreements" | "classes" | "marketing";
+export type BusinessStart = "programmes" | "agreements" | "classes" | "marketing" | "grow";
 
 export function Business({ live, say = () => {}, openGym, start }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void; /** Open straight onto one of the tools (from quick find). */ start?: BusinessStart }) {
   const { mode, coachName } = useAppInfo();
   const marketing = useMarketingApi();
+  const growApi = useGrowthApi();
   const [shop, setShop] = useState(start === "programmes");
-  const [view, setView] = useState<"agreements" | "classes" | "marketing" | null>(start && start !== "programmes" ? start : null);
+  const [view, setView] = useState<"agreements" | "classes" | "marketing" | "grow" | null>(start && start !== "programmes" ? start : null);
   const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);
@@ -39,6 +42,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
   if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;
+  if (view === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} backLabel="Business" onBack={() => setView(null)} say={say} /></Suspense>;
   if (view === "marketing") return <CoachMarketing live={isLive ? live : undefined} coachName={coachName} onBack={() => setView(null)} say={say} />;
 
   const saveFee = async (c: BizClient, text: string) => {
@@ -73,6 +77,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
 
   const tools: { key: string; icon: keyof typeof Icons; title: string; note: string; open: () => void }[] = [
     ...(marketing ? [{ key: "marketing", icon: "up" as const, title: "Marketing", note: "This week's plan, posts, offers, QR poster", open: () => setView("marketing") }] : []),
+    ...(growApi ? [{ key: "grow", icon: "globe" as const, title: "Your page and leads", note: "Train with me page, enquiries, referrals, reviews", open: () => setView("grow") }] : []),
     { key: "programmes", icon: "train", title: "Programmes", note: "Sell ready-made plans, free or paid", open: () => setShop(true) },
     ...(extras ? [
       { key: "classes", icon: "calendar" as const, title: "Group classes", note: "Place limits and a waitlist", open: () => setView("classes") },
@@ -150,7 +155,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
 
       <div className="card">
         <div className="sect"><h3 className="h3">Where clients come from</h3><Label kind="data">Data</Label></div>
-        {sum.sources.length ? <SourceRows sources={sum.sources} /> : <div className="small">No enquiries in the last 90 days. Share your Train with me link from Messages to start.</div>}
+        {sum.sources.length ? <SourceRows sources={sum.sources} /> : <div className="small">No enquiries in the last 90 days. Share your Train with me link (Your page and leads, above) to start.</div>}
         {sum.leads90 > 0 && <p className="bz-note" style={{ marginTop: 10 }}>{sum.won90} of {sum.leads90} enquiries in the last 90 days became clients.</p>}
       </div>
 

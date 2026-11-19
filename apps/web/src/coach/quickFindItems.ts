@@ -25,7 +25,7 @@ export function coachPlaces(opts: { gym: boolean; share?: boolean }): Place[] {
     screen("chat:live", "Live session", "Messages · train together", { tab: "chat", sub: "live" }, ["live", "together", "realtime", "class"]),
     screen("chat:challenges", "Challenges", "Messages · team challenges", { tab: "chat", sub: "challenges" }, ["challenge", "competition", "leaderboard"]),
     screen("chat:team", "Team", "Messages · team board", { tab: "chat", sub: "team" }, ["community", "board", "group", "high fives"]),
-    screen("chat:grow", "Train with me page", "Messages · your page and enquiries", { tab: "chat", sub: "grow" }, ["page", "leads", "enquiries", "website", "referrals", "public", "profile"]),
+    screen("money:grow", "Your page and leads", "Business · Train with me page, enquiries, referrals", { tab: "money", sub: "grow" }, ["page", "leads", "enquiries", "website", "referrals", "public", "profile"]),
     screen("chat:resources", "Resource library", "Messages · guides and files", { tab: "chat", sub: "resources" }, ["resources", "guides", "pdf", "files", "library", "courses"]),
     screen("money:programmes", "Programmes to sell", "Business · ready-made plans", { tab: "money", sub: "programmes" }, ["shop", "sell", "products", "store"]),
     screen("money:marketing", "Marketing", "Business · posts, offers, QR poster", { tab: "money", sub: "marketing" }, ["posts", "instagram", "poster", "qr", "offers", "social"]),
