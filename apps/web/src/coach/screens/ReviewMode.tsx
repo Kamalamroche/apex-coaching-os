@@ -11,12 +11,13 @@ import type { CoachLiveProps } from "../CoachApp";
 import { useSendToClient } from "../sendToClient";
 import { CheckInCard } from "./CheckIns";
 import { ClientFormChecks } from "./FormChecks";
+import { TwinCard } from "./Twin";
 
 /**
  * Weekly review: every client who needs the coach, one at a time, with their week, their check-in,
  * their form videos and a drafted reply in one place. The coach edits and sends; nothing goes out on its own.
  */
-export function ReviewMode({ live, say, onBack }: { live?: CoachLiveProps; say: (m: string) => void; onBack: () => void }) {
+export function ReviewMode({ live, say, onBack, openTwin }: { live?: CoachLiveProps; say: (m: string) => void; onBack: () => void; /** APEX Twin's weekly messages: the second half of the weekly round. */ openTwin?: () => void }) {
   const queue = useReviewQueue(live);
   const [at, setAt] = useState<number | null>(null);
   const [done, setDone] = useState<Set<string>>(new Set());
@@ -24,6 +25,8 @@ export function ReviewMode({ live, say, onBack }: { live?: CoachLiveProps; say: 
   const entry = at !== null ? queue.entries[at] : undefined;
   const finish = (id: string) => setDone((d) => new Set(d).add(id));
   const next = () => setAt((i) => (i === null ? 0 : i + 1));
+  // One weekly round: the clients who need you first, then APEX Twin's drafted messages for everyone else.
+  const twin = openTwin ? <section className="stack" style={{ gap: 6 }}><h2 className="h3">Then, everyone else</h2><TwinCard onOpen={openTwin} /></section> : null;
 
   if (at !== null && !entry) {
     return (
@@ -33,8 +36,9 @@ export function ReviewMode({ live, say, onBack }: { live?: CoachLiveProps; say: 
           <div className="eyebrow">Weekly review</div>
           <h1 className="h1">All clear</h1>
           <p className="small">You went through {queue.entries.length} client{queue.entries.length === 1 ? "" : "s"} and replied to {done.size}. Everyone else is on track.</p>
-          <button className="btn act block" onClick={onBack}>Back to the Brief</button>
+          {!twin && <button className="btn act block" onClick={onBack}>Back to the Brief</button>}
         </div>
+        {twin}
       </div>
     );
   }
@@ -58,6 +62,7 @@ export function ReviewMode({ live, say, onBack }: { live?: CoachLiveProps; say: 
         )}
         {queue.entries.length > 0 ? <button className="btn act block" onClick={() => setAt(0)}>Start the review</button> : <button className="btn ghost block" onClick={onBack}>Back to the Brief</button>}
         <p className="tiny">Order: clients who need you most first, then check-ins and form videos waiting. Times are a rough guide.</p>
+        {twin}
       </div>
     );
   }

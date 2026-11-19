@@ -45,7 +45,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const { messages } = useApexState(useStore());
   // A dot on Messages while the client has the last word.
   const tabs = TABS.map((t) => (t.id === "chat" ? { ...t, dot: messages.at(-1)?.from === "client" } : t));
-  const [tab, setTab] = useState<Tab>(() => (openedForLeads() ? "chat" : "brief"));
+  const [tab, setTab] = useState<Tab>(() => (openedForLeads() ? "money" : "brief"));
   const [clientId, setClientId] = useState<number | null>(null);
   // A live client opened from the Brief (health card): Clients opens straight onto their profile.
   const [liveOpen, setLiveOpen] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function CoachApp({ live }: { live?: CoachLiveProps }) {
   const [account, setAccount] = useState(false);
   // Quick find: one search box for any client, screen or job. `sub` opens a tool inside the tab; `nonce` remounts it so a second jump lands too.
   const [finding, setFinding] = useState(false);
-  const [sub, setSub] = useState<{ tab: Tab; to: string; nonce: number } | null>(null);
+  const [sub, setSub] = useState<{ tab: Tab; to: string; nonce: number } | null>(() => (openedForLeads() ? { tab: "money", to: "grow", nonce: 0 } : null));
   const openFind = useCallback(() => setFinding(true), []);
   useQuickFindKeys(openFind);
   const [gym, setGym] = useState(false);

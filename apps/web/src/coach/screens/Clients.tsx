@@ -1,3 +1,4 @@
+import { ProfileTabs } from "./ProfileTabs";
 import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, Bar, ClientTable, Label, Spark, riskColor, useUnits } from "@apex/ui";
@@ -123,7 +124,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
         <Avatar initials={c.initials} size={56} tone={riskColor(c.risk)} />
         <div className="grow"><h1 className="h1" style={{ fontSize: 22 }}>{c.name}</h1><div className="small">{c.plan} · {c.mode} · last seen {c.lastSeen.toLowerCase()}</div></div>
       </div>
-      <div className="chips" style={{ flexWrap: "wrap" }}>{profileTabs(c.id).map((t) => <button key={t} className={`chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <ProfileTabs tabs={profileTabs(c.id)} tab={tab} setTab={setTab} />
 
       {tab === "Overview" && (
         <>
