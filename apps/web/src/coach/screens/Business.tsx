@@ -6,6 +6,7 @@ import { loadBusiness, setClientFee, setClientStatus } from "../../data/business
 import type { CoachLiveProps } from "../CoachApp";
 import { CoachAgreements } from "./CoachAgreements";
 import { CoachClasses } from "./CoachClasses";
+import { CardPayments } from "./CardPayments";
 import { useMarketingApi } from "../../data/marketing";
 import { useGrowthApi } from "../../data/growth";
 import { useExtras } from "../../data/extras";
@@ -25,7 +26,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
   const marketing = useMarketingApi();
   const growApi = useGrowthApi();
   const [shop, setShop] = useState(start === "programmes");
-  const [view, setView] = useState<"agreements" | "classes" | "marketing" | "grow" | null>(start && start !== "programmes" ? start : null);
+  const [view, setView] = useState<"agreements" | "classes" | "marketing" | "grow" | "payments" | null>(start && start !== "programmes" ? start : null);
   const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);
@@ -41,6 +42,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
 
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
+  if (view === "payments") return <CardPayments live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
   if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;
   if (view === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} backLabel="Business" onBack={() => setView(null)} say={say} /></Suspense>;
   if (view === "marketing") return <CoachMarketing live={isLive ? live : undefined} coachName={coachName} onBack={() => setView(null)} say={say} />;
@@ -76,6 +78,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
   };
 
   const tools: { key: string; icon: keyof typeof Icons; title: string; note: string; open: () => void }[] = [
+    { key: "payments", icon: "money", title: "Card payments", note: "Coaching plans clients pay for by card", open: () => setView("payments") },
     ...(marketing ? [{ key: "marketing", icon: "up" as const, title: "Marketing", note: "This week's plan, posts, offers, QR poster", open: () => setView("marketing") }] : []),
     ...(growApi ? [{ key: "grow", icon: "globe" as const, title: "Your page and leads", note: "Train with me page, enquiries, referrals, reviews", open: () => setView("grow") }] : []),
     { key: "programmes", icon: "train", title: "Programmes", note: "Sell ready-made plans, free or paid", open: () => setShop(true) },

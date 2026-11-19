@@ -6,6 +6,7 @@ import { useAppInfo } from "../../app/AppContext";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { ConnectedApps } from "./ConnectedApps";
 import { Habits } from "./Habits";
+import { Membership } from "./Membership";
 import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
 import { FormCheckList } from "./FormCheck";
@@ -36,7 +37,7 @@ import { useExtras } from "../../data/extras";
 import { Classes } from "./Classes";
 import { MyAgreements } from "./Agreements";
 
-type View = "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "assess" | "classes" | "agreements" | "review";
+type View = "membership" | "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "assess" | "classes" | "agreements" | "review";
 
 export type MoreView = View;
 
@@ -84,7 +85,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], assess: ["mobility", "c3"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["edit", "c4"], review: ["star", "c2"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], assess: ["mobility", "c3"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["edit", "c4"], review: ["star", "c2"], membership: ["money", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -109,6 +110,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "account" && <AccountScreen say={say} />}
+        {view === "membership" && <Membership say={say} />}
         {view === "settings" && <UnitsAndLanguage />}
       </>
     );
@@ -120,6 +122,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
     ["Together", ["team", "community", "challenges", "invite", "review"]],
   ];
   const SETTINGS: [View, string, string][] = [
+    ["membership", "Membership", "Your coaching plan and payments"],
     ["apps", "Connected apps", "Strava, watch files, and what's coming next"],
     ["account", "Privacy and account", "Privacy consents, download your data, delete your account"],
     ["settings", "Settings", "Units and language"],

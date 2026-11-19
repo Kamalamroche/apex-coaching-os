@@ -5,3 +5,6 @@ export const formatRest = (seconds: number): string =>
 export const firstName = (fullName: string): string => fullName.split(" ")[0] ?? fullName;
 
 export const clamp = (n: number, min: number, max: number): number => Math.max(min, Math.min(n, max));
+
+/** "Priya Sharma" → "PS". */
+export const initials = (name: string): string => name.split(" ").filter(Boolean).map((p) => p[0]).join("").slice(0, 2).toUpperCase();

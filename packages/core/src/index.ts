@@ -97,6 +97,7 @@ export * from "./marketing";
 export * from "./planBuilder";
 export * from "./services";
 export * from "./exerciseComments";
+export * from "./billing";
 export * from "./quickFind";
 export * from "./reviewMode";
 export * from "./programSync";
