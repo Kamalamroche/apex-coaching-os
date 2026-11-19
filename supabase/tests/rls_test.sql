@@ -2242,3 +2242,74 @@ do $$ declare r record; begin
   assert (select count(*) from public.coach_happiness()) = 0, 'rival reads no answers';
 end $$;
 reset role;
+
+-- posture and mobility assessments
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-00000000a5e1'),('00000000-0000-0000-0000-00000000a5e2'),('00000000-0000-0000-0000-00000000a5e3'),('00000000-0000-0000-0000-00000000a5e4');
+insert into profiles values ('00000000-0000-0000-0000-00000000a5e1','coach','Assess Coach'),('00000000-0000-0000-0000-00000000a5e2','client','Assess Client'),('00000000-0000-0000-0000-00000000a5e3','client','Not Theirs'),('00000000-0000-0000-0000-00000000a5e4','coach','Rival Coach');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-00000000a5e1','00000000-0000-0000-0000-00000000a5e2');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e2');
+do $$ begin
+  begin
+    insert into assessments (client_id, title, tests) values ('00000000-0000-0000-0000-00000000a5e2','Self test','{balance}');
+    raise exception 'client sent themselves an assessment';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e1');
+insert into assessments (id, client_id, title, tests, retest_weeks, status, review)
+values ('a1000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000a5e2','Full start assessment','{posture-front,balance}',8,'reviewed','{"balance":{"score":3}}');
+do $$ begin
+  assert (select status from assessments) = 'requested', 'a new assessment starts as requested';
+  assert (select review from assessments) = '{}'::jsonb, 'nothing pre-scored';
+  begin
+    insert into assessments (client_id, title, tests) values ('00000000-0000-0000-0000-00000000a5e3','x','{balance}');
+    raise exception 'coach sent an assessment to a client that is not theirs';
+  exception when insufficient_privilege then null; end;
+end $$;
+update assessments set review = '{"balance":{"score":3}}', status = 'reviewed';
+do $$ begin
+  assert (select status from assessments) = 'requested', 'coach cannot review before the client sends it';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e2');
+update assessments set answers = '{"balance":{"answer":{"left":20,"right":40}}}', review = '{"balance":{"score":3,"note":"self"}}', summary = 'great', status = 'submitted';
+insert into storage.objects (bucket_id, name) values ('assessments','00000000-0000-0000-0000-00000000a5e2/a1000000-0000-0000-0000-000000000001/posture-front.jpg');
+do $$ begin
+  assert (select status from assessments) = 'submitted', 'client sends it';
+  assert (select submitted_at from assessments) is not null, 'sent time set';
+  assert (select answers->'balance'->'answer'->>'left' from assessments) = '20', 'client answers saved';
+  assert (select review->'balance'->>'note' from assessments) is null and (select summary from assessments) is null, 'client cannot score themselves';
+  begin
+    insert into storage.objects (bucket_id, name) values ('assessments','00000000-0000-0000-0000-00000000a5e3/x.jpg');
+    raise exception 'client uploaded into someone else''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+update assessments set answers = '{}';
+do $$ begin
+  assert (select answers from assessments) <> '{}'::jsonb, 'client cannot change answers after sending';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e1');
+update assessments set review = '{"balance":{"score":2,"note":"Left side behind"}}', summary = 'Good base', focus = '{Balance and control}', status = 'reviewed', answers = '{}';
+do $$ begin
+  assert (select status from assessments) = 'reviewed' and (select reviewed_at from assessments) is not null, 'coach reviews';
+  assert (select review->'balance'->>'score' from assessments) = '2', 'coach score saved';
+  assert (select answers->'balance'->'answer'->>'left' from assessments) = '20', 'coach cannot change the client''s answers';
+  assert (select count(*) from storage.objects where bucket_id = 'assessments') = 1, 'coach sees the photo';
+end $$;
+delete from assessments;
+do $$ begin
+  assert (select count(*) from assessments) = 1, 'a sent assessment cannot be deleted';
+end $$;
+
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e4');
+update assessments set summary = 'poach';
+do $$ begin
+  assert (select count(*) from assessments) = 0, 'rival sees no assessments';
+  assert (select count(*) from storage.objects where bucket_id = 'assessments') = 0, 'rival cannot see the photos';
+end $$;
+reset role;
+do $$ begin
+  assert (select summary from assessments) = 'Good base', 'rival cannot review';
+end $$;

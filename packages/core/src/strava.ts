@@ -3,6 +3,9 @@
    needs the app's secret; the browser maps what comes back here and saves it like any other activity. */
 
 import { thin, ROUTE_POINTS, type Activity, type Sport, type Split } from "./activity";
+import type { SessionSets } from "./session";
+import { describeExerciseTotal, exerciseTotals, musclesWorked } from "./summary";
+import type { Workout } from "./types";
 
 /** The fields APEX reads from Strava's SummaryActivity / DetailedActivity. */
 export interface StravaActivity {
@@ -89,10 +92,52 @@ export function fromStravaActivity(a: StravaActivity, id: string): Activity {
   };
 }
 
-export const STRAVA_SCOPES = "read,activity:read_all";
+/** Read activities in, and post the coach's strength sessions out (only when the client taps Send to Strava). */
+export const STRAVA_SCOPES = "read,activity:read_all,activity:write";
 
 /** Where the client goes to say yes. `state` comes back unchanged so the app can check the reply is its own. */
 export function stravaAuthorizeUrl(clientId: string, redirectUri: string, state: string): string {
   const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: "code", approval_prompt: "auto", scope: STRAVA_SCOPES, state });
   return `https://www.strava.com/oauth/authorize?${q}`;
+}
+
+/* ---------- Strength sessions out to Strava ---------- */
+
+/** What Strava's "create a manual activity" call takes (POST /api/v3/activities). */
+export interface StravaPost {
+  name: string;
+  sport_type: "WeightTraining";
+  /** Local time with no zone, as Strava wants: 2026-11-17T18:30:00. */
+  start_date_local: string;
+  elapsed_time: number;
+  description: string;
+  trainer: 1;
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const localStamp = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+/**
+ * A finished APEX session as a Strava strength activity. The description lists the coach's exercises as done,
+ * the muscles worked and the coach's name, so the credit for the programme goes where it belongs.
+ */
+export function stravaStrengthPost(
+  workout: Workout,
+  sets: SessionSets,
+  minutes: number,
+  coachName: string | null,
+  endedAt: Date = new Date(),
+): StravaPost {
+  const lines = exerciseTotals(workout, sets).map((t) => `${t.exercise}: ${describeExerciseTotal(t)}`);
+  const volume = exerciseTotals(workout, sets).reduce((a, t) => a + (t.volumeKg ?? 0), 0);
+  const muscles = musclesWorked(workout, sets).slice(0, 4).map((m) => m.muscle.toLowerCase());
+  const secs = Math.max(60, Math.round(minutes * 60));
+  const start = new Date(endedAt.getTime() - secs * 1000);
+  const description = [
+    ...lines,
+    "",
+    [volume ? `${Math.round(volume).toLocaleString("en-GB")} kg lifted` : null, muscles.length ? `Worked: ${muscles.join(", ")}` : null].filter(Boolean).join(" · "),
+    coachName ? `Programme by ${coachName}, coached on APEX` : "Logged on APEX",
+  ].filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !== "")).join("\n").trim();
+  return { name: workout.name, sport_type: "WeightTraining", start_date_local: localStamp(start), elapsed_time: secs, description: description.slice(0, 2000), trainer: 1 };
 }

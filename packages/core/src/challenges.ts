@@ -44,6 +44,8 @@ export const CHALLENGE_PRESETS: { title: string; description: string; metric: Ch
   { title: "Most sessions this month", description: "Every finished workout counts. Show up, tick it off, climb the board.", metric: "sessions", unit: "sessions", goal: 12, days: 28 },
   { title: "Step it up", description: "Log your daily steps. Aim for 10,000 a day.", metric: "logged", unit: "steps", goal: 280000, days: 28 },
   { title: "100 km in a month", description: "Walk, run, ride or row. Log your kilometres each day.", metric: "logged", unit: "km", goal: 100, days: 30 },
+  { title: "1,000 push-ups", description: "Do your push-ups in front of the camera: APEX counts every full rep and skips the half ones. 1,000 this month.", metric: "logged", unit: "push-ups", goal: 1000, days: 28 },
+  { title: "Squat month", description: "Squats in front of the camera, full depth only. APEX counts them for you. 1,500 this month.", metric: "logged", unit: "squats", goal: 1500, days: 28 },
 ];
 
 export const MAX_CHALLENGE_DAYS = 92;
@@ -139,13 +141,15 @@ export const fromChallengeRow = (r: ChallengeRow): Challenge => ({
 export function sampleChallenges(today: string): { challenges: Challenge[]; boards: Record<string, BoardLine[]> } {
   const a: Challenge = { ...challengeFromPreset(0, addDays(today, -9)), id: "demo-challenge-1", title: "Most sessions this month", createdAt: `${addDays(today, -10)}T09:00:00.000Z` };
   const b: Challenge = { ...challengeFromPreset(1, addDays(today, -3)), id: "demo-challenge-2", createdAt: `${addDays(today, -4)}T09:00:00.000Z` };
+  const c: Challenge = { ...challengeFromPreset(3, addDays(today, -5)), id: "demo-challenge-3", createdAt: `${addDays(today, -6)}T09:00:00.000Z` };
   return {
-    challenges: [a, b],
+    challenges: [a, c, b],
     boards: {
       [a.id]: [
         { name: "Omar T.", total: 7, isMe: false }, { name: "Priya S.", total: 6, isMe: true }, { name: "James K.", total: 6, isMe: false },
         { name: "Lena R.", total: 4, isMe: false }, { name: "Marcus W.", total: 3, isMe: false }, { name: "Sarah M.", total: 1, isMe: false },
       ],
+      [c.id]: [{ name: "James K.", total: 212, isMe: false }, { name: "Priya S.", total: 168, isMe: true }, { name: "Marcus W.", total: 150, isMe: false }, { name: "Omar T.", total: 96, isMe: false }],
       [b.id]: [{ name: "Lena R.", total: 38420, isMe: false }, { name: "Omar T.", total: 31050, isMe: false }, { name: "Marcus W.", total: 22800, isMe: false }],
     },
   };

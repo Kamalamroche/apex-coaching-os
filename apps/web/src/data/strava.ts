@@ -1,4 +1,4 @@
-import { connectState, fromStravaActivity, newKey, providerFromState, stravaAuthorizeUrl, type ActivityStore, type StravaActivity } from "@apex/core";
+import { connectState, fromStravaActivity, newKey, providerFromState, stravaAuthorizeUrl, type ActivityStore, type StravaActivity, type StravaPost } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StravaLink } from "./ActivityContext";
 
@@ -48,6 +48,10 @@ export function liveStravaLink(db: SupabaseClient, store: ActivityStore & { relo
       await store.reload?.();
       return activities.length;
     },
+    async post(activity: StravaPost) {
+      const { id } = await call<{ id: number | null }>(db, { action: "post", activity });
+      return id;
+    },
     async disconnect() {
       await call(db, { action: "disconnect" });
       store.removeConnection("strava");
@@ -86,6 +90,7 @@ export function demoStravaLink(store: ActivityStore): StravaLink {
       if (c) store.setConnection({ ...c, lastSyncAt: new Date().toISOString() });
       return 0;
     },
+    post: async () => { await new Promise((r) => setTimeout(r, 700)); return null; },
     disconnect: async () => store.removeConnection("strava"),
   };
 }

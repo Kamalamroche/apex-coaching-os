@@ -1,4 +1,4 @@
-import { challengeProblem, fromChallengeRow, localDate, sampleChallenges, toChallengeRow, type BoardLine, type Challenge, type ChallengeLog, type ChallengeRow } from "@apex/core";
+import { addDays, challengeProblem, fromChallengeRow, localDate, sampleChallenges, toChallengeRow, type BoardLine, type Challenge, type ChallengeLog, type ChallengeRow } from "@apex/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useContext } from "react";
 
@@ -84,7 +84,10 @@ export function demoChallenges(side: "coach" | "client"): ChallengeApi {
       const raw = localStorage.getItem(KEY);
       if (raw) return JSON.parse(raw) as DemoState;
     } catch { /* sample */ }
-    return { ...sampleChallenges(localDate(new Date())), joined: ["demo-challenge-1"], logs: [] };
+    const today = localDate(new Date());
+    // Priya's camera-counted push-ups so far this challenge.
+    const logs: ChallengeLog[] = [40, 45, 38, 45].map((value, i) => ({ challengeId: "demo-challenge-3", day: addDays(today, -(4 - i)), value }));
+    return { ...sampleChallenges(today), joined: ["demo-challenge-1", "demo-challenge-3"], logs };
   };
   const write = (s: DemoState) => {
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* this visit only */ }

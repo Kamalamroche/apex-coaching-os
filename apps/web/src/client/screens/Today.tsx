@@ -1,4 +1,6 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate, trainingWeek } from "@apex/core";
+import { LiveFollow, LiveNowBanner } from "../../app/LiveParts";
+import { AssessmentBanner } from "./Assessment";
 import { useApexState } from "@apex/core/react";
 import { Avatar, DailyRings, EditorialTitle, Icons, LevelRow, RingWeek, SwipeStart, ScriptTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useMemo, useState } from "react";
@@ -57,9 +59,13 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
   }, [history.sessions, activities, life.habits, life.ticks, life.water, life.food, life.targets, day]);
   const ringLabels = rings.week.map((d) => (d.day === day ? "Today" : "MTWTFSS"[(new Date(`${d.day}T12:00:00`).getDay() + 6) % 7]!));
   const cover = status === "ready" && !log;
+  const [following, setFollowing] = useState(false);
   const freshReply = latest?.coachReply && latest.reviewedAt && Date.now() - Date.parse(latest.reviewedAt) < 7 * 86400000 ? latest : null;
   return (
     <>
+      <LiveNowBanner onJoin={() => setFollowing(true)} />
+      {following && <LiveFollow onClose={() => setFollowing(false)} />}
+      <AssessmentBanner />
       {cover ? (
         <section className="hero cover" aria-label="Today's session">
           <HeroBackdrop art={hero} word={null} />

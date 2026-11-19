@@ -1,4 +1,5 @@
-import { createDemoStore, emptyFormCheckStore, emptyGoalStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
+import { createDemoStore, emptyAssessmentStore, emptyFormCheckStore, emptyGoalStore, emptyLifestyleStore, INITIAL_WORKOUT, stateForWorkout, type ApexStore } from "@apex/core";
+import { LiveProvider, liveSessionLink } from "../data/live";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppInfoProvider } from "../app/AppContext";
 import type { Live } from "../app/Gate";
@@ -11,6 +12,8 @@ import { LifestyleProvider } from "../data/LifestyleContext";
 import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
+import { AssessmentProvider } from "../data/AssessmentContext";
+import { createSupabaseAssessments } from "../data/supabaseAssessments";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
@@ -60,12 +63,16 @@ export function CoachLive({ db, profile, signOut }: Live) {
   useEffect(() => () => (lifestyle as { close?: () => void }).close?.(), [lifestyle]);
   const formChecks = useMemo(() => (activeId ? createSupabaseFormChecks(db, activeId) : emptyFormCheckStore()), [db, activeId]);
   useEffect(() => () => (formChecks as { close?: () => void }).close?.(), [formChecks]);
+  const assessments = useMemo(() => (activeId ? createSupabaseAssessments(db, activeId) : emptyAssessmentStore()), [db, activeId]);
+  useEffect(() => () => (assessments as { close?: () => void }).close?.(), [assessments]);
   const goals = useMemo(() => (activeId ? createSupabaseGoals(db, activeId) : emptyGoalStore()), [db, activeId]);
   useEffect(() => () => (goals as { close?: () => void }).close?.(), [goals]);
   const challenges = useMemo(() => liveChallenges(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
   const resources = useMemo(() => liveResources(db, profile.id), [db, profile.id]);
   const coachRecipes = useMemo(() => liveCoachRecipes(db, profile.id), [db, profile.id]);
   const team = useMemo(() => liveTeam(db, { side: "coach", coachId: profile.id, me: profile.id }), [db, profile.id]);
+  const liveLink = useMemo(() => liveSessionLink(db, { side: "coach", coachId: profile.id, me: { id: profile.id, name: (profile.full_name ?? "").split(" ")[0] || "Coach" } }), [db, profile.id, profile.full_name]);
+  useEffect(() => () => liveLink.close(), [liveLink]);
   const growth = useMemo(() => liveGrowth(db, { side: "coach", coachId: profile.id, coachName: profile.full_name, me: profile.id }), [db, profile.id, profile.full_name]);
   const notes = useMemo(() => liveNotes(db, profile.id), [db, profile.id]);
   const clientsRef = useRef<LiveClient[]>([]);
@@ -83,11 +90,11 @@ export function CoachLive({ db, profile, signOut }: Live) {
       <StoreProvider store={store}>
         <ActivityProvider store={activities} editable={false}>
           <LifestyleProvider store={lifestyle}>
-            <FormCheckProvider store={formChecks}>
+            <FormCheckProvider store={formChecks}><AssessmentProvider store={assessments}>
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
+                    <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <NotesProvider value={notes}>
                         <TwinProvider value={clients ? twin : null}>
@@ -97,11 +104,11 @@ export function CoachLive({ db, profile, signOut }: Live) {
                         </TwinProvider>
                       </NotesProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider>
+                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>
-            </FormCheckProvider>
+            </AssessmentProvider></FormCheckProvider>
           </LifestyleProvider>
         </ActivityProvider>
       </StoreProvider>

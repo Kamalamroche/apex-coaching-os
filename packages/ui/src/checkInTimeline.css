@@ -1,0 +1,12 @@
+.cit-scroll{overflow-x:auto;margin:0 -16px;padding:0 16px;-webkit-overflow-scrolling:touch}
+.cit-table{border-collapse:separate;border-spacing:0;min-width:100%;font-size:14px}
+.cit-table th,.cit-table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:top;white-space:nowrap}
+.cit-table thead th{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.cit-table .cit-q{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;font-weight:600;color:var(--text);min-width:120px;max-width:150px;white-space:normal;line-height:1.3}
+.cit-table thead .cit-q{color:var(--text3)}
+.cit-table tr.number td span{font-weight:700}
+.cit-table tr.text td{text-align:left;white-space:normal;min-width:140px;max-width:180px;color:var(--text2);font-size:13px;line-height:1.35}
+.cit-table td.good{color:var(--good);background:color-mix(in srgb,var(--good) 9%,transparent)}
+.cit-table td.bad{color:var(--crit);background:color-mix(in srgb,var(--crit) 8%,transparent)}
+.cit-none{color:var(--text3)}
+.cit-table tbody tr:last-child th,.cit-table tbody tr:last-child td{border-bottom:none}

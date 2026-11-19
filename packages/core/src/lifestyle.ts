@@ -412,6 +412,12 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
       meal(10 + i * 2, "lunch", "Lunch (quick add)", 640 + i * 40, 42, 70, 18, addDays(today, -d)),
       meal(11 + i * 2, "dinner", "Dinner (quick add)", 760 - i * 30, 48, 80, 24, addDays(today, -d)),
     ]),
+    // Three earlier weeks, logged most days: enough for the coach's smart targets check.
+    ...[8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27].flatMap((d, i) => [
+      meal(100 + i * 3, "breakfast", "Breakfast (quick add)", 420 + (i % 3) * 30, 28, 50, 12, addDays(today, -d)),
+      meal(101 + i * 3, "lunch", "Lunch (quick add)", 720 + (i % 4) * 25, 44, 80, 22, addDays(today, -d)),
+      meal(102 + i * 3, "dinner", "Dinner (quick add)", 980 - (i % 5) * 20, 50, 100, 34, addDays(today, -d)),
+    ]),
   ];
   const sip = (i: number, ml: number, h: number, m: number, day = today): WaterEntry => {
     const d = new Date(`${day}T00:00:00`);

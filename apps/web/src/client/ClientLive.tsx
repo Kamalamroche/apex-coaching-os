@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { LiveProvider, liveSessionLink } from "../data/live";
 import { useEffect, useMemo, useState } from "react";
 import { WEARABLES } from "@apex/core";
 import type { StravaLink, WearableLink } from "../data/ActivityContext";
@@ -14,6 +15,8 @@ import { LifestyleProvider } from "../data/LifestyleContext";
 import { createSupabaseLifestyle } from "../data/supabaseLifestyle";
 import { FormCheckProvider } from "../data/FormCheckContext";
 import { createSupabaseFormChecks } from "../data/supabaseFormChecks";
+import { AssessmentProvider } from "../data/AssessmentContext";
+import { createSupabaseAssessments } from "../data/supabaseAssessments";
 import { GoalProvider } from "../data/GoalContext";
 import { createSupabaseGoals } from "../data/supabaseGoals";
 import { BookingProvider, liveBookings } from "../data/bookings";
@@ -59,6 +62,8 @@ export function ClientLive({ db, profile, signOut }: Live) {
   useEffect(() => () => lifestyle.close(), [lifestyle]);
   const formChecks = useMemo(() => createSupabaseFormChecks(db, profile.id), [db, profile.id]);
   useEffect(() => () => formChecks.close(), [formChecks]);
+  const assessments = useMemo(() => createSupabaseAssessments(db, profile.id), [db, profile.id]);
+  useEffect(() => () => assessments.close(), [assessments]);
   const goals = useMemo(() => createSupabaseGoals(db, profile.id), [db, profile.id]);
   useEffect(() => () => goals.close(), [goals]);
   const challenges = useMemo(() => (coach ? liveChallenges(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
@@ -66,6 +71,8 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const coachRecipes = useMemo(() => (coach ? liveCoachRecipes(db, coach.id) : null), [db, coach]);
   const programmes = useMemo(() => (coach ? liveProgrammes(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const team = useMemo(() => (coach ? liveTeam(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
+  const liveLink = useMemo(() => (coach ? liveSessionLink(db, { side: "client", coachId: coach.id, me: { id: profile.id, name: (profile.full_name ?? "").split(" ")[0] || "Client" } }) : null), [db, coach, profile.id, profile.full_name]);
+  useEffect(() => () => liveLink?.close(), [liveLink]);
   const growth = useMemo(() => (coach ? liveGrowth(db, { side: "client", coachId: coach.id, coachName: coach.name, me: profile.id }) : null), [db, coach, profile.id]);
   const grow = useMemo(() => (coach ? liveGrow(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const marketing = useMemo(() => (coach ? liveMarketing(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
@@ -93,19 +100,19 @@ export function ClientLive({ db, profile, signOut }: Live) {
       <StoreProvider store={store}>
         <ActivityProvider store={activities} strava={strava} wearables={wearables}>
           <LifestyleProvider store={lifestyle}>
-            <FormCheckProvider store={formChecks}>
+            <FormCheckProvider store={formChecks}><AssessmentProvider store={assessments}>
               <GoalProvider store={goals}>
                 <BookingProvider value={bookings}>
                   <ChallengeProvider value={challenges}>
-                    <TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
+                    <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
                       <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientBillingProvider link={billing}><ClientApp notice={notice} startOn={billingReturn ? "membership" : null} /></ClientBillingProvider></ExtrasProvider></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
-                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider>
+                    </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>
                 </BookingProvider>
               </GoalProvider>
-            </FormCheckProvider>
+            </AssessmentProvider></FormCheckProvider>
           </LifestyleProvider>
         </ActivityProvider>
       </StoreProvider>

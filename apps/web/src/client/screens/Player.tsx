@@ -1,7 +1,7 @@
 import {
   EXERCISES, bestMoment, carsLifted, topSet,
   HERO_IMAGES, afterSet, blockAt, heroForExercise, blockLabel, buildSummary, distanceMetres, completedSets, countPersonalBests, defaultBarFor, exerciseFor, formatRest, initialSets, isPersonalBest,
-  sessionVolume, setTargets, workoutDraft, VOICE_HELP, cuesLine, introLine, loggedLine, restStartLine, restTickLine, spokenTarget, type SpokenSet, type VoiceCommand, shareCardData, summaryMessage, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
+  sessionVolume, setTargets, workoutDraft, VOICE_HELP, cuesLine, introLine, loggedLine, restStartLine, restTickLine, spokenTarget, type SpokenSet, type VoiceCommand, shareCardData, summaryMessage, stravaStrengthPost, timedSeconds, totalSets, usesPlates, type ExerciseComment, type Readiness, type SessionLog, type SessionSets, type SetEntry, type TrainingHistory, type Workout,
 } from "@apex/core";
 import { BestMoment, CarsMoment, CountUp, Icons, PocketLock, HeroBackdrop, LiquidPill, Rolling, Celebrate, WeightWheel, WheelInput, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { ReadinessCheck } from "./Readiness";
 import { ShareWorkout } from "./ShareWorkout";
 import { PostToTeam } from "../../app/TeamParts";
 import { useTeamApi } from "../../data/team";
+import { useStravaPost } from "../../data/ActivityContext";
 import { useHandsFree, useWakeLock } from "../../app/handsFree";
 
 const RPE_SCALE = [6, 7, 8, 9, 10];
@@ -407,6 +408,13 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
   const [sharing, setSharing] = useState(false);
   const [posting, setPosting] = useState(false);
   const team = useTeamApi();
+  const toStrava = useStravaPost();
+  const [strava, setStrava] = useState<"idle" | "sending" | "sent" | string>("idle");
+  const sendToStrava = () => {
+    if (!toStrava) return;
+    setStrava("sending");
+    toStrava(stravaStrengthPost(w, sets, mins, coachName)).then(() => setStrava("sent"), (e: unknown) => setStrava(e instanceof Error ? e.message : "Strava didn't take it. Try again."));
+  };
   // "You lifted three cars" comes first when today's total is at least one car; Continue opens the summary.
   const [cars] = useState(() => carsLifted(sessionVolume(sets)));
   // A new personal best comes first, on its photo; then the cars; then the summary.
@@ -463,6 +471,16 @@ function Finish({ workout: w, sets, history, readiness, comments, minutes, onDon
         <WorkoutSummaryCard summary={summary} />
         <button className="btn ghost block" style={{ minHeight: 48 }} onClick={() => setSharing(true)}><Icons.camera width={18} height={18} /> Share with a photo</button>
         {team && <button className="btn ghost block" style={{ minHeight: 48 }} onClick={() => setPosting(true)}><Icons.five width={18} height={18} /> Post to your team</button>}
+        {toStrava && (
+          <>
+            <button className={`btn ghost block strava-send ${strava === "sent" ? "sent" : ""}`} style={{ minHeight: 48 }} disabled={strava === "sending" || strava === "sent"} onClick={sendToStrava}>
+              {strava === "sent" ? <><Icons.check width={18} height={18} /> On your Strava</> : <><Icons.share width={18} height={18} /> {strava === "sending" ? "Sending to Strava…" : "Send to Strava"}</>}
+            </button>
+            <div className="tiny" style={{ textAlign: "center", marginTop: -4, color: strava !== "idle" && strava !== "sending" && strava !== "sent" ? "var(--warn)" : undefined }}>
+              {strava !== "idle" && strava !== "sending" && strava !== "sent" ? strava : strava === "sent" ? `Posted as a strength session, credited to ${coachName}.` : `Posts as a strength session, with each exercise and “Programme by ${coachName}”.`}
+            </div>
+          </>
+        )}
         <div className="card">
           <h3 className="h3" style={{ marginBottom: 8 }}>How hard was the whole session?</h3>
           <div className="rpe">{RPE_SCALE.map((n) => <button key={n} className={sessionRpe === n ? "on" : ""} onClick={() => setSessionRpe(n)}>{n}</button>)}</div>

@@ -10,6 +10,8 @@ import { Membership } from "./Membership";
 import { Intake } from "./Intake";
 import { ClientNutrition } from "./Nutrition";
 import { FormCheckList } from "./FormCheck";
+import { AssessmentList } from "./Assessment";
+import { useAssessments } from "../../data/AssessmentContext";
 import { useFormChecks } from "../../data/FormCheckContext";
 import { useGoals } from "../../data/GoalContext";
 import { useGoalInputs } from "../../app/GoalParts";
@@ -35,7 +37,7 @@ import { useExtras } from "../../data/extras";
 import { Classes } from "./Classes";
 import { MyAgreements } from "./Agreements";
 
-type View = "membership" | "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "classes" | "agreements" | "review";
+type View = "membership" | "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "assess" | "classes" | "agreements" | "review";
 
 export type MoreView = View;
 
@@ -48,6 +50,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
   const { coachName } = useAppInfo();
   const life = useLifestyle();
   const form = useFormChecks();
+  const assess = useAssessments();
   const replied = form.checks.filter((c) => c.coachReply).length;
   const goals = useGoals();
   const inputs = useGoalInputs();
@@ -75,13 +78,14 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
     ["food", "Nutrition", life.targets ? `${kcal.toLocaleString()} of ${life.targets.kcal.toLocaleString()} kcal logged today` : kcal ? `${kcal.toLocaleString()} kcal logged today` : "Log what you eat"],
     ["habits", "Habits", due.length ? `${due.filter((h) => isDone(life.ticks, h.id, today)).length} of ${due.length} done today` : life.habits.length ? "Nothing due today" : `None yet. ${coachName} will add some`],
     ["intake", "About you", life.intake ? "Your answers for " + coachName + ". Update any time" : `Health check and goals for ${coachName}`],
+    ["assess", "Assessments", assess.list.length ? `${assess.list.filter((a) => a.status === "requested").length ? "One to do · " : ""}${assess.list.length} so far` : `Posture and mobility checks from ${coachName}`],
     ["form", "Form checks", form.checks.length ? `${form.checks.length} video${form.checks.length === 1 ? "" : "s"}${replied ? ` · ${replied} with notes from ${coachName}` : ""}` : `Film a set and ${coachName} checks your technique`],
     ...(extras ? [["agreements", "Agreements", "What you've signed with " + coachName] as [View, string, string]] : []),
     ...(teamApi ? [] : [["community", "Community", "Leaderboard and team feed"] as [View, string, string]]),
   ];
   const ICON: Record<View, [IconName, string]> = {
     book: ["today", "c1"], programmes: ["train", "c2"], challenges: ["trophy", "c2"], resources: ["file", "c4"], goals: ["target", "c2"], food: ["food", "c3"],
-    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["note", "c4"], review: ["star", "c2"], membership: ["money", "c2"],
+    habits: ["check", "c3"], intake: ["note", "c1"], form: ["camera", "c4"], assess: ["target", "c3"], community: ["clients", "c1"], team: ["five", "c2"], invite: ["mail", "c1"], apps: ["link", "c3"], account: ["info", "c4"], settings: ["more", "c2"], classes: ["clients", "c3"], agreements: ["note", "c4"], review: ["star", "c2"], membership: ["money", "c2"],
   };
   const chip = (k: View) => { const [n, c] = ICON[k]; const I = Icons[n]; return <span className={`mi ${c}`}><I /></span>; };
   if (view === "intake") return <Intake onExit={() => setView(null)} onDone={() => { setView(null); say(`Sent · ${coachName} can see your answers`); }} />;
@@ -102,6 +106,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
         {view === "food" && <ClientNutrition />}
         {view === "habits" && <Habits />}
         {view === "form" && <FormCheckList say={say} />}
+        {view === "assess" && <AssessmentList />}
         {view === "community" && <><SampleNote /><Community /></>}
         {view === "apps" && <ConnectedApps say={say} />}
         {view === "account" && <AccountScreen say={say} />}
