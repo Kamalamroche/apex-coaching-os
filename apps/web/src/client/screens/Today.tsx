@@ -9,6 +9,7 @@ import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { HabitList } from "./Habits";
+import { AsPlannedSheet } from "./AsPlanned";
 import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
@@ -33,6 +34,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
   const { activities } = useActivitiesIfAny();
   const [mood, setMood] = useState<number | null>(null);
   const [story, setStory] = useState(false);
+  const [asPlanned, setAsPlanned] = useState(false);
   const [levels, setLevels] = useState(false);
   const lv = useLevels();
   const life = useLifestyle();
@@ -137,7 +139,9 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               </li>
             ))}
             </ul>
+            {w.items.length > 0 && <button className="link ap-open" onClick={() => setAsPlanned(true)}>Already trained? Log it as planned</button>}
           </div>
+          {asPlanned && <AsPlannedSheet onClose={() => setAsPlanned(false)} onDone={() => { setAsPlanned(false); window.scrollTo(0, 0); say?.(`Session logged · ${coachName} can see it`); }} />}
         </>
       ) : (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>

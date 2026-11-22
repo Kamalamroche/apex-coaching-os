@@ -11,6 +11,7 @@ export function WorkoutSummaryCard({ summary: s, compact = false }: { summary: W
   const top = s.muscles[0]?.sets ?? 1;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {s.asPlanned && <div className="small" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icons.check width={14} height={14} style={{ color: "var(--good)" }} /> Logged in one tap: every set done exactly as planned</div>}
       {s.readiness && <ReadinessSummary readiness={s.readiness} />}
       {s.bests.length > 0 && (
         <div className="card" style={{ background: "var(--act-soft)", borderColor: "var(--act)", padding: "10px 12px" }}>

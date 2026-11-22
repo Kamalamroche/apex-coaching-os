@@ -1058,3 +1058,8 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 /* Client profile: group chips with a small "something new" dot, and the group's tabs as a segmented row. */
 .pt-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--act);margin-left:6px;vertical-align:2px}
 .pt-sub button{padding:0 8px;white-space:nowrap}
+/* Done as planned: the session at a glance in the sheet, and the quiet link under "In this session". */
+.ap-list{list-style:none;margin:0;padding:10px 12px;display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg2)}
+.ap-list li{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--text)}
+.ap-list li .num{color:var(--text2);white-space:nowrap}
+.ap-open{margin-top:12px;display:block}
