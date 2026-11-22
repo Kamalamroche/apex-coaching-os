@@ -2272,3 +2272,40 @@ reset role;
 do $$ begin
   assert (select hidden_features from coach_clients where coach_id = '00000000-0000-0000-0000-00000000a5e1' and client_id = '00000000-0000-0000-0000-00000000a5e2') = '{nutrition,challenges}', 'only the coach changes the switches';
 end $$;
+
+-- ───────────── nutrition styles, saved meals, meal photos ─────────────
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e1');
+update coach_clients set nutrition_style = 'portions', nutrition_portions = '{"protein":5,"veg":6,"carbs":4,"fats":3}' where client_id = '00000000-0000-0000-0000-00000000a5e2';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e2');
+insert into saved_meals (client_id, name, meal, items) values (auth.uid(), 'Usual breakfast', 'breakfast', '[{"name":"Oats","kcal":190,"proteinG":7,"carbsG":32,"fatG":4}]');
+insert into food_entries (client_id, day, meal, name, kcal, portions, photo_path) values (auth.uid(), current_date, 'lunch', '2 palms protein', 240, '{"protein":2}', '00000000-0000-0000-0000-00000000a5e2/lunch.jpg');
+insert into storage.objects (bucket_id, name) values ('meal-photos', '00000000-0000-0000-0000-00000000a5e2/lunch.jpg');
+do $$ begin
+  assert (select nutrition_style from coach_clients where client_id = auth.uid() and coach_id = '00000000-0000-0000-0000-00000000a5e1') = 'portions', 'client reads their tracking style';
+  begin
+    insert into food_entries (client_id, day, meal, name, kcal, photo_path) values (auth.uid(), current_date, 'lunch', 'x', 1, 'someone-else/x.jpg');
+    assert false, 'photo path must be in the client''s own folder';
+  exception when check_violation then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('meal-photos', '00000000-0000-0000-0000-00000000a5e4/x.jpg');
+    assert false, 'client cannot upload into another folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+update coach_clients set nutrition_style = 'macros' where client_id = auth.uid();
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e1');
+do $$ begin
+  assert (select count(*) from saved_meals) = 1, 'coach sees saved meals';
+  assert (select count(*) from storage.objects where bucket_id = 'meal-photos') = 1, 'coach sees the meal photo';
+  assert (select nutrition_style from coach_clients where client_id = '00000000-0000-0000-0000-00000000a5e2') = 'portions', 'client cannot change their own style';
+end $$;
+delete from saved_meals;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e4');
+do $$ begin
+  assert (select count(*) from saved_meals) = 0, 'rival sees no saved meals';
+  assert (select count(*) from storage.objects where bucket_id = 'meal-photos') = 0, 'rival sees no meal photos';
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from saved_meals) = 1, 'coach cannot delete saved meals';
+end $$;

@@ -38,3 +38,14 @@ function draw(img: HTMLImageElement, max: number): HTMLCanvasElement {
   canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
   return canvas;
 }
+
+/** A meal photo, shrunk to a JPEG of at most `max` pixels on the long side. */
+export async function shrinkPhoto(file: File, max = 1080): Promise<Blob> {
+  const img = await load(file);
+  try {
+    const c = draw(img.el, max);
+    return await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo"))), "image/jpeg", 0.8));
+  } finally {
+    img.done();
+  }
+}

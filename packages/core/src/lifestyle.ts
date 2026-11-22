@@ -1,5 +1,7 @@
 import type { Micros } from "./micros";
 import { sampleMealPlan, type MealPlan } from "./mealPlans";
+import { cleanPortions, type Portions, type TrackingStyle } from "./nutritionStyle";
+import { SAVED_MEALS_MAX, type SavedItem, type SavedMeal } from "./savedMeals";
 /* Habits, nutrition targets with a food log, and the onboarding questionnaire.
    The coach sets habits and targets; the client ticks habits, logs food and fills in the questionnaire once.
    Behind one interface like ApexStore: the demo keeps it in localStorage, the live app in the tables of
@@ -190,6 +192,10 @@ export interface FoodEntry extends Micros {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  /** Hand portions, when logged that way (the macros are then estimates). */
+  portions?: Portions;
+  /** A photo of the meal: a storage path live, an image data URL in the demo. */
+  photo?: string;
 }
 
 export interface Macros {
@@ -314,6 +320,14 @@ export interface LifestyleState {
   mealPlan: MealPlan | null;
   /** False when the live database doesn't have the meal plan table yet. */
   planReady: boolean;
+  /** How the coach wants this client to track food. */
+  style: TrackingStyle;
+  /** Daily hand portions the coach set; null works them out from the targets. */
+  portionTargets: Portions | null;
+  /** The client's saved meals ("My usual breakfast"). */
+  savedMeals: SavedMeal[];
+  /** False when the live database doesn't have the nutrition styles update yet. */
+  styleReady: boolean;
   /** "needs-update": the database doesn't have these tables yet (the SQL hasn't run). */
   status: "loading" | "ready" | "needs-update" | "error";
   error?: string;
@@ -340,6 +354,15 @@ export interface LifestyleStore {
   removeWater(id: string): void;
   /** Client, once (sending again replaces it). */
   submitIntake(a: IntakeAnswers): Promise<void>;
+  /** Coach: how this client tracks food, and their daily hand portions (null: from the targets). */
+  setStyle(style: TrackingStyle, portions: Portions | null): void;
+  /** Client: save a meal to log again in one tap, or forget one. */
+  saveMeal(m: SavedMeal): void;
+  removeSavedMeal(id: string): void;
+  /** Client: store a meal photo, giving back what goes in FoodEntry.photo. */
+  uploadMealPhoto(file: Blob): Promise<string>;
+  /** Either side: an address to show a meal photo (null if it can't be shown). */
+  mealPhotoUrl(photo: string): Promise<string | null>;
 }
 
 /* ---------- Database rows ---------- */
@@ -347,7 +370,10 @@ export interface LifestyleStore {
 export interface HabitRow { id: string; client_id: string; kind: HabitKind; title: string; days: number[]; created_at: string }
 export interface HabitTickRow { client_id: string; habit_id: string; day: string }
 export interface NutritionTargetsRow { client_id: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; note: string | null; rest_day?: { kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null }
-export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; fibre_g?: number | null; sugar_g?: number | null; salt_g?: number | null }
+export interface FoodEntryRow { id: string; client_id: string; day: string; meal: Meal; name: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number; fibre_g?: number | null; sugar_g?: number | null; salt_g?: number | null; portions?: Portions | null; photo_path?: string | null }
+export interface SavedMealRow { id: string; client_id: string; name: string; meal: Meal; items: SavedItem[]; created_at: string }
+export const toSavedMealRow = (m: SavedMeal, clientId: string): SavedMealRow => ({ id: m.id, client_id: clientId, name: m.name.slice(0, 60), meal: m.meal, items: m.items.slice(0, 30), created_at: m.createdAt });
+export const fromSavedMealRow = (r: SavedMealRow): SavedMeal => ({ id: r.id, name: r.name, meal: r.meal, items: Array.isArray(r.items) ? r.items : [], createdAt: r.created_at });
 export interface WaterRow { id: string; client_id: string; day: string; ml: number; created_at: string }
 export interface IntakeRow { client_id: string; answers: IntakeAnswers; health_flags: number; submitted_at: string }
 
@@ -373,12 +399,16 @@ export const toFoodRow = (f: FoodEntry, clientId: string): FoodEntryRow => ({
   ...(f.fibreG !== undefined ? { fibre_g: Math.min(300, Math.max(0, f.fibreG)) } : {}),
   ...(f.sugarG !== undefined ? { sugar_g: Math.min(1000, Math.max(0, f.sugarG)) } : {}),
   ...(f.saltG !== undefined ? { salt_g: Math.min(100, Math.max(0, f.saltG)) } : {}),
+  ...(f.portions ? { portions: cleanPortions(f.portions) } : {}),
+  ...(f.photo ? { photo_path: f.photo.slice(0, 300) } : {}),
 });
 export const fromFoodRow = (r: FoodEntryRow): FoodEntry => ({
   id: r.id, day: r.day.slice(0, 10), meal: r.meal, name: r.name, kcal: num(r.kcal), proteinG: num(r.protein_g), carbsG: num(r.carbs_g), fatG: num(r.fat_g),
   ...(r.fibre_g != null ? { fibreG: num(r.fibre_g) } : {}),
   ...(r.sugar_g != null ? { sugarG: num(r.sugar_g) } : {}),
   ...(r.salt_g != null ? { saltG: num(r.salt_g) } : {}),
+  ...(r.portions ? { portions: cleanPortions(r.portions) } : {}),
+  ...(r.photo_path ? { photo: r.photo_path } : {}),
 });
 
 export const toWaterRow = (e: WaterEntry, clientId: string): WaterRow => ({ id: e.id, client_id: clientId, day: e.day, ml: Math.round(Math.min(5000, Math.max(1, e.ml))), created_at: e.at });
@@ -429,7 +459,7 @@ export function sampleLifestyle(now = new Date()): Omit<LifestyleState, "status"
     sip(1, 500, 8, 5, addDays(today, -1)), sip(2, 500, 11, 30, addDays(today, -1)), sip(3, 750, 14, 10, addDays(today, -1)), sip(4, 750, 18, 40, addDays(today, -1)),
     sip(5, 250, 7, 40), sip(6, 500, 10, 15), sip(7, 250, 12, 30),
   ];
-  return { habits, ticks, water, waterReady: true, mealPlan: sampleMealPlan(now), planReady: true, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null };
+  return { habits, ticks, water, waterReady: true, mealPlan: sampleMealPlan(now), planReady: true, targets: { kcal: 1900, proteinG: 120, carbsG: 210, fatG: 60, note: "Aim for 30 g of protein at breakfast." }, food, intake: null, style: "macros", portionTargets: null, savedMeals: [], styleReady: true };
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
@@ -459,8 +489,8 @@ export function createDemoLifestyleStore(
   const update = (fn: (s: LifestyleState) => LifestyleState) => {
     state = fn(state);
     try {
-      const { habits, ticks, targets, food, intake, water, mealPlan } = state;
-      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake, water, mealPlan }));
+      const { habits, ticks, targets, food, intake, water, mealPlan, style, portionTargets, savedMeals } = state;
+      storage?.setItem(DEMO_LIFESTYLE_KEY, JSON.stringify({ habits, ticks, targets, food, intake, water, mealPlan, style, portionTargets, savedMeals }));
     } catch {
       /* storage full or blocked: the change still shows in this tab */
     }
@@ -493,14 +523,23 @@ export function createDemoLifestyleStore(
     async submitIntake(a) {
       update((s) => ({ ...s, intake: { answers: a, submittedAt: new Date().toISOString() } }));
     },
+    setStyle: (style, portions) => update((s) => ({ ...s, style, portionTargets: portions })),
+    saveMeal: (m) => update((s) => ({ ...s, savedMeals: [m, ...s.savedMeals.filter((x) => x.id !== m.id)].slice(0, SAVED_MEALS_MAX) })),
+    removeSavedMeal: (id) => update((s) => ({ ...s, savedMeals: s.savedMeals.filter((x) => x.id !== id) })),
+    // Demo photos stay in this browser as small data URLs (the screen shrinks them first).
+    uploadMealPhoto: async (file) => blobToDataUrl(file),
+    mealPhotoUrl: async (photo) => (photo.startsWith("data:") || photo.startsWith("/") ? photo : null),
   };
 }
 
 /** A store with nothing in it, for a coach with no clients yet. */
 export function emptyLifestyleStore(): LifestyleStore {
-  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, status: "ready" };
+  const state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, style: "macros", portionTargets: null, savedMeals: [], styleReady: true, status: "ready" };
   const noop = () => {};
-  return { get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, setMealPlan: noop, addFood: noop, removeFood: noop, addWater: noop, removeWater: noop, submitIntake: async () => {} };
+  return {
+    get: () => state, subscribe: () => noop, saveHabit: noop, removeHabit: noop, setHabitDone: noop, setTargets: noop, setMealPlan: noop, addFood: noop, removeFood: noop, addWater: noop, removeWater: noop, submitIntake: async () => {},
+    setStyle: noop, saveMeal: noop, removeSavedMeal: noop, uploadMealPhoto: async () => "", mealPhotoUrl: async () => null,
+  };
 }
 
 function safeStorage(): StorageLike | null {
@@ -625,4 +664,13 @@ export function loggingStreak(food: { day: string }[], today: string): number {
 export function eveningProgress(nowAfter18: number, goalAfter18: number): number {
   if (goalAfter18 <= 0 || nowAfter18 >= 12 * 60) return 0;
   return Math.max(0, Math.min(1, nowAfter18 / goalAfter18));
+}
+
+function blobToDataUrl(b: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error ?? new Error("Couldn't read the photo"));
+    r.readAsDataURL(b);
+  });
 }

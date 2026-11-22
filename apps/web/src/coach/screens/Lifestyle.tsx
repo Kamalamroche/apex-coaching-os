@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { CoachPlanEditor } from "../../app/MealPlanParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
+import { MealPhoto, MealPhotoGallery, TrackingStyleCard } from "../../app/NutritionStyleParts";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -120,6 +121,8 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
 
   return (
     <>
+      <TrackingStyleCard key={s.style} name={name} targets={t} say={say} />
+      <MealPhotoGallery name={name} say={say} />
       {t && (
         <div className="card stack">
           <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · <span className="num">{Math.round(eaten.kcal).toLocaleString()}</span> of <span className="num">{t.kcal.toLocaleString()}</span> kcal</h3><Label kind="data">Data</Label></div>
@@ -150,7 +153,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
       {todays.length > 0 && (
         <div className="card flat list">
           {todays.map((f) => (
-            <div key={f.id} className="li"><div className="grow"><div className="h3">{f.name}</div><div className="tiny">{f.meal[0]?.toUpperCase()}{f.meal.slice(1)} · <span className="num">P {f.proteinG} · C {f.carbsG} · F {f.fatG}</span></div></div><span className="num small">{Math.round(f.kcal)}</span></div>
+            <div key={f.id} className="li">{f.photo && <MealPhoto photo={f.photo} alt={`${f.meal} photo`} className="mp-thumb" />}<div className="grow"><div className="h3">{f.name}</div><div className="tiny">{f.meal[0]?.toUpperCase()}{f.meal.slice(1)} · <span className="num">P {f.proteinG} · C {f.carbsG} · F {f.fatG}</span></div></div><span className="num small">{Math.round(f.kcal)}</span></div>
           ))}
         </div>
       )}
