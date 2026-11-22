@@ -69,3 +69,25 @@ export function foodFromOff(code: string, p: OffProduct | null | undefined): Foo
   if (num(n.salt_100g) !== null) food.salt = Math.round(num(n.salt_100g)! * f * 100) / 100;
   return food;
 }
+
+/* Searching Open Food Facts by name, for anything not in the built-in list. UK products first. */
+
+/** The search address: UK products, 20 results, only the fields we use. */
+export function offSearchUrl(q: string): string {
+  const p = new URLSearchParams({ search_terms: q.trim().slice(0, 80), search_simple: "1", action: "process", json: "1", page_size: "20", fields: `code,${OFF_FIELDS}` });
+  return `https://uk.openfoodfacts.org/cgi/search.pl?${p.toString()}`;
+}
+
+/** Search results as foods, skipping anything with no calories or no name, and duplicates by name. */
+export function foodsFromOffSearch(json: { products?: (OffProduct & { code?: string })[] } | null | undefined): Food[] {
+  const out: Food[] = [];
+  const seen = new Set<string>();
+  for (const p of json?.products ?? []) {
+    if (!p.code || !/^\d{6,14}$/.test(p.code) || !(p.product_name || p.product_name_en)) continue;
+    const f = foodFromOff(p.code, p);
+    if (!f || seen.has(f.name.toLowerCase())) continue;
+    seen.add(f.name.toLowerCase());
+    out.push({ ...f, group: "Open Food Facts" });
+  }
+  return out;
+}

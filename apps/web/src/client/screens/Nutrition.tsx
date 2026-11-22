@@ -1,4 +1,4 @@
-import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe, foodAmount, foodAmountToMetric, microTotals, scaleMicros } from "@apex/core";
+import { FOODS, HERO_IMAGES, MEALS, addDays, parseMeal, dayTotals, lastMeal, localDate, loggingStreak, macroSplit, parseNumber, recentFoods, scalePortion, searchFoods, weekNutrition, weekDaysOf, targetsFor, workoutOn, type Food, type FoodEntry, type Meal, type MealItem, type Recipe, planItemFromRecipe, foodAmount, foodAmountToMetric, microTotals, scaleMicros, styleShows, portionsForTargets, type SavedMeal } from "@apex/core";
 import { FuelGauge, Icons, MacroRings, MacroTable, MicroStrip, ScriptTitle, WeekFuel, useUnits } from "@apex/ui";
 import { useState } from "react";
 import { useApexState } from "@apex/core/react";
@@ -7,6 +7,7 @@ import { useStore } from "../../data/StoreContext";
 import { BarcodeScan } from "./BarcodeScan";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
+import { LabelScan, MealPhoto, MealPhotoButton, PortionBoard, PortionLogger, SaveMealLink, SavedMeals, portionEntry, useOnlineFoods } from "../../app/NutritionStyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 const mealNow = (): Meal => {
@@ -15,7 +16,7 @@ const mealNow = (): Meal => {
 };
 
 /** The client's food log for today, against the targets the coach set. */
-export function ClientNutrition() {
+export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
   const u = useUnits();
   const store = useLifestyleStore();
   const s = useLifestyle();
@@ -28,6 +29,7 @@ export function ClientNutrition() {
   const [said, setSaid] = useState("");
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [scan, setScan] = useState(false);
+  const [label, setLabel] = useState(false);
   // The food picked from the list, waiting for its amount.
   const [pick, setPick] = useState<{ food: Food; portions: number } | null>(null);
   const [q, setQ] = useState("");
@@ -46,6 +48,12 @@ export function ClientNutrition() {
   const isToday = day === today;
   const dayName = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   const hits = searchFoods(FOODS, q);
+  // How the coach wants this client to track: full macros, protein and calories, hand portions or photos.
+  const look = styleShows(s.style);
+  const portionTarget = s.portionTargets ?? (t ? portionsForTargets(t) : { protein: 5, veg: 6, carbs: 5, fats: 4 });
+  // Anything not in the built-in list: Open Food Facts, once the list runs short.
+  const online = useOnlineFoods(q, look.numbers && tab === "search" && hits.length < 4);
+  const logSaved = (m: SavedMeal) => { m.items.forEach((i) => store.addFood({ ...i, id: crypto.randomUUID(), day, meal })); say?.(`${m.name} logged`); };
   const streak = loggingStreak(s.food, today);
   const yesterdayFood = todays.length ? [] : s.food.filter((f) => f.day === addDays(day, -1));
   const split = macroSplit(eaten);
@@ -84,22 +92,26 @@ export function ClientNutrition() {
           <div className="gpills"><span className="gpill caps">Nutrition · {isToday ? "today" : dayName(day)}</span>{hasProgram && <span className="gpill dim">{session ? <><Icons.train />Training day</> : <><Icons.sleep />Rest day</>}</span>}{streak > 1 && <span className="gpill dim"><Icons.flame />{streak} days logged</span>}</div>
           {t && eaten.kcal >= t.kcal * 0.9 && eaten.kcal <= t.kcal * 1.05 ? <ScriptTitle script="Right">on target</ScriptTitle> : <ScriptTitle script="Fuel">{isToday ? "for today" : `for ${new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long" })}`}</ScriptTitle>}
         </div>
-        {!t && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
-        <div className="fb-glass">
+        {!t && look.numbers && <p className="fb-note">{coachName} hasn't set your targets yet. Log what you eat and they'll use it to set them.</p>}
+        {look.numbers && <div className="fb-glass">
           <FuelGauge eaten={eaten.kcal} target={t?.kcal ?? null} logs={todays.length} />
-        </div>
-        {t && (
+        </div>}
+        {t && look.numbers && (
           <MacroRings lines={[
             { label: "Protein", value: eaten.proteinG, target: t.proteinG, unit: "g", colour: "var(--viz-1)" },
-            { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--act)" },
-            { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
+            ...(look.carbsFat ? [
+              { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--act)" },
+              { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
+            ] : []),
           ]} />
         )}
-        {t?.kind === "rest" && <p className="fb-note">Rest day targets from {coachName}: fewer carbs, same protein.</p>}
+        {look.portions && <div className="fb-glass"><PortionBoard food={s.food} day={day} target={portionTarget} /><p className="tiny fb-hands">Your hands are your guide: {coachName} set these for you. No weighing, no counting.</p></div>}
+        {look.photoFirst && <div className="fb-glass fb-photos"><b className="num">{todays.filter((f) => f.photo).length}</b><span>meal photo{todays.filter((f) => f.photo).length === 1 ? "" : "s"} {isToday ? "today" : `on ${dayName(day)}`}. {coachName} sees each one.</span></div>}
+        {t?.kind === "rest" && look.numbers && <p className="fb-note">Rest day targets from {coachName}: fewer carbs, same protein.</p>}
         {t?.note && <div className="fb-glass fb-coach"><b>{coachName}:</b> {t.note}</div>}
       </section>
 
-      {t && (
+      {t && look.numbers && (
         <div className="card nut-sum" aria-label={`Goal ${t.kcal} minus food ${Math.round(eaten.kcal)} equals ${t.kcal - Math.round(eaten.kcal)} kcal left`}>
           <div><b className="num">{t.kcal.toLocaleString("en-GB")}</b><span className="tiny">Goal</span></div>
           <span className="nut-op">−</span>
@@ -109,7 +121,7 @@ export function ClientNutrition() {
         </div>
       )}
 
-      {split && (
+      {split && look.carbsFat && (
         <section className="card stack" style={{ gap: 10 }}>
           <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Where your calories come from</h3><span className="tiny">{isToday ? "Today" : dayName(day)}</span></div>
           <SplitBar label="Eaten" s={split} />
@@ -127,7 +139,7 @@ export function ClientNutrition() {
         <WorkoutFuelCard session={session.name} seed={Number(day.slice(8))} diet={s.intake?.answers.diet ?? []} notes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
       )}
 
-      {yesterdayFood.length > 0 && (
+      {yesterdayFood.length > 0 && !look.photoFirst && (
         <div className="card nut-repeat">
           <div className="grow"><div className="h3">Same day as {dayName(addDays(day, -1))}?</div><div className="tiny">{yesterdayFood.length} foods · <span className="num">{Math.round(yesterdayFood.reduce((a, f) => a + f.kcal, 0)).toLocaleString("en-GB")} kcal</span></div></div>
           <button className="btn sm ghost" onClick={() => yesterdayFood.forEach((f) => store.addFood({ ...f, id: crypto.randomUUID(), day }))}>Copy day</button>
@@ -140,34 +152,48 @@ export function ClientNutrition() {
         const prev = list.length ? null : lastMeal(s.food, day, m.key);
         return (
           <section key={m.key}>
-            <div className="sect"><h2 className="h2">{m.label}</h2><span className="tiny num">{kcal ? `${Math.round(kcal)} kcal` : ""}</span></div>
+            <div className="sect"><h2 className="h2">{m.label}</h2><span className="row" style={{ gap: 8 }}>{look.numbers && <span className="tiny num">{kcal ? `${Math.round(kcal)} kcal` : ""}</span>}{!look.photoFirst && <MealPhotoButton meal={m.key} onAdded={(photo) => store.addFood({ id: crypto.randomUUID(), day, meal: m.key, name: `${m.label} photo`, kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, photo })} />}</span></div>
             <div className="card flat list">
               {list.map((f) => (
-                <div key={f.id} className="li">
-                  <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{Math.round(f.kcal)} kcal</div></div>
-                  <div className="mpills" aria-label={`Protein ${f.proteinG} g, carbs ${f.carbsG} g, fat ${f.fatG} g`}>
-                    <span className="mpill p">P {f.proteinG}</span><span className="mpill c">C {f.carbsG}</span><span className="mpill f">F {f.fatG}</span>
-                  </div>
+                <div key={f.id} className={`li${f.photo ? " has-photo" : ""}`}>
+                  {f.photo && <MealPhoto photo={f.photo} alt={`${m.label} photo`} className="mp-thumb" />}
+                  <div className="grow"><div className="h3">{f.name}</div>{look.numbers && f.kcal > 0 && <div className="tiny num">{f.portions ? "about " : ""}{Math.round(f.kcal)} kcal</div>}</div>
+                  {look.numbers && f.kcal > 0 && <div className="mpills" aria-label={`Protein ${f.proteinG} g${look.carbsFat ? `, carbs ${f.carbsG} g, fat ${f.fatG} g` : ""}`}>
+                    <span className="mpill p">P {f.proteinG}</span>{look.carbsFat && <><span className="mpill c">C {f.carbsG}</span><span className="mpill f">F {f.fatG}</span></>}
+                  </div>}
                   <button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={() => store.removeFood(f.id)}><Icons.close width={16} height={16} /></button>
                 </div>
               ))}
-              {prev && (
+              {prev && !look.photoFirst && (
                 <div className="li nut-repeat">
                   <div className="grow"><div className="small" style={{ color: "var(--text)" }}>Same as {dayName(prev.day)}?</div><div className="tiny">{prev.items.map((f) => f.name).join(", ")} · <span className="num">{Math.round(prev.items.reduce((a, f) => a + f.kcal, 0))} kcal</span></div></div>
                   <button className="btn sm ghost" onClick={() => prev.items.forEach((f) => store.addFood({ ...f, id: crypto.randomUUID(), day }))}>Repeat</button>
                 </div>
               )}
-              <button className="li link" style={{ minHeight: 44 }} onClick={() => { setMeal(m.key); setTab("search"); setTimeout(() => document.getElementById("foodsearch")?.focus(), 0); }}>+ Add to {m.label.toLowerCase()}</button>
+              {look.numbers && <SaveMealLink meal={m.key} entries={list} say={say} />}
+              {look.photoFirst
+                ? <div className="li"><MealPhotoButton big meal={m.key} onAdded={(photo) => store.addFood({ id: crypto.randomUUID(), day, meal: m.key, name: `${m.label} photo`, kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, photo })} /></div>
+                : <button className="li link" style={{ minHeight: 44 }} onClick={() => { setMeal(m.key); setTab("search"); setTimeout(() => document.getElementById(look.portions ? "portionlog" : "foodsearch")?.focus(), 0); document.getElementById(look.portions ? "portionlog" : "foodsearch")?.scrollIntoView({ block: "center" }); }}>+ Add to {m.label.toLowerCase()}</button>}
             </div>
           </section>
         );
       })}
 
-      <section className="card stack">
+      {look.portions && (
+        <section className="card stack" id="portionlog" tabIndex={-1}>
+          <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Log with your hands</h2>{!isToday && <span className="tiny">to {dayName(day)}</span>}</div>
+          <div className="chips" role="group" aria-label="Meal">
+            {MEALS.map((m) => <button key={m.key} className={`chip ${meal === m.key ? "on" : ""}`} aria-pressed={meal === m.key} onClick={() => setMeal(m.key)}>{m.label}</button>)}
+          </div>
+          <PortionLogger meal={meal} onLog={(p) => { add(portionEntry(p)); say?.(`Added to ${MEALS.find((x) => x.key === meal)?.label.toLowerCase()}`); }} />
+        </section>
+      )}
+      {look.numbers && <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h2 className="h2">Add food</h2>{!isToday && <span className="tiny">to {dayName(day)}</span>}</div>
         <div className="chips" role="group" aria-label="Meal">
           {MEALS.map((m) => <button key={m.key} className={`chip ${meal === m.key ? "on" : ""}`} aria-pressed={meal === m.key} onClick={() => setMeal(m.key)}>{m.label}</button>)}
         </div>
+        <SavedMeals meal={meal} onLog={logSaved} />
         <div className="seg" role="tablist" aria-label="Find food">
           <button type="button" role="tab" aria-selected={tab === "search"} className={tab === "search" ? "on" : ""} onClick={() => setTab("search")}>Search</button>
           {recent.length > 0 && <button type="button" role="tab" aria-selected={tab === "recent"} className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>Recent</button>}
@@ -189,19 +215,30 @@ export function ClientNutrition() {
           <div className="row" style={{ gap: 8 }}>
             <input id="foodsearch" className="field" style={{ flex: 1 }} placeholder="Search common foods" value={q} onChange={(e) => setQ(e.target.value)} />
             <button type="button" className="iconbtn nut-scan" aria-label="Scan a barcode" onClick={() => setScan(true)}><Icons.scan width={20} height={20} /></button>
+            <button type="button" className="iconbtn nut-scan" aria-label="Read a nutrition label" onClick={() => setLabel(true)}><Icons.file width={20} height={20} /></button>
           </div>
         )}
+        {label && <LabelScan onClose={() => setLabel(false)} onFound={(f) => { setLabel(false); setTab("search"); setPick({ food: f, portions: 1 }); }} />}
         {scan && <BarcodeScan onClose={() => setScan(false)}
           onFound={(f) => { setScan(false); setTab("search"); setPick({ food: f, portions: 1 }); }}
           onQuickAdd={() => { setScan(false); setQuick(true); }} />}
         {(tab === "search" || (tab === "recent" && recent.length === 0)) && q && (
           <div className="card flat list">
-            {hits.length === 0 ? <div className="li small">Not in the list. Use quick add below.</div> : hits.map((f) => (
+            {hits.map((f) => (
               <div key={f.id} className="li">
                 <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal · P {f.protein} · C {f.carbs} · F {f.fat}</div></div>
                 <button className="btn sm act" onClick={() => setPick({ food: f, portions: 1 })}>Add</button>
               </div>
             ))}
+            {online.foods.filter((o) => !hits.some((h) => h.name === o.name)).map((f) => (
+              <div key={f.id} className="li">
+                <div className="grow"><div className="h3">{f.name}</div><div className="tiny num">{f.kcal} kcal · P {f.protein} · C {f.carbs} · F {f.fat}</div></div>
+                <button className="btn sm act" onClick={() => setPick({ food: f, portions: 1 })}>Add</button>
+              </div>
+            ))}
+            {online.state === "loading" && <div className="li tiny" role="status">Searching shop products…</div>}
+            {(online.state === "done" || online.state === "error" || q.trim().length < 3) && hits.length === 0 && online.foods.length === 0 && <div className="li small">{online.state === "error" ? "Couldn't reach the product database. " : "Nothing found. "}Scan the barcode or the label, or use quick add below.</div>}
+            {online.foods.length > 0 && <div className="li tiny">Shop products from Open Food Facts, a free open database. Check them against the pack.</div>}
           </div>
         )}
         {pick && <AmountPicker key={pick.food.id} food={pick.food} mealLabel={MEALS.find((m) => m.key === meal)?.label.toLowerCase() ?? ""}
@@ -232,7 +269,7 @@ export function ClientNutrition() {
         ) : (
           <button className="link" style={{ alignSelf: "flex-start" }} onClick={() => setQuick(true)}>+ Quick add calories and macros</button>
         )}
-      </section>
+      </section>}
 
       <RecipeShelf key={(s.intake?.answers.diet ?? []).join()} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
       {recipe && <RecipeSheet r={recipe} canFavourite foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
@@ -240,7 +277,7 @@ export function ClientNutrition() {
         run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
       }} />}
 
-      {week.loggedDays > 0 && (
+      {week.loggedDays > 0 && look.numbers && (
         <section>
           <div className="sect"><h2 className="h2">This week</h2><span className="tiny">{week.loggedDays} of 7 days logged</span></div>
           <div className="card stack">
