@@ -1,9 +1,11 @@
+import { FeatureSwitches } from "./FeatureSwitches";
+import { liveFeatures } from "../../data/features";
 import { ProfileTabs } from "./ProfileTabs";
 import { BulkActions } from "./BulkActions";
 import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, ClientTable, useUnits } from "@apex/ui";
-import { useEffect, useState, lazy } from "react";
+import { useEffect, useMemo, useState, lazy } from "react";
 import { clientTableRows, type SortDir, type TableSortKey } from "@apex/core";
 import { loadClientFees } from "../../data/business";
 import { useStoreStatus } from "../../app/AppContext";
@@ -73,7 +75,7 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
   if (transfer) return <div className="cl-profile"><Transfer live={live} say={say} onBack={() => setTransfer(false)} /></div>;
   const selected = clients?.find((c) => c.id === open);
   if (selected) {
-    return <div className="cl-profile"><LiveProfile startTab={selected.id === initialOpen ? startTab : undefined} health={healthOf.get(selected.id) ?? null} clientId={selected.id} name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => { setOpen(null); void reloadTags(); }} goBuild={goBuild} say={say} /></div>;
+    return <div className="cl-profile"><LiveProfile live={live} startTab={selected.id === initialOpen ? startTab : undefined} health={healthOf.get(selected.id) ?? null} clientId={selected.id} name={selected.name} mode={selected.mode} lastSession={selected.lastSession} onBack={() => { setOpen(null); void reloadTags(); }} goBuild={goBuild} say={say} /></div>;
   }
 
   const rank = new Map((health ?? []).map((r, i) => [r.client.id, i]));
@@ -132,7 +134,7 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
 const LIVE_TABS = ["Programme", "In person", "Health", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const;
 type LiveTab = (typeof LIVE_TABS)[number];
 
-function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBack, goBuild, say }: { startTab?: string; health: { health: Health; trend: number | null } | null; clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
+function LiveProfile({ live, startTab, health, clientId, name, mode, lastSession, onBack, goBuild, say }: { live: CoachLiveProps; startTab?: string; health: { health: Health; trend: number | null } | null; clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
   const u = useUnits();
   const store = useStore();
   const { workout, progress } = useApexState(store);
@@ -142,6 +144,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
   const life = useLifestyle();
   const newVideos = awaitingReview(useFormChecks().checks).length;
   const newAssess = useAssessments().list.filter((a) => a.status === "submitted").length;
+  const features = useMemo(() => liveFeatures(live.db, live.coachId), [live.db, live.coachId]);
   const flags = life.intake ? Object.values(life.intake.answers.health).filter(Boolean).length : 0;
   return (
     <>
@@ -160,7 +163,7 @@ function LiveProfile({ startTab, health, clientId, name, mode, lastSession, onBa
       {tab === "Habits" && <CoachHabits clientName={name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={name} say={say} />}
       {tab === "Recovery" && <RecoveryTab name={name} />}
-      {tab === "About" && <IntakeView clientName={name} />}
+      {tab === "About" && <><IntakeView clientName={name} /><FeatureSwitches api={features} clientId={clientId} clientName={name} say={say} /></>}
       {tab === "Notes" && <ClientNotes clientId={clientId} clientName={name} say={say} />}
       {tab === "In person" && (status === "ready" || status === "no-program" ? <OneToOneTab clientId={clientId} clientName={name} canRun={status === "ready"} whyNot={`Give ${name.split(" ")[0]} a programme first, then run it with them here.`} say={say} /> : <div className="card small">Loading…</div>)}
       {tab === "Programme" && <>

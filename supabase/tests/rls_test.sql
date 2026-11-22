@@ -2256,3 +2256,19 @@ reset role;
 do $$ begin
   assert (select summary from assessments) = 'Good base', 'rival cannot review';
 end $$;
+
+-- ───────────── client feature switches ─────────────
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e1');
+update coach_clients set hidden_features = '{nutrition,challenges}' where client_id = '00000000-0000-0000-0000-00000000a5e2';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e2');
+do $$ begin
+  assert (select hidden_features from coach_clients where coach_id = '00000000-0000-0000-0000-00000000a5e1' and client_id = auth.uid()) = '{nutrition,challenges}', 'client reads the switches their coach set';
+end $$;
+update coach_clients set hidden_features = '{}' where client_id = auth.uid();
+select pg_temp.as_user('00000000-0000-0000-0000-00000000a5e4');
+update coach_clients set hidden_features = '{}' where client_id = '00000000-0000-0000-0000-00000000a5e2';
+reset role;
+do $$ begin
+  assert (select hidden_features from coach_clients where coach_id = '00000000-0000-0000-0000-00000000a5e1' and client_id = '00000000-0000-0000-0000-00000000a5e2') = '{nutrition,challenges}', 'only the coach changes the switches';
+end $$;

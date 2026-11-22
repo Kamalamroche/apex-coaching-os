@@ -9,6 +9,8 @@ import { useAppInfo, useStoreStatus } from "../../app/AppContext";
 import { WorkoutSummaryCard } from "../../app/WorkoutSummary";
 import { useLifestyle } from "../../data/LifestyleContext";
 import { HabitList } from "./Habits";
+import { AsPlannedSheet } from "./AsPlanned";
+import { useFeatures } from "../../data/features";
 import { useStore } from "../../data/StoreContext";
 import { WeekStoryCard, WeekStoryViewer } from "./WeekStory";
 import { FreshMilestone, LevelsSheet, useLevels } from "../../app/LevelParts";
@@ -33,9 +35,11 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
   const { activities } = useActivitiesIfAny();
   const [mood, setMood] = useState<number | null>(null);
   const [story, setStory] = useState(false);
+  const [asPlanned, setAsPlanned] = useState(false);
   const [levels, setLevels] = useState(false);
   const lv = useLevels();
   const life = useLifestyle();
+  const on = useFeatures();
   const firstWeek = useFirstWeek();
   const latest = newestFirst(progress.checkIns)[0];
   const due = checkInDue(latest?.submittedAt ?? null, progress.checkInDay);
@@ -137,7 +141,9 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
               </li>
             ))}
             </ul>
+            {w.items.length > 0 && <button className="link ap-open" onClick={() => setAsPlanned(true)}>Already trained? Log it as planned</button>}
           </div>
+          {asPlanned && <AsPlannedSheet onClose={() => setAsPlanned(false)} onDone={() => { setAsPlanned(false); window.scrollTo(0, 0); say?.(`Session logged · ${coachName} can see it`); }} />}
         </>
       ) : (
         <div className="card" style={{ borderColor: "color-mix(in srgb,var(--good) 45%,var(--line))", background: "var(--good-soft)" }}>
@@ -160,7 +166,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
-      {life.habits.length > 0 && (
+      {on("habits") && life.habits.length > 0 && (
         <section>
           <div className="sect"><h2 className="h2">Today's habits</h2></div>
           <HabitList compact />
@@ -184,7 +190,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
       ) : null}
 
       {/* On a training day the readiness check before the first set asks this, so the card is for rest days and after the session. */}
-      {!checkedIn && !(status === "ready" && !log && w.items.length > 0) && (
+      {on("mood") && !checkedIn && !(status === "ready" && !log && w.items.length > 0) && (
         <div className="card">
           <div className="sect" style={{ marginBottom: 8 }}><h3 className="h3">How are you feeling today?</h3><span className="tiny">10 seconds</span></div>
           <div className="rpe">
@@ -194,15 +200,17 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
         </div>
       )}
 
-      <section aria-label="Today's rings">
+      {(on("rings") || (openTeam && on("community"))) && <section aria-label="Today's rings">
+        {on("rings") && <>
         <DailyRings rings={rings.today} streak={rings.streak.days} best={rings.streak.best} />
         <RingWeek days={rings.week} labels={ringLabels} />
         <p className="tiny dr-nudge">{rings.nudge}</p>
         <LevelRow level={lv.level} onOpen={() => setLevels(true)} />
         <FreshMilestone list={lv.list} today={lv.today} say={say} />
-        {openTeam && <TeamPeek onOpen={openTeam} />}
+        </>}
+        {openTeam && on("community") && <TeamPeek onOpen={openTeam} />}
         {levels && <LevelsSheet onClose={() => setLevels(false)} say={say} />}
-      </section>
+      </section>}
       <section aria-label="This week">
         <div className="sect" style={{ marginBottom: 8 }}>
           <h2 className="h3">This week</h2>

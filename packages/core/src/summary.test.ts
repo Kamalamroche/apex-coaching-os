@@ -73,3 +73,17 @@ describe("post-workout summary", () => {
     expect(h.bestKg[2]).toBe(50);
   });
 });
+
+describe("done as planned", () => {
+  it("logs every prescribed set as done and marks it for the coach", async () => {
+    const { asPlannedSession } = await import("./summary");
+    const { log, sets } = asPlannedSession(INITIAL_WORKOUT, INITIAL_HISTORY, { minutes: 45, rpe: 7, note: "  felt good " });
+    const all = Object.values(sets).flat();
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((s) => s.done)).toBe(true);
+    expect(log.sets).toBe(all.length);
+    expect(log.summary?.asPlanned).toBe(true);
+    expect(log.note).toBe("felt good");
+    expect(summaryMessage(log).split("\n")[0]).toContain("done exactly as planned");
+  });
+});
