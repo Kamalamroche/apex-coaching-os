@@ -1063,3 +1063,16 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .ap-list li{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--text)}
 .ap-list li .num{color:var(--text2);white-space:nowrap}
 .ap-open{margin-top:12px;display:block}
+/* Coach: which parts of the app a client sees */
+.fs-list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.fs-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.fs-row:last-child{border-bottom:0}
+.fs-row .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fs-row .h3{font-size:14px}
+.fs-row.off .h3{color:var(--text3)}
+.fs-row input{appearance:none;-webkit-appearance:none;margin:0;flex:none;width:42px;height:24px;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .2s ease}
+.fs-row input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .2s ease}
+.fs-row input:checked{background:var(--act)}
+.fs-row input:checked::after{transform:translateX(18px)}
+.fs-row input:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.fs-row input,.fs-row input::after{transition:none}}
