@@ -4,7 +4,7 @@ import { addSessionToTrend } from "./plateau";
 import { estimatedOneRepMax } from "./progression";
 import { addReadinessPoint, readinessReason } from "./readiness";
 import type { SessionSets } from "./session";
-import { completedSets, sessionVolume } from "./session";
+import { completedSets, countPersonalBests, initialSets, sessionVolume } from "./session";
 import type { ExerciseTotal, MuscleWork, PersonalBest, SessionLog, TrainingHistory, Workout, WorkoutSummary } from "./types";
 
 /* The post-workout summary: what the client sees when they finish and what their coach receives. */
@@ -151,7 +151,7 @@ const signed = (n: number, unit: string) => `${n > 0 ? "+" : n < 0 ? "−" : "±
 /** The message the coach receives in the chat as soon as the client finishes. */
 export function summaryMessage(log: SessionLog): string {
   const s = log.summary;
-  const lines = [`✅ Finished ${log.workoutName}`, `${log.sets} sets · ${log.volumeKg.toLocaleString("en-GB")} kg · ${log.minutes} min · RPE ${log.rpe}`];
+  const lines = [`✅ Finished ${log.workoutName}${s?.asPlanned ? " · done exactly as planned" : ""}`, `${log.sets} sets · ${log.volumeKg.toLocaleString("en-GB")} kg · ${log.minutes} min · RPE ${log.rpe}`];
   if (s?.exercises?.length) {
     lines.push(`🔁 ${s.totalReps ?? 0} reps · ${(s.totalKg ?? log.volumeKg).toLocaleString("en-GB")} kg lifted in total`);
     for (const e of s.exercises) lines.push(`• ${e.exercise}: ${describeExerciseTotal(e)}`);
@@ -164,4 +164,19 @@ export function summaryMessage(log: SessionLog): string {
   if (s?.comments?.length) lines.push(...commentLines(s.comments));
   if (log.note?.trim()) lines.push(`📝 "${log.note.trim()}"`);
   return lines.join("\n");
+}
+
+/**
+ * "Done as planned": the client did today's session exactly as written and logs it in one tap.
+ * Every prescribed set counts as done at its target load and reps; the coach sees it marked as such.
+ */
+export function asPlannedSession(workout: Workout, history: TrainingHistory, o: { minutes: number; rpe: number; note?: string }): { log: SessionLog; sets: SessionSets } {
+  const sets: SessionSets = Object.fromEntries(Object.entries(initialSets(workout)).map(([k, list]) => [k, list.map((x) => ({ ...x, done: true }))]));
+  const summary: WorkoutSummary = { ...buildSummary(workout, sets, o.minutes, history), asPlanned: true };
+  const note = o.note?.trim();
+  const log: SessionLog = {
+    workoutName: workout.name, sets: completedSets(sets), volumeKg: sessionVolume(sets), minutes: o.minutes, rpe: o.rpe,
+    prs: countPersonalBests(workout, sets, history.bestKg), summary, ...(note ? { note } : {}),
+  };
+  return { log, sets };
 }

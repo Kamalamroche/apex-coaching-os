@@ -36,13 +36,23 @@ import { UnitsAndLanguage } from "../../app/Settings";
 import { useExtras } from "../../data/extras";
 import { Classes } from "./Classes";
 import { MyAgreements } from "./Agreements";
+import { useFeatures } from "../../data/features";
+import type { ClientFeature } from "@apex/core";
+
+/* Which coach switch each screen sits behind. Screens not listed always show. */
+const FEATURE_OF: Partial<Record<View, ClientFeature>> = {
+  food: "nutrition", habits: "habits", goals: "goals", form: "form", challenges: "challenges", team: "community", community: "community",
+  programmes: "programmes", book: "book", classes: "classes", invite: "invite", review: "invite",
+};
 
 type View = "membership" | "account" | "settings" | "programmes" | "resources" | "challenges" | "book" | "goals" | "food" | "habits" | "community" | "team" | "invite" | "apps" | "intake" | "form" | "assess" | "classes" | "agreements" | "review";
 
 export type MoreView = View;
 
 export function More({ say, start, goTrain }: { say: (m: string) => void; start?: View | null; goTrain?: () => void }) {
-  const [view, setView] = useState<View | null>(start ?? null);
+  const on = useFeatures();
+  const shown = (k: View) => { const f = FEATURE_OF[k]; return !f || on(f); };
+  const [view, setView] = useState<View | null>(start && shown(start) ? start : null);
   const t = useT();
   const teamApi = useTeamApi();
   const growApi = useGrowApi();
@@ -134,7 +144,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
     <>
       <div><p className="sub" style={{ margin: 0 }}>{t("More")}</p><ScriptTitle script={t("Everything")} className="sm">{t("else")}</ScriptTitle></div>
       {GROUPS.map(([label, keys]) => {
-        const items = keys.map((k) => MENU.find((m) => m[0] === k)).filter((m): m is [View, string, string] => !!m);
+        const items = keys.filter(shown).map((k) => MENU.find((m) => m[0] === k)).filter((m): m is [View, string, string] => !!m);
         return items.length ? (
           <section key={label} className="stack" style={{ gap: 8 }}>
             <h2 className="eyebrow" style={{ margin: 0 }}>{t(label)}</h2>

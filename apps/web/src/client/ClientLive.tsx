@@ -31,6 +31,8 @@ import { ProgrammeProvider, liveProgrammes } from "../data/programmes";
 import { ExtrasProvider, liveExtras } from "../data/extras";
 import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
+import { ClientFeaturesProvider, loadMyFeatures } from "../data/features";
+import type { ClientFeature } from "@apex/core";
 import { takeBillingReturn } from "../data/billing";
 import { ClientBillingProvider, liveClientBilling } from "../data/BillingContext";
 
@@ -53,6 +55,18 @@ export function ClientLive({ db, profile, signOut }: Live) {
         setCoach(data ? { id: data.coach_id as string, name: p?.full_name ?? "your coach" } : null);
       });
   }, [db, profile.id]);
+
+  // What the coach has switched off for this client. Checked again whenever the app comes back to the front.
+  const [hidden, setHidden] = useState<ClientFeature[]>([]);
+  useEffect(() => {
+    if (!coach) return;
+    let live = true;
+    const load = () => void loadMyFeatures(db, profile.id, coach.id).then((h) => live && setHidden(h));
+    load();
+    const onShow = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onShow);
+    return () => { live = false; document.removeEventListener("visibilitychange", onShow); };
+  }, [db, coach, profile.id]);
 
   const store = useMemo(() => (coach ? createSupabaseStore(db, { coachId: coach.id, clientId: profile.id, me: profile.id }) : null), [db, coach, profile.id]);
   const activities = useMemo(() => createSupabaseActivities(db, profile.id), [db, profile.id]);
@@ -106,7 +120,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
                   <ChallengeProvider value={challenges}>
                     <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
-                      <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientBillingProvider link={billing}><ClientApp notice={notice} startOn={billingReturn ? "membership" : null} /></ClientBillingProvider></ExtrasProvider></ProgrammeProvider>
+                      <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientFeaturesProvider value={hidden}><ClientBillingProvider link={billing}><ClientApp notice={notice} startOn={billingReturn ? "membership" : null} /></ClientBillingProvider></ClientFeaturesProvider></ExtrasProvider></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
                     </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>

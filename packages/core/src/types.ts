@@ -222,6 +222,8 @@ export interface WorkoutSummary {
   readiness?: Readiness;
   /** What the client said about single exercises during the session. */
   comments?: ExerciseComment[];
+  /** Logged in one tap: every set done exactly as the coach wrote it. */
+  asPlanned?: boolean;
 }
 
 export interface Message {

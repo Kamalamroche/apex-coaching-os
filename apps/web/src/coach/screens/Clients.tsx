@@ -1,3 +1,5 @@
+import { FeatureSwitches } from "./FeatureSwitches";
+import { DEMO_FEATURES_CLIENT, demoFeatures } from "../../data/features";
 import { ProfileTabs } from "./ProfileTabs";
 import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type TrainingMode } from "@apex/core";
 import { useApexState } from "@apex/core/react";
@@ -17,6 +19,8 @@ import { useMemo } from "react";
 import { demoRosterHealth } from "../../data/health";
 import { ClientHealthPanel } from "./ClientHealth";
 import { CoachCardio, CoachRecovery } from "./CoachCardio";
+
+const DEMO_FEATURES = demoFeatures();
 
 /* Loaded when first opened, so the app starts faster. */
 const Transfer = lazy(() => import("./Transfer").then((m) => ({ default: m.Transfer })));
@@ -165,7 +169,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
       {tab === "Habits" && <CoachHabits clientName={c.name} say={say} />}
       {tab === "Nutrition" && <CoachNutritionPanel clientName={c.name} say={say} />}
       {tab === "Recovery" && <RecoveryTab name={c.name} />}
-      {tab === "About" && <IntakeView clientName={c.name} />}
+      {tab === "About" && <><IntakeView clientName={c.name} /><FeatureSwitches api={DEMO_FEATURES} clientId={c.id === DEMO_CLIENT_ID ? DEMO_FEATURES_CLIENT : String(c.id)} clientName={c.name} say={say} /></>}
       {tab === "Notes" && <ClientNotes clientId={String(c.id)} clientName={c.name} say={say} />}
       {tab === "In person" && <OneToOneTab clientId={String(c.id)} clientName={c.name} canRun={c.id === DEMO_CLIENT_ID} whyNot={`In the demo you can run a session with ${CLIENTS.find((x) => x.id === DEMO_CLIENT_ID)?.name ?? "the sample client"}, whose app you can open too. Notes and in-person checks work for everyone.`} say={say} />}
       {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
