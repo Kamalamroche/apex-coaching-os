@@ -7,7 +7,7 @@ import { useStore } from "../../data/StoreContext";
 import { BarcodeScan } from "./BarcodeScan";
 import { useAppInfo } from "../../app/AppContext";
 import { LifestyleStatus } from "../../app/LifestyleParts";
-import { LabelScan, MealPhoto, MealPhotoButton, PortionBoard, PortionLogger, SaveMealLink, SavedMeals, portionEntry, useOnlineFoods } from "../../app/NutritionStyleParts";
+import { LabelScan, ProteinSpread, MealPhoto, MealPhotoButton, PortionBoard, PortionLogger, SaveMealLink, SavedMeals, portionEntry, useOnlineFoods } from "../../app/NutritionStyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
 const mealNow = (): Meal => {
@@ -129,6 +129,8 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
           <div className="rc-legend tiny"><span><i style={{ background: "var(--viz-1)" }} />Protein</span><span><i style={{ background: "var(--act)" }} />Carbs</span><span><i style={{ background: "var(--viz-3)" }} />Fat</span></div>
         </section>
       )}
+
+      {t && look.numbers && <ProteinSpread food={s.food} day={day} proteinG={t.proteinG} />}
 
       {s.mealPlan && s.mealPlan.days.length > 0 && (
         <ClientPlan key={`${day}-${!!session}`} plan={s.mealPlan} food={s.food} day={day} coachName={coachName} training={hasProgram ? !!session : null}

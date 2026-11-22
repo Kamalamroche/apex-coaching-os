@@ -11,7 +11,8 @@ import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { CoachPlanEditor } from "../../app/MealPlanParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
-import { MealPhoto, MealPhotoGallery, TrackingStyleCard } from "../../app/NutritionStyleParts";
+import { MealPhoto, MealPhotoGallery, ProteinSpread, TrackingStyleCard } from "../../app/NutritionStyleParts";
+import { targetsChangeMessage } from "@apex/core";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -81,6 +82,9 @@ export function CoachHabits({ clientName, say }: { clientName: string; say: (m: 
 /** Coach: set the client's calorie and macro targets, and see what they've logged. */
 export function CoachNutritionPanel({ clientName, say }: { clientName: string; say: (m: string) => void }) {
   const store = useLifestyleStore();
+  const chat = useStore();
+  // Why the targets changed, sent to the client with the change so they know the reason.
+  const [why, setWhy] = useState("");
   const s = useLifestyle();
   const today = localDate(new Date());
   const name = firstName(clientName) || "Your client";
@@ -110,8 +114,12 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
     if (!ok) return;
     // Leave restDay out entirely when it was never used, so targets keep saving before the rest-day SQL runs.
     const restDay = form.rest ? restVals : r ? null : undefined;
-    store.setTargets({ kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0, note: form.note, ...(restDay !== undefined ? { restDay } : {}) });
-    say(`Targets saved · ${name} sees them now`);
+    const next = { kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0 };
+    store.setTargets({ ...next, note: form.note, ...(restDay !== undefined ? { restDay } : {}) });
+    const msg = targetsChangeMessage(t, next, why, name);
+    if (msg) chat.sendMessage("coach", msg);
+    setWhy("");
+    say(msg ? `Targets saved · ${name} gets a message with what changed${why.trim() ? " and why" : ""}` : `Targets saved · ${name} sees them now`);
   };
   const eaten = dayTotals(s.food, today);
   const week = loggedAverage(s.food, today);
@@ -136,6 +144,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           </div>
         </div>
       )}
+      {t && s.style !== "photos" && s.style !== "portions" && <ProteinSpread food={s.food} day={today} proteinG={t.proteinG} name={name} />}
       {t && <NutritionScoreCard name={name} targets={t} food={s.food} today={today} />}
       {weekView.loggedDays > 0 && (
         <div className="card stack">
@@ -157,7 +166,12 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           ))}
         </div>
       )}
-      {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => { store.setTargets(next); say(`New targets saved · ${name} sees them now`); }} />}
+      {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => {
+        store.setTargets(next);
+        const msg = targetsChangeMessage(t, next, "Based on your food log and weigh-ins over the last few weeks.", name);
+        if (msg) chat.sendMessage("coach", msg);
+        say(`New targets saved · ${name} gets a message with what changed and why`);
+      }} />}
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{t ? (form.rest ? "Training-day targets" : "Daily targets") : `Set ${name}'s daily targets`}</h3><Label kind="dec">Coach decision</Label></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(88px,1fr))", gap: 10 }}>
@@ -186,6 +200,7 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         )}
         <TargetCalculator name={name} onUse={(r) => setForm({ ...form, kcal: String(r.kcal), p: String(r.proteinG), c: String(r.carbsG), f: String(r.fatG) })} />
         <input id="nt-note" className="field" maxLength={500} placeholder={`A tip for ${name}, e.g. 30 g of protein at breakfast`} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+        {changed && t && <input id="nt-why" className="field" maxLength={300} placeholder={`Why the change? ${name} sees this with the new numbers (optional)`} value={why} onChange={(e) => setWhy(e.target.value)} />}
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
       {s.planReady

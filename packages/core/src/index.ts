@@ -107,3 +107,4 @@ export * from "./clientFeatures";
 export * from "./nutritionStyle";
 export * from "./foodLabel";
 export * from "./savedMeals";
+export * from "./nutritionInsights";
