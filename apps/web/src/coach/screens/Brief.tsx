@@ -96,7 +96,7 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
         </div>
         <div className="hero-body">
           <div className="cv-stats three">
-            <div style={{ ["--i" as string]: 0 }}><b><CountUp value={clientCount ?? CLIENTS.length} /></b><small>Active clients</small>{mode === "demo" && <i>+2 this month</i>}</div>
+            <div style={{ ["--i" as string]: 0 }}><b><CountUp value={clientCount ?? CLIENTS.length} /></b><small>Active clients</small>{mode === "demo" && <i>+2 new</i>}</div>
             {mode === "live" ? (
               <div style={{ ["--i" as string]: 1 }}><b>{avgHealth === null ? "–" : <CountUp value={avgHealth} />}</b><small>Average client health</small>{scored.length > 0 && <i>{scored.filter((r) => r.health.band === "low").length} need you</i>}</div>
             ) : (
@@ -248,7 +248,7 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
       <section className="stack" style={{ gap: 10 }}>
         <div className="sect"><h2 className="h2">{clientFirst} today</h2><button className="link" onClick={() => openToday("Recovery")}>Recovery and cardio ›</button></div>
       <div className="hero side short" role="button" tabIndex={0} style={{ cursor: "pointer" }} onClick={() => openToday()} onKeyDown={(e) => { if (e.key === "Enter") openToday(); }}>
-        <HeroBackdrop art={hero} />
+        <HeroBackdrop art={hero} word={null} />
         <div className="hero-body" style={{ maxWidth: 280 }}>
           <span className="gpill caps" style={{ alignSelf: "flex-start" }}>{log ? "Trained today" : "Training today"}</span>
           <h2 className="hero-title" style={{ fontSize: 22 }}>{clientFirst}: {log ? log.workoutName : workout.name}</h2>

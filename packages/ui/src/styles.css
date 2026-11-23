@@ -677,15 +677,17 @@ button.tile{font:inherit}
 .navbar .btn{min-height:50px}
 .navbar .btn.ghost{background:var(--card2);border-color:var(--line2)}
 /* Nutrition: calorie arc and macro rings */
-.fuel{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 12px 12px}
-.fuel-arc{position:relative;width:min(100%,270px);aspect-ratio:200/150}
+.fuel{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 14px 14px}
+.fuel-arc{position:relative;width:min(100%,250px);aspect-ratio:200/150}
 .fuel-arc svg{width:100%;height:100%;overflow:visible}
-.fuel-arc .mid{position:absolute;left:0;right:0;top:38%;display:flex;flex-direction:column;align-items:center}
-.fuel-arc .mid b{font:800 46px/1 var(--head);font-stretch:110%;letter-spacing:-.02em}
-.fuel-arc .mid span{font-size:13px;color:var(--text2);margin-top:6px}
-.fuel-side{display:flex;justify-content:space-between;width:100%;margin-top:-30px;padding:0 6px}
-.fuel-side div{display:flex;flex-direction:column}
-.fuel-side b{font:700 18px/1.1 var(--num)}
+.fuel-arc .mid{position:absolute;left:0;right:0;top:30%;display:flex;flex-direction:column;align-items:center;gap:4px}
+.fuel-arc .mid>small{font:600 10.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--text2)}
+.fuel-arc .mid>b{font:700 44px/1 var(--num);letter-spacing:-.03em}
+.fuel-arc .mid>em{font-style:normal;font-size:13px;color:var(--text2)}
+.fuel-side{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin-top:-8px;padding-top:12px;border-top:1px solid var(--line)}
+.fuel-side div{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;min-width:0}
+.fuel-side div+div{border-left:1px solid var(--line)}
+.fuel-side b{font:700 18px/1.1 var(--num);letter-spacing:-.02em}
 .fuel-side small{font-size:12px;color:var(--text2)}
 .rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
 .ring{display:flex;flex-direction:column;gap:10px;padding:12px 9px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);min-width:0}
@@ -706,8 +708,13 @@ button.tile{font:inherit}
 .fb-note{margin:0;padding:0 4px;font-size:13px;color:rgba(255,255,255,.8)}
 .fb-glass{border-radius:24px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .fb-coach{padding:12px 14px;font-size:13px;line-height:1.45}
-.fuelboard .fuel-arc .mid span,.fuelboard .fuel-side small{color:rgba(255,255,255,.72)}
+.fuelboard .fuel-arc .mid>small,.fuelboard .fuel-arc .mid>em,.fuelboard .fuel-side small{color:rgba(255,255,255,.72)}
+.fuelboard .fuel-side,.fuelboard .fuel-side div+div{border-color:var(--glass-line)}
 .mpills{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.food-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.food-meta .mpills{justify-content:flex-start}
+.plan-log:not(:disabled){border-color:var(--act);color:var(--act)}
+.plan-log.is-logged{color:var(--good);opacity:1}
 .mpill{font:700 11px/1 var(--num);padding:5px 7px;border-radius:var(--pill)}
 .mpill.p{background:color-mix(in srgb,var(--viz-1) 18%,transparent);color:var(--viz-1)}
 .mpill.c{background:color-mix(in srgb,var(--viz-2) 18%,transparent);color:var(--viz-2)}
@@ -1076,3 +1083,64 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .fs-row input:checked::after{transform:translateX(18px)}
 .fs-row input:focus-visible{outline:2px solid var(--act);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.fs-row input,.fs-row input::after{transition:none}}
+/* Nutrition styles: tracking style picker (coach), hand portions, meal photos, saved meals, label reading */
+.ns-styles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ns-style{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card2);color:var(--text);cursor:pointer;font:inherit}
+.ns-style b{font-size:14px}
+.ns-style.on{border-color:var(--act);background:var(--act-soft)}
+.ns-style:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+.ns-portions{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.ns-portion{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.ns-portion .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ns-portion .grow b{font-size:14px}
+.ns-portion .nut-step button{width:34px;height:34px;font-size:18px}
+.ns-portion .nut-step b{min-width:34px;font-size:15px}
+.ns-hand{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--text2)}
+.pb-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:12px 10px 4px}
+.pb-tile{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;text-align:center}
+.pb-tile b{font:700 22px/1 var(--num)}
+.pb-tile b small{font-size:13px;font-weight:600;color:rgba(255,255,255,.6)}
+.pb-tile .tiny{color:rgba(255,255,255,.75)}
+.pb-hand{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12);color:var(--pb)}
+.pb-protein{--pb:var(--viz-1)}.pb-veg{--pb:var(--good)}.pb-carbs{--pb:var(--act)}.pb-fats{--pb:var(--viz-3)}
+.pb-tile.done .pb-hand{background:var(--pb);color:#fff}
+.pb-bar{display:block;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden}
+.pb-bar i{display:block;height:100%;background:var(--pb);border-radius:2px;transition:width .4s ease}
+.fb-hands{margin:0;padding:4px 12px 12px;color:rgba(255,255,255,.72);text-align:center}
+.fb-photos{display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:13px;line-height:1.4;color:rgba(255,255,255,.85)}
+.fb-photos b{font:700 30px/1 var(--num);color:#fff}
+.mp-snap{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;min-height:96px;border:1.5px dashed var(--line2);border-radius:var(--r);background:var(--card2);color:var(--text);font:600 15px/1.2 var(--ui);cursor:pointer}
+.mp-snap svg{color:var(--act)}
+.mp-snap:disabled{opacity:.6}
+.mp-add{width:32px;height:32px}
+.mp-thumb{flex:none;width:52px;height:52px;border-radius:12px;object-fit:cover;background:var(--card2)}
+.mp-wait{display:block}
+.mp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mp-tile{position:relative;padding:0;border:2px solid transparent;border-radius:14px;overflow:hidden;aspect-ratio:1;background:var(--card2);cursor:pointer}
+.mp-tile.on{border-color:var(--act)}
+.mp-tile .mp-img{display:block;width:100%;height:100%;object-fit:cover}
+.mp-cap{position:absolute;left:6px;bottom:6px;padding:3px 7px;border-radius:var(--pill);background:rgba(13,15,19,.62);color:#fff}
+.sm-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.sm-card{position:relative}
+.sm-log{width:100%;height:100%;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:12px 40px 12px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card2);color:var(--text);font:inherit;cursor:pointer}
+.sm-log b{font-size:14px;line-height:1.25}
+.sm-plus{position:absolute;right:10px;bottom:10px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--act);color:var(--act-ink)}
+.sm-del{position:absolute;top:4px;right:4px;width:26px;height:26px}
+.ls-card{border-color:color-mix(in srgb,var(--act) 35%,var(--line))}
+/* Protein through the day */
+.ps-bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+.ps-col{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ps-col b{font:700 15px/1 var(--num)}
+.ps-col b small{font-size:11px;font-weight:600;color:var(--text3)}
+.ps-track{position:relative;display:block;width:100%;max-width:44px;height:84px;border-radius:10px;background:var(--card2);overflow:hidden}
+.ps-track>i{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--viz-1) 45%,transparent);border-radius:10px 10px 0 0;transition:height .5s ease}
+.ps-col.ok .ps-track>i{background:var(--viz-1)}
+.ps-goal{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed var(--text3)}
+@media (prefers-reduced-motion:reduce){.ps-track>i{transition:none}}
+/* The week's food in the check-in */
+.fwk-card{display:flex;flex-direction:row;text-align:left;gap:12px;align-items:center;padding:12px;border-radius:var(--r);background:var(--card2);border:1px solid var(--line)}
+.fwk-card .grow{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fwk-score{flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;align-content:center;border:3px solid var(--fwk);line-height:1}
+.fwk-score b{font:700 19px/1 var(--num)}
+.fwk-score small{font-size:10px;color:var(--text3)}
+.seg.nut-views{position:sticky;top:64px;z-index:5;background:var(--bg2)}

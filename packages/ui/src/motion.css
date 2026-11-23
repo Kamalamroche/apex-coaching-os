@@ -725,6 +725,8 @@ button.lv-row{cursor:pointer}
 .gy-stat>b,.gy-stat>b *{font:400 38px/1 var(--serif) !important;letter-spacing:-.02em;color:var(--text)}
 .gy-stat:first-child>b,.gy-stat:first-child>b *{color:var(--act)}
 .gy-stat span{font-size:12px;color:var(--text3)}
+.gy-stats.sm .gy-stat>b,.gy-stats.sm .gy-stat>b *{font-size:28px !important}
+.gy-stats.sm .gy-stat:first-child>b,.gy-stats.sm .gy-stat:first-child>b *{color:var(--text)}
 .gy-roster{list-style:none;margin:0;padding:0;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);overflow:hidden}
 .gy-roster li{animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .06s)}
 .gy-roster li+li{border-top:1px solid var(--line)}

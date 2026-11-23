@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { CoachPlanEditor } from "../../app/MealPlanParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
+import { MealPhoto, MealPhotoGallery, ProteinSpread, TrackingStyleCard } from "../../app/NutritionStyleParts";
+import { targetsChangeMessage } from "@apex/core";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -77,9 +79,17 @@ export function CoachHabits({ clientName, say }: { clientName: string; say: (m: 
   );
 }
 
+const COACH_NUT_VIEWS: ["overview" | "targets" | "plan", string][] = [["overview", "Overview"], ["targets", "Targets"], ["plan", "Meal plan"]];
+const s0Targets = (store: { get(): { targets: unknown } }) => !!store.get().targets;
+
 /** Coach: set the client's calorie and macro targets, and see what they've logged. */
 export function CoachNutritionPanel({ clientName, say }: { clientName: string; say: (m: string) => void }) {
   const store = useLifestyleStore();
+  const chat = useStore();
+  // Why the targets changed, sent to the client with the change so they know the reason.
+  const [why, setWhy] = useState("");
+  // Three views: how they're doing, what they aim for (targets and tracking style), and their meal plan.
+  const [view, setView] = useState<"overview" | "targets" | "plan">(() => (s0Targets(store) ? "overview" : "targets"));
   const s = useLifestyle();
   const today = localDate(new Date());
   const name = firstName(clientName) || "Your client";
@@ -109,8 +119,12 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
     if (!ok) return;
     // Leave restDay out entirely when it was never used, so targets keep saving before the rest-day SQL runs.
     const restDay = form.rest ? restVals : r ? null : undefined;
-    store.setTargets({ kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0, note: form.note, ...(restDay !== undefined ? { restDay } : {}) });
-    say(`Targets saved · ${name} sees them now`);
+    const next = { kcal: vals.kcal ?? 0, proteinG: vals.p ?? 0, carbsG: vals.c ?? 0, fatG: vals.f ?? 0 };
+    store.setTargets({ ...next, note: form.note, ...(restDay !== undefined ? { restDay } : {}) });
+    const msg = targetsChangeMessage(t, next, why, name);
+    if (msg) chat.sendMessage("coach", msg);
+    setWhy("");
+    say(msg ? `Targets saved · ${name} gets a message with what changed${why.trim() ? " and why" : ""}` : `Targets saved · ${name} sees them now`);
   };
   const eaten = dayTotals(s.food, today);
   const week = loggedAverage(s.food, today);
@@ -120,19 +134,24 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
 
   return (
     <>
+      <div className="seg nut-views" role="tablist" aria-label={`${name}'s nutrition`}>
+        {COACH_NUT_VIEWS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={view === k ? "on" : ""} onClick={() => setView(k)}>{label}</button>)}
+      </div>
+      {view === "overview" && <>
       {t && (
         <div className="card stack">
-          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · <span className="num">{Math.round(eaten.kcal).toLocaleString()}</span> of <span className="num">{t.kcal.toLocaleString()}</span> kcal</h3><Label kind="data">Data</Label></div>
+          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · {Math.round(eaten.kcal).toLocaleString("en-GB")} of {t.kcal.toLocaleString("en-GB")} kcal</h3><Label kind="data">Data</Label></div>
           <MacroBars lines={[
             { label: "Protein", value: eaten.proteinG, target: t.proteinG, unit: "g", colour: "var(--viz-1)" },
             { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--viz-2)" },
             { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
           ]} />
           <div className="small">
-            {week.days ? <>7-day average <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.kcal.toLocaleString()} kcal</span>, <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.proteinG} g protein</span> over {week.days} day{week.days === 1 ? "" : "s"} logged{weekState === "on" ? ", on target." : weekState === "under" ? ", under target." : weekState === "over" ? ", over target." : "."}</> : `${name} hasn't logged any food this week.`}
+            {week.days ? <>7-day average <b style={{ color: "var(--text)" }}>{week.avg.kcal.toLocaleString("en-GB")} kcal</b> and <b style={{ color: "var(--text)" }}>{week.avg.proteinG} g protein</b> over {week.days} day{week.days === 1 ? "" : "s"} logged{weekState === "on" ? ", on target." : weekState === "under" ? ", under target." : weekState === "over" ? ", over target." : "."}</> : `${name} hasn't logged any food this week.`}
           </div>
         </div>
       )}
+      {t && s.style !== "photos" && s.style !== "portions" && <ProteinSpread food={s.food} day={today} proteinG={t.proteinG} name={name} />}
       {t && <NutritionScoreCard name={name} targets={t} food={s.food} today={today} />}
       {weekView.loggedDays > 0 && (
         <div className="card stack">
@@ -150,11 +169,21 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
       {todays.length > 0 && (
         <div className="card flat list">
           {todays.map((f) => (
-            <div key={f.id} className="li"><div className="grow"><div className="h3">{f.name}</div><div className="tiny">{f.meal[0]?.toUpperCase()}{f.meal.slice(1)} · <span className="num">P {f.proteinG} · C {f.carbsG} · F {f.fatG}</span></div></div><span className="num small">{Math.round(f.kcal)}</span></div>
+            <div key={f.id} className="li">{f.photo && <MealPhoto photo={f.photo} alt={`${f.meal} photo`} className="mp-thumb" />}<div className="grow"><div className="h3">{f.name}</div><div className="tiny">{f.meal[0]?.toUpperCase()}{f.meal.slice(1)} · <span className="num">P {f.proteinG} · C {f.carbsG} · F {f.fatG}</span></div></div><span className="num small">{Math.round(f.kcal)}</span></div>
           ))}
         </div>
       )}
-      {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => { store.setTargets(next); say(`New targets saved · ${name} sees them now`); }} />}
+      <MealPhotoGallery name={name} say={say} />
+        {!t && !s.food.length && <div className="card small">Nothing to show yet. Set {name}'s targets and tracking style under Targets, and their food shows here as they log it.</div>}
+      </>}
+      {view === "targets" && <>
+      <TrackingStyleCard key={s.style} name={name} targets={t} say={say} />
+      {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => {
+        store.setTargets(next);
+        const msg = targetsChangeMessage(t, next, "Based on your food log and weigh-ins over the last few weeks.", name);
+        if (msg) chat.sendMessage("coach", msg);
+        say(`New targets saved · ${name} gets a message with what changed and why`);
+      }} />}
       <section className="card stack">
         <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">{t ? (form.rest ? "Training-day targets" : "Daily targets") : `Set ${name}'s daily targets`}</h3><Label kind="dec">Coach decision</Label></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(88px,1fr))", gap: 10 }}>
@@ -183,11 +212,15 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         )}
         <TargetCalculator name={name} onUse={(r) => setForm({ ...form, kcal: String(r.kcal), p: String(r.proteinG), c: String(r.carbsG), f: String(r.fatG) })} />
         <input id="nt-note" className="field" maxLength={500} placeholder={`A tip for ${name}, e.g. 30 g of protein at breakfast`} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+        {changed && t && <input id="nt-why" className="field" maxLength={300} placeholder={`Why the change? ${name} sees this with the new numbers (optional)`} value={why} onChange={(e) => setWhy(e.target.value)} />}
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
+      </>}
+      {view === "plan" && <>
       {s.planReady
         ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
         : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
+      </>}
     </>
   );
 }

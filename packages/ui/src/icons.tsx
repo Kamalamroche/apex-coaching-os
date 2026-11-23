@@ -1,6 +1,6 @@
 import {
   Search, CircleUserRound, Phone, Send, Star, Gift, Download, Printer, QrCode, Mic, Square, Pause, MessageSquareText, Pencil, TrendingDown, Activity, Bike, Camera, Footprints, HeartPulse, Link, Mountain, PersonStanding, Sailboat, Upload, Waves, ArrowLeftRight, BicepsFlexed, Brain, CalendarDays, ChartColumn, Check, Dumbbell, FileText, Flame, GripVertical, Heart, LayoutList, Menu,
-  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, Share2, Hand, Car, Headphones, Lock, Piano, Tractor, BusFront, TrainFront, Plane, Rocket, Luggage, Dog, WashingMachine, PawPrint, Motorbike, type LucideIcon, Mail, Copy, Globe, Eye, EyeOff, ScanBarcode, Refrigerator, Video,
+  MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, Share2, Hand, Car, Headphones, Lock, Piano, Tractor, BusFront, TrainFront, Plane, Rocket, Luggage, Dog, WashingMachine, PawPrint, Motorbike, type LucideIcon, Mail, Copy, Globe, Eye, EyeOff, ScanBarcode, Refrigerator, Video, BadgeCheck, MapPin, SlidersHorizontal, ShieldCheck,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
 
@@ -106,6 +106,10 @@ export const Icons = {
   download: lucide(Download),
   print: lucide(Printer),
   qr: lucide(QrCode),
+  verified: lucide(BadgeCheck),
+  pin: lucide(MapPin),
+  filters: lucide(SlidersHorizontal),
+  shield: lucide(ShieldCheck),
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;

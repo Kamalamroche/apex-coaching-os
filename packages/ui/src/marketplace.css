@@ -1,0 +1,77 @@
+/* Find a trainer: directory cards, the verified badge, the trust strip and the match quiz. Athletic Tech tokens only. */
+.ft-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ft-verified{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:var(--pill);background:var(--blue-soft);color:var(--blue);font:700 11px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;vertical-align:middle}
+.ft-verified.compact{padding:0;background:none;margin-left:6px}
+.ft-card{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);box-shadow:var(--card-shadow,none);animation:ft-in .35s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 45ms)}
+.ft-card.top{border-color:var(--act);box-shadow:0 0 0 1px var(--act) inset}
+.ft-head{display:flex;gap:12px;align-items:center}
+.ft-mono{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--bg2);border:1px solid var(--line2);color:var(--text);font:800 16px/1 var(--head);letter-spacing:.04em}
+.ft-card.top .ft-mono{background:var(--act);border-color:var(--act);color:var(--act-ink)}
+.ft-who{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ft-who h3{margin:0;font:800 18px/1.15 var(--head);letter-spacing:-.01em;display:flex;align-items:center}
+.ft-name{color:var(--text);text-decoration:none}
+a.ft-name:hover{text-decoration:underline;text-underline-offset:3px}
+.ft-rank{font:700 10.5px/1 var(--num);letter-spacing:.12em;text-transform:uppercase;color:var(--act)}
+.ft-where{display:flex;align-items:center;gap:3px;font-size:12.5px;color:var(--text2)}
+.ft-line{margin:0;font-size:14.5px;line-height:1.4;color:var(--text)}
+.ft-facts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.ft-fact{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--text)}
+.ft-fact b{font-weight:800}
+.ft-fact span{color:var(--text2)}
+.ft-fact.quiet{color:var(--text2)}
+.ft-fact.good{color:var(--good);font-weight:700}
+.ft-tags{display:flex;flex-wrap:wrap;gap:6px}
+.ft-tags span{padding:5px 10px;border-radius:var(--pill);background:var(--bg2);color:var(--text2);font:600 12px/1 var(--ui)}
+.ft-why{list-style:none;margin:0;padding:10px 12px;border-radius:var(--r);background:var(--act-soft);display:flex;flex-direction:column;gap:6px}
+.ft-why li{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text)}
+.ft-why svg{flex:none;color:var(--act)}
+.ft-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ft-actions>*{flex:1 1 140px}
+.ft-trust{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.ft-trust svg{flex:none;color:var(--blue);margin-top:1px}
+.ft-trust div{display:flex;flex-direction:column;gap:3px}
+.ft-trust b{font:800 15px/1.2 var(--head)}
+.ft-trust span{font-size:13px;line-height:1.4;color:var(--text2)}
+.ft-step{display:flex;flex-direction:column;gap:12px;animation:ft-in .3s cubic-bezier(.2,.7,.2,1) both}
+.ft-dots{display:flex;gap:6px}
+.ft-dots span{flex:1;height:4px;border-radius:2px;background:var(--line2);transition:background .25s}
+.ft-dots span.on{background:var(--act)}
+.ft-eyebrow{font:700 11px/1 var(--num);letter-spacing:.12em;text-transform:uppercase;color:var(--act)}
+.ft-q{margin:0;font:900 26px/1.05 var(--head);letter-spacing:-.01em;text-transform:uppercase}
+.ft-options{display:flex;flex-direction:column;gap:8px}
+.ft-option{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:var(--r);border:1px solid var(--line2);background:var(--card);color:var(--text);font:700 15px/1.2 var(--ui);text-align:left;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+.ft-option:active{transform:scale(.99)}
+.ft-option[aria-pressed="true"]{border-color:var(--act);background:var(--act-soft)}
+.ft-option small{display:block;margin-top:3px;font-weight:500;font-size:12.5px;color:var(--text2)}
+.ft-filters{display:flex;flex-direction:column;gap:10px}
+.ft-scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.ft-scroll::-webkit-scrollbar{display:none}
+.ft-scroll .gr-chip{flex:none}
+.ft-search{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:var(--pill);border:1px solid var(--line2);background:var(--card)}
+.ft-search svg{flex:none;color:var(--text2)}
+.ft-search input{flex:1;min-width:0;border:0;background:none;color:var(--text);font:600 15px/1 var(--ui);padding:13px 0;outline:none}
+.ft-count{font-size:13px;color:var(--text2)}
+.ft-list{display:flex;flex-direction:column;gap:12px}
+.ft-hero{display:flex;flex-direction:column;gap:12px;padding:22px 0 6px}
+.ft-hero p{margin:0;font-size:15px;line-height:1.45;color:var(--text2);max-width:46ch}
+.ft-cta-row{display:flex;gap:8px;flex-wrap:wrap}
+.ft-note{font-size:12px;line-height:1.45;color:var(--text3)}
+.ft-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ft-steps li{display:flex;gap:10px;align-items:center;font-size:14px}
+.ft-steps li .dot{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);color:transparent}
+.ft-steps li.done .dot{background:var(--good);border-color:var(--good);color:#fff}
+.ft-cred{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.ft-cred:first-child{border-top:0}
+.ft-cred .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ft-cred b{font-size:14.5px}
+.ft-status{flex:none;padding:3px 9px;border-radius:var(--pill);font:700 11px/1.4 var(--ui);background:var(--bg2);color:var(--text2)}
+.ft-status.approved{background:var(--good-soft);color:var(--good)}
+.ft-status.rejected{background:color-mix(in srgb,var(--crit) 14%,transparent);color:var(--crit)}
+@keyframes ft-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ft-card,.ft-step{animation:none}}
+.ft-hero-verified{display:inline-flex;align-items:center;gap:6px;align-self:flex-start}
+.ft-hero-verified svg{color:var(--blue)}
+.ft-card,.ft-step{text-align:left;align-items:stretch}
+.ft-head{justify-content:flex-start}
+.ft-actions a,.ft-cta-row a{text-decoration:none}
+.ft-cta-row .gr-cta{padding:0 22px}

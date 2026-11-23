@@ -1,6 +1,8 @@
-import { RATINGS, answersFor, parseNumber, type AnswerValues, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
+import { RATINGS, foodWeek, localDate, targetsFor, workoutOn, answersFor, parseNumber, type AnswerValues, type CheckInInput, type PhotoUpload, type RatingKey } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { BackLink, RatingPicker, WheelInput, useUnits } from "@apex/ui";
+import { useLifestyle } from "../../data/LifestyleContext";
+import { FoodWeekCard } from "../../app/NutritionStyleParts";
 import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { MeasureInputs, PoseSlots, blankMeasures, parseMeasures } from "../../app/ProgressParts";
@@ -19,7 +21,11 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
   const lastWeight = lastKg == null ? lastKg : u.w(Number(lastKg));
   const [weight, setWeight] = useState("");
   const [sleep, setSleep] = useState("");
-  const [ratings, setRatings] = useState<Ratings>(noRatings);
+  // The week's food from the log, so nutrition isn't rated from memory. The client can still change the rating.
+  const life = useLifestyle();
+  const { program, workout } = useApexState(store);
+  const week = life.status === "ready" && life.targets && life.style !== "photos" ? foodWeek(life.food, (d) => targetsFor(life.targets!, !!workoutOn(program, workout.week, d)), localDate(new Date())) : null;
+  const [ratings, setRatings] = useState<Ratings>(() => ({ ...noRatings(), nutrition: week?.rating ?? null }));
   const [measures, setMeasures] = useState(blankMeasures);
   const [showMeasures, setShowMeasures] = useState(false);
   const [photos, setPhotos] = useState<PhotoUpload[]>([]);
@@ -80,6 +86,7 @@ export function CheckIn({ onExit, onDone }: { onExit: () => void; onDone: () => 
           Average sleep, hours a night
           <input id="ci-sleep" className="field num" inputMode="decimal" placeholder="e.g. 7.5" value={sleep} onChange={(e) => setSleep(e.target.value)} />
         </label>
+        {week && <FoodWeekCard week={week} coachName={coachName} />}
         {RATINGS.map((r) => (
           <RatingPicker key={r.key} label={r.label} low={r.low} high={r.high} value={ratings[r.key]} onChange={(v) => setRatings((s) => ({ ...s, [r.key]: v }))} />
         ))}

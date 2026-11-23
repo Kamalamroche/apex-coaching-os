@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Bar } from "./primitives";
 import { CountUp } from "./motion";
 
@@ -79,39 +79,37 @@ const arcPath = (cx: number, cy: number, r: number, from: number, to: number) =>
   return `M ${x1} ${y1} A ${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${x2} ${y2}`;
 };
 
-/** Calories eaten against the target on an open arc: a warm filled stroke with a knob where you are, and a hatched track for what's left. */
+/** Calories eaten against the target on an open arc, drawn like the app's other rings: a soft track, one solid
+    stroke with round ends and a knob where you are. The big number sits in the middle; what's left and how many
+    foods sit in a row underneath, clear of the arc. */
 export function FuelGauge({ eaten, target, logs }: { eaten: number; target: number | null; logs: number }) {
-  const id = useId().replace(/:/g, "");
   const SWEEP = 240;
-  const R = 76;
+  const R = 78;
+  const STROKE = 13;
   const pct = target ? Math.min(1, eaten / target) : 0;
   const over = !!target && eaten > target;
   const left = target ? Math.round(target - eaten) : null;
   const end = -SWEEP / 2 + Math.max(3, SWEEP * pct);
-  const [kx, ky] = polar(100, 92, R, end);
+  const [kx, ky] = polar(100, 96, R, end);
+  const colour = over ? "var(--warn)" : "var(--act)";
   return (
     <div className="fuel">
       <div className="fuel-arc">
         <svg viewBox="0 0 200 150" role="img" aria-label={target ? `${Math.round(eaten)} of ${target} kcal eaten` : `${Math.round(eaten)} kcal eaten`}>
-          <defs>
-            <pattern id={`h${id}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
-              <rect width="7" height="7" fill="rgba(255,255,255,.07)" />
-              <rect width="3" height="7" fill="rgba(255,255,255,.34)" />
-            </pattern>
-            <linearGradient id={`g${id}`} x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0" stopColor={over ? "var(--warn)" : "var(--viz-2)"} />
-              <stop offset="1" stopColor={over ? "var(--warn)" : "var(--act)"} />
-            </linearGradient>
-          </defs>
-          <path d={arcPath(100, 92, R, end, SWEEP / 2)} stroke={`url(#h${id})`} strokeWidth={16} fill="none" />
-          {pct > 0 && <path className="m-draw" pathLength={1} d={arcPath(100, 92, R, -SWEEP / 2, end)} stroke={`url(#g${id})`} strokeWidth={16} strokeLinecap="round" fill="none" />}
-          {pct > 0 && <circle className="gauge-knob" cx={kx} cy={ky} r={4.5} fill="#fff" />}
+          <path d={arcPath(100, 96, R, -SWEEP / 2, SWEEP / 2)} stroke="currentColor" strokeOpacity={0.16} strokeWidth={STROKE} strokeLinecap="round" fill="none" />
+          {pct > 0 && <path className="m-draw" pathLength={1} d={arcPath(100, 96, R, -SWEEP / 2, end)} stroke={colour} strokeWidth={STROKE} strokeLinecap="round" fill="none" />}
+          {pct > 0 && <circle className="gauge-knob" cx={kx} cy={ky} r={3.6} fill="#fff" />}
         </svg>
-        <div className="mid"><b><CountUp value={Math.round(eaten)} /></b><span>{target ? `of ${target.toLocaleString("en-GB")} kcal` : "kcal today"}</span></div>
+        <div className="mid">
+          <small>Eaten</small>
+          <b className="num"><CountUp value={Math.round(eaten)} /></b>
+          <em>{target ? `of ${target.toLocaleString("en-GB")} kcal` : "kcal today"}</em>
+        </div>
       </div>
       <div className="fuel-side">
         <div><b>{left === null ? "–" : Math.abs(left).toLocaleString("en-GB")}</b><small>{left !== null && left < 0 ? "kcal over" : "kcal left"}</small></div>
-        <div style={{ alignItems: "flex-end" }}><b>{logs}</b><small>{logs === 1 ? "food logged" : "foods logged"}</small></div>
+        <div><b>{target ? `${Math.round((eaten / target) * 100)}%` : "–"}</b><small>of goal</small></div>
+        <div><b>{logs}</b><small>{logs === 1 ? "food logged" : "foods logged"}</small></div>
       </div>
     </div>
   );

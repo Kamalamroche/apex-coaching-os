@@ -2,7 +2,10 @@
 .wr-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow)}
 .wr-card .sect{margin-bottom:0}
 .wr-headline{margin:0;font-size:15px;line-height:1.4;color:var(--text);font-weight:600}
-.wr-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.wr-tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.wr-tile{grid-column:span 2}
+/* five tiles: three on top, two wider ones below, so no empty gap */
+.wr-tile:nth-child(4):nth-last-child(2),.wr-tile:nth-child(5):last-child{grid-column:span 3}
 .wr-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r);background:var(--bg2);animation:wr-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 40ms)}
 .wr-tile b{font-size:22px;font-weight:800;color:var(--text)}
 .wr-tile span{font-size:12px;color:var(--text2)}

@@ -113,7 +113,7 @@ export function More({ say, start, goTrain }: { say: (m: string) => void; start?
         {view === "programmes" && <Programmes say={say} onTrain={goTrain} />}
         {view === "resources" && <Resources />}
         {view === "goals" && <Goals say={say} />}
-        {view === "food" && <ClientNutrition />}
+        {view === "food" && <ClientNutrition say={say} />}
         {view === "habits" && <Habits />}
         {view === "form" && <FormCheckList say={say} />}
         {view === "assess" && <AssessmentList />}

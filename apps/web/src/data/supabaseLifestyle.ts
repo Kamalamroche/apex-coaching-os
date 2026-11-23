@@ -1,6 +1,6 @@
 import {
   addDays, fromMealPlanRow, toMealPlanRow, fromFoodRow, fromWaterRow, toWaterRow, fromHabitRow, fromIntakeRow, fromTargetsRow, fromTickRow, healthFlags, localDate, toFoodRow, toggleTick, toHabitRow, toTargetsRow,
-  type FoodEntryRow, type HabitRow, type HabitTickRow, type IntakeRow, type LifestyleState, type MealPlanRow, type LifestyleStore, type NutritionTargetsRow, type WaterRow,
+  cleanPortions, fromSavedMealRow, isTrackingStyle, toSavedMealRow, SAVED_MEALS_MAX, type SavedMealRow, type FoodEntryRow, type HabitRow, type HabitTickRow, type IntakeRow, type LifestyleState, type MealPlanRow, type LifestyleStore, type NutritionTargetsRow, type WaterRow,
 } from "@apex/core";
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
@@ -9,7 +9,9 @@ const isMissingTable = (e: { code?: string } | null) => e?.code === "42P01" || e
 const TICK_DAYS = 60;
 const FOOD_DAYS = 31;
 const WATER_DAYS = 14;
-const TABLES = ["client_habits", "habit_ticks", "nutrition_targets", "food_entries", "intake_forms", "water_entries", "meal_plans"];
+const TABLES = ["client_habits", "habit_ticks", "nutrition_targets", "food_entries", "intake_forms", "water_entries", "meal_plans", "saved_meals"];
+const isMissingColumn = (e: { code?: string } | null) => e?.code === "42703" || e?.code === "PGRST204";
+const PHOTOS = "meal-photos";
 
 export interface LiveLifestyleStore extends LifestyleStore {
   close(): void;
@@ -17,7 +19,7 @@ export interface LiveLifestyleStore extends LifestyleStore {
 
 /** LifestyleStore backed by the habits, nutrition and questionnaire tables, kept live with Realtime. */
 export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): LiveLifestyleStore {
-  let state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, status: "loading" };
+  let state: LifestyleState = { habits: [], ticks: [], targets: null, food: [], intake: null, water: [], waterReady: true, mealPlan: null, planReady: true, style: "macros", portionTargets: null, savedMeals: [], styleReady: true, status: "loading" };
   let channel: RealtimeChannel | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let seq = 0;
@@ -36,7 +38,7 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
   async function load() {
     const mine = ++seq;
     const today = localDate(new Date());
-    const [h, t, n, f, i, wa, mp] = await Promise.all([
+    const [h, t, n, f, i, wa, mp, st, sm] = await Promise.all([
       db.from("client_habits").select("*").eq("client_id", clientId).order("created_at").returns<HabitRow[]>(),
       db.from("habit_ticks").select("*").eq("client_id", clientId).gte("day", addDays(today, -TICK_DAYS)).returns<HabitTickRow[]>(),
       db.from("nutrition_targets").select("*").eq("client_id", clientId).maybeSingle<NutritionTargetsRow>(),
@@ -44,6 +46,9 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
       db.from("intake_forms").select("*").eq("client_id", clientId).maybeSingle<IntakeRow>(),
       db.from("water_entries").select("*").eq("client_id", clientId).gte("day", addDays(today, -WATER_DAYS)).order("created_at").returns<WaterRow[]>(),
       db.from("meal_plans").select("*").eq("client_id", clientId).maybeSingle<MealPlanRow>(),
+      // The coach's tracking style for this client sits on their link (the client reads their own, the coach theirs).
+      db.from("coach_clients").select("nutrition_style, nutrition_portions").eq("client_id", clientId).neq("status", "ended").order("started_at", { ascending: false }).limit(1).maybeSingle<{ nutrition_style: string | null; nutrition_portions: Record<string, unknown> | null }>(),
+      db.from("saved_meals").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(SAVED_MEALS_MAX).returns<SavedMealRow[]>(),
     ]);
     if (mine !== seq) return;
     const err = h.error ?? t.error ?? n.error ?? f.error ?? i.error;
@@ -52,7 +57,12 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
     if (wa.error && !isMissingTable(wa.error)) return fail(wa.error);
     // Same for meal plans: without the table the plan section says the update is needed.
     if (mp.error && !isMissingTable(mp.error)) return fail(mp.error);
+    // Nutrition styles and saved meals came later still: without them everyone tracks full macros, as before.
+    const styleReady = !st.error && !sm.error;
+    const style = !st.error && isTrackingStyle(st.data?.nutrition_style) ? st.data!.nutrition_style as LifestyleState["style"] : "macros";
     set({
+      style, portionTargets: !st.error && st.data?.nutrition_portions ? cleanPortions(st.data.nutrition_portions) : null,
+      savedMeals: sm.error ? [] : (sm.data ?? []).map(fromSavedMealRow), styleReady,
       water: wa.error ? [] : (wa.data ?? []).map(fromWaterRow), waterReady: !wa.error,
       mealPlan: mp.error || !mp.data ? null : fromMealPlanRow(mp.data), planReady: !mp.error,
       habits: (h.data ?? []).map(fromHabitRow), ticks: (t.data ?? []).map(fromTickRow), targets: n.data ? fromTargetsRow(n.data) : null,
@@ -107,12 +117,14 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
       const row = toFoodRow(f, clientId);
       // Before the micros SQL has run, a scanned food with fibre, sugar or salt still saves, without them.
       write(Promise.resolve(db.from("food_entries").insert(row)).then((r) => {
-        if (r.error?.code !== "PGRST204" || !/fibre_g|sugar_g|salt_g/.test(r.error.message)) return r;
-        const { fibre_g: _f, sugar_g: _s, salt_g: _l, ...plain } = row;
+        if (r.error?.code !== "PGRST204" || !/fibre_g|sugar_g|salt_g|portions|photo_path/.test(r.error.message)) return r;
+        const { fibre_g: _f, sugar_g: _s, salt_g: _l, portions: _p, photo_path: _ph, ...plain } = row;
         return db.from("food_entries").insert(plain);
       }));
     },
     removeFood(id) {
+      const photo = state.food.find((f) => f.id === id)?.photo;
+      if (photo && !photo.startsWith("data:")) void db.storage.from(PHOTOS).remove([photo]);
       set({ food: state.food.filter((f) => f.id !== id) });
       write(db.from("food_entries").delete().eq("id", id));
     },
@@ -123,6 +135,32 @@ export function createSupabaseLifestyle(db: SupabaseClient, clientId: string): L
     removeWater(id) {
       set({ water: state.water.filter((e) => e.id !== id) });
       write(db.from("water_entries").delete().eq("id", id));
+    },
+    setStyle(style, portions) {
+      set({ style, portionTargets: portions });
+      write(Promise.resolve(db.from("coach_clients").update({ nutrition_style: style, nutrition_portions: portions }).eq("client_id", clientId).neq("status", "ended")).then((r) => {
+        if (r.error && isMissingColumn(r.error)) set({ styleReady: false });
+        return r.error && isMissingColumn(r.error) ? { error: null } : r;
+      }));
+    },
+    saveMeal(m) {
+      set({ savedMeals: [m, ...state.savedMeals.filter((x) => x.id !== m.id)].slice(0, SAVED_MEALS_MAX) });
+      write(db.from("saved_meals").upsert(toSavedMealRow(m, clientId)));
+    },
+    removeSavedMeal(id) {
+      set({ savedMeals: state.savedMeals.filter((x) => x.id !== id) });
+      write(db.from("saved_meals").delete().eq("id", id));
+    },
+    async uploadMealPhoto(file) {
+      const path = `${clientId}/${localDate(new Date())}-${crypto.randomUUID()}.jpg`;
+      const { error } = await db.storage.from(PHOTOS).upload(path, file, { contentType: "image/jpeg", upsert: false });
+      if (error) throw new Error(/bucket/i.test(error.message) ? "Meal photos aren't switched on yet. Ask your coach to finish the latest update." : error.message);
+      return path;
+    },
+    async mealPhotoUrl(photo) {
+      if (photo.startsWith("data:")) return photo;
+      const { data } = await db.storage.from(PHOTOS).createSignedUrl(photo, 3600);
+      return data?.signedUrl ?? null;
     },
     async submitIntake(answers) {
       const submittedAt = new Date().toISOString();

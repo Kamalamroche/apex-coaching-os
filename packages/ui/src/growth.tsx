@@ -26,7 +26,7 @@ export interface PageReviews { introOffer: boolean; reviews: { name: string | nu
 /** Places left and the offer, worked out by the page from the coach's settings. */
 export interface PageBoost { spots: string | null; full: boolean; offer: { title: string; text: string; ends: string } | null }
 
-export function CoachPageView({ page, action, preview = false, extras, boost }: { page: CoachPage; action?: ReactNode; preview?: boolean; extras?: PageReviews | null; boost?: PageBoost | null }) {
+export function CoachPageView({ page, action, preview = false, extras, boost, verified = false, trust }: { page: CoachPage; action?: ReactNode; preview?: boolean; extras?: PageReviews | null; boost?: PageBoost | null; verified?: boolean; trust?: ReactNode }) {
   const first = page.name.split(" ")[0] || page.name;
   const caption = ["Coach", page.city].filter(Boolean).join(" · ");
   return (
@@ -43,6 +43,7 @@ export function CoachPageView({ page, action, preview = false, extras, boost }: 
           {page.specialties.length > 0 && (
             <div className="gpills">{page.specialties.map((s, i) => <span key={s} className="gpill" style={{ ["--i" as string]: i }}>{s}</span>)}</div>
           )}
+          {verified && <span className="gpill ft-hero-verified" title="Qualification and insurance checked by APEX"><Icons.verified width={14} height={14} aria-hidden /> Verified coach</span>}
           {extras?.introOffer && <span className="gr-intro"><Icons.gift width={14} height={14} aria-hidden /> First session free</span>}
           {boost?.spots && <SpotsBadge text={boost.spots} full={boost.full} />}
           {action}
@@ -55,6 +56,7 @@ export function CoachPageView({ page, action, preview = false, extras, boost }: 
           <span>{page.clients === 1 ? "client" : "clients"} training with {first} right now</span>
         </div>
       )}
+      {trust}
       <section className="gr-offer" aria-label="What you get">
         <span className="gr-eyebrow">What you get</span>
         <ul>

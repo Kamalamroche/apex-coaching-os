@@ -92,7 +92,7 @@ details.card>summary::-webkit-details-marker{display:none}
 /* Brief: business at a glance */
 .bg-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .bg-tile{padding:14px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);background-image:var(--card-lift);box-shadow:var(--card-shadow);display:flex;flex-direction:column;gap:4px;min-width:0;animation:m-rise .5s var(--ease-out) backwards;animation-delay:calc(.1s + var(--i,0) * .06s)}
-.bg-tile b{font:700 22px/1.1 var(--num);color:var(--text)}
+.bg-tile b{font:400 30px/1 var(--serif);letter-spacing:-.02em;color:var(--text)}
 .bg-tile:first-child b{color:var(--act)}
 .bg-tile span{font-size:12px;color:var(--text2)}
 .bg-tile small{font-size:11px;color:var(--text3)}
