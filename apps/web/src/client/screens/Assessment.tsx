@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { loadPose } from "../../app/pose";
 import { useAssessmentStore, useAssessments } from "../../data/AssessmentContext";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /* Client: the assessment the coach sent. Each test explains where to put the phone, then the camera (with a grid,
    an outline and a timer) takes the photo, or the phone films a short video, or the client answers a simple
@@ -51,6 +52,7 @@ export function AssessmentList() {
   const { coachName } = useAppInfo();
   const [open, setOpen] = useState<string | null>(null);
   const current = list.find((a) => a.id === open);
+  useViewScroll(current ? open : null);
   if (current) return <AssessmentScreen a={current} onClose={() => setOpen(null)} />;
   const title = <div><div className="eyebrow">From {coachName}</div><h1 className="h1">Assessments</h1></div>;
   if (status === "loading") return <>{title}<div className="card small">Loading…</div></>;

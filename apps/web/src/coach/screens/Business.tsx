@@ -13,6 +13,7 @@ import { IncomeGoal } from "./IncomeGoal";
 import { useMarketingApi } from "../../data/marketing";
 import { useGrowthApi } from "../../data/growth";
 import { useExtras } from "../../data/extras";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /* Loaded when first opened, so the app starts faster. */
 const CoachProgrammes = lazy(() => import("./CoachProgrammes").then((m) => ({ default: m.CoachProgrammes })));
@@ -43,6 +44,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
   useEffect(load, [load]);
   const sum = useMemo(() => (data ? businessSummary(data) : null), [data]);
 
+  useViewScroll(shop ? "shop" : view);
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
   if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;

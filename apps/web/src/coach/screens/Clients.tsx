@@ -5,6 +5,7 @@ import { CLIENTS, DEMO_CLIENT_ID, exerciseFor, firstName, formatRest, type Train
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, Bar, ClientTable, Label, Spark, riskColor, useUnits } from "@apex/ui";
 import { useState, lazy } from "react";
+import { useViewScroll } from "../../app/useViewScroll";
 import { useStore } from "../../data/StoreContext";
 import { ClientCheckIns } from "./CheckIns";
 import { ClientReport } from "./Report";
@@ -57,6 +58,7 @@ export function Clients({ id, setId, say, goBuild, startTab }: Props) {
   const { tags, reload: reloadTags } = useClientTags();
   const [sort, setSort] = useState<{ key: TableSortKey; dir: SortDir }>({ key: "need", dir: "asc" });
   const roster = useMemo(() => demoRosterHealth(), []);
+  useViewScroll(transfer ? "transfer" : CLIENTS.some((x) => x.id === id) ? id : null);
   if (transfer) return <div className="cl-profile"><Transfer say={say} onBack={() => setTransfer(false)} /></div>;
   const c = CLIENTS.find((x) => x.id === id);
   if (c) return <div className="cl-profile"><ClientProfile clientId={c.id} startTab={startTab} onBack={() => { setId(null); void reloadTags(); }} say={say} goBuild={goBuild} /></div>;

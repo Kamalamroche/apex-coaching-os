@@ -18,6 +18,7 @@ import { GoingQuiet } from "./Quiet";
 import { ClientHealthCard } from "./ClientHealth";
 import { cachedRosterInputs, demoRosterHealth, useRosterHealth, type HealthClient } from "../../data/health";
 import type { CoachLiveProps } from "../CoachApp";
+import { useViewScroll } from "../../app/useViewScroll";
 
 interface TriageItem {
   id: string;
@@ -31,11 +32,17 @@ interface TriageItem {
   draft: string | null;
 }
 
+/* Sample dates sit relative to today, so the demo never reads as weeks out of date. */
+const daysAgo = (n: number, withDay = false) => {
+  const d = new Date(Date.now() - n * 86_400_000);
+  return d.toLocaleDateString("en-GB", withDay ? { weekday: "short", day: "numeric", month: "short" } : { day: "numeric", month: "short" }).replace(",", "");
+};
+
 /* Sample triage. In the real build these are ranked server-side from logged sessions and check-ins. */
 const TRIAGE: TriageItem[] = [
-  { id: "t1", clientId: 1, severity: "crit", label: "Insight", title: "Sarah Mitchell has missed 3 sessions", evidence: "Last session 14 Oct · check-in mood 2/5 · adherence 42% (was 81% in September)", action: "Message", draft: "Hi Sarah, I noticed the last couple of weeks have been tough to fit in. No pressure at all. Would a shorter 30-minute version of your sessions help this week?" },
+  { id: "t1", clientId: 1, severity: "crit", label: "Insight", title: "Sarah Mitchell has missed 3 sessions", evidence: `Last session ${daysAgo(9)} · check-in mood 2/5 · adherence 42% (was 81% last month)`, action: "Message", draft: "Hi Sarah, I noticed the last couple of weeks have been tough to fit in. No pressure at all. Would a shorter 30-minute version of your sessions help this week?" },
   { id: "t2", clientId: 2, severity: "warn", label: "Insight", title: "James's bench has stalled for 3 weeks", evidence: "e1RM 96 → 96 → 95 kg · every top set at RPE 9–9.5", action: "Review", draft: null },
-  { id: "t3", clientId: 3, severity: "warn", label: "Data", title: "Lena's check-in is 2 days overdue", evidence: "Weekly check-in due Thu 23 Oct · no reply to reminder", action: "Nudge", draft: "Hey Lena, quick reminder that your weekly check-in is ready. It takes about two minutes and helps me adjust next week's plan." },
+  { id: "t3", clientId: 3, severity: "warn", label: "Data", title: "Lena's check-in is 2 days overdue", evidence: `Weekly check-in due ${daysAgo(2, true)} · no reply to reminder`, action: "Nudge", draft: "Hey Lena, quick reminder that your weekly check-in is ready. It takes about two minutes and helps me adjust next week's plan." },
 ];
 
 const PROGRESSIONS = [
@@ -83,6 +90,7 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
   const [twin, setTwin] = useState(start === "twin");
   const [review, setReview] = useState(start === "review");
   const [prep, setPrep] = useState<{ clientId: string; name: string; startsAt: string } | null>(null);
+  useViewScroll(twin ? "twin" : review ? "review" : calendar ? "calendar" : null);
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} backLabel={review ? "Weekly review" : "Brief"} />;
   if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} openTwin={() => setTwin(true)} />;
   if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
