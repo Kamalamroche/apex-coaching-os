@@ -40,7 +40,18 @@ export function CountUp({ value, decimals = 0, duration = 900, format, className
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(reduced ? value : 0);
   const from = useRef(reduced ? value : 0);
+  // Counts once it is on screen, so a number lower down the page counts while the person is looking at it.
+  const box = useRef<HTMLSpanElement>(null);
+  const [seen, setSeen] = useState(() => typeof IntersectionObserver === "undefined");
   useEffect(() => {
+    const el = box.current;
+    if (seen || !el) return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setSeen(true); io.disconnect(); } });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [seen]);
+  useEffect(() => {
+    if (!seen && !reduced) return;
     if (reduced) {
       from.current = value;
       setShown(value);
@@ -58,10 +69,10 @@ export function CountUp({ value, decimals = 0, duration = 900, format, className
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [value, reduced, duration]);
+  }, [value, reduced, duration, seen]);
   const text = (v: number) => (format ? format(v) : v.toLocaleString("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }));
   return (
-    <span className={className} style={style}>
+    <span ref={box} className={className} style={style}>
       <span aria-hidden="true">{text(shown)}</span>
       <span className="sr-only">{text(value)}</span>
     </span>

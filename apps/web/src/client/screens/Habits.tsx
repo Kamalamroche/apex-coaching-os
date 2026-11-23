@@ -1,6 +1,6 @@
 import { bedtimeGoal, clockLabel, clockMinutes, eveningProgress, formatMl, habitDays, habitStreak, habitsOn, isDone, localDate, stepsGoal, waterGoalMl, waterOn, type Habit, type RecoveryDay } from "@apex/core";
 import { useEffect, useRef, useState } from "react";
-import { HabitDays, Icons, LiquidTile, NightTile, StepsTile } from "@apex/ui";
+import { Celebrate, HabitDays, Icons, LiquidTile, NightTile, StepsTile } from "@apex/ui";
 import { useAppInfo } from "../../app/AppContext";
 import { HabitIcon, LifestyleStatus, daysText } from "../../app/LifestyleParts";
 import { useActivitiesIfAny } from "../../data/ActivityContext";
@@ -19,9 +19,17 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
   // Ticks once a minute so the bedtime tile keeps filling through the evening.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
+  // Ticking the last habit of the day earns a short burst of confetti.
+  const [party, setParty] = useState(0);
   if (!due.length) return null;
+  const left = due.filter((h) => !isDone(s.ticks, h.id, today)).length;
+  const tick = (id: string, done: boolean) => {
+    store.setHabitDone(id, today, !done);
+    if (!done && left === 1) setParty((n) => n + 1);
+  };
   return (
     <div className="card flat list">
+      {party > 0 && <Celebrate key={party} />}
       {due.map((h) => {
         const done = isDone(s.ticks, h.id, today);
         const streak = habitStreak(h, s.ticks, today);
@@ -32,10 +40,10 @@ export function HabitList({ compact = false }: { compact?: boolean }) {
               : h.kind === "sleep" ? <NightTile done={done} pct={eveningProgress(clockMinutes(new Date(now).toISOString()), bedtimeGoal(h.title))} label={h.title} />
               : <HabitIcon kind={h.kind} />}
             <div className="grow">
-              <div className="h3" style={{ textDecoration: done && compact ? "line-through" : undefined, color: done && compact ? "var(--text2)" : undefined }}>{h.title}</div>
+              <div className="h3">{compact ? <span className={`hb-strike ${done ? "on" : ""}`}>{h.title}</span> : h.title}</div>
               <div className="tiny">{h.kind === "water" && s.waterReady && !done ? `${formatMl(waterOn(s.water, today))} of ${formatMl(waterGoalMl(h.title))}` : !done && measured(h, day) ? measured(h, day) : streak > 0 ? <><Icons.flame width={12} height={12} style={{ verticalAlign: -2, color: "var(--act)" }} /> {streak} day{streak === 1 ? "" : "s"} in a row</> : compact ? "Not started" : daysText(h.days)}</div>
             </div>
-            <button className={`tick ${done ? "on" : ""}`} aria-pressed={done} aria-label={`${h.title}: ${done ? "done" : "not done"}`} onClick={() => store.setHabitDone(h.id, today, !done)}>
+            <button className={`tick ${done ? "on" : ""}`} aria-pressed={done} aria-label={`${h.title}: ${done ? "done" : "not done"}`} onClick={() => tick(h.id, done)}>
               {done && <Icons.check width={20} height={20} strokeWidth={2.5} />}
             </button>
           </div>

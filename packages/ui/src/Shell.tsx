@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useReveal } from "./reveal";
 import { Icons, type IconName } from "./icons";
 import { ThemeButton } from "./ThemeButton";
 import { useT } from "./prefs";
@@ -27,6 +28,8 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
   const nav = useRef<HTMLElement>(null);
   const tr = useT();
   const pill = useRef<HTMLSpanElement>(null);
+  const main = useRef<HTMLElement>(null);
+  useReveal(main);
   // The dark pill behind the open tab slides to the tab you pick and stretches to its width.
   useLayoutEffect(() => {
     const n = nav.current;
@@ -55,7 +58,7 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
         </div>
         <div style={{ display: "flex", gap: 6 }}>{actions}<ThemeButton /></div>
       </div>
-      <main className="main">{children}</main>
+      <main ref={main} className="main">{children}</main>
       <nav ref={nav} className="tabs" aria-label={`${side} navigation`}>
         <span ref={pill} className="tab-pill" aria-hidden="true" />
         {tabs.map((t) => {
