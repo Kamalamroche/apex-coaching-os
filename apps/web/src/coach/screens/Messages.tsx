@@ -18,6 +18,7 @@ import { useTeamApi } from "../../data/team";
 import { demoReplies, liveReplies } from "../../data/savedReplies";
 import { CoachAnswers } from "./CoachAnswers";
 import { useExtras } from "../../data/extras";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /* Loaded when first opened, so the app starts faster. */
 
@@ -43,6 +44,7 @@ export function Messages({ live, say, start }: { live?: CoachLiveProps; say: (m:
     if (auto) return;
     api.load().then((r: { settings: AutomationSettings }) => setOn(countOn(r.settings)), () => setOn(null));
   }, [api, auto]);
+  useViewScroll(auto ? "auto" : extra);
   if (auto) return <Automations api={api} clientNames={Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]))} onBack={() => setAuto(false)} say={say} />;
   if (extra === "group") return <GroupMessage live={live} onBack={() => setExtra(null)} say={say} />;
   if (extra === "challenges") return <CoachChallenges onBack={() => setExtra(null)} say={say} />;

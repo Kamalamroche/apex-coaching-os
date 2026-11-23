@@ -6,6 +6,7 @@ import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, ClientTable, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState, lazy } from "react";
+import { useViewScroll } from "../../app/useViewScroll";
 import { clientTableRows, type SortDir, type TableSortKey } from "@apex/core";
 import { loadClientFees } from "../../data/business";
 import { useStoreStatus } from "../../app/AppContext";
@@ -61,6 +62,8 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
     loadClientFees(live.db, live.coachId).then((f) => { if (on) setFees(f); }, (e: unknown) => console.error("Couldn't load fees", e));
     return () => { on = false; };
   }, [live.db, live.coachId, clients?.length]);
+
+  useViewScroll(transfer ? "transfer" : clients?.some((c) => c.id === open) ? open : null);
 
   const invite = async () => {
     try {

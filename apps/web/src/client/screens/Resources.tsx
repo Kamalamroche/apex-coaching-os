@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { ResourceBody, ResourceIcon, ResourceStatus, resourceMeta, useResources } from "../../app/ResourceParts";
 import { useResourceApi } from "../../data/resources";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /** Client: guides and links from the coach, by topic. */
 export function Resources() {
   const data = useResources(useResourceApi());
   const { coachName } = useAppInfo();
   const [open, setOpen] = useState<Resource | null>(null);
+  useViewScroll(open ? open.id : null);
   if (open) return <><BackLink onClick={() => setOpen(null)}>Resources</BackLink><ResourceBody r={open} /></>;
   return (
     <>

@@ -5,6 +5,7 @@ import { ActivityRow, ActivityView } from "../../app/ActivityView";
 import { useAppInfo } from "../../app/AppContext";
 import { useActivities, useActivityContext } from "../../data/ActivityContext";
 import { ConnectedApps } from "./ConnectedApps";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /** Re-sync Strava on open if the last sync is older than this. */
 const STALE_MS = 15 * 60 * 1000;
@@ -55,6 +56,7 @@ export function Cardio({ say }: { say: (m: string) => void }) {
   };
 
   const shown = activities.find((a) => a.id === open);
+  useViewScroll(shown ? `a:${shown.id}` : view === "apps" ? "apps" : null);
   if (shown) return <Detail activity={shown} all={activities} onBack={() => setOpen(null)} say={say} />;
   if (view === "apps") return <><BackLink onClick={() => setView("list")}>Cardio</BackLink><ConnectedApps say={say} /></>;
 
