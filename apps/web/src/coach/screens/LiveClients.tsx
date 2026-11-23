@@ -118,7 +118,7 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
         ))}
       </div>
       <button className="btn act block" onClick={() => void invite()}>+ Invite a client</button>
-      <button className="btn ghost block" onClick={() => setTransfer(true)}>Import or export clients</button>
+      <button className="btn ghost block" onClick={() => setTransfer(true)}>Import or export</button>
       {link && (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="h3">Send this link to your client</div>
