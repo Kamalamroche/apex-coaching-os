@@ -1,7 +1,7 @@
 import {
   PORTION_KINDS, TRACKING_STYLES, NO_PORTIONS, cleanPortions, foodFromLabel, foodsFromOffSearch, offSearchUrl, parseNutritionLabel, portionMacros, portionsForTargets, portionsLabel,
-  savedMealFrom, savedMealProblem, savedMealTotals, suggestMealName, sumPortions, MEALS,
-  type Food, type FoodEntry, type Macros, type Meal, type PortionKind, type Portions, type SavedMeal, type TrackingStyle,
+  savedMealFrom, savedMealProblem, savedMealTotals, suggestMealName, sumPortions, proteinByMeal, MEALS,
+  type Food, type FoodEntry, type FoodWeek, type Macros, type Meal, type PortionKind, type Portions, type SavedMeal, type TrackingStyle,
 } from "@apex/core";
 import { Icons, Label } from "@apex/ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -339,6 +339,46 @@ export function LabelScan({ onFound, onClose }: { onFound: (f: Food) => void; on
           <button className="btn act block" disabled={!ok} onClick={() => vals && onFound(foodFromLabel(vals.name, { kcal: n(vals.kcal), protein: n(vals.protein), carbs: n(vals.carbs), fat: n(vals.fat), ...(vals.fibre !== undefined ? { fibre: vals.fibre } : {}), ...(vals.sugar !== undefined ? { sugar: vals.sugar } : {}), ...(vals.salt !== undefined ? { salt: vals.salt } : {}) }))}>Choose the amount</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ───────────── Protein through the day ───────────── */
+
+/** Protein at each meal against a per-meal goal, with one tip. For the client and the coach. */
+export function ProteinSpread({ food, day, proteinG, name }: { food: FoodEntry[]; day: string; proteinG: number; name?: string }) {
+  const r = proteinByMeal(food, day, proteinG);
+  if (!r.meals.some((m) => m.proteinG > 0)) return null;
+  const top = Math.max(r.goal * 1.25, ...r.meals.map((m) => m.proteinG));
+  return (
+    <section className="card stack ps-card" aria-label="Protein through the day">
+      <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Protein through the day</h3>{name ? <Label kind="insight">Insight</Label> : <span className="tiny">About {r.goal} g a meal</span>}</div>
+      <div className="ps-bars" role="list">
+        {r.meals.map((m) => (
+          <div key={m.meal} role="listitem" className={`ps-col${m.hit ? " ok" : ""}`} aria-label={`${mealLabel(m.meal)}: ${m.proteinG} g`}>
+            <b className="num">{m.proteinG}<small> g</small></b>
+            <i className="ps-track"><i style={{ height: `${Math.min(100, (m.proteinG / top) * 100)}%` }} /><span className="ps-goal" style={{ bottom: `${(r.goal / top) * 100}%` }} /></i>
+            <span className="tiny">{mealLabel(m.meal)}</span>
+          </div>
+        ))}
+      </div>
+      {r.tip && <p className="small" style={{ margin: 0 }}>{name ? r.tip.replace(/^Breakfast|^Lunch|^Dinner/, (w) => `${name}'s ${w.toLowerCase()}`) : r.tip}</p>}
+    </section>
+  );
+}
+
+/* ───────────── The week's food, for the check-in ───────────── */
+
+export function FoodWeekCard({ week, coachName }: { week: FoodWeek; coachName: string }) {
+  const tone = week.band === "on" ? "var(--good)" : week.band === "mixed" ? "var(--warn)" : "var(--text3)";
+  return (
+    <div className="fwk-card" aria-label="Your week of food">
+      <div className="fwk-score" style={{ ["--fwk" as string]: tone }}><b className="num">{week.score}</b><small>/100</small></div>
+      <div className="grow">
+        <div className="h3">From your food log</div>
+        <div className="small"><span className="num">{week.logged} of {week.days}</span> days logged · <span className="num">{week.avgKcal.toLocaleString("en-GB")} kcal</span> and <span className="num">{week.avgProteinG} g</span> protein a day</div>
+        <div className="tiny">{coachName} sees this too. We've set your nutrition rating from it: change it if it doesn't feel right.</div>
+      </div>
     </div>
   );
 }
