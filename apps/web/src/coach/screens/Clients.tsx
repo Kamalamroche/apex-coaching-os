@@ -98,7 +98,7 @@ export function Clients({ id, setId, say, goBuild, startTab }: Props) {
       </div>
       <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
         <button className="btn ghost" style={{ flex: 1 }} onClick={() => say("Invite link copied")}>+ Invite a client</button>
-        <button className="btn ghost" style={{ flex: 1 }} onClick={() => setTransfer(true)}>Import or export clients</button>
+        <button className="btn ghost" style={{ flex: 1 }} onClick={() => setTransfer(true)}>Import or export</button>
       </div>
     </div>
   );

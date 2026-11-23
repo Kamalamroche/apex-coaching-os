@@ -228,7 +228,7 @@ export function Builder({ say, onInvite, live, start }: { say: (m: string) => vo
         </div>
       )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks} · {DAY_NAMES[openDay?.dayIndex ?? 0]}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name}</h1></div>
+        <div><div className="eyebrow">{clientName} · Week {workout.week} of {workout.ofWeeks}{"\u00a0· "}{DAY_NAMES[openDay?.dayIndex ?? 0]}</div><h1 className="h1" style={{ fontSize: 22 }}>{workout.name.replace(/ · /g, "\u00a0· ")}</h1></div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn ghost sm bld-pdfbtn" onClick={() => fileRef.current?.click()}><Icons.file width={16} height={16} />Import PDF</button>
           <button className="btn ghost sm bld-pdfbtn" style={{ whiteSpace: "nowrap" }} onClick={() => setImporting("text")}>Paste or speak</button>
