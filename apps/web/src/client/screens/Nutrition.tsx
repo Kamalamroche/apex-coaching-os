@@ -10,6 +10,9 @@ import { LifestyleStatus } from "../../app/LifestyleParts";
 import { LabelScan, ProteinSpread, MealPhoto, MealPhotoButton, PortionBoard, PortionLogger, SaveMealLink, SavedMeals, portionEntry, useOnlineFoods } from "../../app/NutritionStyleParts";
 import { useLifestyle, useLifestyleStore } from "../../data/LifestyleContext";
 
+type NutView = "today" | "plan" | "week";
+const NUT_VIEWS: [NutView, string][] = [["today", "Today"], ["plan", "Plan"], ["week", "Your week"]];
+
 const mealNow = (): Meal => {
   const h = new Date().getHours();
   return h < 11 ? "breakfast" : h < 15 ? "lunch" : h < 21 ? "dinner" : "snack";
@@ -26,6 +29,8 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
   const [day, setDay] = useState(today);
   const [meal, setMeal] = useState<Meal>(mealNow);
   const [tab, setTab] = useState<"search" | "recent" | "describe">("search");
+  // Three tidy views instead of one long page: what you eat today, your coach's plan and recipes, and how the week went.
+  const [view, setView] = useState<NutView>("today");
   const [said, setSaid] = useState("");
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [scan, setScan] = useState(false);
@@ -72,7 +77,10 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
   if (s.status !== "ready") return <><div><div className="eyebrow">Nutrition</div><h1 className="h1">Food today</h1></div><LifestyleStatus state={s} /></>;
   return (
     <>
-      <div className="daystrip nut-days" role="tablist" aria-label="Day of the week">
+      <div className="seg nut-views" role="tablist" aria-label="Nutrition">
+        {NUT_VIEWS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={view === k ? "on" : ""} onClick={() => setView(k)}>{label}</button>)}
+      </div>
+      {view !== "week" && <div className="daystrip nut-days" role="tablist" aria-label="Day of the week">
         {days.map((d) => {
           const logged = s.food.some((f) => f.day === d);
           const future = d > today;
@@ -85,7 +93,8 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
             </button>
           );
         })}
-      </div>
+      </div>}
+      {view === "today" && <>
       <section className="fuelboard">
         <img className="fb-bg" src={HERO_IMAGES.meal.src} alt="" />
         <div className="fb-head">
@@ -119,26 +128,6 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
           <span className="nut-op">=</span>
           <div className={t.kcal - eaten.kcal < 0 ? "over" : "left"}><b className="num">{Math.abs(Math.round(t.kcal - eaten.kcal)).toLocaleString("en-GB")}</b><span className="tiny">{t.kcal - eaten.kcal < 0 ? "Over" : "Left"}</span></div>
         </div>
-      )}
-
-      {split && look.carbsFat && (
-        <section className="card stack" style={{ gap: 10 }}>
-          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Where your calories come from</h3><span className="tiny">{isToday ? "Today" : dayName(day)}</span></div>
-          <SplitBar label="Eaten" s={split} />
-          {planSplit && <SplitBar label="Plan" s={planSplit} muted />}
-          <div className="rc-legend tiny"><span><i style={{ background: "var(--viz-1)" }} />Protein</span><span><i style={{ background: "var(--act)" }} />Carbs</span><span><i style={{ background: "var(--viz-3)" }} />Fat</span></div>
-        </section>
-      )}
-
-      {t && look.numbers && <ProteinSpread food={s.food} day={day} proteinG={t.proteinG} />}
-
-      {s.mealPlan && s.mealPlan.days.length > 0 && (
-        <ClientPlan key={`${day}-${!!session}`} plan={s.mealPlan} food={s.food} day={day} coachName={coachName} training={hasProgram ? !!session : null}
-          onLog={(m, items) => items.forEach((i) => store.addFood({ id: crypto.randomUUID(), day, meal: m, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }))} />
-      )}
-
-      {session && day >= today && (
-        <WorkoutFuelCard session={session.name} seed={Number(day.slice(8))} diet={s.intake?.answers.diet ?? []} notes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
       )}
 
       {yesterdayFood.length > 0 && !look.photoFirst && (
@@ -273,11 +262,31 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
         )}
       </section>}
 
+      </>}
+      {view === "plan" && <>
+      {s.mealPlan && s.mealPlan.days.length > 0 && (
+        <ClientPlan key={`${day}-${!!session}`} plan={s.mealPlan} food={s.food} day={day} coachName={coachName} training={hasProgram ? !!session : null}
+          onLog={(m, items) => items.forEach((i) => store.addFood({ id: crypto.randomUUID(), day, meal: m, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }))} />
+      )}
+
+      {session && day >= today && (
+        <WorkoutFuelCard session={session.name} seed={Number(day.slice(8))} diet={s.intake?.answers.diet ?? []} notes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
+      )}
+
       <RecipeShelf key={(s.intake?.answers.diet ?? []).join()} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onOpen={setRecipe} />
-      {recipe && <RecipeSheet r={recipe} canFavourite foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
-        label: `Log to ${MEALS.find((m) => m.key === recipe.meal)?.label.toLowerCase()}${isToday ? "" : `, ${dayName(day)}`}`,
-        run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
-      }} />}
+        {!(s.mealPlan && s.mealPlan.days.length > 0) && <div className="card small">{coachName} hasn't set you a meal plan yet. Browse the recipes below for ideas: any of them can be logged in one tap.</div>}
+      </>}
+      {view === "week" && <>
+      {split && look.carbsFat && (
+        <section className="card stack" style={{ gap: 10 }}>
+          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Where your calories come from</h3><span className="tiny">{isToday ? "Today" : dayName(day)}</span></div>
+          <SplitBar label="Eaten" s={split} />
+          {planSplit && <SplitBar label="Plan" s={planSplit} muted />}
+          <div className="rc-legend tiny"><span><i style={{ background: "var(--viz-1)" }} />Protein</span><span><i style={{ background: "var(--act)" }} />Carbs</span><span><i style={{ background: "var(--viz-3)" }} />Fat</span></div>
+        </section>
+      )}
+
+      {t && look.numbers && <ProteinSpread food={s.food} day={day} proteinG={t.proteinG} />}
 
       {week.loggedDays > 0 && look.numbers && (
         <section>
@@ -294,6 +303,13 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
           </div>
         </section>
       )}
+        {!(week.loggedDays > 0 && look.numbers) && <div className="card small">{look.numbers ? "Log a few days of food and your week shows here: averages, where your calories come from and protein through the day." : `${coachName} sees how your week went from your ${look.portions ? "hand portions" : "meal photos"}.`}</div>}
+      </>}
+      {recipe && <RecipeSheet r={recipe} canFavourite foodNotes={s.intake?.answers.foodNotes ?? ""} onClose={() => setRecipe(null)} action={{
+        label: `Log to ${MEALS.find((m) => m.key === recipe.meal)?.label.toLowerCase()}${isToday ? "" : `, ${dayName(day)}`}`,
+        run: () => { const i = planItemFromRecipe(recipe); store.addFood({ id: crypto.randomUUID(), day, meal: recipe.meal, name: i.name, kcal: i.kcal, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }); },
+      }} />}
+
     </>
   );
 }

@@ -79,12 +79,17 @@ export function CoachHabits({ clientName, say }: { clientName: string; say: (m: 
   );
 }
 
+const COACH_NUT_VIEWS: ["overview" | "targets" | "plan", string][] = [["overview", "Overview"], ["targets", "Targets"], ["plan", "Meal plan"]];
+const s0Targets = (store: { get(): { targets: unknown } }) => !!store.get().targets;
+
 /** Coach: set the client's calorie and macro targets, and see what they've logged. */
 export function CoachNutritionPanel({ clientName, say }: { clientName: string; say: (m: string) => void }) {
   const store = useLifestyleStore();
   const chat = useStore();
   // Why the targets changed, sent to the client with the change so they know the reason.
   const [why, setWhy] = useState("");
+  // Three views: how they're doing, what they aim for (targets and tracking style), and their meal plan.
+  const [view, setView] = useState<"overview" | "targets" | "plan">(() => (s0Targets(store) ? "overview" : "targets"));
   const s = useLifestyle();
   const today = localDate(new Date());
   const name = firstName(clientName) || "Your client";
@@ -129,8 +134,10 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
 
   return (
     <>
-      <TrackingStyleCard key={s.style} name={name} targets={t} say={say} />
-      <MealPhotoGallery name={name} say={say} />
+      <div className="seg nut-views" role="tablist" aria-label={`${name}'s nutrition`}>
+        {COACH_NUT_VIEWS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={view === k ? "on" : ""} onClick={() => setView(k)}>{label}</button>)}
+      </div>
+      {view === "overview" && <>
       {t && (
         <div className="card stack">
           <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · <span className="num">{Math.round(eaten.kcal).toLocaleString()}</span> of <span className="num">{t.kcal.toLocaleString()}</span> kcal</h3><Label kind="data">Data</Label></div>
@@ -166,6 +173,11 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
           ))}
         </div>
       )}
+      <MealPhotoGallery name={name} say={say} />
+        {!t && !s.food.length && <div className="card small">Nothing to show yet. Set {name}'s targets and tracking style under Targets, and their food shows here as they log it.</div>}
+      </>}
+      {view === "targets" && <>
+      <TrackingStyleCard key={s.style} name={name} targets={t} say={say} />
       {t && <SmartTargetsCard name={name} targets={t} food={s.food} today={today} intakeGoal={s.intake?.answers.goal ?? ""} onAccept={(next) => {
         store.setTargets(next);
         const msg = targetsChangeMessage(t, next, "Based on your food log and weigh-ins over the last few weeks.", name);
@@ -203,9 +215,12 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
         {changed && t && <input id="nt-why" className="field" maxLength={300} placeholder={`Why the change? ${name} sees this with the new numbers (optional)`} value={why} onChange={(e) => setWhy(e.target.value)} />}
         <button className="btn act block" disabled={!ok || !changed} onClick={save}>{t ? "Save targets" : "Set targets"}</button>
       </section>
+      </>}
+      {view === "plan" && <>
       {s.planReady
         ? <CoachPlanEditor key={s.mealPlan?.updatedAt ?? "none"} plan={s.mealPlan} targets={t} name={name} diet={s.intake?.answers.diet ?? []} foodNotes={s.intake?.answers.foodNotes ?? ""} onSave={(p) => { store.setMealPlan(p); say(p ? `Meal plan saved · ${name} sees it now` : "Meal plan removed"); }} />
         : <div className="card small">Meal plans need the latest database update. Run supabase/migrations/20261111090000_meal_plans.sql in the Supabase SQL Editor.</div>}
+      </>}
     </>
   );
 }
