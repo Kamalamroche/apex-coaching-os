@@ -711,6 +711,10 @@ button.tile{font:inherit}
 .fuelboard .fuel-arc .mid>small,.fuelboard .fuel-arc .mid>em,.fuelboard .fuel-side small{color:rgba(255,255,255,.72)}
 .fuelboard .fuel-side,.fuelboard .fuel-side div+div{border-color:var(--glass-line)}
 .mpills{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.food-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.food-meta .mpills{justify-content:flex-start}
+.plan-log:not(:disabled){border-color:var(--act);color:var(--act)}
+.plan-log.is-logged{color:var(--good);opacity:1}
 .mpill{font:700 11px/1 var(--num);padding:5px 7px;border-radius:var(--pill)}
 .mpill.p{background:color-mix(in srgb,var(--viz-1) 18%,transparent);color:var(--viz-1)}
 .mpill.c{background:color-mix(in srgb,var(--viz-2) 18%,transparent);color:var(--viz-2)}

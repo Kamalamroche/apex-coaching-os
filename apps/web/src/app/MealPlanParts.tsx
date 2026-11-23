@@ -226,8 +226,8 @@ export function ClientPlan({ plan, food, day, coachName, onLog, training = null 
                   ? <button key={i.id} type="button" className="plan-item link-like" onClick={() => setOpen(r)}><RecipeImg r={r} small className="plan-thumb" />{i.name}<Icons.forward width={14} height={14} /></button>
                   : <div key={i.id} className="plan-item">{i.name}</div>;
               })}
-              <button className={`btn sm ${logged ? "ghost" : "act"} plan-log`} disabled={logged} onClick={() => onLog(m.key, items)}>
-                {logged ? <><Icons.check width={14} height={14} /> Logged</> : "Ate as planned"}
+              <button className={`btn sm ghost plan-log${logged ? " is-logged" : ""}`} disabled={logged} onClick={() => onLog(m.key, items)}>
+                <Icons.check width={14} height={14} /> {logged ? "Logged" : "Ate as planned"}
               </button>
             </div>
           );
