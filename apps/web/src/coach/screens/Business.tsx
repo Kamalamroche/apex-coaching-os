@@ -1,4 +1,7 @@
 import { businessSummary, parsePounds, pounds, sampleBusiness, type BizClient, type BizInput } from "@apex/core";
+
+/** Whole pounds for the headline tiles: £834, not £833.65. */
+const wholePounds = (pence: number) => `£${Math.round(pence / 100).toLocaleString("en-GB")}`;
 import { Avatar, BusinessHero, ClientFlow, CountUp, Icons, IncomeBars, Label, SourceRows } from "@apex/ui";
 import { Suspense, useCallback, useEffect, useMemo, useState, lazy } from "react";
 import { useAppInfo } from "../../app/AppContext";
@@ -135,10 +138,10 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
         <div className="gy-stat" style={{ ["--i" as string]: 1 }}><b>{sum.retained90Pct === null ? "–" : <><CountUp value={sum.retained90Pct} />%</>}</b><span>still with you after 90 days</span></div>
         <div className="gy-stat" style={{ ["--i" as string]: 2 }}><b>{sum.conversionPct === null ? "–" : <><CountUp value={sum.conversionPct} />%</>}</b><span>of leads became clients</span></div>
       </div>
-      <div className="kpis full">
-        <div className="kpi"><b className="num">{sum.perClientPence ? pounds(sum.perClientPence) : "–"}</b><small>Average fee per client</small></div>
-        <div className="kpi"><b className="num">{sum.avgMonths === null ? "–" : `${sum.avgMonths} mo`}</b><small>Average time a client stays</small></div>
-        <div className="kpi"><b className="num">{sum.lifetimePence === null ? "–" : pounds(sum.lifetimePence)}</b><small>{sum.lifetimePence === null ? "Client value shows once someone has left" : "What a client is worth over their stay"}</small></div>
+      <div className="gy-stats sm full">
+        <div className="gy-stat" style={{ ["--i" as string]: 3 }}><b>{sum.perClientPence ? wholePounds(sum.perClientPence) : "–"}</b><span>average fee per client</span></div>
+        <div className="gy-stat" style={{ ["--i" as string]: 4 }}><b>{sum.avgMonths === null ? "–" : `${sum.avgMonths} mo`}</b><span>average time a client stays</span></div>
+        <div className="gy-stat" style={{ ["--i" as string]: 5 }}><b>{sum.lifetimePence === null ? "–" : wholePounds(sum.lifetimePence)}</b><span>{sum.lifetimePence === null ? "client value shows once someone has left" : "what a client is worth over their stay"}</span></div>
       </div>
 
       <div className="card full">
