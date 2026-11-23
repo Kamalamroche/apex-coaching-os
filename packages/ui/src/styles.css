@@ -1136,3 +1136,4 @@ button.chip::after{content:"";position:absolute;inset:-10px -2px}
 .fwk-score{flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;align-content:center;border:3px solid var(--fwk);line-height:1}
 .fwk-score b{font:700 19px/1 var(--num)}
 .fwk-score small{font-size:10px;color:var(--text3)}
+.seg.nut-views{position:sticky;top:64px;z-index:5;background:var(--bg2)}
