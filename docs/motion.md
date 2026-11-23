@@ -15,3 +15,9 @@ Rules
 - No glows. Colours come from the tokens.
 - "Reduce motion" on the device turns it all off (`styles.css` for CSS, `useReducedMotion` in the components).
 - Animate `opacity`, `translate`, `scale` and `clip-path`, never layout. Entrance animations use `backwards` fill so nothing keeps a transform (a lasting transform would trap fixed sheets).
+
+Scroll reveal and moving covers
+
+- `src/reveal.ts` (used by `Shell`): sections that start below the fold wait with their animations paused until they scroll into view, so rings, charts, bars and count-ups play while the person is looking. Anything already on screen plays at once. `CountUp` also waits until it is on screen.
+- Ticked habits draw a line through their name. Ticking the last habit of the day, and sending a check-in, earns a short burst of confetti.
+- Cover photos move: `HERO_LOOPS` in `packages/core/src/hero.ts` maps each still to a five-second Higgsfield clip of the same athlete doing one smooth rep (first frame = last frame, so it loops cleanly; 100 to 300 KB each, no sound). `HeroBackdrop` fades the clip in over the still once it plays, pauses it off screen, and skips it with "Reduce motion" or data saver.

@@ -1,5 +1,5 @@
 import { useApexState } from "@apex/core/react";
-import { Shell, useT, useToast, type TabDef } from "@apex/ui";
+import { Celebrate, Shell, useT, useToast, type TabDef } from "@apex/ui";
 import { useEffect, useState } from "react";
 import { OfflineBanner, useAppInfo } from "../app/AppContext";
 import { useOpenFromNotification } from "../app/PushParts";
@@ -25,6 +25,7 @@ export function ClientApp({ notice }: { notice?: string | null }) {
   const [tab, setTab] = useState<Tab>("today");
   const [playing, setPlaying] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+  const [party, setParty] = useState(0); // confetti when a check-in is sent
   const [checkingIn, setCheckingIn] = useState(false);
   const [intaking, setIntaking] = useState(false);
   // Opens More straight on a screen, e.g. Team from Today.
@@ -58,7 +59,8 @@ export function ClientApp({ notice }: { notice?: string | null }) {
     <Shell side="Client" switchHref="/start/" tabs={tabs} tab={tab} setTab={(t) => { setCheckingIn(false); setIntaking(false); setMoreStart(null); setTab(t); }} actions={signOut && <button className="iconbtn" onClick={signOut}>{t("Sign out")}</button>}>
       <OfflineBanner />
       {welcome === null ? <div className="card"><div className="small">Loading…</div></div> : inWelcome ? <Onboarding steps={welcome} agreements={agreements} onFinish={() => { setWelcomed(true); setTab("today"); }} say={say} /> : agreements.required.length > 0 ? <SignRequired list={agreements.required} onSigned={agreements.reload} say={say} /> : <>
-      {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); say(`Check-in sent · ${coachName} can see it`); }} />}
+      {checkingIn && !intaking && <CheckIn onExit={() => setCheckingIn(false)} onDone={() => { setCheckingIn(false); setTab("today"); window.scrollTo(0, 0); setParty((n) => n + 1); say(`Check-in sent · ${coachName} can see it`); }} />}
+      {party > 0 && <Celebrate key={party} />}
       {intaking && <Intake onExit={() => setIntaking(false)} onDone={() => { setIntaking(false); setTab("today"); window.scrollTo(0, 0); say(`Sent · ${coachName} can see your answers`); }} />}
       {!checkingIn && !intaking && tab === "today" && <Today start={start} checkedIn={checkedIn} onCheckIn={() => { setCheckedIn(true); say(`Thanks, ${coachName} will see this`); }} openCheckIn={openCheckIn} openIntake={openIntake} say={say} openTeam={() => { setMoreStart((p) => ({ view: "team", n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); }} go={(id) => {
         const more = (view: "account" | "habits") => { setMoreStart((p) => ({ view, n: (p?.n ?? 0) + 1 })); setTab("more"); window.scrollTo(0, 0); };

@@ -1,5 +1,5 @@
 import { clamp } from "@apex/core";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 export const Bar = ({ pct, color = "var(--act)" }: { pct: number; color?: string }) => (
   <div className="bar">
@@ -71,14 +71,41 @@ export function EditorialTitle({ text, caption, as: Tag = "h2", className = "" }
 }
 
 /** A campaign photo with a big poster word set behind the athlete (photo, then word, then the athlete cut-out on top). */
-export function HeroBackdrop({ art, word, focus }: { art: { src: string; cut?: string; focus: string; word: string; ink: "light" | "act" }; word?: string | null; focus?: string }) {
+export function HeroBackdrop({ art, word, focus }: { art: { src: string; cut?: string; video?: string; focus: string; word: string; ink: "light" | "act" }; word?: string | null; focus?: string }) {
   const text = word === null ? "" : (word ?? art.word).toUpperCase();
   const pos = { objectPosition: focus ?? art.focus };
+  // The moving version only plays where no still cut-out of the athlete sits on top (it would no longer line up).
+  const loop = art.video && !(text && art.cut) ? art.video : undefined;
   return (
     <>
       <img className="hero-img" src={art.src} alt="" style={pos} />
+      {loop && <HeroLoop src={loop} poster={art.src} style={pos} />}
       {text && <span className={`hero-word ink-${art.ink}`} aria-hidden="true" style={{ ["--n" as string]: Math.max(text.length, 3) }}>{text}</span>}
       {text && art.cut && <img className="hero-cut" src={art.cut} alt="" style={pos} />}
     </>
   );
+}
+
+/**
+ * A few seconds of the campaign photo in motion (made with Higgsfield from the same still, first frame = last frame so it
+ * loops without a jump). It fades in over the photo once it is actually playing, pauses when scrolled away, and is
+ * skipped entirely with "Reduce motion" or the browser's data saver, so the still photo is always the fallback.
+ */
+function HeroLoop({ src, poster, style }: { src: string; poster: string; style: CSSProperties }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [on, setOn] = useState(false);
+  const [allowed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saver = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+    return !saver && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  });
+  useEffect(() => {
+    const v = ref.current;
+    if (!allowed || !v || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => { if (e?.isIntersecting) void v.play().catch(() => {}); else v.pause(); });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [allowed]);
+  if (!allowed) return null;
+  return <video ref={ref} className={`hero-img hero-vid ${on ? "on" : ""}`} src={src} poster={poster} style={style} muted loop playsInline preload="metadata" aria-hidden="true" onPlaying={() => setOn(true)} />;
 }
