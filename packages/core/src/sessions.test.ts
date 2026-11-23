@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Booking } from "./booking";
-import { canMove, addMonths, expiryText, cancelWarning, chargeable, credits, creditsText, fromPackRow, isLateCancel, newPack, outcomeLabel, packProblem, policyText, sessionMonth, toMark, toPackRow, usesCredit, weeklyStarts, DEFAULT_POLICY } from "./sessions";
+import { canMove, addMonths, expiryText, cancelWarning, chargeable, credits, creditsText, fromPackRow, isLateCancel, newPack, outcomeLabel, packProblem, policyText, sessionMonth, toMark, toPackRow, usesCredit, weeklyStarts, logSessionProblem, loggedSession, DEFAULT_POLICY } from "./sessions";
 
 const now = new Date("2026-11-10T12:00:00Z");
 const at = (h: number) => new Date(now.getTime() + h * 3600000).toISOString();
@@ -106,5 +106,24 @@ describe("weekly slot", () => {
     const r = weeklyStarts(at(24), 4, [{ startsAt: at(24 + 14 * 24) }]);
     expect(r.starts).toEqual([at(24), at(24 + 7 * 24), at(24 + 21 * 24)]);
     expect(r.skipped).toEqual([at(24 + 14 * 24)]);
+  });
+});
+
+describe("logging a session by hand", () => {
+  const now = new Date("2026-11-23T18:00:00Z");
+  it("accepts a session earlier today or in the last year", () => {
+    expect(logSessionProblem("2026-11-23T07:00:00Z", now)).toBeNull();
+    expect(logSessionProblem("2026-01-10T07:00:00Z", now)).toBeNull();
+  });
+  it("refuses the future, very old dates and nonsense", () => {
+    expect(logSessionProblem("2026-11-24T07:00:00Z", now)).toMatch(/future/);
+    expect(logSessionProblem("2025-10-01T07:00:00Z", now)).toMatch(/year/);
+    expect(logSessionProblem("", now)).toMatch(/Pick/);
+  });
+  it("is attended, so it uses one credit", () => {
+    const b = loggedSession("c1", "2026-11-20T07:00:00Z", 60, " paid cash ", now);
+    expect(b).toMatchObject({ clientId: "c1", kind: "session", status: "booked", attendance: "attended", note: "paid cash", endsAt: "2026-11-20T08:00:00.000Z" });
+    const pack = newPack("c1", 5, 20000, "cash", 0, "", "purchase", new Date("2026-11-01T00:00:00Z"));
+    expect(credits([pack], [b], now).left).toBe(4);
   });
 });

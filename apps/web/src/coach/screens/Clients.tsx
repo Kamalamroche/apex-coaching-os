@@ -25,14 +25,15 @@ const DEMO_FEATURES = demoFeatures();
 
 /* Loaded when first opened, so the app starts faster. */
 const Transfer = lazy(() => import("./Transfer").then((m) => ({ default: m.Transfer })));
+const ClientSessions = lazy(() => import("./Sessions").then((m) => ({ default: m.ClientSessions })));
 const OneToOneTab = lazy(() => import("./OneToOne").then((m) => ({ default: m.OneToOneTab })));
 
 type Segment = "All" | "Needs attention" | TrainingMode;
 const SEGMENTS: Segment[] = ["All", "Needs attention", "Online", "Hybrid", "In person"];
-type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Assessment" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes" | "In person";
+type ProfileTab = "Overview" | "Programme" | "Report" | "Check-ins" | "Assessment" | "Form checks" | "Goals" | "Habits" | "Nutrition" | "Recovery" | "About" | "Notes" | "In person" | "Sessions";
 
 /** The tabs on a sample client's profile: the demo client has every tab, the others the basics. */
-const profileTabs = (id: number) => (id === DEMO_CLIENT_ID ? (["Overview", "In person", "Programme", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Programme", "Check-ins", "Notes"] as const));
+const profileTabs = (id: number) => (id === DEMO_CLIENT_ID ? (["Overview", "In person", "Sessions", "Programme", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const) : (["Overview", "In person", "Sessions", "Programme", "Check-ins", "Notes"] as const));
 
 const CHECK_INS = [
   { date: "Sat 18 Oct", weight: "62.6 kg", stats: "Energy 4/5 · sleep 7 h", note: "Hip a little tight after RDLs" },
@@ -173,6 +174,7 @@ function ClientProfile({ clientId, startTab, onBack, say, goBuild }: { clientId:
       {tab === "Recovery" && <RecoveryTab name={c.name} />}
       {tab === "About" && <><IntakeView clientName={c.name} /><FeatureSwitches api={DEMO_FEATURES} clientId={c.id === DEMO_CLIENT_ID ? DEMO_FEATURES_CLIENT : String(c.id)} clientName={c.name} say={say} /></>}
       {tab === "Notes" && <ClientNotes clientId={String(c.id)} clientName={c.name} say={say} />}
+      {tab === "Sessions" && <ClientSessions clientId={`demo-${c.name.split(" ")[0]!.toLowerCase()}`} name={c.name} say={say} />}
       {tab === "In person" && <OneToOneTab clientId={String(c.id)} clientName={c.name} canRun={c.id === DEMO_CLIENT_ID} whyNot={`In the demo you can run a session with ${CLIENTS.find((x) => x.id === DEMO_CLIENT_ID)?.name ?? "the sample client"}, whose app you can open too. Notes and in-person checks work for everyone.`} say={say} />}
       {tab === "Check-ins" && c.id !== DEMO_CLIENT_ID && (
         <div className="card flat list">

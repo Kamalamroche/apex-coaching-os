@@ -109,6 +109,31 @@ export function packProblem(sessions: number, pricePence: number | null): string
 export const packTitle = (p: Pick<SessionPack, "sessions" | "pricePence" | "source">) =>
   `${p.sessions} session${p.sessions === 1 ? "" : "s"}${p.source !== "purchase" ? ` · ${SOURCE_LABEL[p.source]}` : p.pricePence ? ` · ${formatPrice(p.pricePence)}` : ""}`;
 
+/* ---------- Sessions logged by hand ---------- */
+
+/** Lengths the coach can pick when logging a session that happened outside the app's calendar. */
+export const LOG_MINUTES = [30, 45, 60, 90];
+/** How far back a session can be logged: a year. */
+const LOG_MAX_DAYS = 366;
+
+/** Why this session can't be logged, or null. Logged sessions are ones that already happened. */
+export function logSessionProblem(startsAt: string, now = new Date()): string | null {
+  const t = Date.parse(startsAt);
+  if (!Number.isFinite(t)) return "Pick the day and time of the session.";
+  if (t > now.getTime() + 5 * 60000) return "That's in the future. Book it in the calendar instead, then mark it after.";
+  if (now.getTime() - t > LOG_MAX_DAYS * 86400000) return "Sessions can be logged up to a year back.";
+  return null;
+}
+
+/** A session that already happened (arranged by phone or in person), marked as attended so it uses one credit. */
+export function loggedSession(clientId: string, startsAt: string, minutes: number, note = "", now = new Date()): Booking {
+  const start = new Date(startsAt).toISOString();
+  return {
+    id: crypto.randomUUID(), clientId, startsAt: start, endsAt: new Date(Date.parse(start) + Math.max(15, Math.min(240, Math.round(minutes))) * 60000).toISOString(),
+    kind: "session", note: note.trim().slice(0, 500), status: "booked", createdAt: now.toISOString(), attendance: "attended", cancelledBy: null, late: false, waived: false, repeatId: null,
+  };
+}
+
 /* ---------- Credits ---------- */
 
 /** What happened to a session. Null while it's ahead, or not marked yet. */
