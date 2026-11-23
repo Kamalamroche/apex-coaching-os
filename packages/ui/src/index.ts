@@ -53,3 +53,4 @@ export { AssessmentProfile, CameraGuide, CompareTable, PostureView, ScoreScale }
 export { TestDemo } from "./testDemo";
 export { QuickFind, useQuickFindKeys } from "./quickFind";
 export { MatchStepView, TrainerCardView, TrustStrip, VerifiedBadge } from "./marketplace";
+export { GoalMeter, StarterOffer, SuccessStoryCard } from "./stories";

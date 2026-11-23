@@ -1,6 +1,6 @@
 import { HEADLINE_MAX, BIO_MAX, MODE_LABEL, SPECIALTY_IDEAS, SPECIALTY_MAX, pageLink, pageProblem, slugProblem, slugify, stageCounts, trainWithMeText, winRate, followUpsDue, sortLeads, type CoachPage, type Lead, type LeadStage, type TrainingModeName } from "@apex/core";
 import { BackLink, CoachPageView, GrowHero, Icons, LeadCard, PipelineStrip, Sheet } from "@apex/ui";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { GROWTH_NEEDS_UPDATE, LEADS_NEEDS_UPDATE, LEADS_SQL, openedForLeads, useGrowthApi } from "../../data/growth";
 import { demoPageExtras, livePageExtras, useGrowApi, type PageExtras } from "../../data/grow";
 import { isDemo, supabase } from "../../data/supabase";
@@ -8,10 +8,11 @@ import type { CoachLiveProps } from "../CoachApp";
 import { clientNames, useSendToClient } from "../sendToClient";
 import { GrowRewards } from "./GrowRewards";
 import { CoachListing } from "./CoachListing";
+import { CoachStories } from "./CoachStories";
 import { AddLeadSheet, EnquiryForm, LeadSheet, copyText, inviteLead, localToday } from "./CoachLeads";
 
 type Load = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; page: CoachPage; leads: Lead[] };
-export type GrowView = "leads" | "form" | "page" | "rewards" | "directory";
+export type GrowView = "leads" | "form" | "page" | "stories" | "rewards" | "directory";
 type View = GrowView;
 type Filter = LeadStage | "open" | "all";
 
@@ -20,6 +21,7 @@ export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView
   const api = useGrowthApi();
   const grow = useGrowApi();
   const send = useSendToClient(live);
+  const names = useMemo(() => clientNames(live), [live?.clients]); // eslint-disable-line react-hooks/exhaustive-deps
   const [extras, setExtras] = useState<PageExtras | null>(null);
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [draft, setDraft] = useState<CoachPage | null>(null);
@@ -109,7 +111,7 @@ export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView
       </GrowHero>
 
       <div className="seg" role="tablist" aria-label="Train with me">
-        {([["leads", `Leads${counts.new ? ` ${counts.new}` : ""}`], ["form", "Form"], ["page", "Page"], ["directory", "Directory"], ...(grow ? [["rewards", "Rewards"]] : [])] as [View, string][]).map(([v, label]) => (
+        {([["leads", `Leads${counts.new ? ` ${counts.new}` : ""}`], ["form", "Form"], ["page", "Page"], ["stories", "Stories"], ["directory", "Directory"], ...(grow ? [["rewards", "Rewards"]] : [])] as [View, string][]).map(([v, label]) => (
           <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>{label}</button>
         ))}
       </div>
@@ -147,7 +149,9 @@ export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView
         </>
       )}
 
-      {view === "rewards" && grow && <GrowRewards api={grow} names={clientNames(live)} send={send} say={say} onChanged={loadExtras} />}
+      {view === "rewards" && grow && <GrowRewards api={grow} names={names} send={send} say={say} onChanged={loadExtras} />}
+
+      {view === "stories" && <CoachStories page={saved} names={names} say={say} />}
 
       {view === "directory" && <CoachListing page={saved} say={say} onSetUp={() => setView("page")} />}
 

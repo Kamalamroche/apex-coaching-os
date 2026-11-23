@@ -2392,3 +2392,85 @@ reset role;
 do $$ begin
   assert (select count(*) from public_trainers() where slug = 'dir-coach') = 0, 'leaving the directory hides the card';
 end $$;
+
+-- growth tools: success stories, the free starter plan, the income goal
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-00000005e001'),('00000000-0000-0000-0000-00000005e002'),('00000000-0000-0000-0000-00000005e003');
+insert into profiles values ('00000000-0000-0000-0000-00000005e001','coach','Story Coach'),('00000000-0000-0000-0000-00000005e002','client','Sam Story'),('00000000-0000-0000-0000-00000005e003','client','Not Theirs');
+insert into coach_clients (coach_id, client_id, started_at) values ('00000000-0000-0000-0000-00000005e001','00000000-0000-0000-0000-00000005e002', now() - interval '70 days');
+insert into sessions (id, client_id, started_at, finished_at) values
+  ('5e000000-0000-0000-0000-0000000f5001','00000000-0000-0000-0000-00000005e002', now() - interval '60 days', now() - interval '60 days'),
+  ('5e000000-0000-0000-0000-0000000f5002','00000000-0000-0000-0000-00000005e002', now() - interval '2 days', now() - interval '2 days');
+insert into logged_sets (session_id, exercise_id, set_index, load_kg, reps, completed_at) values
+  ('5e000000-0000-0000-0000-0000000f5001', (select min(id) from exercises), 1, 40, 8, now() - interval '60 days'),
+  ('5e000000-0000-0000-0000-0000000f5002', (select min(id) from exercises), 1, 55, 8, now() - interval '2 days');
+insert into check_ins (client_id, weight_kg, submitted_at) values ('00000000-0000-0000-0000-00000005e002', 82, now() - interval '65 days'), ('00000000-0000-0000-0000-00000005e002', 78.5, now() - interval '3 days');
+insert into coach_pages (coach_id, slug, headline, published) values ('00000000-0000-0000-0000-00000005e001', 'story-coach', 'Get strong', true);
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000005e001');
+do $$
+declare n jsonb := client_story_numbers('00000000-0000-0000-0000-00000005e002');
+begin
+  assert (n ->> 'weeks')::int = 10, 'weeks with the coach';
+  assert (n ->> 'workouts')::int = 2, 'finished workouts';
+  assert (n ->> 'bests')::int = 1, 'one personal best';
+  assert (n -> 'lift' ->> 'to')::numeric = 55, 'best lift from the real sets';
+  assert (n -> 'weight' ->> 'to')::numeric = 78.5, 'weight change from check-ins';
+  begin perform client_story_numbers('00000000-0000-0000-0000-00000005e003'); assert false, 'not their client'; exception when insufficient_privilege then null; end;
+  begin
+    insert into success_stories (coach_id, client_id, headline, status) values (auth.uid(), '00000000-0000-0000-0000-00000005e002', 'Fake', 'approved');
+    assert false, 'coach cannot write a story directly';
+  exception when insufficient_privilege then null; end;
+  begin perform create_success_story('00000000-0000-0000-0000-00000005e002', 'Stronger at 50', '{}'); assert false, 'needs a number'; exception when check_violation then null; end;
+end $$;
+select create_success_story('00000000-0000-0000-0000-00000005e002', 'Stronger at 50', '{lift,workouts,made_up}');
+do $$ begin
+  assert (select shown from success_stories) = '{lift,workouts}', 'only real numbers can be shown';
+  begin perform create_success_story('00000000-0000-0000-0000-00000005e002', 'Again', '{lift}'); assert false, 'one ask at a time'; exception when unique_violation then null; end;
+  update success_stories set status = 'approved';
+  assert (select status from success_stories) = 'asked', 'coach cannot approve for the client';
+end $$;
+set role anon;
+do $$ begin
+  assert jsonb_array_length(public_coach_stories('story-coach')) = 0, 'nothing public until the client says yes';
+end $$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000005e003');
+do $$ begin
+  assert (select count(*) from success_stories) = 0, 'other clients see no stories';
+  begin perform answer_success_story((select id from success_stories limit 1), true); exception when others then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000005e002');
+select answer_success_story((select id from success_stories limit 1), true, 'Best decision I made', false);
+set role anon;
+do $$ declare s jsonb := public_coach_stories('story-coach') -> 0; begin
+  assert s ->> 'quote' = 'Best decision I made', 'quote shows';
+  assert s -> 'name' = 'null'::jsonb or s ->> 'name' is null, 'no name unless the client allows it';
+  assert (s -> 'numbers') ? 'lift' and not ((s -> 'numbers') ? 'weight'), 'only the chosen numbers are public';
+end $$;
+-- starter plan
+reset role;
+insert into programme_listings (id, coach_id, title, weeks, days, status, price_pence) values
+  ('5e000000-0000-0000-0000-00000000aa01', '00000000-0000-0000-0000-00000005e001', 'Strong start', 1, '[{"week":1,"dayIndex":0}]', 'live', 0),
+  ('5e000000-0000-0000-0000-00000000aa02', '00000000-0000-0000-0000-00000005e001', 'Paid block', 4, '[{"week":1,"dayIndex":0}]', 'live', 4900);
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000005e001');
+update coach_pages set starter_id = '5e000000-0000-0000-0000-00000000aa02', income_goal_pence = 400000 where coach_id = auth.uid();
+set role anon;
+do $$ begin
+  assert (select count(*) from public_coach_starter('story-coach')) = 0, 'a paid programme is never the free starter';
+  begin perform request_starter('story-coach', 'Ann', 'ann@example.com'); assert false, 'no free plan set'; exception when no_data_found then null; end;
+end $$;
+reset role;
+update coach_pages set starter_id = '5e000000-0000-0000-0000-00000000aa01' where coach_id = '00000000-0000-0000-0000-00000005e001';
+set role anon;
+select request_starter('story-coach', 'Ann Lee', 'Ann@Example.com', 'Get stronger');
+do $$ begin
+  assert (select title from public_coach_starter('story-coach')) = 'Strong start', 'starter shows';
+  begin perform request_starter('story-coach', 'Ann Lee', 'ann@example.com'); assert false, 'asked once'; exception when unique_violation then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert (select follow_up from join_requests where email = 'ann@example.com') = current_date + 7, 'follow-up on day 7';
+  assert (select source from join_requests where email = 'ann@example.com') = 'starter', 'tagged as starter';
+end $$;

@@ -1,5 +1,5 @@
 import { campaignEndsText, campaignLive, spotsLeft, spotsText, formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, readPrefill, requestProblem, trainerMeta, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
-import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, ThemeButton, TrustStrip } from "@apex/ui";
+import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, StarterOffer, SuccessStoryCard, ThemeButton, TrustStrip } from "@apex/ui";
 import { SlotPicker } from "../app/BookingParts";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage, type PublicBookingMenu } from "../data/growth";
@@ -8,6 +8,8 @@ import { isDemo, supabase } from "../data/supabase";
 import { demoPageMarketing, liveCountVisit, livePageMarketing, type PageMarketing } from "../data/marketing";
 import { ProgrammeShelf } from "./ProgrammeShelf";
 import { demoDirectory, liveDirectory, type PageTrust } from "../data/marketplace";
+import { demoPublicStarter, demoPublicStories, demoRequestStarter, livePublicStarter, livePublicStories, liveRequestStarter, type PublicStarter } from "../data/stories";
+import type { PublicStory, StoryKey } from "@apex/core";
 
 /** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=.
     ?form=1 opens the enquiry form straight away, ?embed=1 shows only the form (for the coach's own website), ?src= tags where the link was shared. */
@@ -30,6 +32,8 @@ export function CoachPublic() {
   const bookLink = useMemo(() => readBookLink(location.search), []);
   const [menu, setMenu] = useState<PublicBookingMenu | null>(null);
   const [booking, setBooking] = useState<string | null | false>(false);
+  const [stories, setStories] = useState<PublicStory[]>([]);
+  const [starter, setStarter] = useState<PublicStarter | null>(null);
 
   useEffect(() => {
     if (!slug) { setPage(null); return; }
@@ -40,8 +44,10 @@ export function CoachPublic() {
       if (m && m.services.length && m.settings?.windows.length && bookLink.open) setBooking(m.services.some((x) => x.id === bookLink.serviceId) ? bookLink.serviceId : m.services.length === 1 ? m.services[0]!.id : null);
     }, () => setMenu(null));
     void (isDemo() || !supabase ? demoDirectory() : liveDirectory(supabase)).trust(slug).then(setTrust, () => setTrust(null));
-    if (isDemo() || !supabase) { setExtras(demoPageExtras()); setMarketing(demoPageMarketing()); }
+    if (isDemo() || !supabase) { setExtras(demoPageExtras()); setMarketing(demoPageMarketing()); setStories(demoPublicStories()); setStarter(demoPublicStarter()); }
     else {
+      void livePublicStories(supabase, slug).then(setStories);
+      void livePublicStarter(supabase, slug).then(setStarter);
       void livePageExtras(supabase, slug).then(setExtras);
       void livePageMarketing(supabase, slug).then(setMarketing);
       // One anonymous count per visit, tagged with where the link was shared (or a friend's link).
@@ -99,6 +105,13 @@ export function CoachPublic() {
           ? <span className="gr-cta glass" role="status"><Icons.check width={16} height={16} /> Sent · {first} will be in touch</span>
           : <button className="gr-cta" onClick={() => setAsking(true)}>Train with {first} <Icons.arrow width={15} height={15} /></button>}
       />
+      {stories.length > 0 && (
+        <section className="gr-book stack" style={{ gap: 12 }} aria-label={`Results with ${first}`}>
+          <EditorialTitle as="h2" text="Real results" caption="From clients' own training" className="gr-form-title" />
+          {stories.map((s, i) => <SuccessStoryCard key={`${s.at}-${i}`} i={i} headline={s.headline} numbers={s.numbers} shown={Object.keys(s.numbers) as StoryKey[]} quote={s.quote} name={s.name} />)}
+        </section>
+      )}
+      {starter && <StarterBlock starter={starter} first={first} onSend={(d) => (api.live && supabase ? liveRequestStarter(supabase, page.slug, d) : demoRequestStarter(d))} />}
       {canBook && menu && (
         <section className="gr-book" aria-label={`Book with ${first}`}>
           <EditorialTitle as="h2" text="Book a time" caption="Pick a service" className="gr-form-title" />
@@ -120,6 +133,43 @@ export function CoachPublic() {
         </Sheet>
       )}
     </main>
+  );
+}
+
+/** The free starter plan: name and email, and the trainer sends the invite. */
+function StarterBlock({ starter, first, onSend }: { starter: PublicStarter; first: string; onSend: (d: { name: string; email: string; goal: string }) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [d, setD] = useState({ name: "", email: "", goal: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const set = (k: keyof typeof d, v: string) => { setD((x) => ({ ...x, [k]: v })); setError(null); };
+  const send = async () => {
+    if (d.name.trim().length < 2) { setError("Add your name."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim())) { setError("Add an email so the plan can reach you."); return; }
+    setBusy(true);
+    try { await onSend(d); setSent(true); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    setBusy(false);
+  };
+  return (
+    <StarterOffer title={starter.title} tagline={starter.tagline} weeks={starter.weeks} cover={starter.cover}>
+      {sent ? (
+        <p className="small" role="status" style={{ margin: 0 }}><Icons.check width={14} height={14} style={{ color: "var(--good)", verticalAlign: "-2px" }} /> Asked. {first} will email your invite to start it in the APEX app.</p>
+      ) : !open ? (
+        <button className="gr-cta" style={{ animation: "none" }} onClick={() => setOpen(true)}>Get it free <Icons.arrow width={15} height={15} /></button>
+      ) : (
+        <form className="stack" style={{ gap: 10 }} onSubmit={(e) => { e.preventDefault(); void send(); }}>
+          <label className="stack" style={{ gap: 6 }}><span className="tiny">Your name</span><input className="field" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} /></label>
+          <label className="stack" style={{ gap: 6 }}><span className="tiny">Email</span><input className="field" type="email" autoComplete="email" inputMode="email" value={d.email} onChange={(e) => set("email", e.target.value)} /></label>
+          <div className="gr-chips" role="group" aria-label="Your main goal">
+            {GOAL_CHOICES.map((g) => <button key={g} type="button" className="gr-chip" aria-pressed={d.goal === g} onClick={() => set("goal", d.goal === g ? "" : g)}>{g}</button>)}
+          </div>
+          {error && <p className="small" role="alert" style={{ margin: 0, color: "var(--crit)" }}>{error}</p>}
+          <button className="gr-cta" style={{ animation: "none" }} disabled={busy}>{busy ? "Sending…" : "Send me the plan"}</button>
+          <p className="tiny" style={{ margin: 0 }}>Free, no card. {first} invites you into the APEX app to start it. We share your name and email with {first} only. See <a href="/legal/#privacy">privacy</a>.</p>
+        </form>
+      )}
+    </StarterOffer>
   );
 }
 

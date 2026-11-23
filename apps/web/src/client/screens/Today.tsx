@@ -1,4 +1,5 @@
 import { HERO_IMAGES, WEEKDAY_NAMES, checkInDue, dayRings, localDate, ringNudge, ringStreak, ringWeek, type RingInput, exerciseFor, heroForWorkout, newestFirst, shortDate, trainingWeek } from "@apex/core";
+import { StoryAsk } from "./StoryAsk";
 import { LiveFollow, LiveNowBanner } from "../../app/LiveParts";
 import { AssessmentBanner } from "./Assessment";
 import { useApexState } from "@apex/core/react";
@@ -70,6 +71,7 @@ export function Today({ start, checkedIn, onCheckIn, openCheckIn, openIntake, op
       <LiveNowBanner onJoin={() => setFollowing(true)} />
       {following && <LiveFollow onClose={() => setFollowing(false)} />}
       <AssessmentBanner />
+      <StoryAsk say={say} />
       {cover ? (
         <section className="hero cover" aria-label="Today's session">
           <HeroBackdrop art={hero} word={null} />
