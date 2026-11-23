@@ -1,4 +1,5 @@
 /* Client success stories: real numbers from a client's training, shared only after the client says yes. Pure. */
+import type { HeroImage } from "./hero";
 
 export type StoryKey = "weeks" | "workouts" | "bests" | "lift" | "weight";
 export const STORY_KEYS: StoryKey[] = ["lift", "bests", "workouts", "weeks", "weight"];
@@ -91,4 +92,16 @@ export function samplePublicStories(now = new Date()): PublicStory[] {
     { headline: "Aisha's back squat, up 20 kg", quote: "I never thought I'd squat my body weight. Every session counted.", name: "Aisha K.", numbers: { lift: { name: "Back squat", from: 50, to: 70 }, workouts: 38, weeks: 14 }, at: ago(9) },
     { headline: "36 workouts in 12 weeks", quote: "", name: null, numbers: { workouts: 36, weeks: 12, bests: 7 }, at: ago(30) },
   ];
+}
+
+/** The studio photo that fits a story best, and where to frame it (0 top, 1 bottom). */
+export function storyPhoto(n: StoryNumbers): { hero: HeroImage; focus: number } {
+  const name = n.lift?.name.toLowerCase() ?? "";
+  if (/squat|lunge|leg press/.test(name)) return { hero: "squat", focus: 0.35 };
+  if (/deadlift|rdl|hinge|swing/.test(name)) return { hero: "hinge", focus: 0.45 };
+  if (/bench|chest|push/.test(name)) return { hero: "bench", focus: 0.45 };
+  if (/overhead|shoulder|press/.test(name)) return { hero: "upper", focus: 0.25 };
+  if (/row|pull|chin|lat/.test(name)) return { hero: "pull", focus: 0.45 };
+  if (/thrust|bridge|glute/.test(name)) return { hero: "hip-thrust", focus: 0.45 };
+  return { hero: n.lift ? "dumbbell" : "coach", focus: 0.4 };
 }

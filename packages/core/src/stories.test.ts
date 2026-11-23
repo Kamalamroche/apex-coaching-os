@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableKeys, headlineIdeas, samplePublicStories, storyLines, storyProblem, successCaption } from "./stories";
+import { availableKeys, headlineIdeas, samplePublicStories, storyLines, storyPhoto, storyProblem, successCaption } from "./stories";
 import { ASSUMED_WIN_PCT, incomeGoalProblem, incomePlan, incomePlanSummary, weeklySteps } from "./incomeGoal";
 import { sourceLabel } from "./leads";
 
@@ -34,6 +34,11 @@ describe("success stories", () => {
     expect(c).toContain('"I never thought');
     expect(c).toContain("Shared with their permission");
     expect(c.endsWith("https://x.test/c/kamal/")).toBe(true);
+  });
+  it("picks a studio photo that matches the lift", () => {
+    expect(storyPhoto(nums).hero).toBe("squat");
+    expect(storyPhoto({ lift: { name: "Romanian deadlift", from: 40, to: 57.5 } }).hero).toBe("hinge");
+    expect(storyPhoto({ workouts: 12 }).hero).toBe("coach");
   });
   it("names the starter plan lead source", () => {
     expect(sourceLabel("starter")).toBe("Free starter plan");

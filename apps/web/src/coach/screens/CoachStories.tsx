@@ -1,9 +1,11 @@
 import {
-  STORY_HEADLINE_MAX, STORY_STATUS_LABEL, availableKeys, headlineIdeas, pageLink, storyLines, storyProblem, successCaption,
+  HERO_IMAGES, STORY_HEADLINE_MAX, STORY_STATUS_LABEL, availableKeys, headlineIdeas, pageLink, storyLines, storyPhoto, storyProblem, successCaption,
   type CoachPage, type Story, type StoryKey, type StoryNumbers,
 } from "@apex/core";
-import { Icons, Label, Sheet, SuccessStoryCard } from "@apex/ui";
-import { useCallback, useEffect, useState } from "react";
+import { Icons, Label, Sheet, SuccessStoryCard, drawMarketingCard, loadStoryFonts, type MarketingCardTheme } from "@apex/ui";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { loadPhoto, shareCards } from "../../app/shareImage";
+import { useAppInfo } from "../../app/AppContext";
 import { isDemo, supabase } from "../../data/supabase";
 import { demoStories, liveStories, type StarterChoice, type StoriesApi } from "../../data/stories";
 import { copyText } from "./CoachLeads";
@@ -17,6 +19,7 @@ export function CoachStories({ page, names, say }: { page: CoachPage; names: Rec
   const [starter, setStarter] = useState<{ picked: string | null; choices: StarterChoice[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [posting, setPosting] = useState<Story | null>(null);
 
   useEffect(() => {
     if (isDemo() || !supabase) { setApi(demoStories(names)); return; }
@@ -44,10 +47,6 @@ export function CoachStories({ page, names, say }: { page: CoachPage; names: Rec
     try { await api.remove(s.id); say(s.status === "approved" ? "Taken off your page" : "Removed"); await reload(); }
     catch (e) { say(e instanceof Error ? e.message : String(e)); }
   };
-  const caption = async (s: Story) => {
-    const name = s.showName ? s.clientName.split(" ")[0]! : null;
-    if (await copyText(successCaption({ headline: s.headline, quote: s.quote, name, numbers: s.numbers }, s.shown, link))) say("Caption copied · edit it before you post");
-  };
   const approved = stories.filter((s) => s.status === "approved");
   const others = stories.filter((s) => s.status !== "approved");
 
@@ -66,7 +65,7 @@ export function CoachStories({ page, names, say }: { page: CoachPage; names: Rec
             {approved.map((s, i) => (
               <SuccessStoryCard key={s.id} i={i} headline={s.headline} numbers={s.numbers} shown={s.shown} quote={s.quote} name={s.showName ? s.clientName : null}
                 note={s.showName ? undefined : <span className="tiny">{s.clientName} · name hidden on your page</span>}>
-                <button className="btn act sm" onClick={() => void caption(s)}><Icons.copy width={14} height={14} /> Copy a caption</button>
+                <button className="btn act sm" onClick={() => setPosting(s)}><Icons.share width={14} height={14} /> Make a post</button>
                 <button className="btn ghost sm" onClick={() => void remove(s)}>Take down</button>
               </SuccessStoryCard>
             ))}
@@ -101,6 +100,7 @@ export function CoachStories({ page, names, say }: { page: CoachPage; names: Rec
         )}
       </section>
 
+      {posting && <StoryPost story={posting} link={link} say={say} onClose={() => setPosting(null)} />}
       {asking && <AskStory api={api} names={names} say={say} onDone={() => { setAsking(false); void reload(); }} onClose={() => setAsking(false)} />}
     </>
   );
@@ -184,6 +184,64 @@ function AskStory({ api, names, say, onDone, onClose }: { api: StoriesApi; names
         </div>
       )}
       {client && error && !nums && <p className="small" role="alert" style={{ margin: 0, color: "var(--crit)" }}>{error}</p>}
+    </Sheet>
+  );
+}
+
+/** "Priya Sharma" → "Priya S." */
+const shortName = (full: string) => {
+  const p = full.trim().split(/\s+/);
+  return p.length > 1 ? `${p[0]} ${p[p.length - 1]![0]}.` : p[0] ?? "";
+};
+
+const LOOKS: [MarketingCardTheme, string][] = [["studio", "Studio"], ["night", "Night"], ["day", "Daylight"]];
+
+/** An approved story as an Instagram post (4:5) or story (9:16), drawn on the phone, shared with the share sheet. */
+function StoryPost({ story: s, link, say, onClose }: { story: Story; link: string; say: (m: string) => void; onClose: () => void }) {
+  const { coachName } = useAppInfo();
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [format, setFormat] = useState<"post" | "story">("post");
+  const [theme, setTheme] = useState<MarketingCardTheme>("studio");
+  const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const name = s.showName ? shortName(s.clientName) : null;
+  const [caption, setCaption] = useState(() => successCaption({ headline: s.headline, quote: s.quote, name, numbers: s.numbers }, s.shown, link));
+  const pic = storyPhoto(s.numbers);
+  const site = link.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  useEffect(() => { void Promise.all([loadStoryFonts(), loadPhoto(HERO_IMAGES[pic.hero].src).then(setPhoto)]).then(() => setReady(true)); }, [pic.hero]);
+  useEffect(() => {
+    if (!canvas.current) return;
+    const lines = storyLines(s.numbers, s.shown).map(({ value, label }) => ({ value, label }));
+    drawMarketingCard(canvas.current, { card: { kind: "result", headline: s.headline, lines, quote: s.quote, name }, format, theme, coach: coachName, site, photo, photoFocus: pic.focus });
+  }, [s, format, theme, coachName, site, photo, pic.focus, name, ready]);
+  const share = async () => {
+    if (!canvas.current) return;
+    const m = await shareCards([canvas.current], `apex-result-${format}`, caption);
+    if (m) say(m);
+  };
+  return (
+    <Sheet label="Make a post" onClose={onClose}>
+      <div className="sect"><h2 className="h3">Make a post</h2><button className="btn ghost sm" onClick={onClose}>Close</button></div>
+      <div className="stack" style={{ gap: 14 }}>
+        <canvas ref={canvas} className="mk-canvas" aria-label={`${s.headline}, ${format === "post" ? "post" : "story"} preview`} />
+        <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+          <div className="seg" style={{ flex: "1 1 160px" }}>
+            {(["post", "story"] as const).map((f) => <button key={f} className={format === f ? "on" : ""} aria-pressed={format === f} onClick={() => setFormat(f)}>{f === "post" ? "Post 4:5" : "Story 9:16"}</button>)}
+          </div>
+          <div className="seg" style={{ flex: "1 1 200px" }}>
+            {LOOKS.map(([t, label]) => <button key={t} className={theme === t ? "on" : ""} aria-pressed={theme === t} onClick={() => setTheme(t)}>{label}</button>)}
+          </div>
+        </div>
+        <label className="stack" style={{ gap: 6 }}>
+          <span className="tiny row" style={{ gap: 8 }}>Caption <Label kind="ai">AI suggestion</Label></span>
+          <textarea className="field mk-caption" value={caption} onChange={(e) => setCaption(e.target.value)} />
+        </label>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn act grow" onClick={() => void share()}><Icons.share width={15} height={15} /> Share or save</button>
+          <button className="btn ghost" onClick={() => void copyText(caption).then((ok) => ok && say("Caption copied"))}><Icons.copy width={15} height={15} /> Caption</button>
+        </div>
+        <p className="tiny" style={{ margin: 0 }}>Only the numbers and words {s.clientName.split(" ")[0]} approved{name ? `, with their name as ${name}` : ", without their name"}. Sized for Instagram, TikTok, Facebook and WhatsApp.</p>
+      </div>
     </Sheet>
   );
 }
