@@ -29,6 +29,7 @@ export function coachPlaces(opts: { gym: boolean; share?: boolean }): Place[] {
     screen("chat:resources", "Resource library", "Messages · guides and files", { tab: "chat", sub: "resources" }, ["resources", "guides", "pdf", "files", "library", "courses"]),
     screen("money:programmes", "Programmes to sell", "Business · ready-made plans", { tab: "money", sub: "programmes" }, ["shop", "sell", "products", "store"]),
     screen("money:marketing", "Marketing", "Business · posts, offers, QR poster", { tab: "money", sub: "marketing" }, ["posts", "instagram", "poster", "qr", "offers", "social"]),
+    screen("money:sessions", "Sessions and packs", "Business · packs paid outside the app, register", { tab: "money", sub: "sessions" }, ["sessions", "packs", "credits", "cash", "bank transfer", "register", "log session", "pt", "one to one", "1:1"]),
     screen("money:classes", "Group classes", "Business · limits and waitlist", { tab: "money", sub: "classes" }, ["classes", "group", "waitlist", "bootcamp"]),
     screen("money:agreements", "Contracts and waivers", "Business · clients sign by name", { tab: "money", sub: "agreements" }, ["contract", "waiver", "sign", "agreement", "terms"]),
     ...(opts.gym ? [screen("money:gym", "Gym", "Business · your trainers", { tab: "money", sub: "gym" }, ["gym", "trainers", "staff", "studio"])] : []),

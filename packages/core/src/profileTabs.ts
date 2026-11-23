@@ -3,7 +3,7 @@
 
 export const PROFILE_GROUPS = [
   { id: "overview", label: "Overview", tabs: ["Overview", "Health"] },
-  { id: "training", label: "Training", tabs: ["Programme", "In person", "Report"] },
+  { id: "training", label: "Training", tabs: ["Programme", "In person", "Sessions", "Report"] },
   { id: "checkins", label: "Check-ins", tabs: ["Check-ins", "Form checks", "Assessment"] },
   { id: "lifestyle", label: "Lifestyle", tabs: ["Habits", "Nutrition", "Recovery"] },
   { id: "about", label: "About", tabs: ["About", "Goals", "Notes"] },

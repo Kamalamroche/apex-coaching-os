@@ -51,10 +51,10 @@ export function CalendarCard({ clients, onOpen, onPrep }: { clients?: LiveClient
 const nameMap = (clients?: LiveClient[] | null): Record<string, string> => (clients ? Object.fromEntries(clients.map((c) => [c.id, c.name])) : DEMO_BOOKING_NAMES);
 
 /** Coach: upcoming bookings, booking for a client, and the weekly hours clients can book. */
-export function Calendar({ clients, live, onBack, say }: { clients?: LiveClient[] | null; live?: CoachLiveProps; onBack: () => void; say: (m: string) => void }) {
+export function Calendar({ clients, live, onBack, say, startMode = "list", backLabel = "Brief" }: { clients?: LiveClient[] | null; live?: CoachLiveProps; onBack: () => void; say: (m: string) => void; startMode?: "list" | "sessions"; backLabel?: string }) {
   const api = useBookingApi();
   const data = useBookings(api);
-  const [mode, setMode] = useState<"list" | "sessions" | "services" | "hours">("list");
+  const [mode, setMode] = useState<"list" | "sessions" | "services" | "hours">(startMode);
   const [moving, setMoving] = useState<string | null>(null);
   const names = nameMap(clients);
   const [guests, setGuests] = useState<GuestBooking[]>([]);
@@ -87,7 +87,7 @@ export function Calendar({ clients, live, onBack, say }: { clients?: LiveClient[
 
   return (
     <>
-      <div className="full"><BackLink onClick={onBack}>Brief</BackLink></div>
+      <div className="full"><BackLink onClick={onBack}>{backLabel}</BackLink></div>
       <div className="full"><div className="eyebrow">Calendar</div><h1 className="h1">Bookings</h1></div>
       <div className="chips full" role="tablist">
         <button role="tab" aria-selected={mode === "list"} className={`chip ${mode === "list" ? "on" : ""}`} onClick={() => setMode("list")}>Upcoming</button>
