@@ -52,3 +52,5 @@ export { LiveTimerFace, type LiveFace } from "./liveTimer";
 export { AssessmentProfile, CameraGuide, CompareTable, PostureView, ScoreScale } from "./assessment";
 export { TestDemo } from "./testDemo";
 export { QuickFind, useQuickFindKeys } from "./quickFind";
+export { MatchStepView, TrainerCardView, TrustStrip, VerifiedBadge } from "./marketplace";
+export { GoalMeter, StarterOffer, SuccessStoryCard } from "./stories";

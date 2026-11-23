@@ -1,0 +1,38 @@
+/* Growth tools: success stories, the free starter plan and the income goal meter. Athletic Tech tokens only. */
+.sg-story{display:flex;flex-direction:column;gap:12px;padding:18px 16px;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);box-shadow:var(--card-shadow,none);text-align:left;animation:sg-in .35s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 50ms)}
+.sg-story h3{margin:0;font:900 20px/1.1 var(--head);letter-spacing:-.005em;text-transform:uppercase;color:var(--text)}
+.sg-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.sg-nums div{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:var(--r);background:var(--bg2)}
+.sg-nums b{font:800 20px/1 var(--num);letter-spacing:-.02em;white-space:nowrap;color:var(--act)}
+.sg-nums span{font-size:12px;line-height:1.3;color:var(--text2)}
+.sg-story blockquote{margin:0;padding-left:12px;border-left:3px solid var(--act);font:italic 400 16px/1.45 var(--serif);color:var(--text)}
+.sg-by{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text3)}
+.sg-by svg{flex:none;color:var(--good)}
+.sg-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sg-actions>*{flex:1 1 120px}
+.sg-starter{display:flex;flex-direction:column;border-radius:var(--r-lg);border:1px solid var(--act);background:var(--card);overflow:hidden;text-align:left}
+.sg-starter img{width:100%;aspect-ratio:16/7;object-fit:cover;display:block}
+.sg-starter-body{display:flex;flex-direction:column;gap:10px;padding:16px}
+.sg-eyebrow{display:inline-flex;align-items:center;gap:6px;font:700 11px/1 var(--num);letter-spacing:.12em;text-transform:uppercase;color:var(--act)}
+.sg-starter h2{margin:0;font:900 24px/1.05 var(--head);text-transform:uppercase;color:var(--text)}
+.sg-starter p{margin:0;font-size:14.5px;line-height:1.45;color:var(--text2)}
+.sg-meter{display:flex;flex-direction:column;gap:10px}
+.sg-meter-top{display:flex;align-items:baseline;gap:8px}
+.sg-meter-top b{font:800 28px/1 var(--num);color:var(--text)}
+.sg-meter-top span{flex:1;font-size:13px;color:var(--text2)}
+.sg-meter-top em{font:700 15px/1 var(--num);font-style:normal;color:var(--act)}
+.sg-bar{height:10px;border-radius:var(--pill);background:var(--bar-bg);overflow:hidden}
+.sg-bar i{display:block;height:100%;border-radius:inherit;background:var(--act);transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.sg-bar i.done{background:var(--good)}
+.sg-meter-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sg-meter-facts div{display:flex;flex-direction:column;gap:3px;padding:10px;border-radius:var(--r);background:var(--bg2)}
+.sg-meter-facts b{font:800 20px/1 var(--num);color:var(--text)}
+.sg-meter-facts span{font-size:11.5px;line-height:1.3;color:var(--text2)}
+.sg-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sg-steps li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r);background:var(--act-soft)}
+.sg-steps li>span{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--act);color:var(--act-ink);font:800 12px/1 var(--num)}
+.sg-steps b{display:block;font-size:14px;color:var(--text)}
+.sg-steps small{display:block;margin-top:2px;font-size:12.5px;line-height:1.35;color:var(--text2)}
+.sg-keys{display:flex;flex-wrap:wrap;gap:6px}
+@keyframes sg-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.sg-story{animation:none}.sg-bar i{transition:none}}

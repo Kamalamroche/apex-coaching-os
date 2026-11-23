@@ -17,6 +17,7 @@ export default defineConfig({
         client: resolve(import.meta.dirname, "client/index.html"),
         legal: resolve(import.meta.dirname, "legal/index.html"),
         page: resolve(import.meta.dirname, "c/index.html"),
+        trainers: resolve(import.meta.dirname, "trainers/index.html"),
       },
     },
   },
