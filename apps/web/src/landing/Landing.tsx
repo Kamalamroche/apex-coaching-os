@@ -63,6 +63,7 @@ export function Landing() {
             <a href="#how">How it works</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
+            <a href="/trainers/">Find a trainer</a>
           </nav>
           <div className="lp-bar-acts">
             <a className="lp-pill ghost" href="/start/">Sign in</a>
@@ -169,6 +170,7 @@ export function Landing() {
           </a>
           <nav className="lp-foot-nav" aria-label="Footer">
             <a href="/start/">Sign in</a>
+            <a href="/trainers/">Find a trainer</a>
             <a href="/coach/?demo">Coach demo</a>
             <a href="/client/?demo">Client demo</a>
             <a href="/legal/#privacy">Privacy</a>

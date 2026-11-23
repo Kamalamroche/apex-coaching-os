@@ -2309,3 +2309,86 @@ reset role;
 do $$ begin
   assert (select count(*) from saved_meals) = 1, 'coach cannot delete saved meals';
 end $$;
+
+-- find a trainer: listing, certificates, the verified badge and the checkers
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000f1d01'),('00000000-0000-0000-0000-0000000f1d02'),('00000000-0000-0000-0000-0000000f1d03');
+insert into profiles values ('00000000-0000-0000-0000-0000000f1d01','coach','Dir Coach'),('00000000-0000-0000-0000-0000000f1d02','coach','Dir Rival'),('00000000-0000-0000-0000-0000000f1d03','coach','Dir Checker');
+insert into platform_admins (user_id) values ('00000000-0000-0000-0000-0000000f1d03');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000f1d01');
+insert into coach_pages (coach_id, slug, headline, city, specialties, modes) values (auth.uid(), 'dir-coach', '', '', '{}', '{in_person}');
+do $$ begin
+  begin perform set_listed(true); assert false, 'an unpublished page cannot be listed'; exception when check_violation then null; end;
+end $$;
+update coach_pages set published = true, headline = 'Strong at any age', specialties = '{Strength}' where coach_id = auth.uid();
+do $$ begin
+  begin perform set_listed(true); assert false, 'in-person trainers need a city'; exception when check_violation then null; end;
+end $$;
+update coach_pages set city = 'Leeds' where coach_id = auth.uid();
+select set_listed(true);
+do $$ begin
+  assert (select count(*) from public_trainers() where slug = 'dir-coach') = 1, 'listed page is in the directory';
+  assert not (select verified from public_trainers() where slug = 'dir-coach'), 'not verified without certificates';
+  assert not is_platform_admin(), 'a coach is not a checker';
+  begin perform admin_credentials('pending'); assert false, 'coach cannot list everyone''s certificates'; exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_credentials (coach_id, kind, title, issuer, file_path, status) values (auth.uid(), 'qualification', 'Level 3 PT', 'Academy', auth.uid()::text || '/l3.pdf', 'approved');
+    assert false, 'coach cannot approve their own certificate';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into coach_credentials (coach_id, kind, title, issuer, file_path) values (auth.uid(), 'qualification', 'Level 3 PT', 'Academy', '00000000-0000-0000-0000-0000000f1d02/l3.pdf');
+    assert false, 'file must sit in the coach''s own folder';
+  exception when check_violation then null; end;
+  begin
+    insert into coach_credentials (coach_id, kind, title, issuer, file_path) values (auth.uid(), 'insurance', 'Public liability', 'Insurer', auth.uid()::text || '/ins.pdf');
+    assert false, 'insurance needs a renewal date';
+  exception when check_violation then null; end;
+end $$;
+insert into coach_credentials (id, coach_id, kind, title, issuer, file_path) values
+  ('c0000000-0000-0000-0000-000000000f01', auth.uid(), 'qualification', 'Level 3 PT', 'Academy', auth.uid()::text || '/l3.pdf');
+insert into coach_credentials (id, coach_id, kind, title, issuer, expires, file_path) values
+  ('c0000000-0000-0000-0000-000000000f02', auth.uid(), 'insurance', 'Public liability', 'Insurer', current_date + 200, auth.uid()::text || '/ins.pdf');
+insert into storage.objects (bucket_id, name) values ('credentials', '00000000-0000-0000-0000-0000000f1d01/l3.pdf');
+do $$ begin
+  update coach_credentials set status = 'approved';
+  assert (select count(*) from coach_credentials where status = 'approved') = 0, 'coach cannot change a status';
+  begin
+    insert into storage.objects (bucket_id, name) values ('credentials', '00000000-0000-0000-0000-0000000f1d02/x.pdf');
+    assert false, 'coach cannot upload into another trainer''s folder';
+  exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000f1d02');
+do $$ begin
+  assert (select count(*) from coach_credentials) = 0, 'rival sees no certificates';
+  assert (select count(*) from storage.objects where bucket_id = 'credentials') = 0, 'rival sees no certificate files';
+  begin perform review_credential('c0000000-0000-0000-0000-000000000f01', true); assert false, 'rival cannot approve'; exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000f1d03');
+do $$ begin
+  assert is_platform_admin(), 'checker is a checker';
+  assert (select count(*) from admin_credentials('pending')) = 2, 'checker sees what is waiting';
+  assert (select count(*) from storage.objects where bucket_id = 'credentials') = 1, 'checker can open the file';
+  begin perform review_credential('c0000000-0000-0000-0000-000000000f02', false, ''); assert false, 'declining needs a reason'; exception when check_violation then null; end;
+end $$;
+select review_credential('c0000000-0000-0000-0000-000000000f01', true);
+select review_credential('c0000000-0000-0000-0000-000000000f02', true);
+set role anon;
+do $$ begin
+  assert (select verified from public_trainers() where slug = 'dir-coach'), 'checked qualification and insurance = verified';
+  assert (public_coach_trust('dir-coach') ->> 'verified')::boolean, 'badge on the page';
+  assert jsonb_array_length(public_coach_trust('dir-coach') -> 'credentials') = 1, 'page names the qualification, never the insurance details';
+  assert (select count(*) from public_trainers() where slug = 'grow-coach') = 0, 'unlisted pages stay out of the directory';
+end $$;
+reset role;
+update coach_credentials set expires = current_date - 1 where id = 'c0000000-0000-0000-0000-000000000f02';
+do $$ begin
+  assert not (select verified from public_trainers() where slug = 'dir-coach'), 'expired insurance drops the badge';
+end $$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-0000000f1d01');
+select set_listed(false);
+reset role;
+do $$ begin
+  assert (select count(*) from public_trainers() where slug = 'dir-coach') = 0, 'leaving the directory hides the card';
+end $$;

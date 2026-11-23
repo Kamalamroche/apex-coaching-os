@@ -7,10 +7,11 @@ import { isDemo, supabase } from "../../data/supabase";
 import type { CoachLiveProps } from "../CoachApp";
 import { clientNames, useSendToClient } from "../sendToClient";
 import { GrowRewards } from "./GrowRewards";
+import { CoachListing } from "./CoachListing";
 import { AddLeadSheet, EnquiryForm, LeadSheet, copyText, inviteLead, localToday } from "./CoachLeads";
 
 type Load = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; page: CoachPage; leads: Lead[] };
-export type GrowView = "leads" | "form" | "page" | "rewards";
+export type GrowView = "leads" | "form" | "page" | "rewards" | "directory";
 type View = GrowView;
 type Filter = LeadStage | "open" | "all";
 
@@ -108,7 +109,7 @@ export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView
       </GrowHero>
 
       <div className="seg" role="tablist" aria-label="Train with me">
-        {([["leads", `Leads${counts.new ? ` ${counts.new}` : ""}`], ["form", "Form"], ["page", "Page"], ...(grow ? [["rewards", "Rewards"]] : [])] as [View, string][]).map(([v, label]) => (
+        {([["leads", `Leads${counts.new ? ` ${counts.new}` : ""}`], ["form", "Form"], ["page", "Page"], ["directory", "Directory"], ...(grow ? [["rewards", "Rewards"]] : [])] as [View, string][]).map(([v, label]) => (
           <button key={v} role="tab" aria-selected={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>{label}</button>
         ))}
       </div>
@@ -147,6 +148,8 @@ export function CoachGrow({ live, onBack, say, backLabel = "Messages", startView
       )}
 
       {view === "rewards" && grow && <GrowRewards api={grow} names={clientNames(live)} send={send} say={say} onChanged={loadExtras} />}
+
+      {view === "directory" && <CoachListing page={saved} say={say} onSetUp={() => setView("page")} />}
 
       {view === "form" && <EnquiryForm page={saved} say={say} fail={fail} onSetUp={() => setView("page")} />}
 

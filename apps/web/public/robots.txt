@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /coach/
+Disallow: /client/
+Disallow: /api/
+
+Sitemap: https://apex-coaching-os-web.vercel.app/sitemap.xml

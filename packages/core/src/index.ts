@@ -70,6 +70,8 @@ export * from "./voiceCoach";
 export * from "./team";
 export * from "./growth";
 export * from "./leads";
+export * from "./marketplace";
+export * from "./seo";
 export * from "./signIn";
 export * from "./units";
 export * from "./i18n";

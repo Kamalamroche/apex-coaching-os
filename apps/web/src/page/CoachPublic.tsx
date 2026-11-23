@@ -1,5 +1,5 @@
-import { campaignEndsText, campaignLive, spotsLeft, spotsText, formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, requestProblem, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
-import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, ThemeButton } from "@apex/ui";
+import { campaignEndsText, campaignLive, spotsLeft, spotsText, formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, readPrefill, requestProblem, trainerMeta, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
+import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, ThemeButton, TrustStrip } from "@apex/ui";
 import { SlotPicker } from "../app/BookingParts";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage, type PublicBookingMenu } from "../data/growth";
@@ -7,6 +7,7 @@ import { demoPageExtras, livePageExtras, type PageExtras } from "../data/grow";
 import { isDemo, supabase } from "../data/supabase";
 import { demoPageMarketing, liveCountVisit, livePageMarketing, type PageMarketing } from "../data/marketing";
 import { ProgrammeShelf } from "./ProgrammeShelf";
+import { demoDirectory, liveDirectory, type PageTrust } from "../data/marketplace";
 
 /** A coach's public page (/c/?k=kamal or /c/kamal/). Anyone can read it and ask to train. A friend's code rides along in ?ref=.
     ?form=1 opens the enquiry form straight away, ?embed=1 shows only the form (for the coach's own website), ?src= tags where the link was shared. */
@@ -17,6 +18,9 @@ export function CoachPublic() {
     return { slug: r.slug ?? (api.live ? null : "kamal"), ref: r.ref };
   }, [api.live]);
   const link = useMemo(() => readFormLink(location.search), []);
+  const prefill = useMemo(() => readPrefill(location.search), []);
+  const fromDirectory = link.source === "directory" || link.source === "match";
+  const [trust, setTrust] = useState<PageTrust | null>(null);
   const [page, setPage] = useState<CoachPage | null | undefined>(undefined);
   const [asking, setAsking] = useState(link.form && !link.embed);
   const [sent, setSent] = useState(false);
@@ -35,6 +39,7 @@ export function CoachPublic() {
       // ?book=1 opens the booking straight away; ?book=<service> opens on that service.
       if (m && m.services.length && m.settings?.windows.length && bookLink.open) setBooking(m.services.some((x) => x.id === bookLink.serviceId) ? bookLink.serviceId : m.services.length === 1 ? m.services[0]!.id : null);
     }, () => setMenu(null));
+    void (isDemo() || !supabase ? demoDirectory() : liveDirectory(supabase)).trust(slug).then(setTrust, () => setTrust(null));
     if (isDemo() || !supabase) { setExtras(demoPageExtras()); setMarketing(demoPageMarketing()); }
     else {
       void livePageExtras(supabase, slug).then(setExtras);
@@ -44,7 +49,11 @@ export function CoachPublic() {
     }
   }, [api, slug, bookLink]);
   useEffect(() => {
-    if (page) document.title = `${page.name} · Train with me · APEX`;
+    if (!page) return;
+    // Google reads the page after the script runs, so the title and description match the trainer.
+    const meta = trainerMeta(page);
+    document.title = meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description);
   }, [page]);
 
   if (page === undefined) return <main className="gr-shell"><div className="gr-wait" aria-label="Loading" /></main>;
@@ -73,17 +82,19 @@ export function CoachPublic() {
   if (link.embed) {
     return (
       <main className="gr-shell" style={{ minHeight: 0 }}>
-        {sent ? <Sent first={first} /> : <RequestForm first={first} modes={page.modes} referred={!!ref} onSend={send} />}
+        {sent ? <Sent first={first} /> : <RequestForm first={first} modes={page.modes} referred={!!ref} prefill={prefill} onSend={send} />}
       </main>
     );
   }
   return (
     <main className="gr-shell">
-      <Top />
+      <Top back={fromDirectory} />
       <CoachPageView
         page={page}
         extras={extras}
         boost={boost}
+        verified={!!trust?.verified}
+        trust={trust && (trust.verified || trust.credentials.length > 0) ? <TrustStrip verified={trust.verified} credentials={trust.credentials} /> : null}
         action={sent
           ? <span className="gr-cta glass" role="status"><Icons.check width={16} height={16} /> Sent · {first} will be in touch</span>
           : <button className="gr-cta" onClick={() => setAsking(true)}>Train with {first} <Icons.arrow width={15} height={15} /></button>}
@@ -105,24 +116,28 @@ export function CoachPublic() {
         <Sheet label={`Train with ${first}`} onClose={() => setAsking(false)}>
           {sent
             ? <Sent first={first} onDone={() => setAsking(false)} />
-            : <RequestForm key={interest} first={first} modes={page.modes} referred={!!ref} message={interest} onSend={send} />}
+            : <RequestForm key={interest} first={first} modes={page.modes} referred={!!ref} message={interest} prefill={interest ? undefined : prefill} onSend={send} />}
         </Sheet>
       )}
     </main>
   );
 }
 
-function Top() {
+function Top({ back = false }: { back?: boolean }) {
   return (
     <div className="gr-top">
+      {back && <a className="btn ghost sm" style={{ textDecoration: "none" }} href="/trainers/"><Icons.back width={14} height={14} /> Find a trainer</a>}
       <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><Icons.logo width={20} height={20} /><b style={{ fontSize: 16 }}>APEX</b></a>
       <ThemeButton />
     </div>
   );
 }
 
-function RequestForm({ first, modes, referred, message = "", onSend }: { first: string; modes: TrainingModeName[]; referred: boolean; message?: string; onSend: (d: JoinRequestDraft) => Promise<void> }) {
-  const [d, setD] = useState<JoinRequestDraft>({ name: "", email: "", goal: "", message, phone: "", how: "" });
+function RequestForm({ first, modes, referred, message = "", prefill, onSend }: { first: string; modes: TrainingModeName[]; referred: boolean; message?: string; prefill?: { goal: string; how: TrainingModeName | ""; note: string }; onSend: (d: JoinRequestDraft) => Promise<void> }) {
+  const [d, setD] = useState<JoinRequestDraft>({
+    name: "", email: "", goal: prefill?.goal ?? "", message: message || prefill?.note || "", phone: "",
+    how: prefill?.how && modes.includes(prefill.how) ? prefill.how : "",
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof JoinRequestDraft, v: string) => { setD((x) => ({ ...x, [k]: v })); setError(null); };
