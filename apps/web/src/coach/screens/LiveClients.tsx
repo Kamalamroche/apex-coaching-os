@@ -6,6 +6,7 @@ import { exerciseFor, formatRest } from "@apex/core";
 import { useApexState } from "@apex/core/react";
 import { Avatar, BackLink, ClientTable, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState, lazy } from "react";
+import { useViewScroll } from "../../app/useViewScroll";
 import { clientTableRows, type SortDir, type TableSortKey } from "@apex/core";
 import { loadClientFees } from "../../data/business";
 import { useStoreStatus } from "../../app/AppContext";
@@ -32,6 +33,7 @@ import { RecoveryTab } from "./Clients";
 
 /* Loaded when first opened, so the app starts faster. */
 const Transfer = lazy(() => import("./Transfer").then((m) => ({ default: m.Transfer })));
+const ClientSessions = lazy(() => import("./Sessions").then((m) => ({ default: m.ClientSessions })));
 const OneToOneTab = lazy(() => import("./OneToOne").then((m) => ({ default: m.OneToOneTab })));
 
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
@@ -61,6 +63,8 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
     loadClientFees(live.db, live.coachId).then((f) => { if (on) setFees(f); }, (e: unknown) => console.error("Couldn't load fees", e));
     return () => { on = false; };
   }, [live.db, live.coachId, clients?.length]);
+
+  useViewScroll(transfer ? "transfer" : clients?.some((c) => c.id === open) ? open : null);
 
   const invite = async () => {
     try {
@@ -131,7 +135,7 @@ export function LiveClients({ live, say, goBuild, initialOpen = null, startTab }
   );
 }
 
-const LIVE_TABS = ["Programme", "In person", "Health", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const;
+const LIVE_TABS = ["Programme", "In person", "Sessions", "Health", "Report", "Check-ins", "Assessment", "Form checks", "Goals", "Habits", "Nutrition", "Recovery", "About", "Notes"] as const;
 type LiveTab = (typeof LIVE_TABS)[number];
 
 function LiveProfile({ live, startTab, health, clientId, name, mode, lastSession, onBack, goBuild, say }: { live: CoachLiveProps; startTab?: string; health: { health: Health; trend: number | null } | null; clientId: string; name: string; mode: string; lastSession: string | null; onBack: () => void; goBuild: () => void; say: (m: string) => void }) {
@@ -165,6 +169,7 @@ function LiveProfile({ live, startTab, health, clientId, name, mode, lastSession
       {tab === "Recovery" && <RecoveryTab name={name} />}
       {tab === "About" && <><IntakeView clientName={name} /><FeatureSwitches api={features} clientId={clientId} clientName={name} say={say} /></>}
       {tab === "Notes" && <ClientNotes clientId={clientId} clientName={name} say={say} />}
+      {tab === "Sessions" && <ClientSessions clientId={clientId} name={name} say={say} />}
       {tab === "In person" && (status === "ready" || status === "no-program" ? <OneToOneTab clientId={clientId} clientName={name} canRun={status === "ready"} whyNot={`Give ${name.split(" ")[0]} a programme first, then run it with them here.`} say={say} /> : <div className="card small">Loading…</div>)}
       {tab === "Programme" && <>
       <section>

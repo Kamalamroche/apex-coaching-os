@@ -2,6 +2,10 @@
   "name": "@apex/ui",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "*.css",
+    "./src/prefs.ts"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",

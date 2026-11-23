@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAppInfo } from "../../app/AppContext";
 import { ProgrammeStatus, posterOf, useProgrammes, useProgrammesApi } from "../../app/ProgrammeParts";
 import { useStore } from "../../data/StoreContext";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /** Client: the coach's ready-made programmes. Free ones start at once; paid ones are unlocked by the coach. */
 export function Programmes({ say, onTrain }: { say: (m: string) => void; onTrain?: () => void }) {
@@ -13,6 +14,7 @@ export function Programmes({ say, onTrain }: { say: (m: string) => void; onTrain
   const { coachName } = useAppInfo();
   const [openId, setOpenId] = useState<string | null>(null);
   const open = data.listings.find((l) => l.id === openId);
+  useViewScroll(open ? openId : null);
   if (open) return <><BackLink onClick={() => setOpenId(null)}>Programmes</BackLink><ProgrammeDetail l={open} data={data} say={say} onTrain={onTrain} /></>;
 
   const list = shopOrder(data.listings, data.enrolments);

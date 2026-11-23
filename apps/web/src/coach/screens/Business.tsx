@@ -10,10 +10,12 @@ import type { CoachLiveProps } from "../CoachApp";
 import { CoachAgreements } from "./CoachAgreements";
 import { CoachClasses } from "./CoachClasses";
 import { CardPayments } from "./CardPayments";
+import { Calendar } from "./Calendar";
 import { IncomeGoal } from "./IncomeGoal";
 import { useMarketingApi } from "../../data/marketing";
 import { useGrowthApi } from "../../data/growth";
 import { useExtras } from "../../data/extras";
+import { useViewScroll } from "../../app/useViewScroll";
 
 /* Loaded when first opened, so the app starts faster. */
 const CoachProgrammes = lazy(() => import("./CoachProgrammes").then((m) => ({ default: m.CoachProgrammes })));
@@ -23,14 +25,14 @@ const CoachMarketing = lazy(() => import("./CoachMarketing").then((m) => ({ defa
 const initials = (name: string) => name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 /** The coach's business from their own records: fees, packs, programme sales, clients joining and leaving, leads, sessions. */
-export type BusinessStart = "programmes" | "agreements" | "classes" | "marketing" | "grow";
+export type BusinessStart = "programmes" | "agreements" | "classes" | "marketing" | "grow" | "sessions";
 
 export function Business({ live, say = () => {}, openGym, start }: { live?: CoachLiveProps; say?: (m: string) => void; openGym?: () => void; /** Open straight onto one of the tools (from quick find). */ start?: BusinessStart }) {
   const { mode, coachName } = useAppInfo();
   const marketing = useMarketingApi();
   const growApi = useGrowthApi();
   const [shop, setShop] = useState(start === "programmes");
-  const [view, setView] = useState<"agreements" | "classes" | "marketing" | "grow" | "payments" | null>(start && start !== "programmes" ? start : null);
+  const [view, setView] = useState<"agreements" | "classes" | "marketing" | "grow" | "sessions" | "payments" | null>(start && start !== "programmes" ? start : null);
   const extras = useExtras();
   const [data, setData] = useState<BizInput | null>(null);
   const [needsSql, setNeedsSql] = useState(false);
@@ -44,9 +46,11 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
   useEffect(load, [load]);
   const sum = useMemo(() => (data ? businessSummary(data) : null), [data]);
 
+  useViewScroll(shop ? "shop" : view);
   if (shop) return <CoachProgrammes live={live} onBack={() => setShop(false)} say={say} />;
   if (view === "agreements") return <CoachAgreements live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
   if (view === "payments") return <CardPayments live={isLive ? live : undefined} onBack={() => setView(null)} say={say} />;
+  if (view === "sessions") return <Calendar clients={live?.clients} live={live} startMode="sessions" backLabel="Business" onBack={() => setView(null)} say={say} />;
   if (view === "classes") return <CoachClasses onBack={() => setView(null)} say={say} />;
   if (view === "grow") return <Suspense fallback={<div className="card"><div className="small">Loading…</div></div>}><CoachGrow live={live} backLabel="Business" onBack={() => setView(null)} say={say} /></Suspense>;
   if (view === "marketing") return <CoachMarketing live={isLive ? live : undefined} coachName={coachName} onBack={() => setView(null)} say={say} />;
@@ -85,6 +89,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
     { key: "payments", icon: "money", title: "Card payments", note: "Coaching plans clients pay for by card", open: () => setView("payments") },
     ...(marketing ? [{ key: "marketing", icon: "up" as const, title: "Marketing", note: "This week's plan, posts, offers, QR poster", open: () => setView("marketing") }] : []),
     ...(growApi ? [{ key: "grow", icon: "globe" as const, title: "Your page and leads", note: "Train with me page, enquiries, referrals, reviews", open: () => setView("grow") }] : []),
+    { key: "sessions", icon: "check", title: "Sessions and packs", note: "Packs paid in cash or by bank, the register, sessions left", open: () => setView("sessions") },
     { key: "programmes", icon: "train", title: "Programmes", note: "Sell ready-made plans, free or paid", open: () => setShop(true) },
     ...(extras ? [
       { key: "classes", icon: "calendar" as const, title: "Group classes", note: "Place limits and a waitlist", open: () => setView("classes") },
