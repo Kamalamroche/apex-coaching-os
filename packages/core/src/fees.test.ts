@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { feeMonth, feeReminder, fromFeeRow, monthKey, newFeePayment, toFeeRow, type FeeClient } from "./fees";
+import { addMonthKey, coverPayments, feeMonth, feeReminder, fromFeeRow, monthKey, newFeePayment, paidUntil, paidUntilText, toFeeRow, type FeeClient } from "./fees";
 import { credits, newPack, packsToPay, packUnpaid, sessionMonth, fromPackRow, toPackRow } from "./sessions";
 import { businessSummary } from "./business";
 
@@ -56,5 +56,32 @@ describe("packs to pay later", () => {
     expect(toPackRow(newPack("a", 5, 100, "cash", 0, "", "purchase", now), "c")).not.toHaveProperty("paid_at");
     const old = fromPackRow({ ...toPackRow(newPack("a", 5, 100, "cash", 0, "", "purchase", now), "c") });
     expect(old.paidAt).toBe(now.toISOString());
+  });
+});
+
+describe("memberships paid up front", () => {
+  it("adds months across a year end", () => {
+    expect(addMonthKey("2026-11", 3)).toBe("2027-02");
+    expect(addMonthKey("2026-01", 11)).toBe("2026-12");
+  });
+  it("splits a 3-month payment into one row a month, odd pennies on the first", () => {
+    const rows = coverPayments("a", "2026-11", 3, 40000, "bank");
+    expect(rows.map((r) => r.month)).toEqual(["2026-11", "2026-12", "2027-01"]);
+    expect(rows.map((r) => r.amountPence)).toEqual([13334, 13333, 13333]);
+    expect(rows[0]!.note).toBe("3-month membership");
+  });
+  it("skips months already paid", () => {
+    expect(coverPayments("a", "2026-11", 2, 30000, "cash", ["2026-11"]).map((r) => [r.month, r.amountPence])).toEqual([["2026-12", 30000]]);
+    expect(coverPayments("a", "2026-11", 1, 100, "cash", ["2026-11"])).toEqual([]);
+  });
+  it("knows how far ahead a client has paid", () => {
+    const rows = coverPayments("a", "2026-11", 12, 120000, "bank");
+    const until = paidUntil(rows, "a", "2026-11");
+    expect(until).toBe("2027-10");
+    expect(paidUntilText(until!, "2026-11")).toBe("Paid until the end of October 2027");
+    expect(paidUntil(rows, "b", "2026-11")).toBeNull();
+    expect(paidUntilText("2026-11", "2026-11")).toBe("Paid for November");
+    const m = feeMonth([{ id: "a", name: "Ann", feePence: 10000, status: "active" }], rows, "2027-03");
+    expect(m.toCollect).toEqual([]);
   });
 });
