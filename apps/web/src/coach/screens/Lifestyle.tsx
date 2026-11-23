@@ -140,14 +140,14 @@ export function CoachNutritionPanel({ clientName, say }: { clientName: string; s
       {view === "overview" && <>
       {t && (
         <div className="card stack">
-          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · <span className="num">{Math.round(eaten.kcal).toLocaleString()}</span> of <span className="num">{t.kcal.toLocaleString()}</span> kcal</h3><Label kind="data">Data</Label></div>
+          <div className="sect" style={{ marginBottom: 0 }}><h3 className="h3">Today · {Math.round(eaten.kcal).toLocaleString("en-GB")} of {t.kcal.toLocaleString("en-GB")} kcal</h3><Label kind="data">Data</Label></div>
           <MacroBars lines={[
             { label: "Protein", value: eaten.proteinG, target: t.proteinG, unit: "g", colour: "var(--viz-1)" },
             { label: "Carbs", value: eaten.carbsG, target: t.carbsG, unit: "g", colour: "var(--viz-2)" },
             { label: "Fat", value: eaten.fatG, target: t.fatG, unit: "g", colour: "var(--viz-3)" },
           ]} />
           <div className="small">
-            {week.days ? <>7-day average <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.kcal.toLocaleString()} kcal</span>, <span className="num" style={{ color: "var(--text)", fontWeight: 700 }}>{week.avg.proteinG} g protein</span> over {week.days} day{week.days === 1 ? "" : "s"} logged{weekState === "on" ? ", on target." : weekState === "under" ? ", under target." : weekState === "over" ? ", over target." : "."}</> : `${name} hasn't logged any food this week.`}
+            {week.days ? <>7-day average <b style={{ color: "var(--text)" }}>{week.avg.kcal.toLocaleString("en-GB")} kcal</b> and <b style={{ color: "var(--text)" }}>{week.avg.proteinG} g protein</b> over {week.days} day{week.days === 1 ? "" : "s"} logged{weekState === "on" ? ", on target." : weekState === "under" ? ", under target." : weekState === "over" ? ", over target." : "."}</> : `${name} hasn't logged any food this week.`}
           </div>
         </div>
       )}

@@ -148,10 +148,9 @@ export function ClientNutrition({ say }: { say?: (m: string) => void } = {}) {
               {list.map((f) => (
                 <div key={f.id} className={`li${f.photo ? " has-photo" : ""}`}>
                   {f.photo && <MealPhoto photo={f.photo} alt={`${m.label} photo`} className="mp-thumb" />}
-                  <div className="grow"><div className="h3">{f.name}</div>{look.numbers && f.kcal > 0 && <div className="tiny num">{f.portions ? "about " : ""}{Math.round(f.kcal)} kcal</div>}</div>
-                  {look.numbers && f.kcal > 0 && <div className="mpills" aria-label={`Protein ${f.proteinG} g${look.carbsFat ? `, carbs ${f.carbsG} g, fat ${f.fatG} g` : ""}`}>
+                  <div className="grow"><div className="h3">{f.name}</div>{look.numbers && f.kcal > 0 && <div className="food-meta"><span className="tiny num">{f.portions ? "about " : ""}{Math.round(f.kcal)} kcal</span><span className="mpills" aria-label={`Protein ${f.proteinG} g${look.carbsFat ? `, carbs ${f.carbsG} g, fat ${f.fatG} g` : ""}`}>
                     <span className="mpill p">P {f.proteinG}</span>{look.carbsFat && <><span className="mpill c">C {f.carbsG}</span><span className="mpill f">F {f.fatG}</span></>}
-                  </div>}
+                  </span></div>}</div>
                   <button className="iconbtn" aria-label={`Remove ${f.name}`} onClick={() => store.removeFood(f.id)}><Icons.close width={16} height={16} /></button>
                 </div>
               ))}
