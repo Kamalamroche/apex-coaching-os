@@ -1212,6 +1212,11 @@ insert into profiles values ('00000000-0000-0000-0000-0000000009a1','coach','Gym
 insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1'),('00000000-0000-0000-0000-0000000009a3','00000000-0000-0000-0000-0000000009b2'),('00000000-0000-0000-0000-0000000009a5','00000000-0000-0000-0000-0000000009b3');
 insert into programs (coach_id, client_id, name) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1','Gym plan');
 insert into sessions (client_id, started_at, finished_at) values ('00000000-0000-0000-0000-0000000009b2', now() - interval '2 days', now() - interval '2 days');
+-- b1 has a pack with the owner, one session done and one ahead (the ahead one clashes with trainer a3's diary)
+insert into session_packs (coach_id, client_id, sessions, price_pence, paid_via) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1', 10, 40000, 'bank');
+insert into bookings (coach_id, client_id, starts_at, ends_at, kind, attendance) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1', now() - interval '3 days', now() - interval '3 days' + interval '1 hour', 'session', 'attended');
+insert into bookings (coach_id, client_id, starts_at, ends_at, kind) values ('00000000-0000-0000-0000-0000000009a1','00000000-0000-0000-0000-0000000009b1', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 1 hour', 'session');
+insert into bookings (coach_id, client_id, starts_at, ends_at, kind) values ('00000000-0000-0000-0000-0000000009a3','00000000-0000-0000-0000-0000000009b2', date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '5 days 1 hour', 'session');
 set role authenticated;
 
 select pg_temp.as_user('00000000-0000-0000-0000-0000000009b1');
@@ -1290,6 +1295,9 @@ do $$ begin
   assert (select count(*) from public.gym_clients()) = 2, 'new trainer sees the handed-over client';
   assert (select count(*) from programs where name = 'Gym plan') = 1, 'new trainer owns the programme';
   assert public.is_coach_of('00000000-0000-0000-0000-0000000009b1'), 'new trainer coaches them';
+  assert (select count(*) from session_packs where client_id = '00000000-0000-0000-0000-0000000009b1') = 1, 'the pack moves with the client';
+  assert (select count(*) from bookings where client_id = '00000000-0000-0000-0000-0000000009b1' and attendance = 'attended') = 1, 'sessions already used move too, so sessions left stay right';
+  assert (select status from bookings where client_id = '00000000-0000-0000-0000-0000000009b1' and starts_at > now()) = 'cancelled', 'a clashing future session is cancelled, not double-booked';
 end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-0000000009a1');
 do $$ begin
@@ -2531,3 +2539,32 @@ do $$ begin
   assert (select follow_up from join_requests where email = 'ann@example.com') = current_date + 7, 'follow-up on day 7';
   assert (select source from join_requests where email = 'ann@example.com') = 'starter', 'tagged as starter';
 end $$;
+
+
+-- money owed: packs to pay later, monthly fee ticks
+reset role;
+insert into auth.users values ('00000000-0000-0000-0000-00000000f001'),('00000000-0000-0000-0000-00000000f002'),('00000000-0000-0000-0000-00000000f003');
+insert into profiles values ('00000000-0000-0000-0000-00000000f001','coach','Fee Coach'),('00000000-0000-0000-0000-00000000f002','client','Fee Client'),('00000000-0000-0000-0000-00000000f003','client','Not Theirs');
+insert into coach_clients (coach_id, client_id) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000f001');
+insert into session_packs (coach_id, client_id, sessions, price_pence, paid_via, paid_at) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', 5, 20000, 'cash', null);
+insert into session_packs (coach_id, client_id, sessions, price_pence, paid_via) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', 5, 20000, 'cash');
+insert into fee_payments (coach_id, client_id, month, amount_pence) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', date_trunc('month', now())::date, 15000);
+do $$ begin
+  assert (select count(*) from session_packs where coach_id = auth.uid() and paid_at is null) = 1, 'a pack can be left to pay';
+  assert (select count(*) from session_packs where coach_id = auth.uid() and paid_at is not null) = 1, 'new packs are paid by default';
+  begin insert into fee_payments (coach_id, client_id, month, amount_pence) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', date_trunc('month', now())::date, 15000); assert false, 'one tick per month'; exception when unique_violation then null; end;
+  begin insert into fee_payments (coach_id, client_id, month, amount_pence) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f003', date_trunc('month', now())::date, 15000); assert false, 'only own clients'; exception when insufficient_privilege then null; end;
+  begin insert into fee_payments (coach_id, client_id, month, amount_pence) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', '2026-11-15', 15000); assert false, 'month is the 1st'; exception when check_violation then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000f002');
+do $$ begin
+  assert (select count(*) from fee_payments) = 1, 'client sees own fee ticks';
+  begin insert into fee_payments (coach_id, client_id, month, amount_pence) values ('00000000-0000-0000-0000-00000000f001','00000000-0000-0000-0000-00000000f002', '2026-01-01', 1); assert false, 'client cannot mark themselves paid'; exception when insufficient_privilege then null; end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$ begin
+  assert (select count(*) from fee_payments) = 0, 'rival sees no fee ticks';
+end $$;
+reset role;

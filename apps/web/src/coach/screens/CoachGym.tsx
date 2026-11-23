@@ -183,7 +183,7 @@ export function CoachGym({ onBack, say }: { onBack: () => void; say: (m: string)
       )}
 
       {openClient && <ClientSheet c={openClient} role={role} me={me} members={members} busy={busy} onClose={() => setOpen(null)}
-        handOver={(to) => { const t = members.find((m) => m.id === to); if (t && window.confirm(`Hand ${openClient.name} over to ${t.name}? ${t.name.split(" ")[0]} becomes their trainer and takes over their programme. Their chat with ${openClient.trainerName.split(" ")[0]} stays private.`)) void act(() => api.handOver(openClient.id, to), `${openClient.name.split(" ")[0]} is now with ${t.name.split(" ")[0]}`); }}
+        handOver={(to) => { const t = members.find((m) => m.id === to); if (t && window.confirm(`Hand ${openClient.name} over to ${t.name}? ${t.name.split(" ")[0]} becomes their trainer and takes over their programme, session packs and bookings. Their chat with ${openClient.trainerName.split(" ")[0]} stays private.`)) void act(() => api.handOver(openClient.id, to), `${openClient.name.split(" ")[0]} is now with ${t.name.split(" ")[0]}`); }}
         share={(id, on) => void act(() => api.share(openClient.id, id, on), on ? "Shared" : "Stopped sharing", false)}
       />}
 

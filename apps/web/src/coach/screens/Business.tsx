@@ -12,6 +12,7 @@ import { CoachClasses } from "./CoachClasses";
 import { CardPayments } from "./CardPayments";
 import { Calendar } from "./Calendar";
 import { IncomeGoal } from "./IncomeGoal";
+import { MoneyOwed } from "./MoneyOwed";
 import { useMarketingApi } from "../../data/marketing";
 import { useGrowthApi } from "../../data/growth";
 import { useExtras } from "../../data/extras";
@@ -142,6 +143,7 @@ export function Business({ live, say = () => {}, openGym, start }: { live?: Coac
       {needsSql && <div className="card small full" style={{ borderColor: "var(--warn)" }}>One step left: run the business SQL so fees and leaving dates can be saved. Everything else below is already your real data.</div>}
       {links}
       <IncomeGoal live={isLive ? live : undefined} sum={sum} say={say} />
+      <MoneyOwed clients={current} live={isLive ? live : undefined} say={say} />
 
       <div className="gy-stats full">
         <div className="gy-stat" style={{ ["--i" as string]: 0 }}><b>£<CountUp value={Math.round(sum.thisMonth.totalPence / 100)} /></b><span>income this month</span></div>

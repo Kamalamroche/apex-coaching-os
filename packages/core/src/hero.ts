@@ -12,10 +12,36 @@ export type HeroImage =
 /** Colour of the poster word: "light" (white) on the low-key burgundy, rust and graphite sets; "act" (orange) stays available for lighter photos. */
 export type HeroInk = "light" | "act";
 
-export interface HeroArt { src: string; cut?: string; alt: string; focus: string; word: string; ink: HeroInk }
+export interface HeroArt { src: string; cut?: string; alt: string; focus: string; word: string; ink: HeroInk; video?: string }
+
+/** Five-second moving versions of the stills (Higgsfield image-to-video, first frame = last frame, so each loops as one
+ * smooth rep). Hosted on the same media CDN as the exercise demo clips; covers fall back to the still without them. */
+const LOOP_CDN = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/";
+export const HERO_LOOPS: Partial<Record<HeroImage, string>> = {
+  hinge: "79072ac2-5b11-4def-af2b-258983145832.mp4",
+  squat: "acfe622c-0010-4106-9b16-ed1b0fc3034f.mp4",
+  lower: "3cf884b4-bf55-4467-a2a5-102b1f282aa3.mp4",
+  "hip-thrust": "288688bd-591c-4c12-90af-6fa10c375cc0.mp4",
+  bench: "49828d69-bbbe-4f88-98b0-494fe7a27677.mp4",
+  upper: "7640d34e-434c-4e1f-aacd-5f600e23a10e.mp4",
+  pull: "8c8de943-9eb6-4ac7-b739-d584d77dc1a3.mp4",
+  dumbbell: "058d683b-0d5d-416a-a2a2-b7e12fdc99c3.mp4",
+  calisthenics: "27a62600-c820-4902-934c-513c4f410342.mp4",
+  rings: "833dd317-24d3-45ae-bf85-2563f0ac3502.mp4",
+  sled: "8ad8a0ae-97f3-41c3-ad45-4ea089d6ca04.mp4",
+  "wall-ball": "15f0e3b4-c835-4999-a3aa-5e15996d4f61.mp4",
+  ski: "df5e8437-d7fa-4cbb-8b9d-66c84d3eaa11.mp4",
+  kettlebell: "16023952-b44b-4a00-b224-463f692b5257.mp4",
+  core: "3c802a52-531b-427b-9ce8-ad5839dd891b.mp4",
+  mobility: "27b8bec2-ed4b-4a98-9c00-a7a3e145e108.mp4",
+  run: "b46abb7f-e606-46c2-a59a-9b3b6beb40c6.mp4",
+  swim: "f09c990b-6932-47b7-a7c2-3bf0631e70df.mp4",
+  ride: "50ca0fd6-02ac-4294-ba01-29a54cd2c050.mp4",
+  recovery: "419d6775-de73-4576-b850-0627d12021c4.mp4",
+};
 
 const img = (file: string, alt: string, focus: string, word: string, ink: HeroInk, cut = true): HeroArt =>
-  ({ src: `/hero/${file}.webp`, cut: cut ? `/hero/${file}-cut.webp` : undefined, alt, focus, word, ink });
+  ({ src: `/hero/${file}.webp`, cut: cut ? `/hero/${file}-cut.webp` : undefined, alt, focus, word, ink, video: HERO_LOOPS[file as HeroImage] ? LOOP_CDN + HERO_LOOPS[file as HeroImage] : undefined });
 
 export const HERO_IMAGES: Record<HeroImage, HeroArt> = {
   squat: img("squat", "HELIX athlete in a barbell back squat in a misty burgundy studio", "center 50%", "Squat", "light"),

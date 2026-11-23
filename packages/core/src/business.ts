@@ -16,7 +16,8 @@ export interface BizClient {
 }
 export interface BizLead { createdAt: string; stage: string; source: string }
 export interface BizBooking { startsAt: string; kind: "call" | "session"; status: "booked" | "cancelled"; attendance: "attended" | "no_show" | null; late: boolean }
-export interface BizPack { boughtAt: string; pricePence: number }
+/** `paidAt` null: agreed but still to pay, so not income yet. Missing: paid when bought (before this was recorded). */
+export interface BizPack { boughtAt: string; pricePence: number; paidAt?: string | null }
 export interface BizSale { at: string; paidPence: number }
 
 export interface BizInput {
@@ -120,7 +121,7 @@ export function businessSummary(input: BizInput, monthsBack = 6): BizSummary {
   const months: BizMonth[] = lastMonths(input.now, monthsBack).map((m) => {
     // A fee counts for a month the client was coached in. Past months use today's fee: a fair estimate until Stripe has the real history.
     const feesPence = clients.filter((c) => overlaps(c, m.from, m.to)).reduce((a, c) => a + Math.max(0, c.feePence), 0);
-    const packsPence = input.packs.filter((p) => t(p.boughtAt) >= m.from && t(p.boughtAt) < m.to).reduce((a, p) => a + Math.max(0, p.pricePence), 0);
+    const packsPence = input.packs.filter((p) => p.paidAt !== null).filter((p) => t(p.paidAt ?? p.boughtAt) >= m.from && t(p.paidAt ?? p.boughtAt) < m.to).reduce((a, p) => a + Math.max(0, p.pricePence), 0);
     const salesPence = input.sales.filter((s) => t(s.at) >= m.from && t(s.at) < m.to).reduce((a, s) => a + Math.max(0, s.paidPence), 0);
     const newClients = clients.filter((c) => t(c.startedAt) >= m.from && t(c.startedAt) < m.to).length;
     const lostClients = clients.filter((c) => c.status === "ended" && c.endedAt && t(c.endedAt) >= m.from && t(c.endedAt) < m.to).length;

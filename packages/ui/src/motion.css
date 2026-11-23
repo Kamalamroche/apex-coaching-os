@@ -30,6 +30,12 @@
 .main>*:nth-child(6){animation-delay:.2s}
 .main>*:nth-child(7){animation-delay:.24s}
 .main>*:nth-child(n+8){animation-delay:.28s}
+/* Scroll reveal (reveal.ts): a section below the fold waits, animations paused, until it scrolls into view, then rises
+   and plays its rings, charts and bars while the person is looking. Its own stagger is dropped so it answers at once. */
+[data-rv]:not(.rv-in),[data-rv]:not(.rv-in) *{animation-play-state:paused!important}
+.main>[data-rv]{animation-delay:0s}
+.main>*>[data-rv]{animation:m-rise var(--t-enter) var(--ease-out) backwards}
+@media print{[data-rv],[data-rv] *{animation:none!important}}
 /* Lists inside a card follow on just after the card. */
 .card.list>*,.list>.hb-row{animation:m-fade .4s var(--ease-out) backwards}
 .card.list>*:nth-child(2),.list>.hb-row:nth-child(2){animation-delay:.06s}
@@ -38,6 +44,9 @@
 
 /* Hero photos settle into place. */
 .hero-img{animation:m-settle 1.4s var(--ease-out) backwards}
+/* The moving photo fades in over the still once it plays, so there is never a black frame. */
+video.hero-img.hero-vid{animation:none;opacity:0;transition:opacity .9s var(--ease-out)}
+video.hero-img.hero-vid.on{opacity:1}
 @keyframes m-settle{from{scale:1.06;opacity:.4}}
 .hero-word{animation:m-fade 1s var(--ease-out) .15s backwards}
 .hero-cut{animation:m-rise 1s var(--ease-out) .1s backwards}
@@ -58,8 +67,12 @@
 @keyframes m-done{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 45%,transparent)}to{box-shadow:0 0 0 12px transparent}}
 .rpe button.on,.rdy-lvl button.on,.chip.on{animation:m-pop .34s var(--ease-spring)}
 
+/* A ticked habit: a line draws through its name from left to right, and the name greys. */
+.hb-strike{background:linear-gradient(currentColor,currentColor) 0 58%/0 1.5px no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background-size .45s var(--ease-out),color .35s var(--ease-out)}
+.hb-strike.on{background-size:100% 1.5px;color:var(--text2)}
+
 /* ---------- Data arriving ---------- */
-.bar>div,.pl-prog>div{transform-origin:left;animation:m-grow var(--t-draw) var(--ease-out) .1s backwards}
+.bar>div,.pl-prog>div{transform-origin:left;animation:m-grow var(--t-draw) var(--ease-out) .1s backwards;transition:width .7s var(--ease-out)}
 @keyframes m-grow{from{scale:0 1}}
 /* Gauges sweep round from empty. --len is the arc length, set by the component. */
 .gauge-fill{animation:m-sweep var(--t-draw) var(--ease-out) .1s backwards}
