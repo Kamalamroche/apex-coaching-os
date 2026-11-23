@@ -70,6 +70,17 @@ export interface SessionPack {
   /** Unused sessions lapse at this time. Null: never. */
   expiresAt: string | null;
   note: string;
+  /** When the client paid. Null: still to pay (agreed now, paid later). Packs from before this was recorded count as paid. */
+  paidAt?: string | null;
+}
+
+/** The pack is agreed but the client hasn't paid for it yet. */
+export const packUnpaid = (p: Pick<SessionPack, "paidAt" | "pricePence">): boolean => p.paidAt === null && p.pricePence > 0;
+
+/** Packs still to be paid for, oldest first, and what they add up to. */
+export function packsToPay(packs: SessionPack[]): { packs: SessionPack[]; totalPence: number } {
+  const list = packs.filter(packUnpaid).sort((a, b) => Date.parse(a.boughtAt) - Date.parse(b.boughtAt));
+  return { packs: list, totalPence: list.reduce((t, p) => t + p.pricePence, 0) };
 }
 
 export const PACK_CHOICES = [1, 5, 10, 20];
@@ -90,11 +101,12 @@ export function addMonths(iso: string, months: number): string {
   return d.toISOString();
 }
 
-export function newPack(clientId: string, sessions: number, pricePence: number, paidVia: PackPaidVia, expiryMonths: number, note = "", source: PackSource = "purchase", now = new Date()): SessionPack {
+export function newPack(clientId: string, sessions: number, pricePence: number, paidVia: PackPaidVia, expiryMonths: number, note = "", source: PackSource = "purchase", now = new Date(), paidNow = true): SessionPack {
   const boughtAt = now.toISOString();
   return {
     id: crypto.randomUUID(), clientId, sessions: Math.max(1, Math.min(PACK_MAX, Math.round(sessions))), pricePence: Math.max(0, Math.round(pricePence)),
     paidVia: pricePence ? paidVia : "free", source, boughtAt, expiresAt: expiryMonths ? addMonths(boughtAt, expiryMonths) : null, note: note.trim().slice(0, 200),
+    paidAt: paidNow || !pricePence ? boughtAt : null,
   };
 }
 
@@ -246,7 +258,8 @@ export interface SessionMonth {
 /** The coach's month at a glance: what came in and how many sessions went ahead. */
 export function sessionMonth(packs: SessionPack[], bookings: Booking[], month: string): SessionMonth {
   const inMonth = (iso: string) => iso.slice(0, 7) === month;
-  const bought = packs.filter((p) => p.source === "purchase" && inMonth(p.boughtAt));
+  // Money counts in the month it was paid; packs still to pay don't count yet.
+  const bought = packs.filter((p) => p.source === "purchase" && p.paidAt !== null && inMonth(p.paidAt ?? p.boughtAt));
   const sessions = bookings.filter((b) => b.kind === "session" && inMonth(b.startsAt));
   const attended = sessions.filter((b) => b.status === "booked" && b.attendance === "attended").length;
   const lateOrNoShow = sessions.filter((b) => (b.status === "cancelled" && b.late) || b.attendance === "no_show").length;
@@ -282,15 +295,20 @@ export interface SessionPackRow {
   bought_at: string;
   expires_at: string | null;
   note: string | null;
+  /** Missing before 20261202090000_money_owed.sql has run. */
+  paid_at?: string | null;
 }
 
 export const toPackRow = (p: SessionPack, coachId: string): SessionPackRow => ({
   id: p.id, coach_id: coachId, client_id: p.clientId, sessions: p.sessions, price_pence: p.pricePence, paid_via: p.paidVia, source: p.source, bought_at: p.boughtAt, expires_at: p.expiresAt, note: p.note || null,
+  // Only sent when it's still to pay, so recording a paid pack works before the money SQL has run (the column defaults to now()).
+  ...(p.paidAt === null ? { paid_at: null } : {}),
 });
 
 export const fromPackRow = (r: SessionPackRow): SessionPack => ({
   id: r.id, clientId: r.client_id, sessions: Number(r.sessions), pricePence: Number(r.price_pence), paidVia: r.paid_via, source: r.source,
   boughtAt: new Date(r.bought_at).toISOString(), expiresAt: r.expires_at ? new Date(r.expires_at).toISOString() : null, note: r.note ?? "",
+  paidAt: r.paid_at === undefined ? new Date(r.bought_at).toISOString() : r.paid_at ? new Date(r.paid_at).toISOString() : null,
 });
 
 /* ---------- Demo ---------- */

@@ -24,6 +24,8 @@ export interface BookingApi {
   /* 1:1 sessions (coach only): packs and the register. */
   addPack(p: SessionPack): Promise<void>;
   removePack(id: string): Promise<void>;
+  /** The client has now paid for a pack that was left to pay (money SQL). */
+  markPackPaid(id: string): Promise<void>;
   mark(id: string, attendance: Attendance): Promise<void>;
   waive(id: string, waived: boolean): Promise<void>;
   /* Service menu and booking link (services SQL). ready is false until it is run. */
@@ -51,6 +53,7 @@ export interface BookingLoad {
 }
 
 export const SESSIONS_NEED_UPDATE = "Session packs need the sessions SQL in Supabase first.";
+export const MONEY_NEED_UPDATE = "Packs to pay later need the money SQL in Supabase first. Record it as paid for now.";
 
 const isMissingTable = (e: { code?: string } | null) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202";
 export const BOOKINGS_NEED_UPDATE = "needs-update";
@@ -133,11 +136,15 @@ export function liveBookings(db: SupabaseClient, who: { side: "coach" | "client"
     },
     async addPack(p) {
       const { error } = await db.from("session_packs").insert(toPackRow(p, coachId));
-      if (error) throw isMissingTable(error) ? new Error(SESSIONS_NEED_UPDATE) : new Error(error.message);
+      if (error) throw isMissingTable(error) ? new Error(SESSIONS_NEED_UPDATE) : error.code === "PGRST204" || error.code === "42703" ? new Error(MONEY_NEED_UPDATE) : new Error(error.message);
     },
     async removePack(id) {
       const { error } = await db.from("session_packs").delete().eq("id", id);
       if (error) throw new Error(error.message);
+    },
+    async markPackPaid(id) {
+      const { error } = await db.from("session_packs").update({ paid_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error.code === "PGRST204" || error.code === "42703" ? new Error(MONEY_NEED_UPDATE) : new Error(error.message);
     },
     async mark(id, attendance) {
       const { error } = await db.from("bookings").update({ attendance, ...(attendance !== "no_show" ? { waived: false } : {}) }).eq("id", id);
@@ -241,6 +248,7 @@ export function demoBookings(me = DEMO_BOOKING_CLIENT): BookingApi {
     },
     async addPack(p) { const v = get(); set({ ...v, packs: [...(v.packs ?? []), p] }); },
     async removePack(id) { const v = get(); set({ ...v, packs: (v.packs ?? []).filter((p) => p.id !== id) }); },
+    async markPackPaid(id) { const v = get(); set({ ...v, packs: (v.packs ?? samplePacks()).map((p) => (p.id === id ? { ...p, paidAt: new Date().toISOString() } : p)) }); },
     async mark(id, attendance) { patch(id, (x) => ({ ...x, attendance, waived: attendance === "no_show" ? x.waived : false })); },
     async waive(id, waived) { patch(id, (x) => ({ ...x, waived })); },
     async services() { return { list: get().services ?? sampleServices(), ready: true }; },
