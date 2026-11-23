@@ -3,7 +3,10 @@
    Live: supabase/migrations/20261202090000_money_owed.sql (fee_payments). Pure, so it is unit tested. */
 
 export type FeePaidVia = "bank" | "cash" | "card";
-export const FEE_PAID_LABEL: Record<FeePaidVia, string> = { bank: "Bank transfer", cash: "Cash", card: "Card" };
+export const FEE_PAID_LABEL: Record<FeePaidVia, string> = { bank: "Bank or direct debit", cash: "Cash", card: "Card" };
+
+/** How many months one payment can cover: monthly, or a membership paid up front. */
+export const COVER_CHOICES = [1, 2, 3, 6, 12];
 
 export interface FeePayment {
   id: string;
@@ -24,6 +27,43 @@ export const monthName = (key: string): string => new Date(`${key}-01T12:00:00`)
 
 export function newFeePayment(clientId: string, month: string, amountPence: number, paidVia: FeePaidVia, now = new Date(), note = ""): FeePayment {
   return { id: crypto.randomUUID(), clientId, month, amountPence: Math.max(0, Math.round(amountPence)), paidVia, paidAt: now.toISOString(), note: note.trim().slice(0, 200) };
+}
+
+/** The month `n` months after `key`: addMonthKey("2026-11", 3) = "2027-02". */
+export function addMonthKey(key: string, n: number): string {
+  const [y, m] = key.split("-").map(Number) as [number, number];
+  const d = new Date(Date.UTC(y, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * One payment covering `months` months from `fromMonth` (a 3-month or yearly membership paid up front), saved as one
+ * row per month so each month shows as paid. The total is split evenly; the first month takes any odd pennies.
+ * Months already paid are skipped, so nothing is counted twice.
+ */
+export function coverPayments(clientId: string, fromMonth: string, months: number, totalPence: number, paidVia: FeePaidVia, alreadyPaid: string[] = [], now = new Date(), note = ""): FeePayment[] {
+  const n = Math.max(1, Math.min(24, Math.round(months)));
+  const keys = Array.from({ length: n }, (_, i) => addMonthKey(fromMonth, i)).filter((k) => !alreadyPaid.includes(k));
+  if (!keys.length) return [];
+  const total = Math.max(0, Math.round(totalPence));
+  const each = Math.floor(total / keys.length);
+  return keys.map((k, i) => newFeePayment(clientId, k, each + (i === 0 ? total - each * keys.length : 0), paidVia, now, note || (n > 1 ? `${n}-month membership` : "")));
+}
+
+/** The last month this client has paid for, if it's this month or later. */
+export function paidUntil(payments: FeePayment[], clientId: string, month: string): string | null {
+  const mine = payments.filter((p) => p.clientId === clientId && p.month >= month).map((p) => p.month).sort();
+  if (!mine.includes(month)) return null;
+  let last = month;
+  while (mine.includes(addMonthKey(last, 1))) last = addMonthKey(last, 1);
+  return last;
+}
+
+/** "Paid until February 2027", or "Paid for November". */
+export function paidUntilText(until: string, month: string): string {
+  if (until === month) return `Paid for ${monthName(month)}`;
+  const y = until.slice(0, 4) !== month.slice(0, 4) ? ` ${until.slice(0, 4)}` : "";
+  return `Paid until the end of ${monthName(until)}${y}`;
 }
 
 export interface FeeClient { id: string; name: string; feePence: number; status: string }
