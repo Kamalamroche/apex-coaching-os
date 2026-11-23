@@ -36,9 +36,11 @@ describe("success stories", () => {
     expect(c.endsWith("https://x.test/c/kamal/")).toBe(true);
   });
   it("picks a studio photo that matches the lift", () => {
-    expect(storyPhoto(nums).hero).toBe("squat");
-    expect(storyPhoto({ lift: { name: "Romanian deadlift", from: 40, to: 57.5 } }).hero).toBe("hinge");
-    expect(storyPhoto({ workouts: 12 }).hero).toBe("coach");
+    expect(storyPhoto(nums).backdrop).toBe("squat");
+    expect(storyPhoto(nums).src).toBe("/posts/squat.webp");
+    expect(storyPhoto({ lift: { name: "Romanian deadlift", from: 40, to: 57.5 } }).backdrop).toBe("hinge");
+    expect(storyPhoto({ lift: { name: "Bench press", from: 40, to: 50 } }).backdrop).toBe("coach");
+    expect(storyPhoto({ workouts: 12 }).backdrop).toBe("coach");
   });
   it("names the starter plan lead source", () => {
     expect(sourceLabel("starter")).toBe("Free starter plan");
