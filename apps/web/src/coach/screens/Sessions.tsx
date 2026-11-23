@@ -1,5 +1,5 @@
 import {
-  EXPIRY_CHOICES, LOG_MINUTES, PACK_CHOICES, logSessionProblem, loggedSession, sessionNudges, type Nudge, PAID_LABEL, chargeable, credits, creditsText, firstName, formatPrice, newPack, outcomeLabel, packProblem, packTitle, parsePrice, sessionMonth, timeLabel, toMark, whenLabel,
+  EXPIRY_CHOICES, LOG_MINUTES, packUnpaid, PACK_CHOICES, logSessionProblem, loggedSession, sessionNudges, type Nudge, PAID_LABEL, chargeable, credits, creditsText, firstName, formatPrice, newPack, outcomeLabel, packProblem, packTitle, parsePrice, sessionMonth, timeLabel, toMark, whenLabel,
   type Booking, type PackPaidVia, type SessionPack,
 } from "@apex/core";
 import { Avatar, CreditBalance, Icons, Label, SessionMonthStats, SessionsHero, Sheet } from "@apex/ui";
@@ -106,7 +106,7 @@ export function SessionsDesk({ data, names, live, say }: { data: BookingData; na
                 {isOpen && (
                   <div className="stack" style={{ gap: 8 }}>
                     <CreditBalance credits={c} caption={`${c.used} used so far${c.lapsed ? ` · ${c.lapsed} expired unused` : ""}`} />
-                    {packs.slice().reverse().map((p) => <PackRow key={p.id} p={p} onRemove={() => void act(() => api.removePack(p.id), "Pack removed")} />)}
+                    {packs.slice().reverse().map((p) => <PackRow key={p.id} p={p} onRemove={() => void act(() => api.removePack(p.id), "Pack removed")} onPaid={() => void act(() => api.markPackPaid(p.id), "Marked as paid")} />)}
                     <SessionHistory list={hist} />
                     {intro && !packs.some((p) => p.source === "intro") && !hist.some((b) => b.attendance === "attended") && (
                       <button className="btn ghost block" onClick={() => void act(() => api.addPack(newPack(id, 1, 0, "free", 0, "First session free", "intro")), `${firstName(name(id))} has their free first session`)}><Icons.gift width={15} height={15} /> Give the free first session</button>
@@ -159,11 +159,13 @@ function NudgeRow({ n, i, send }: { n: Nudge; i: number; send: (body: string) =>
   );
 }
 
-export function PackRow({ p, onRemove }: { p: SessionPack; onRemove: () => void }) {
+export function PackRow({ p, onRemove, onPaid }: { p: SessionPack; onRemove: () => void; onPaid?: () => void }) {
   const [sure, setSure] = useState(false);
+  const owed = packUnpaid(p);
   return (
-    <div className="li" style={{ padding: "8px 0" }}>
-      <div className="grow"><div className="small" style={{ fontWeight: 600, color: "var(--text)" }}>{packTitle(p)}</div><div className="tiny">{day(p.boughtAt)} · {PAID_LABEL[p.paidVia]}{p.expiresAt ? ` · expires ${day(p.expiresAt)}` : ""}{p.note ? ` · ${p.note}` : ""}</div></div>
+    <div className="li" style={{ padding: "8px 0", flexWrap: "wrap" }}>
+      <div className="grow"><div className="small" style={{ fontWeight: 600, color: "var(--text)" }}>{packTitle(p)}{owed && <span className="ss-tag warn" style={{ marginLeft: 8 }}>To pay</span>}</div><div className="tiny">{day(p.boughtAt)} · {owed ? "not paid yet" : PAID_LABEL[p.paidVia]}{p.expiresAt ? ` · expires ${day(p.expiresAt)}` : ""}{p.note ? ` · ${p.note}` : ""}</div></div>
+      {owed && onPaid && !sure && <button className="btn act sm" onClick={onPaid}>Mark paid</button>}
       {sure ? <button className="btn ghost sm" style={{ color: "var(--crit)" }} onClick={onRemove}>Remove</button> : <button className="iconbtn" onClick={() => setSure(true)} aria-label="Remove this pack">Remove</button>}
     </div>
   );
@@ -187,13 +189,14 @@ export function PackSheet({ first, onClose, onSave }: { first: string; onClose: 
   const [via, setVia] = useState<PackPaidVia>("bank");
   const [months, setMonths] = useState(3);
   const [note, setNote] = useState("");
+  const [paidNow, setPaidNow] = useState(true);
   const [busy, setBusy] = useState(false);
   const pence = parsePrice(price);
   const problem = packProblem(sessions, pence);
   const save = async () => {
     if (problem || pence === null) return;
     setBusy(true);
-    await onSave(newPack("", sessions, pence, via, months, note));
+    await onSave(newPack("", sessions, pence, via, months, note, "purchase", new Date(), paidNow));
     setBusy(false);
   };
   return (
@@ -206,12 +209,19 @@ export function PackSheet({ first, onClose, onSave }: { first: string; onClose: 
           <input className="field num" style={{ width: 80 }} type="number" min={1} max={100} inputMode="numeric" aria-label="Other number of sessions" value={sessions} onChange={(e) => setSessions(Number(e.target.value))} /></div>
       </div>
       <label className="stack" style={{ gap: 6 }}>
-        <span className="tiny">Price paid</span>
+        <span className="tiny">Price</span>
         <input className="field num" inputMode="decimal" placeholder="e.g. 400 (empty = free)" value={price} onChange={(e) => setPrice(e.target.value)} />
         {pence ? <span className="tiny">{formatPrice(Math.round(pence / sessions))} a session</span> : null}
       </label>
+      {!!pence && (
+        <div>
+          <div className="tiny" style={{ marginBottom: 6 }}>Payment</div>
+          <div className="chips"><button className={`chip ${paidNow ? "on" : ""}`} aria-pressed={paidNow} onClick={() => setPaidNow(true)}>Paid now</button><button className={`chip ${!paidNow ? "on" : ""}`} aria-pressed={!paidNow} onClick={() => setPaidNow(false)}>To pay later</button></div>
+          {!paidNow && <div className="tiny" style={{ marginTop: 6 }}>{first} can use the sessions now. It shows under Business → Money to collect until you mark it paid.</div>}
+        </div>
+      )}
       <div>
-        <div className="tiny" style={{ marginBottom: 6 }}>Paid by</div>
+        <div className="tiny" style={{ marginBottom: 6 }}>{paidNow ? "Paid by" : "Will pay by"}</div>
         <div className="chips">{(["bank", "cash", "card"] as const).map((v) => <button key={v} className={`chip ${via === v ? "on" : ""}`} aria-pressed={via === v} onClick={() => setVia(v)}>{PAID_LABEL[v]}</button>)}</div>
       </div>
       <div>
@@ -302,7 +312,7 @@ export function ClientSessions({ clientId, name, say }: { clientId: string; name
     <section className="card stack" style={{ gap: 12 }} aria-label={`${first}'s sessions`}>
       <div className="sect"><h2 className="h3">Sessions</h2>{c.owed > 0 ? <span className="ss-tag warn">Owes {c.owed}</span> : !c.owed && c.left > 0 && c.left <= 2 ? <span className="ss-tag">Running low</span> : <Label kind="data">Data</Label>}</div>
       {packs.length ? <CreditBalance credits={c} caption={`${c.used} used so far${c.lapsed ? ` · ${c.lapsed} expired unused` : ""}`} /> : <p className="small" style={{ margin: 0 }}>No sessions recorded for {first} yet. Paid you by bank transfer or cash? Add the pack here and every session comes off it as you mark the register.</p>}
-      {packs.slice().reverse().map((p) => <PackRow key={p.id} p={p} onRemove={() => void act(() => api.removePack(p.id), "Pack removed")} />)}
+      {packs.slice().reverse().map((p) => <PackRow key={p.id} p={p} onRemove={() => void act(() => api.removePack(p.id), "Pack removed")} onPaid={() => void act(() => api.markPackPaid(p.id), "Marked as paid")} />)}
       <SessionHistory list={hist} />
       <div className="row" style={{ gap: 8 }}>
         <button className="btn act grow" onClick={() => setSheet("pack")}>Add a pack</button>

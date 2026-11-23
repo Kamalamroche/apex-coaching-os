@@ -30,7 +30,8 @@ export async function loadBusiness(db: SupabaseClient, coachId: string, now = ne
   const [leads, bookings, packs, sales] = await Promise.all([
     db.from("join_requests").select("created_at, stage, source").eq("coach_id", coachId).gte("created_at", since),
     db.from("bookings").select("starts_at, kind, status, attendance, late").eq("coach_id", coachId).gte("starts_at", since),
-    db.from("session_packs").select("bought_at, price_pence").eq("coach_id", coachId).gte("bought_at", since),
+    db.from("session_packs").select("bought_at, price_pence, paid_at").eq("coach_id", coachId).gte("bought_at", since)
+      .then((r) => (r.error && isMissingColumn(r.error) ? db.from("session_packs").select("bought_at, price_pence").eq("coach_id", coachId).gte("bought_at", since) : r)),
     db.from("programme_enrolments").select("started_at, paid_pence").eq("coach_id", coachId).eq("status", "active").gte("started_at", since),
   ]);
   const rows = <T,>(r: { data: unknown; error: { code?: string; message: string } | null }): T[] => {
@@ -45,7 +46,7 @@ export async function loadBusiness(db: SupabaseClient, coachId: string, now = ne
       clients,
       leads: rows<{ created_at: string; stage: string; source: string }>(leads).map((l): BizLead => ({ createdAt: l.created_at, stage: l.stage, source: l.source })),
       bookings: rows<{ starts_at: string; kind: BizBooking["kind"]; status: BizBooking["status"]; attendance: BizBooking["attendance"]; late: boolean }>(bookings).map((b): BizBooking => ({ startsAt: b.starts_at, kind: b.kind, status: b.status, attendance: b.attendance ?? null, late: !!b.late })),
-      packs: rows<{ bought_at: string; price_pence: number }>(packs).map((p): BizPack => ({ boughtAt: p.bought_at, pricePence: p.price_pence })),
+      packs: rows<{ bought_at: string; price_pence: number; paid_at?: string | null }>(packs).map((p): BizPack => ({ boughtAt: p.bought_at, pricePence: p.price_pence, ...(p.paid_at !== undefined ? { paidAt: p.paid_at } : {}) })),
       sales: rows<{ started_at: string | null; paid_pence: number }>(sales).filter((s) => s.started_at).map((s): BizSale => ({ at: s.started_at!, paidPence: s.paid_pence })),
     },
   };
