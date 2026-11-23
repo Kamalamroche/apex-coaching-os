@@ -84,6 +84,8 @@ export interface ImportClient {
   program: ImportProgram | null;
   sessions: ImportSession[];
   checkIns: ImportCheckIn[];
+  /** Marked inactive, archived or cancelled in the export, so the coach can leave them out. */
+  past?: boolean;
 }
 
 export interface ImportBundle {
@@ -99,7 +101,7 @@ export interface ImportBundle {
 type Field =
   | "client" | "email" | "goal" | "mode" | "notes" | "program" | "week" | "day" | "workout" | "group" | "exercise"
   | "sets" | "set" | "reps" | "weight" | "rpe" | "sessionRpe" | "rest" | "date" | "seconds" | "minutes"
-  | "bodyweight" | "energy" | "mood" | "sleep";
+  | "bodyweight" | "energy" | "mood" | "sleep" | "firstName" | "lastName" | "phone" | "status" | "tags";
 
 const ALIASES: Record<Field, string[]> = {
   client: ["client", "clientname", "name", "fullname", "athlete", "athletename", "member", "customer", "trainee"],
@@ -127,6 +129,12 @@ const ALIASES: Record<Field, string[]> = {
   energy: ["energy", "energylevel"],
   mood: ["mood"],
   sleep: ["sleep", "sleephours", "hoursofsleep", "hourssleep"],
+  // Client lists exported from other coaching apps usually split the name and add these.
+  firstName: ["firstname", "first", "givenname", "forename"],
+  lastName: ["lastname", "last", "surname", "familyname"],
+  phone: ["phone", "phonenumber", "mobile", "mobilenumber", "cell", "telephone"],
+  status: ["status", "clientstatus", "accountstatus"],
+  tags: ["tags", "tag", "labels", "clientgroups", "groups"],
 };
 
 const headerKey = (h: string) => h.toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z]/g, "");
@@ -159,13 +167,23 @@ export function detectKind(headers: string[]): TableKind | null {
   const { index } = columnsOf(headers);
   const has = (f: Field) => index[f] !== undefined;
   if (has("exercise")) return has("date") ? "history" : "program";
+  // A client list from another app often has a start date and a weight column; an email or a
+  // split name says it is a list of people, unless it also holds check-in scores.
+  const scores = has("energy") || has("mood") || has("sleep") || has("bodyweight");
+  if ((has("email") || has("firstName")) && !scores) return "clients";
   if (has("date") && (has("weight") || has("bodyweight") || has("energy") || has("mood") || has("sleep"))) return "checkins";
   if (has("client") || has("email")) return "clients";
   return null;
 }
 
 /** Whether a table says whose rows they are. Without it the coach names the client. */
-export const hasClientColumn = (headers: string[]): boolean => columnsOf(headers).index.client !== undefined;
+export const hasClientColumn = (headers: string[]): boolean => {
+  const { index } = columnsOf(headers);
+  return index.client !== undefined || index.firstName !== undefined;
+};
+
+/** "Inactive", "Archived", "Cancelled"… a client who has left. Paused and pending clients are not. */
+export const isPastStatus = (value: string): boolean => /inactiv|archiv|former|\bpast\b|cancel|ended|deactivat|churn|left/i.test(value);
 
 /* ───────────── values ───────────── */
 
@@ -304,7 +322,8 @@ export function readTables(tables: SourceTable[], options: ReadOptions = {}): Im
 
     rows.forEach((row, i) => {
       const where = `${table.name} row ${i + 2}`;
-      const who = cell(row, "client") || (kind === "clients" ? "" : options.defaultClient ?? "");
+      const fullName = [cell(row, "firstName"), cell(row, "lastName")].filter(Boolean).join(" ");
+      const who = cell(row, "client") || fullName || (kind === "clients" ? "" : options.defaultClient ?? "");
       if (!who) {
         if (kind !== "clients" || cell(row, "email")) problems.push(`${where}: no client name`);
         return;
@@ -316,6 +335,9 @@ export function readTables(tables: SourceTable[], options: ReadOptions = {}): Im
         client.goal ||= cell(row, "goal");
         if (cell(row, "mode")) client.mode = parseMode(cell(row, "mode"));
         client.notes ||= cell(row, "notes");
+        const extra = [cell(row, "phone") && `Phone: ${cell(row, "phone")}`, cell(row, "tags") && `Tags: ${cell(row, "tags")}`].filter(Boolean).join(" · ");
+        if (extra && !client.notes.includes(extra)) client.notes = client.notes ? `${client.notes} · ${extra}` : extra;
+        if (cell(row, "status")) client.past = isPastStatus(cell(row, "status"));
         return;
       }
 
@@ -388,6 +410,9 @@ export function readTables(tables: SourceTable[], options: ReadOptions = {}): Im
   for (const c of list) c.sessions.sort((a, b) => a.date.localeCompare(b.date));
   return { clients: list, tables: read, problems };
 }
+
+/** The bundle without clients marked as past in their export. */
+export const withoutPastClients = (bundle: ImportBundle): ImportBundle => ({ ...bundle, clients: bundle.clients.filter((c) => !c.past) });
 
 /** A program read from PDF or pasted text, for one client. Only items with a library match are kept. */
 export function programFromParsed(parsed: ParsedProgram, fallbackName: string): ImportProgram {

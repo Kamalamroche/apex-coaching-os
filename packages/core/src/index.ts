@@ -51,6 +51,7 @@ export * from "./exerciseMatch";
 export * from "./programText";
 export * from "./voice";
 export * from "./transfer";
+export * from "./switching";
 export * from "./exportData";
 export * from "./zip";
 export * from "./activity";
