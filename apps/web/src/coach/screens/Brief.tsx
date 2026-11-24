@@ -1,5 +1,6 @@
 import { CLIENTS, DEMO_CLIENT_ID, HERO_IMAGES, exerciseFor, progressWorkout, type RosterRow, businessGlance, businessSummary, firstName, heroForWorkout, newestFirst, sampleBusiness, sampleHealth, weeklyReport, type Client, type GlanceTile, type WeeklyReport } from "@apex/core";
 import { useApexState } from "@apex/core/react";
+import { SetupCard } from "./SetupCard";
 import { Avatar, BusinessGlance, WeeklyReportCard, CountUp, Icons, Label, Sheet, EditorialTitle, HeroBackdrop, useUnits } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { loadBusiness } from "../../data/business";
@@ -57,7 +58,7 @@ const clientById = (id: number): Client => {
   return c;
 };
 
-export function Brief({ planBlock, openClient, openLiveClient, openClients, openBusiness, say, clientCount, clients, live, start }: { planBlock?: (clientId: string) => void; openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" | "review" }) {
+export function Brief({ planBlock, openClient, openLiveClient, openClients, openBusiness, openBuilder, openPage, say, clientCount, clients, live, start }: { planBlock?: (clientId: string) => void; openClient: (id: number, tab?: string) => void; openLiveClient?: (id: string, tab?: string) => void; openClients?: () => void; openBusiness?: () => void; /** Get set up steps. */ openBuilder?: () => void; openPage?: () => void; say: (m: string) => void; clientCount?: number; clients?: LiveClient[] | null; live?: CoachLiveProps ; /** Open straight onto the calendar or the Twin drafts (from quick find). */ start?: "calendar" | "twin" | "review" }) {
   const u = useUnits();
   const store = useStore();
   const { coachName, clientName, mode } = useAppInfo();
@@ -87,13 +88,14 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
   const glance = useBusinessGlance(mode === "live" ? live : undefined);
   const openToday = (tab?: string) => (mode === "live" ? (live?.activeClientId ? openLiveClient?.(live.activeClientId, tab) : undefined) : openClient(DEMO_CLIENT_ID, tab));
   const [calendar, setCalendar] = useState(start === "calendar");
+  const [calendarMode, setCalendarMode] = useState<"list" | "hours" | "services">("list");
   const [twin, setTwin] = useState(start === "twin");
   const [review, setReview] = useState(start === "review");
   const [prep, setPrep] = useState<{ clientId: string; name: string; startsAt: string } | null>(null);
   useViewScroll(twin ? "twin" : review ? "review" : calendar ? "calendar" : null);
   if (twin) return <TwinQueue onBack={() => setTwin(false)} say={say} backLabel={review ? "Weekly review" : "Brief"} />;
   if (review) return <ReviewMode live={live} say={say} onBack={() => setReview(false)} openTwin={() => setTwin(true)} />;
-  if (calendar) return <Calendar clients={clients} live={live} onBack={() => setCalendar(false)} say={say} />;
+  if (calendar) return <Calendar clients={clients} live={live} startMode={calendarMode} onBack={() => { setCalendar(false); setCalendarMode("list"); }} say={say} />;
 
   return (
     <>
@@ -115,6 +117,12 @@ export function Brief({ planBlock, openClient, openLiveClient, openClients, open
         </div>
       </section>
       <PushPrompt say={say} full />
+      <SetupCard live={mode === "live" ? live : undefined} onStep={(id) => {
+        if (id === "clients") openClients?.();
+        else if (id === "template") openBuilder?.();
+        else if (id === "page") (openPage ?? openBusiness)?.();
+        else { setCalendarMode(id === "hours" ? "hours" : "services"); setCalendar(true); }
+      }} />
       <button className="rv-cta full" onClick={() => setReview(true)}>
         <span className="rv-ic"><Icons.check width={20} height={20} /></span>
         <span className="grow"><b>Weekly review</b><br /><span className="small">Every client who needs you, one at a time, then APEX Twin's drafts for everyone else</span></span>

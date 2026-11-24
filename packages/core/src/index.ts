@@ -114,3 +114,4 @@ export * from "./savedMeals";
 export * from "./nutritionInsights";
 export * from "./stories";
 export * from "./incomeGoal";
+export * from "./coachSetup";
