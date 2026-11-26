@@ -6,12 +6,13 @@ import type { IconName } from "@apex/ui";
 
 /* Banner video: the APEX light pyramid in red particles (original Higgsfield render, 26 Nov 2026).
    16 s loop: flames move inside the pyramid, light surges up the beams and the peak flares, then the
-   two inner peaks of the logo (taken from the logo SVG) slowly draw themselves as fine lines of fire,
-   breathe with the light, and burn away upwards in sparks.
+   two peaks from the logo slowly draw themselves as fine lines of light at the big pyramid's own angle,
+   nested under its tip, with dots streaming up them like the beams; they breathe with the light and burn
+   away upwards in sparks.
    Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frames ship with the site. */
-export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/5ee707c2-b3bd-4b96-8854-c2c902fdae16.mp4";
+export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/e356ffe7-78a4-4677-8c2e-20f56fbbff18.mp4";
 /* 720p cut for phones, with the mark a little smaller and higher so it clears the headline. */
-export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/9e0a9629-a691-4bb1-90ec-3ee57b323aa7.mp4";
+export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/0934a92e-3501-4e96-96cc-c5b4630db930.mp4";
 /* Poster = the first frame (before the eruption); reduced motion shows the line-drawn peaks instead. */
 export const HERO_POSTER = "/site/pyramid-poster.webp";
 export const HERO_STILL = "/site/pyramid-logo.webp";
