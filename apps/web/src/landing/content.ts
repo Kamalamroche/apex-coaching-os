@@ -6,15 +6,17 @@ import type { IconName } from "@apex/ui";
    phones are real screens from the demo app (apps/web/public/site, re-shoot when the app UI changes). */
 
 /* Banner video: the APEX light pyramid in red particles (original Higgsfield render, 26 Nov 2026).
-   16 s loop: light surges up the beams, the peak erupts, embers rise from inside the pyramid and the
-   logo melts into place in molten colours, holds, then melts away. Logo is the exact SVG, never redrawn.
+   16 s loop: flames move inside the pyramid, light surges up the beams and the peak flares, then the
+   logo mark draws itself as fine lines of fire (outer A and the two inner peaks, taken from the logo SVG),
+   glows, and burns away upwards in sparks.
    Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frames ship with the site. */
-export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/31970c3a-68fa-42e5-87bd-b58d484537e5.mp4";
-/* 720p cut (1.9 MB) for phones, with the logo a little smaller and higher so it clears the headline. */
-export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/09dd9323-067e-42d3-b4c6-4eb8a0200740.mp4";
-/* Poster = the first frame (before the eruption); reduced motion shows the molten logo frame instead. */
+export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/bfe55d0c-5067-43b2-b36e-12174e9e701f.mp4";
+/* 720p cut for phones, with the mark a little smaller and higher so it clears the headline. */
+export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/96c3559c-0feb-4d57-9c4f-733e6655dd64.mp4";
+/* Poster = the first frame (before the eruption); reduced motion shows the line-drawn mark instead. */
 export const HERO_POSTER = "/site/pyramid-poster.webp";
 export const HERO_STILL = "/site/pyramid-logo.webp";
+export const HERO_STILL_SMALL = "/site/pyramid-logo-phone.webp";
 export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
    Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the
    APEX light pyramid in red particles, where the logo erupts from inside it like molten fire. Copy and data live in content.ts. Only features that exist today are sold. */
 
 /** Full-bleed looping video with its poster frame. Reduced motion shows the still instead. */
-function PyramidVideo({ className, src, small, poster, still: stillSrc }: { className: string; src: string; small?: string; poster: string; still?: string }) {
+function PyramidVideo({ className, src, small, poster, still: stillSrc, stillSmall }: { className: string; src: string; small?: string; poster: string; still?: string; stillSmall?: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
@@ -18,7 +18,12 @@ function PyramidVideo({ className, src, small, poster, still: stillSrc }: { clas
     io.observe(v);
     return () => io.disconnect();
   }, []);
-  if (still || !src) return <img className={className} src={stillSrc ?? poster} alt="" aria-hidden="true" />;
+  if (still || !src) return (
+    <picture>
+      {stillSmall && <source srcSet={stillSmall} media="(max-width: 760px)" />}
+      <img className={className} src={stillSrc ?? poster} alt="" aria-hidden="true" />
+    </picture>
+  );
   return (
     <video ref={ref} className={className} poster={poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
       {small && <source src={small} type="video/mp4" media="(max-width: 760px)" />}
@@ -105,7 +110,7 @@ export function Landing() {
       <main>
         {/* ---------- banner ---------- */}
         <section className="lp-hero" id="top">
-          <PyramidVideo className="lp-media" src={HERO_VIDEO} small={HERO_VIDEO_SMALL} poster={HERO_POSTER} still={HERO_STILL} />
+          <PyramidVideo className="lp-media" src={HERO_VIDEO} small={HERO_VIDEO_SMALL} poster={HERO_POSTER} still={HERO_STILL} stillSmall={HERO_STILL_SMALL} />
           <div className="lp-wrap lp-hero-grid">
             <h1 className="lp-h1"><b>Coaching software</b> for trainers who design the training.</h1>
             <div className="lp-hero-side">
