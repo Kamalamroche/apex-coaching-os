@@ -22,12 +22,15 @@ export interface PushEnv {
   standalone: boolean;
   /** iPads report themselves as Macs; a touch screen gives them away. */
   maxTouchPoints?: number;
+  /** Inside the App Store or Google Play app, where web push isn't available (native push comes later). */
+  native?: boolean;
 }
 
 export const isAppleMobile = (ua: string, maxTouchPoints = 0) =>
   /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && maxTouchPoints > 1);
 
 export function pushSupport(env: PushEnv): PushSupport {
+  if (env.native) return "unsupported";
   const apple = isAppleMobile(env.userAgent, env.maxTouchPoints);
   // On iPhone the push APIs only appear inside the Home Screen app, so a missing API there means "install first".
   if (apple && !env.standalone) return "ios-install";

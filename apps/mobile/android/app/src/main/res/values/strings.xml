@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">APEX Coaching</string>
+    <string name="title_activity_main">APEX Coaching</string>
+    <string name="package_name">com.apexcoaching.app</string>
+    <string name="custom_url_scheme">com.apexcoaching.app</string>
+</resources>
