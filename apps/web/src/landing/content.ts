@@ -2,15 +2,19 @@ import type { IconName } from "@apex/ui";
 
 /* All words and pictures for the public website at /. Original APEX copy, UK English.
    Rules: only sell what exists today, no invented customer numbers or reviews (UK advertising rules),
-   pictures are real screens from the demo apps (apps/web/public/site, re-shoot when the app UI changes). */
+   feature cards use original red-lit Higgsfield pictures (26 Nov 2026, Kamal's reference site); the client app
+   phones are real screens from the demo app (apps/web/public/site, re-shoot when the app UI changes). */
 
 /* Banner video: the APEX light pyramid in red particles (original Higgsfield render, 26 Nov 2026).
-   Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frame ships with the site. */
-export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/5feeca5d-6ecb-4790-aaf6-efcac81bcaa6.mp4";
-/* 720p cut (1.4 MB) for phones, with the logo a little smaller and higher so it clears the headline. 16 s loop: the logo sits still in the pyramid while its light swells and settles. */
-export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/30ccece2-816f-4bab-bcb3-b0f69f7cc1fe.mp4";
-/* Poster and reduced-motion still: the first frame of the banner, logo included. */
-export const HERO_POSTER = "/site/pyramid-logo.webp";
+   16 s loop: light surges up the beams, the peak erupts, embers rise from inside the pyramid and the
+   logo melts into place in molten colours, holds, then melts away. Logo is the exact SVG, never redrawn.
+   Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frames ship with the site. */
+export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/31970c3a-68fa-42e5-87bd-b58d484537e5.mp4";
+/* 720p cut (1.9 MB) for phones, with the logo a little smaller and higher so it clears the headline. */
+export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/09dd9323-067e-42d3-b4c6-4eb8a0200740.mp4";
+/* Poster = the first frame (before the eruption); reduced motion shows the molten logo frame instead. */
+export const HERO_POSTER = "/site/pyramid-poster.webp";
+export const HERO_STILL = "/site/pyramid-logo.webp";
 export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
@@ -33,35 +37,35 @@ export const TOUR: Tour[] = [
     title: "Start every day knowing who needs you.",
     body: "One calm screen ranks your clients by what matters: missed sessions, stalled lifts, unread messages and check-ins waiting for a reply.",
     points: ["Sessions done this week at a glance", "Who needs you today, in order", "A short setup list for new coaches"],
-    shot: "/site/coach-brief-dark.webp", alt: "The APEX coach morning brief with active clients, sessions done and who needs attention today",
+    shot: "/site/pic-brief.webp", alt: "A coach seen from behind at a studio window as a red sunrise comes up over the hills",
   },
   {
     id: "build", tab: "Programme builder", icon: "build",
     title: "Write programmes the way you think.",
     body: "Drag from a library of 654 exercises, build supersets and circuits, then reuse your best weeks as templates. Import a PDF or paste your notes to start faster.",
     points: ["Sets, reps, load, RPE and rest per set", "Last session's numbers beside every exercise", "Templates, week tools and PDF import"],
-    shot: "/site/coach-builder-dark.webp", alt: "The APEX programme builder with a lower body strength session and the exercise library",
+    shot: "/site/pic-build.webp", alt: "Iron weight plates and a barbell on a dark stone plinth in red light",
   },
   {
     id: "clients", tab: "Clients", icon: "clients",
     title: "Your whole roster on one table.",
     body: "Training, check-ins, habits, food and how recently you spoke, side by side for every client. Sort by who is slipping and act in a tap.",
     points: ["Health score for every client", "Tags for online, hybrid and in person", "Message or programme several at once"],
-    shot: "/site/coach-clients-dark.webp", alt: "The APEX client table with training, check-ins, habits and food for six sample clients",
+    shot: "/site/pic-clients.webp", alt: "Four athletes training together in a dark gym lit in red",
   },
   {
     id: "food", tab: "Nutrition", icon: "food",
     title: "Nutrition coaching without the spreadsheets.",
     body: "Set targets, write meal plans and see what clients actually eat. Insights point out patterns, and you decide what to change.",
     points: ["Calorie and macro targets", "Meal plans and food logs", "Protein through the day"],
-    shot: "/site/coach-nutrition-dark.webp", alt: "The APEX nutrition screen with a client's targets and food logged today",
+    shot: "/site/pic-food.webp", alt: "A plate of salmon, rice, greens and avocado with a bowl of berries on black stone",
   },
   {
     id: "money", tab: "Business", icon: "money",
     title: "Run the business side in the same place.",
     body: "Services, session packs, memberships, group classes, contracts and your own public page with enquiries. See money owed before it becomes awkward.",
     points: ["Bookings, packs and memberships", "Contracts and waivers signed in the app", "Your own page for new leads"],
-    shot: "/site/coach-business-dark.webp", alt: "The APEX business screen with a monthly income goal and coaching tools",
+    shot: "/site/pic-money.webp", alt: "A laptop showing income charts on a desk at night, city lights behind",
   },
   {
     id: "client", tab: "Client app", icon: "today",

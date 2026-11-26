@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
    Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the
-   APEX light pyramid in red particles, with the logo held in its centre. Copy and data live in content.ts. Only features that exist today are sold. */
+   APEX light pyramid in red particles, where the logo erupts from inside it like molten fire. Copy and data live in content.ts. Only features that exist today are sold. */
 
 /** Full-bleed looping video with its poster frame. Reduced motion shows the still instead. */
-function PyramidVideo({ className, src, small, poster }: { className: string; src: string; small?: string; poster: string }) {
+function PyramidVideo({ className, src, small, poster, still: stillSrc }: { className: string; src: string; small?: string; poster: string; still?: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   useEffect(() => {
@@ -18,7 +18,7 @@ function PyramidVideo({ className, src, small, poster }: { className: string; sr
     io.observe(v);
     return () => io.disconnect();
   }, []);
-  if (still || !src) return <img className={className} src={poster} alt="" aria-hidden="true" />;
+  if (still || !src) return <img className={className} src={stillSrc ?? poster} alt="" aria-hidden="true" />;
   return (
     <video ref={ref} className={className} poster={poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
       {small && <source src={small} type="video/mp4" media="(max-width: 760px)" />}
@@ -105,9 +105,9 @@ export function Landing() {
       <main>
         {/* ---------- banner ---------- */}
         <section className="lp-hero" id="top">
-          <PyramidVideo className="lp-media" src={HERO_VIDEO} small={HERO_VIDEO_SMALL} poster={HERO_POSTER} />
+          <PyramidVideo className="lp-media" src={HERO_VIDEO} small={HERO_VIDEO_SMALL} poster={HERO_POSTER} still={HERO_STILL} />
           <div className="lp-wrap lp-hero-grid">
-            <h1 className="lp-h1">Coaching software for trainers who design the training.</h1>
+            <h1 className="lp-h1"><b>Coaching software</b> for trainers who design the training.</h1>
             <div className="lp-hero-side">
               <p>Write the programmes, see who needs you each morning, and give every client an app that opens on today's session. Free for your first 3 clients.</p>
               <div className="lp-ctas">
@@ -127,7 +127,7 @@ export function Landing() {
               <p className="lp-small">Every feature on every plan. 654 exercises with cues and steps. Nothing reaches a client until you say so.</p>
             </div>
             <figure className="lp-statement-pic" data-reveal>
-              <img src="/site/coach-brief-dark.webp" width={1600} height={1000} alt="The APEX coach app: a morning brief with active clients, sessions done this week and who needs you today" loading="lazy" />
+              <img src="/site/pic-pyramid.webp" width={1200} height={896} alt="A glass pyramid on dark volcanic rock, lit red from behind" loading="lazy" />
             </figure>
           </div>
         </section>

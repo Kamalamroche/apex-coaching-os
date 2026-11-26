@@ -48,7 +48,7 @@
 @media (min-width:960px){.lp-nav{display:flex}.lp-menu,.lp-drawer{display:none}}
 
 /* ---------- type ---------- */
-.lp-h1{font:800 clamp(34px,5.4vw,66px)/1.02 var(--h);letter-spacing:-.025em;text-transform:uppercase;text-wrap:balance}
+.lp-h1{font:400 clamp(34px,5.4vw,66px)/1.02 var(--h);letter-spacing:-.025em;text-transform:uppercase;text-wrap:balance}
 .lp-h2{font:800 clamp(26px,3.6vw,42px)/1.06 var(--h);letter-spacing:-.02em;text-transform:uppercase;text-wrap:balance}
 .lp-chip{justify-self:start;display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:6px;background:var(--site-ink);color:var(--site-paper);font:700 11px/1 var(--f);letter-spacing:.12em;text-transform:uppercase}
 
@@ -60,6 +60,7 @@
 .lp-hero::after,.lp-end::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(5,4,4,.35) 0%,rgba(5,4,4,0) 22%,rgba(5,4,4,.15) 50%,rgba(5,4,4,.82) 82%,var(--site-paper) 100%)}
 .lp-hero-grid{width:100%;display:grid;gap:28px;align-items:end}
+.lp-h1 b{font-weight:800}
 .lp-hero .lp-h1{max-width:13em;text-shadow:0 2px 30px rgba(0,0,0,.45)}
 .lp-hero-side{display:grid;gap:22px;max-width:28em}
 .lp-hero-side p{color:var(--site-on-night2);font-size:16px;line-height:1.6}
@@ -89,18 +90,29 @@
 @media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.1fr;gap:72px}}
 
 /* ---------- product cards ---------- */
+/* Feature cards: picture on the left, maroon panel on the right, two to a row (Kamal's reference). */
 .lp-cards{display:grid;gap:16px}
-.lp-card{display:flex;flex-direction:column;border-radius:var(--rad);overflow:hidden;background:var(--site-card);border:1px solid var(--site-line);transition:border-color .3s}
-.lp-card:hover{border-color:var(--site-line2)}
-.lp-card-pic{position:relative;aspect-ratio:16/10;overflow:hidden;background:#0B0809;border-bottom:1px solid var(--site-line)}
-.lp-card-pic img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 0;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.lp-card:hover .lp-card-pic img{transform:scale(1.03)}
-.lp-card.phone .lp-card-pic img{object-fit:cover;object-position:50% 22%}
-.lp-card-copy{display:grid;gap:8px;align-content:start;padding:22px 24px 26px}
-.lp-card-copy h3{font:800 16px/1.2 var(--h);letter-spacing:.02em;text-transform:uppercase}
-.lp-card-copy p{color:var(--site-ink2);font-size:15px;line-height:1.55}
-@media (min-width:700px){.lp-cards{grid-template-columns:repeat(2,1fr);gap:20px}}
-@media (min-width:1060px){.lp-cards{grid-template-columns:repeat(3,1fr)}}
+.lp-card{display:grid;grid-template-columns:1fr;gap:0;padding:8px;border-radius:var(--rad);background:var(--site-panel);border:1px solid var(--site-line2);transition:border-color .3s,transform .4s cubic-bezier(.2,.7,.2,1)}
+.lp-card:hover{border-color:rgba(246,242,240,.22);transform:translateY(-2px)}
+.lp-card-pic{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:#0B0809;border:1px solid rgba(246,242,240,.3)}
+.lp-card-pic img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.lp-card:hover .lp-card-pic img{transform:scale(1.04)}
+.lp-card.phone .lp-card-pic img{object-position:50% 18%}
+.lp-card-copy{display:grid;gap:10px;align-content:center;padding:20px 18px 18px}
+.lp-card-copy h3{font:700 20px/1.2 var(--f);letter-spacing:-.01em}
+.lp-card-copy p{color:var(--site-ink2);font-size:14.5px;line-height:1.55}
+@media (min-width:520px){.lp-card{grid-template-columns:44% 1fr}.lp-card-pic{aspect-ratio:auto;min-height:200px}.lp-card-copy{padding:20px 22px}}
+@media (min-width:980px){.lp-cards{grid-template-columns:repeat(2,1fr);gap:18px}.lp-card-pic{min-height:230px}}
+/* Particle rails down both edges of the page, like dots falling from the banner. Desktop only. */
+.lp main{position:relative}
+@media (min-width:1280px){
+  .lp main::before,.lp main::after{content:"";position:absolute;top:100svh;bottom:0;width:150px;pointer-events:none;z-index:0;opacity:.75;
+    background:url(/site/rail.webp) 0 0/150px auto repeat-y;
+    -webkit-mask:linear-gradient(transparent,#000 260px,#000 calc(100% - 420px),transparent);mask:linear-gradient(transparent,#000 260px,#000 calc(100% - 420px),transparent)}
+  .lp main::before{left:max(0px,calc(50% - 760px))}
+  .lp main::after{right:max(0px,calc(50% - 760px));transform:scaleX(-1)}
+  .lp-sec,.lp-end{z-index:1}
+}
 
 /* ---------- client app ---------- */
 .lp-phones{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:4px 20px 8px}
