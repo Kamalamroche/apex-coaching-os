@@ -1,5 +1,5 @@
 import { campaignEndsText, campaignLive, spotsLeft, spotsText, formatPrice, guestProblem, readBookLink, serviceCard, serviceLine, whenLabel, GUEST_NOTE_MAX, type GuestDraft, type Service, GOAL_CHOICES, MODE_LABEL, REQUEST_MESSAGE_MAX, readFormLink, readPageLink, readPrefill, requestProblem, trainerMeta, type CoachPage, type JoinRequestDraft, type TrainingModeName } from "@apex/core";
-import { Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, StarterOffer, SuccessStoryCard, ThemeButton, TrustStrip } from "@apex/ui";
+import { ApexLogo, Celebrate, CoachPageView, type PageBoost, EditorialTitle, Icons, ServiceMenu, Sheet, StarterOffer, SuccessStoryCard, ThemeButton, TrustStrip } from "@apex/ui";
 import { SlotPicker } from "../app/BookingParts";
 import { useEffect, useMemo, useState } from "react";
 import { demoPublicPage, livePublicPage, type PublicBookingMenu } from "../data/growth";
@@ -177,7 +177,7 @@ function Top({ back = false }: { back?: boolean }) {
   return (
     <div className="gr-top">
       {back && <a className="btn ghost sm" style={{ textDecoration: "none" }} href="/trainers/"><Icons.back width={14} height={14} /> Find a trainer</a>}
-      <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><Icons.logo width={20} height={20} /><b style={{ fontSize: 16 }}>APEX</b></a>
+      <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><ApexLogo height={26} /></a>
       <ThemeButton />
     </div>
   );

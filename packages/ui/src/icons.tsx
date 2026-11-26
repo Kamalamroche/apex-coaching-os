@@ -3,7 +3,7 @@ import {
   MessageSquare, Moon, NotebookPen, Droplet, Apple, Egg, ClipboardList, Target, Trash2, StretchHorizontal, Play, Plus, TrendingUp, Trophy, Users, UtensilsCrossed, Weight, X, Zap, ArrowRight, ChevronLeft, ChevronRight, ChevronsRight, Clock, Bell, Info, SkipBack, SkipForward, Sparkles, Share2, Hand, Car, Headphones, Lock, Piano, Tractor, BusFront, TrainFront, Plane, Rocket, Luggage, Dog, WashingMachine, PawPrint, Motorbike, type LucideIcon, Mail, Copy, Globe, Eye, EyeOff, ScanBarcode, Refrigerator, Video, BadgeCheck, MapPin, SlidersHorizontal, ShieldCheck,
 } from "lucide-react";
 import type { ReactElement, SVGProps } from "react";
-import { MARK_A, MARK_CUT, MARK_CUT_W, MARK_PEAK } from "./brandMark";
+import { LOCKUP, MARK_A, MARK_CUT, MARK_CUT_W, MARK_PEAK, WORD } from "./brandMark";
 
 /* One icon family across the app: Lucide (ISC licence), drawn at a 1.75 stroke for a lighter, more refined line.
    Each icon takes normal SVG props, so size it with width/height or CSS. The logo and the demo figure are our own. */
@@ -114,3 +114,16 @@ export const Icons = {
 } satisfies Record<string, Icon>;
 
 export type IconName = keyof typeof Icons;
+
+/** The full APEX logo: the mark and the drawn letters, sized together. `height` is the mark's height; the letters
+ *  follow the text colour (currentColor). Use this wherever the logo and the name appear side by side. */
+export function ApexLogo({ height = 30, ...p }: SVGProps<SVGSVGElement> & { height?: number }) {
+  return (
+    <svg width={(LOCKUP.width / 40) * height} height={height} viewBox={`0 0 ${LOCKUP.width} 40`} fill="none" role="img" aria-label="APEX" {...p}>
+      <mask id="apex-lockup-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="40" height="40"><rect width="40" height="40" fill="#fff" /><path d={MARK_CUT} stroke="#000" strokeWidth={MARK_CUT_W} /></mask>
+      <path d={MARK_A} fill="var(--logo-orange)" stroke="var(--logo-orange)" strokeWidth={0.7} strokeLinejoin="round" mask="url(#apex-lockup-cut)" />
+      <path d={MARK_PEAK} fill="var(--logo-blue)" stroke="var(--logo-blue)" strokeWidth={0.7} strokeLinejoin="round" />
+      <g transform={`translate(${LOCKUP.x} ${LOCKUP.y}) scale(${LOCKUP.k})`} fill="currentColor" fillRule="evenodd" dangerouslySetInnerHTML={{ __html: WORD.paths }} />
+    </svg>
+  );
+}

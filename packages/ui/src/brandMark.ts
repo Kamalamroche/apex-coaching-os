@@ -56,3 +56,51 @@ export function drawApexMark(c: CanvasRenderingContext2D, x: number, y: number, 
   c.fill(b); c.stroke(b);
   c.restore();
 }
+
+/* The APEX letters, drawn to match the mark rather than typed: the A has the mark's slope and its small peak
+   inside instead of a crossbar, and every stroke has the weight of the mark's legs. Cap height 100. */
+const S = 0.497; // the mark's slope (run over rise)
+const LETTER_A = (() => {
+  const w = 2 * 103 * S, leg = 22.3, gap = 6.6; // the point overshoots the cap height by 3 so it looks as tall as the flat letters
+  const ix = leg, iy = 100 - (w / 2 - ix) / S, bx = ix + gap, by = 100 - (w / 2 - bx) / S;
+  const f = (n: number) => +n.toFixed(2);
+  return { w, d: `M0 100 L${f(w / 2)} -3 L${f(w)} 100 H${f(w - ix)} L${f(w / 2)} ${f(iy)} L${f(ix)} 100Z M${f(w / 2)} ${f(by)} L${f(w - bx)} 100 H${f(bx)}Z` };
+})();
+const LETTERS: { w: number; d: string; kern: number }[] = [
+  { ...LETTER_A, kern: 0 },
+  { w: 84, kern: 11, d: "M0 0H54A30 30 0 0 1 54 60H21V100H0Z M21 20V40H53A10 10 0 0 0 53 20Z" },
+  { w: 62, kern: 14, d: "M0 0H62V20H21V40H56V60H21V80H62V100H0Z" },
+  { w: 92, kern: 12, d: "M0 0H25L46 34L67 0H92L58.5 50L92 100H67L46 66L25 100H0L33.5 50Z" },
+];
+/** The letters as one path, cap height 100, left edge at 0. */
+export const WORD = (() => {
+  let x = 0; const parts: string[] = [];
+  for (const l of LETTERS) { x += l.kern; parts.push(`<path transform="translate(${+x.toFixed(2)} 0)" d="${l.d}"/>`); x += l.w; }
+  return { width: x, paths: parts.join("") };
+})();
+
+/** Lockup geometry in a 40-high box: the mark, then the letters sitting on the mark's baseline at two thirds of its height. */
+export const LOCKUP = (() => {
+  const base = 36.5, cap = 32.9 * 0.66, k = cap / 100, x = 36.4 + cap * 0.36;
+  return { k, x, y: base - cap, width: +(x + WORD.width * k + 3.6).toFixed(2) };
+})();
+
+/** The full logo (mark and letters) as an SVG string. Letters take `ink`. */
+export function logoSvg(height: number, ink: string, id = "apex-logo-svg-cut"): string {
+  const w = (LOCKUP.width / 40) * height;
+  return `<svg width="${+w.toFixed(1)}" height="${height}" viewBox="0 0 ${LOCKUP.width} 40" fill="none" role="img" aria-label="APEX">${markSvg(40, id).replace(/^<svg[^>]*>|<\/svg>$/g, "")}<g transform="translate(${LOCKUP.x} ${LOCKUP.y}) scale(${LOCKUP.k})" fill="${ink}" fill-rule="evenodd">${WORD.paths}</g></svg>`;
+}
+
+/** Draws the full logo on a canvas: (x, y) is the top-left, `height` the mark's box height. Returns the width. */
+export function drawApexLogo(c: CanvasRenderingContext2D, x: number, y: number, height: number, ink: string): number {
+  drawApexMark(c, x, y, height);
+  const u = height / 40;
+  c.save();
+  c.translate(x + LOCKUP.x * u, y + LOCKUP.y * u);
+  c.scale(LOCKUP.k * u, LOCKUP.k * u);
+  c.fillStyle = ink;
+  let lx = 0;
+  for (const l of LETTERS) { lx += l.kern; c.save(); c.translate(lx, 0); c.fill(new Path2D(l.d), "evenodd"); c.restore(); lx += l.w; }
+  c.restore();
+  return (LOCKUP.width / 40) * height;
+}

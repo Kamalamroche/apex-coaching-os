@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { Icons, ThemeButton } from "@apex/ui";
+import { ApexLogo, ThemeButton } from "@apex/ui";
 import { BriefPoster, DayPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
 /* Public marketing page at /. Sign-in and demos live at /start/, /coach/ and /client/.
@@ -56,8 +56,7 @@ export function Landing() {
       <header className="lp-top">
         <div className="lp-wrap lp-bar">
           <a href="/" className="lp-logo" aria-label="APEX home">
-            <Icons.logo width={24} height={24} />
-            <b>APEX</b>
+            <ApexLogo height={34} />
           </a>
           <nav className="lp-nav" aria-label="Sections">
             <a href="#how">How it works</a>
@@ -165,8 +164,7 @@ export function Landing() {
       <footer className="lp-foot">
         <div className="lp-wrap lp-foot-row">
           <a href="/" className="lp-logo sm" aria-label="APEX home">
-            <Icons.logo width={20} height={20} />
-            <b>APEX</b>
+            <ApexLogo height={26} />
           </a>
           <nav className="lp-foot-nav" aria-label="Footer">
             <a href="/start/">Sign in</a>

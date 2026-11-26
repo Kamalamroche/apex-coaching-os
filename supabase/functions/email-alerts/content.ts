@@ -19,9 +19,9 @@ export interface AlertEmail {
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** First 140 characters on one line, cut at a word. */
-/** The APEX logo and name at the top of every email. Emails cannot use inline SVG reliably, so the mark is a hosted PNG. */
-const LOGO_URL = "https://apex-coaching-os-web.vercel.app/logo-mark.png";
-const HEADER = `<div style="font-weight:800;letter-spacing:.06em;font-size:14px;margin-bottom:16px"><img src="${LOGO_URL}" width="20" height="20" alt="" style="vertical-align:middle;margin-right:8px;border:0">APEX</div>`;
+/** The APEX logo and name at the top of every email. Emails cannot use inline SVG reliably, so the logo is a hosted PNG. */
+const LOGO_URL = "https://apex-coaching-os-web.vercel.app/logo-email.png";
+const HEADER = `<div style="margin-bottom:16px"><img src="${LOGO_URL}" width="78" height="24" alt="APEX" style="display:block;border:0"></div>`;
 
 export function snippet(body: string, max = 140): string {
   const flat = body.replace(/\s+/g, " ").trim();
