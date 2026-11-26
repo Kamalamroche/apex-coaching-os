@@ -1,6 +1,6 @@
 import { HERO_IMAGES, MODE_LABEL, type CoachPage, type JoinRequest } from "@apex/core";
 import type { ReactNode } from "react";
-import { Icons, type IconName } from "./icons";
+import { ApexLogo, Icons, type IconName } from "./icons";
 import { ReviewQuote, ReviewScore } from "./reviews";
 import { CountUp } from "./motion";
 import { EditorialTitle, HeroBackdrop } from "./primitives";
@@ -76,7 +76,7 @@ export function CoachPageView({ page, action, preview = false, extras, boost, ve
           <div>{extras.reviews.slice(0, 6).map((r, i) => <ReviewQuote key={`${r.at}-${i}`} {...r} i={i} />)}</div>
         </section>
       )}
-      <p className="gr-made"><Icons.logo width={12} height={12} /> Made with APEX</p>
+      <p className="gr-made">Made with <ApexLogo height={14} /></p>
     </div>
   );
 }

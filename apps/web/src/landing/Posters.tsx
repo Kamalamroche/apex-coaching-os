@@ -1,4 +1,4 @@
-import { Icons } from "@apex/ui";
+import { ApexLogo } from "@apex/ui";
 
 /* Campaign posters for the landing page. Each one is a fixed 4:5 composition sized in container units,
    so it looks the same on a phone and a desktop. Original HELIX photos and words only.
@@ -15,7 +15,7 @@ export function DayPoster() {
       <span className="ps-spaced" aria-hidden="true">D A Y</span>
       <span className="ps-num" aria-hidden="true">01</span>
       <img className="ps-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift" />
-      <span className="ps-mark" aria-hidden="true"><Icons.logo width={18} height={18} /></span>
+      <span className="ps-mark" aria-hidden="true"><ApexLogo height={18} /></span>
       <span className="ps-meta tl" aria-hidden="true">Coaching OS<br />Season one</span>
       <span className="ps-meta br" aria-hidden="true">2026 // HELIX no. 01</span>
       <Grain />

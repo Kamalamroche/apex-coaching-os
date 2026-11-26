@@ -74,10 +74,11 @@ export const WORD = (() => {
   return { width: x, paths: parts.join("") };
 })();
 
-/** Lockup geometry in a 40-high box: the mark, then the letters sitting on the mark's baseline at two thirds of its height. */
+/** Lockup geometry in a 40-high box: the mark, then the letters at two thirds of its height, centred on the
+ *  pyramid's height (Kamal's choice: the name sits in the middle of the pyramid, not on its base line). */
 export const LOCKUP = (() => {
-  const base = 36.5, cap = 32.9 * 0.66, k = cap / 100, x = 36.4 + cap * 0.36;
-  return { k, x, y: base - cap, width: +(x + WORD.width * k + 1).toFixed(2) };
+  const top = 3.6, base = 36.5, cap = (base - top) * 0.66, k = cap / 100, x = 36.4 + cap * 0.36;
+  return { k, x, y: (top + base) / 2 - cap / 2, width: +(x + WORD.width * k + 1).toFixed(2) };
 })();
 
 /** The full logo (mark and letters) as an SVG string. Letters take `ink`. */
