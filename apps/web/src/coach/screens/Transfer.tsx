@@ -1,7 +1,7 @@
 import {
   buildExportFiles, buildReportHtml, defaultChoices, describeClient, detectKind, exerciseById, exerciseNames, hasClientColumn, mergeClient, parseCsv, parseProgramText,
-  programFromParsed, readTables, suggestMatches, templateFiles, zipFiles,
-  type ExerciseChoices, type ImportBundle, type ParsedProgram, type SourceTable,
+  programFromParsed, readTables, suggestMatches, templateFiles, zipFiles, withoutPastClients, SWITCH_GUIDES, ASK_SUPPORT_TIP, sourceAppFromFileName, switchSourceLabel, switchGuide,
+  type ExerciseChoices, type SwitchAppId, type ImportBundle, type ParsedProgram, type SourceTable,
 } from "@apex/core";
 import { Avatar, BackLink, Label } from "@apex/ui";
 import { useEffect, useMemo, useState, type DragEvent } from "react";
@@ -46,13 +46,15 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
   const [showMatched, setShowMatched] = useState(false);
   const [results, setResults] = useState<ImportResult[] | null>(null);
   const [pending, setPending] = useState<PendingImport[]>([]);
+  const [app, setApp] = useState<SwitchAppId | null>(null);
+  const [keepPast, setKeepPast] = useState(false);
 
   const refreshPending = () => { if (live) void listPendingImports(live.db, live.coachId).then(setPending).catch(() => setPending([])); };
   useEffect(refreshPending, [live]);
 
   const { coachName } = useAppInfo();
   const needsClient = sources.some((s) => "pdf" in s || (detectKind(s.table.rows[0] ?? []) !== "clients" && !hasClientColumn(s.table.rows[0] ?? [])));
-  const bundle: ImportBundle = useMemo(() => {
+  const everything: ImportBundle = useMemo(() => {
     const who = forClient.trim();
     let b = readTables(sources.flatMap((s) => ("table" in s ? [s.table] : [])), who ? { defaultClient: who } : {});
     for (const s of sources) {
@@ -63,6 +65,8 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
     }
     return b;
   }, [sources, forClient]);
+  const pastCount = everything.clients.filter((c) => c.past).length;
+  const bundle = useMemo(() => (keepPast ? everything : withoutPastClients(everything)), [everything, keepPast]);
 
   const names = useMemo(() => exerciseNames(bundle), [bundle]);
   const matches = useMemo(() => suggestMatches(names), [names]);
@@ -72,7 +76,13 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
   const existing = new Set((live?.clients ?? []).map((c) => c.name.trim().toLowerCase()));
   const pdfSkipped = sources.flatMap((s) => ("pdf" in s ? s.pdf.skipped.map((l) => `${s.name} line ${l.line}: “${l.text}” not read`) : []));
 
-  const addSources = (next: Source[]) => { setSources((cur) => [...cur, ...next]); setResults(null); };
+  const addSources = (next: Source[]) => {
+    setSources((cur) => [...cur, ...next]);
+    setResults(null);
+    const named = next.map((s) => sourceAppFromFileName(s.name)).find(Boolean);
+    if (named) setApp(named);
+  };
+  const guide = app ? switchGuide(app) : null;
 
   async function readFiles(files: FileList | File[]) {
     setBusy("Reading files…");
@@ -205,6 +215,34 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
       <BackLink onClick={onBack}>All clients</BackLink>
       <div><div className="eyebrow">Clients</div><h1 className="h1">Import and export</h1></div>
 
+      <section className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }} aria-label="Switching from another app">
+        <div>
+          <h2 className="h2">Switching from another app?</h2>
+          <p className="small" style={{ margin: "4px 0 0" }}>Bring your clients across in about 10 minutes: their list first, then each programme. Pick the app you use now.</p>
+        </div>
+        <div className="chips" role="tablist" aria-label="Your current app" style={{ flexWrap: "wrap" }}>
+          {SWITCH_GUIDES.map((g) => (
+            <button key={g.id} role="tab" aria-selected={app === g.id} className={`chip ${app === g.id ? "on" : ""}`} onClick={() => setApp(app === g.id ? null : g.id)}>{g.name}</button>
+          ))}
+        </div>
+        {guide && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="tiny">1. Your clients, from {guide.name}</div>
+            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+              {guide.clients.map((step, i) => (
+                <li key={step} className="row small" style={{ gap: 10, alignItems: "flex-start", color: "var(--text)" }}>
+                  <span style={{ flex: "none", display: "grid", placeItems: "center", width: 22, height: 22, borderRadius: "50%", background: "var(--act-soft)", color: "var(--act)", font: "800 12px/1 var(--num)" }}>{i + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="tiny">2. Their programmes</div>
+            <p className="small" style={{ margin: 0 }}>{guide.programmes}</p>
+            <p className="tiny" style={{ margin: 0 }}>{ASK_SUPPORT_TIP} Past clients marked archived or inactive are left out unless you choose to keep them.</p>
+          </div>
+        )}
+      </section>
+
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <h2 className="h2">Bring your clients in</h2>
@@ -252,7 +290,7 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
           <div className="chips" style={{ flexWrap: "wrap" }}>
             {sources.map((s, i) => (
               <span key={i} className="chip">
-                {s.name} · {"pdf" in s ? `${s.pdf.days.reduce((t, d) => t + d.items.length, 0)} exercises` : bundle.tables.find((t) => t.name === s.table.name)?.kind ?? "not recognised"}
+                {switchSourceLabel(s.name) ? `${switchSourceLabel(s.name)} · ` : ""}{s.name} · {"pdf" in s ? `${s.pdf.days.reduce((t, d) => t + d.items.length, 0)} exercises` : bundle.tables.find((t) => t.name === s.table.name)?.kind ?? "not recognised"}
                 <button className="x" aria-label={`Remove ${s.name}`} onClick={() => setSources((cur) => cur.filter((_, j) => j !== i))}>×</button>
               </span>
             ))}
@@ -262,6 +300,13 @@ export function Transfer({ live, say, onBack }: { live?: CoachLiveProps; say: (m
               Who is this for? Some of it has no client column.
               <input className="field" list="transfer-clients" value={forClient} onChange={(e) => setForClient(e.target.value)} placeholder="Client's full name" />
               <datalist id="transfer-clients">{(live?.clients ?? []).map((c) => <option key={c.id} value={c.name} />)}</datalist>
+            </label>
+          )}
+
+          {pastCount > 0 && (
+            <label className="row small" style={{ gap: 10, color: "var(--text)" }}>
+              <input type="checkbox" checked={keepPast} onChange={(e) => setKeepPast(e.target.checked)} style={{ width: 20, height: 20, accentColor: "var(--act)", flex: "none" }} />
+              <span className="grow">Also bring {pastCount} past client{pastCount === 1 ? "" : "s"} (archived or inactive in the export)</span>
             </label>
           )}
 

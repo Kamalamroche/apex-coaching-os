@@ -1,4 +1,4 @@
-import { Icons, ThemeButton, useToast } from "@apex/ui";
+import { ApexLogo, ThemeButton, useToast } from "@apex/ui";
 import { createDemoStore } from "@apex/core";
 import { supabase } from "../data/supabase";
 
@@ -9,7 +9,7 @@ export function Launcher() {
   const live = !!supabase;
   return (
     <div className="st">
-      <a href="/" className="st-logo" aria-label="APEX home"><Icons.logo width={24} height={24} /><b>APEX</b></a>
+      <a href="/" className="st-logo" aria-label="APEX home"><ApexLogo height={30} /></a>
       <div className="st-stage">
         <span className="st-giant" aria-hidden="true">APEX</span>
         <img src="/hero/coach-cut.webp" width={1080} height={1350} alt="A HELIX coach talking a client through her plan" />

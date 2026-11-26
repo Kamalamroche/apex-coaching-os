@@ -1,7 +1,7 @@
 /* APEX service worker: shows push notifications, opens the app when one is tapped, and lets the app open with
    no signal (in the gym). Pages always come from the network when there is one; the saved copy is only a fallback.
    Data (Supabase) is never cached here: the app keeps its own copy of the client's program. */
-const SHELL = "apex-shell-v2";
+const SHELL = "apex-shell-v3"; // v3: refined logo, so saved icons refresh
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil((async () => {

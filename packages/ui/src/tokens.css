@@ -5,6 +5,7 @@
   --text:#F5F5F3; --text2:#AAAFB9; --text3:#717783;
   --act:#FF6A1A; --act-ink:#140600; --act-soft:rgba(255,106,26,.14);
   --blue:#5A73D6; --blue-soft:rgba(90,115,214,.15);
+  --logo-orange:#FF6A1A; --logo-blue:#2F6BFF; /* the APEX logo: same colours in light and dark, matching the app icon */
   --data:#38BDF8; --data-soft:rgba(56,189,248,.14);
   --good:#22C55E; --good-soft:rgba(34,197,94,.14);
   --warn:#F59E0B; --warn-soft:rgba(245,158,11,.14);

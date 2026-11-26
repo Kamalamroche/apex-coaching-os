@@ -51,7 +51,7 @@ export function CalendarCard({ clients, onOpen, onPrep }: { clients?: LiveClient
 const nameMap = (clients?: LiveClient[] | null): Record<string, string> => (clients ? Object.fromEntries(clients.map((c) => [c.id, c.name])) : DEMO_BOOKING_NAMES);
 
 /** Coach: upcoming bookings, booking for a client, and the weekly hours clients can book. */
-export function Calendar({ clients, live, onBack, say, startMode = "list", backLabel = "Brief" }: { clients?: LiveClient[] | null; live?: CoachLiveProps; onBack: () => void; say: (m: string) => void; startMode?: "list" | "sessions"; backLabel?: string }) {
+export function Calendar({ clients, live, onBack, say, startMode = "list", backLabel = "Brief" }: { clients?: LiveClient[] | null; live?: CoachLiveProps; onBack: () => void; say: (m: string) => void; startMode?: "list" | "sessions" | "hours" | "services"; backLabel?: string }) {
   const api = useBookingApi();
   const data = useBookings(api);
   const [mode, setMode] = useState<"list" | "sessions" | "services" | "hours">(startMode);

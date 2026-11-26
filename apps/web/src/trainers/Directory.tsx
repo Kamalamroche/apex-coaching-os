@@ -2,7 +2,7 @@ import {
   BUDGET_CHOICES, EMPTY_ANSWERS, EMPTY_FILTER, GOAL_CHOICES, MODE_LABEL, PRIORITY_LABEL, SORT_LABEL, directoryLink, filterCount, filterTrainers, matchLink, matchSteps, matchTrainers,
   type DirectoryFilter, type DirectorySort, type GoalChoice, type MatchAnswers, type MatchPriority, type TrainerCard, type TrainingModeName,
 } from "@apex/core";
-import { EditorialTitle, Icons, MatchStepView, Sheet, ThemeButton, TrainerCardView } from "@apex/ui";
+import { ApexLogo, EditorialTitle, Icons, MatchStepView, Sheet, ThemeButton, TrainerCardView } from "@apex/ui";
 import { useEffect, useMemo, useState } from "react";
 import { demoDirectory, liveDirectory, MARKETPLACE_NEEDS_UPDATE } from "../data/marketplace";
 import { isDemo, supabase } from "../data/supabase";
@@ -38,7 +38,7 @@ export function Directory() {
   return (
     <main className="gr-shell">
       <div className="gr-top">
-        <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><Icons.logo width={20} height={20} /><b style={{ fontSize: 16 }}>APEX</b></a>
+        <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><ApexLogo height={26} /></a>
         <ThemeButton />
       </div>
 

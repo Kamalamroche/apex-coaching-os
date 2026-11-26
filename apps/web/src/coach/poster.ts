@@ -1,4 +1,5 @@
 import qrcode from "qrcode-generator";
+import { logoSvg } from "@apex/ui";
 
 /* A QR code for the coach's page, and a printable A4 poster for gym, studio and café noticeboards.
    qrcode-generator (MIT, no dependencies) draws the code; everything else is plain HTML printed by the browser. */
@@ -34,7 +35,7 @@ export function posterHtml(p: PosterText): string {
 *{box-sizing:border-box}
 html,body{margin:0;background:#F3F2EF;color:#121418;font-family:Archivo,system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .p{width:210mm;height:297mm;padding:22mm 20mm 18mm;display:flex;flex-direction:column}
-.mark{font-weight:900;letter-spacing:.14em;font-size:15pt}.mark i{color:#E85A0C;font-style:normal}
+.mark{display:flex}.mark svg{height:8mm;width:auto}
 .eyebrow{margin-top:24mm;display:flex;align-items:center;gap:4mm;font-weight:600;font-size:10pt;letter-spacing:.32em;text-transform:uppercase;color:#4E525B}
 .eyebrow:before{content:"";width:12mm;height:1.2mm;background:#E85A0C}
 h1{margin:7mm 0 0;font:500 64pt/0.95 'Libre Bodoni',Didot,Georgia,serif;text-transform:uppercase;letter-spacing:.01em}
@@ -53,7 +54,7 @@ h1{margin:7mm 0 0;font:500 64pt/0.95 'Libre Bodoni',Didot,Georgia,serif;text-tra
 .foot{margin-top:8mm;font-size:9pt;color:#80848C}
 @media screen{body{display:grid;place-items:center;padding:24px;background:#EAE8E4}.p{background:#F3F2EF;box-shadow:0 10px 40px rgba(0,0,0,.15)}}
 </style></head><body><div class="p">
-<div class="mark">APEX<i>.</i></div>
+<div class="mark">${logoSvg(30, "#121418")}</div>
 <div class="eyebrow">Train with me</div>
 <h1>${esc(p.name)}</h1>
 ${p.headline ? `<p class="head">${esc(p.headline)}</p>` : ""}

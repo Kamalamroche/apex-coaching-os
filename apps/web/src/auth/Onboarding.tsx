@@ -1,5 +1,5 @@
 import { suggestedName } from "@apex/core";
-import { Icons } from "@apex/ui";
+import { ApexLogo } from "@apex/ui";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 
@@ -42,12 +42,12 @@ export function Onboarding({ db, session, side, onDone }: { db: SupabaseClient; 
   }, []);
 
   if (busy && !error && auto.current) {
-    return <div className="sel"><div className="wordmark"><Icons.logo /><b>APEX</b></div><p className="sub">Setting up your account…</p></div>;
+    return <div className="sel"><div className="wordmark"><ApexLogo height={40} /></div><p className="sub">Setting up your account…</p></div>;
   }
 
   return (
     <div className="sel">
-      <div className="wordmark"><Icons.logo /><b>APEX</b></div>
+      <div className="wordmark"><ApexLogo height={40} /></div>
       <div className="card" style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 14, padding: 22 }}>
         {blocked ? (
           <>

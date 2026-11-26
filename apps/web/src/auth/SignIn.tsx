@@ -1,5 +1,5 @@
 import { DEFAULT_AUTH_OPTIONS, friendlyAuthError, inAppBrowser, parseAuthSettings, type AuthOptions, type OAuthProvider } from "@apex/core";
-import { Icons, ThemeButton } from "@apex/ui";
+import { ApexLogo, Icons, ThemeButton } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { fetchAuthSettings } from "../data/supabase";
@@ -90,7 +90,7 @@ export function SignIn({ db, side, mode: startMode }: { db: SupabaseClient; side
 
   return (
     <div className="sel">
-      <div className="wordmark"><Icons.logo /><b>APEX</b></div>
+      <div className="wordmark"><ApexLogo height={40} /></div>
       <div className="card signin" style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 14, padding: 22 }}>
         <div>
           <div className="eyebrow" style={{ color: side === "coach" ? "var(--act)" : "var(--data)" }}>{side === "coach" ? "Coach OS" : "Client app"}</div>
