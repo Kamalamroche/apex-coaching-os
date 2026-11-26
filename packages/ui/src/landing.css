@@ -84,9 +84,22 @@
 .lp-big{font-size:clamp(20px,2.2vw,27px);line-height:1.4;color:var(--site-ink2);letter-spacing:-.01em;max-width:24em}
 .lp-big b{color:var(--site-ink);font-weight:600}
 .lp-small{font-size:14px;color:var(--site-ink3);max-width:34em}
-.lp-statement-pic{border-radius:var(--rad);overflow:hidden;border:1px solid var(--site-line2);background:var(--site-card);
-  box-shadow:0 40px 80px -40px color-mix(in srgb,var(--site-accent) 45%,transparent)}
-.lp-statement-pic img{display:block;width:100%;height:auto}
+/* DAY 01 poster (from the earlier site), frameless: edges fade into the black page, red grade to match the video. */
+.lp-day{--day-orange:#E85A0C;position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;isolation:isolate;
+  --day-fade:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent),linear-gradient(180deg,transparent,#000 7%,#000 76%,transparent);
+  -webkit-mask-image:var(--day-fade);mask-image:var(--day-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
+.lp-day-photo,.lp-day-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 55%;user-select:none;
+  filter:sepia(.28) saturate(1.25) hue-rotate(-14deg) contrast(1.06) brightness(.9)}
+.lp-day-photo{z-index:0}
+.lp-day-cut{z-index:3}
+.lp-day-spaced{position:absolute;z-index:2;top:12cqw;left:0;right:0;text-align:center;font:500 3.6cqw/1 var(--serif);letter-spacing:1.4em;padding-left:1.4em;color:#fff}
+.lp-day-num{position:absolute;z-index:2;left:0;right:0;top:17cqw;text-align:center;font-family:var(--h);font-weight:900;font-stretch:62%;font-size:74cqw;line-height:.78;letter-spacing:-.03em;
+  color:var(--day-orange);user-select:none;white-space:nowrap;text-shadow:0 0 6cqw color-mix(in srgb,var(--site-accent) 55%,transparent)}
+.lp-day-glow{position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:soft-light;
+  background:radial-gradient(70% 45% at 50% 100%,color-mix(in srgb,var(--site-accent) 70%,transparent),transparent 70%),linear-gradient(180deg,rgba(0,0,0,.25),transparent 30%)}
+.lp-day-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82)}
+.lp-day-meta.tl{top:5cqw;left:15cqw}
+.lp-day-meta.br{bottom:11cqw;right:15cqw;text-align:right}
 @media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.1fr;gap:72px}}
 
 /* ---------- product cards ---------- */
