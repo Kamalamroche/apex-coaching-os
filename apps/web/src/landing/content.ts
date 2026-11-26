@@ -6,10 +6,14 @@ import type { IconName } from "@apex/ui";
 
 /* Banner video: the APEX light pyramid in red particles (original Higgsfield render, 26 Nov 2026).
    Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frame ships with the site. */
-export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/7b560a46-862c-44c6-be18-db5141409af1.mp4";
-/* 720p cut (0.7 MB) for phones. */
-export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/bc407e7d-9dcc-4ab1-862c-fced03b3911e.mp4";
+export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/4c5306ec-536e-41c2-9581-edcb52062c30.mp4";
+/* 720p cut (1.7 MB) for phones. 16 s loop: the logo forms from the pyramid dots, holds, then drifts back. */
+export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/1a634d65-4015-4dde-9ef5-68ee49502356.mp4";
 export const HERO_POSTER = "/site/pyramid-poster.webp";
+/* Still for reduced motion: the logo frame of the banner. */
+export const HERO_STILL = "/site/pyramid-logo.webp";
+/* Closing section: the same pyramid and dots without the logo (8 s loop). */
+export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
 export type Tour = {
   id: string;
