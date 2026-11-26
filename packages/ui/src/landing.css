@@ -117,7 +117,7 @@
 .ps-meta.bl{bottom:5.5cqw;left:6cqw}
 .ps-meta.br{bottom:5.5cqw;right:6cqw;text-align:right}
 .ps-mark{position:absolute;z-index:5;top:5cqw;right:6cqw;color:var(--ps-white);display:flex}
-.ps-mark svg{width:5cqw;height:5cqw}
+.ps-mark svg{width:auto;height:5cqw}
 .ps-tag{position:absolute;z-index:4;background:var(--ps-act);color:var(--ps-white);font:800 3.6cqw/1 var(--head);font-style:italic;font-stretch:110%;letter-spacing:.03em;text-transform:uppercase;padding:1.8cqw 3.4cqw 1.8cqw 4.4cqw;transform:skewX(-14deg) rotate(-4deg);box-shadow:0 1.6cqw 3.2cqw -1cqw rgba(0,0,0,.45)}
 
 /* DAY 01: his deadlift photo, numerals between backdrop and athlete */

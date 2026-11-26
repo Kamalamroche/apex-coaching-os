@@ -225,8 +225,7 @@ function crownCard(c: Ctx, d: ShareCanvasData, crown: CrownPlacement) {
   c.fillStyle = T.text3;
   const left = d.coach ? `Coached by ${d.coach}  ·  ` : "";
   const lw = c.measureText(left).width;
-  font(c, `900 30px ${T.head}`, 4.2, true);
-  const ww = c.measureText("APEX.").width;
+  const ww = (LOCKUP.width / 40) * 30 * 1.15; // the logo's width at this size (see wordmark)
   const start = cx - (lw + ww) / 2;
   if (left) {
     font(c, `400 28px ${T.head}`);
