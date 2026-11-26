@@ -3,7 +3,7 @@ import { ApexLogo, Icons } from "@apex/ui";
 import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, STORY_POSTER, STORY_VIDEO, STORY_VIDEO_SMALL } from "./content";
 import { GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-/** The APEX film (18 s loop): a coach at a laptop, then 3D shots for time saved, programming, results, the client app
+/** The APEX film (19 s loop): a coach at a laptop, then 3D shots for time saved, programming, results, the client app
     and one place, ending on Start free. Made with Higgsfield; words and screens rendered in code.
     Phones get the 720 cut; reduced motion shows the poster frame. */
 function StoryVideo() {

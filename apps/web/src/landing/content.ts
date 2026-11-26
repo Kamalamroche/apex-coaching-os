@@ -21,7 +21,7 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
-/* Story film for the first feature chapter (26 Nov 2026, 18 s): a coach's hand on a laptop in an evening room, then five
+/* Story film for the first feature chapter (26 Nov 2026, 19 s): a coach's hand on a laptop in an evening room, then five
    3D glass shots (time lost, programmes in minutes, results, client app, one place) and back to Start free on the laptop.
    All shots made with Higgsfield; the APEX screens and words are rendered in code. No logo. */
 export const STORY_VIDEO = "/site/apex-story.mp4";
