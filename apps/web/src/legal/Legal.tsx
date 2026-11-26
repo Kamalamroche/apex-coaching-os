@@ -1,5 +1,5 @@
 import { LEGAL_VERSION, legalDateLabel, missingLegalDetails, privacyPolicy, termsOfUse, type LegalSection } from "@apex/core";
-import { Icons, ThemeButton } from "@apex/ui";
+import { ApexLogo, ThemeButton } from "@apex/ui";
 import { useEffect, useState } from "react";
 
 type Page = "privacy" | "terms";
@@ -21,7 +21,7 @@ export function Legal() {
   return (
     <main className="legal">
       <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><Icons.logo width={22} height={22} /><b style={{ fontSize: 18 }}>APEX</b></a>
+        <a className="wordmark" href="/" style={{ gap: 8, textDecoration: "none", color: "inherit" }}><ApexLogo height={28} /></a>
         <ThemeButton />
       </div>
       <div className="chips" role="tablist" style={{ marginTop: 24 }}>

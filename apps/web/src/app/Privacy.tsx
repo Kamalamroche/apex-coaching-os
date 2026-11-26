@@ -2,7 +2,7 @@ import {
   CONSENT_TEXT, DELETE_WORD, LEGAL_VERSION, deleteConfirmed, deletionEffects, exportFileName, healthWithdrawn, legalDateLabel, localDate, missingConsents, requiredConsents,
   type ConsentKind, type ConsentRecord,
 } from "@apex/core";
-import { Icons } from "@apex/ui";
+import { ApexLogo, Icons } from "@apex/ui";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { PRIVACY_NEEDS_UPDATE, usePrivacyApi, type PrivacyApi } from "../data/privacy";
 import { useAppInfo } from "./AppContext";
@@ -72,7 +72,7 @@ function ConsentScreen({ api, missing, withdrawn, onDone }: { api: PrivacyApi; m
   };
   return (
     <div className="sel">
-      <div className="wordmark"><Icons.logo /><b>APEX</b></div>
+      <div className="wordmark"><ApexLogo height={40} /></div>
       <div className="card stack" style={{ width: "100%", maxWidth: 480, padding: 22 }}>
         <div>
           <div className="eyebrow">Your privacy</div>

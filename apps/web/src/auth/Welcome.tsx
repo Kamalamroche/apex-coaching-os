@@ -1,4 +1,4 @@
-import { Icons } from "@apex/ui";
+import { ApexLogo, Icons } from "@apex/ui";
 
 const SEEN_KEY = "apex.client.welcome";
 
@@ -24,7 +24,7 @@ export function Welcome({ onContinue, demo }: { onContinue: (mode: "signup" | "s
         <img src="/welcome/pilates.webp" srcSet="/welcome/pilates-720.webp 720w, /welcome/pilates.webp 1080w" sizes="(max-width:720px) 100vw, 1080px" width={1080} height={1910} alt="" {...{ fetchpriority: "high" }} />
       </picture>
       <div className="wel-top">
-        <span className="wel-logo"><Icons.logo width={22} height={22} /><b>APEX</b></span>
+        <span className="wel-logo"><ApexLogo height={28} /></span>
       </div>
       <div className="wel-copy">
         <h1 className="wel-h"><span>Train with <b>Purpose.</b></span> <span className="wel-h2">Move with <b>Grace.</b></span></h1>

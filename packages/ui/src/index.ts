@@ -1,4 +1,4 @@
-export { Icons, type IconName } from "./icons";
+export { ApexLogo, Icons, type IconName } from "./icons";
 export { Bar, Label, Avatar, BackLink, ScriptTitle, EditorialTitle, HeroBackdrop, riskColor, type LabelKind } from "./primitives";
 export { Spark } from "./Spark";
 export { Sheet } from "./Sheet";
@@ -54,3 +54,4 @@ export { TestDemo } from "./testDemo";
 export { QuickFind, useQuickFindKeys } from "./quickFind";
 export { MatchStepView, TrainerCardView, TrustStrip, VerifiedBadge } from "./marketplace";
 export { GoalMeter, StarterOffer, SuccessStoryCard } from "./stories";
+export { drawApexLogo, drawApexMark, logoSvg, markSvg, LOGO_BLUE, LOGO_ORANGE } from "./brandMark";

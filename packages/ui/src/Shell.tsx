@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useReveal } from "./reveal";
-import { Icons, type IconName } from "./icons";
+import { ApexLogo, Icons, type IconName } from "./icons";
 import { ThemeButton } from "./ThemeButton";
 import { useT } from "./prefs";
 
@@ -53,8 +53,7 @@ export function Shell<T extends string>({ side, switchHref, tabs, tab, setTab, w
       <div className="top">
         <a className="iconbtn" href={switchHref} aria-label="Switch app" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>{tr("← Switch")}</a>
         <div className="wordmark" style={{ gap: 7 }}>
-          <Icons.logo width={22} height={22} />
-          <b style={{ fontSize: 19 }}>APEX</b>
+          <ApexLogo height={28} />
         </div>
         <div style={{ display: "flex", gap: 6 }}>{actions}<ThemeButton /></div>
       </div>

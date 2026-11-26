@@ -1,5 +1,6 @@
 import { distanceText, shownUnit, signedUnit, toShown, weightFromKg, type BodyChange, type CardioWeek, type PersonalBest, type StorySlide } from "@apex/core";
 import { getPrefs } from "./prefs";
+import { drawApexLogo, LOCKUP } from "./brandMark";
 
 /* Cards are drawn in the person's units: the slide's kg and cm are converted on the way in. */
 const units = () => getPrefs().units;
@@ -79,16 +80,10 @@ function field(c: Ctx, h: number) {
   c.fillRect(0, 0, CARD_W, h);
 }
 
+/** The full APEX logo (mark and letters), its baseline on y. `size` is the old text size. */
 function mark(c: Ctx, x: number, y: number, size: number, align: "left" | "center" = "left") {
-  setFont(c, 900, size, size * 0.12);
-  const w = c.measureText("APEX").width;
-  const dot = c.measureText(".").width;
-  const left = align === "left" ? x : x - (w + dot) / 2;
-  c.textAlign = "left";
-  c.fillStyle = C.text;
-  c.fillText("APEX", left, y);
-  c.fillStyle = C.act;
-  c.fillText(".", left + w, y);
+  const h = size * 1.15, w = (LOCKUP.width / 40) * h;
+  drawApexLogo(c, align === "left" ? x : x - w / 2, y - h * 0.9125, h, C.text);
 }
 
 const PAD = 88;

@@ -1,5 +1,5 @@
 import { createDemoActivityStore, createDemoAssessmentStore, createDemoFormCheckStore, createDemoGoalStore, createDemoLifestyleStore, createDemoStore, type ActivityStore, type ApexStore, type AssessmentStore, type FormCheckStore, type GoalStore, type LifestyleStore } from "@apex/core";
-import { Icons } from "@apex/ui";
+import { ApexLogo } from "@apex/ui";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Onboarding } from "../auth/Onboarding";
@@ -148,7 +148,7 @@ function useInviteForExistingClient(db: SupabaseClient, profile: Profile | null)
 export function Splash({ children }: { children?: ReactNode }) {
   return (
     <div className="sel">
-      <div className="wordmark"><Icons.logo /><b>APEX</b></div>
+      <div className="wordmark"><ApexLogo height={40} /></div>
       {children ?? <p className="tiny" style={{ letterSpacing: ".2em" }}>LOADING…</p>}
     </div>
   );
