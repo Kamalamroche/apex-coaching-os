@@ -34,7 +34,7 @@ export const Icons = {
   heart: lucide(Heart),
   note: lucide(NotebookPen),
   swap: lucide(ArrowLeftRight),
-  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><path d="M3.6 36.5 20 3.6 36.4 36.5H27.8L20 21.3 12.2 36.5Z" fill="var(--act)" stroke="var(--act)" strokeWidth={0.7} strokeLinejoin="round" /><path d="M20 26.1 25.4 36.5H14.6Z" fill="var(--blue)" stroke="var(--blue)" strokeWidth={0.7} strokeLinejoin="round" /></svg>,
+  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><path d="M3.6 36.5 8.5 19.4 13.2 25.1 20 3.6 36.4 36.5H27.8L20 21.3 12.2 36.5Z" fill="var(--act)" stroke="var(--act)" strokeWidth={0.7} strokeLinejoin="round" /><path d="M20 26.1 25.4 36.5H14.6Z" fill="var(--blue)" stroke="var(--blue)" strokeWidth={0.7} strokeLinejoin="round" /></svg>,
   run: lucide(Footprints),
   swim: lucide(Waves),
   ride: lucide(Bike),

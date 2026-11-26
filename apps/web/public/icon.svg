@@ -2,5 +2,5 @@
   <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15233D"/><stop offset="1" stop-color="#0A1220"/></linearGradient></defs>
   <rect width="1024" height="1024" fill="url(#bg)"/>
   <!-- the apex: a summit chevron that reads as an A, with a blue peak rising inside -->
-  <g transform="translate(512 506) scale(0.86) translate(-512 -508)" stroke-width="14" stroke-linejoin="round"><path d="M195.9 826 L512 190 L828.1 826 H658.1 L512 532.1 L365.9 826 Z" fill="#FF6A1A" stroke="#FF6A1A"/><path d="M512 622 L613.4 826 H410.6 Z" fill="#2F6BFF" stroke="#2F6BFF"/></g>
+  <g transform="translate(512 506) scale(0.86) translate(-512 -508)" stroke-width="14" stroke-linejoin="round"><path d="M195.9 826 L296 496 L384 604 L512 190 L828.1 826 H658.1 L512 532.1 L365.9 826 Z" fill="#FF6A1A" stroke="#FF6A1A"/><path d="M512 622 L613.4 826 H410.6 Z" fill="#2F6BFF" stroke="#2F6BFF"/></g>
 </svg>
