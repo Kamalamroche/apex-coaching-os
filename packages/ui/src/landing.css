@@ -127,40 +127,36 @@
 /* ---------- campaign posters (apps/web/src/landing/Posters.tsx) ----------
    The posters from the earlier site, same compositions in container units. In Ember they have no frame:
    the edges fade into the page and the photos get the warm red grade of the pyramid video. */
-.ps{--ps-ink:#121418;--ps-paper:#160B0D;--ps-white:#FFFFFF;--ps-act:#E85A0C;--ps-sky:var(--site-panel);
-  --ps-fade:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 8%,#000 80%,transparent);
-  position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;overflow:hidden;isolation:isolate;
-  background:var(--ps-paper);color:var(--ps-white);
-  -webkit-mask-image:var(--ps-fade);mask-image:var(--ps-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
+.ps{--ps-ink:#121418;--ps-paper:#F3F2EF;--ps-white:#FFFFFF;--ps-act:#E85A0C;--ps-sky:color-mix(in srgb,#0284C7 30%,#F3F2EF);
+  position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;border-radius:28px;overflow:hidden;isolation:isolate;background:var(--ps-paper);color:var(--ps-ink)}
 .lp-chapter .ps{margin-inline:auto}
-.ps-photo,.ps-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;
-  filter:sepia(.28) saturate(1.25) hue-rotate(-14deg) contrast(1.06) brightness(.9)}
+.ps-photo,.ps-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none}
 .ps-photo{z-index:0}
 .ps-cut{z-index:3}
-.ps::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:soft-light;
-  background:radial-gradient(70% 45% at 50% 100%,color-mix(in srgb,var(--site-accent) 65%,transparent),transparent 70%)}
 .ps-num,.ps-fill,.ps-vert{position:absolute;font-family:var(--head);font-weight:900;font-stretch:62%;line-height:.78;text-transform:uppercase;user-select:none;white-space:nowrap}
 .ps-num{z-index:2}
-.ps-grain{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.14;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.ps-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82)}
-.ps-meta.tl{top:8cqw;left:15cqw}
-.ps-meta.tr{top:8cqw;right:15cqw;text-align:right}
-.ps-meta.bl{bottom:13cqw;left:15cqw}
-.ps-meta.br{bottom:13cqw;right:15cqw;text-align:right}
-/* 07:30: split block, the number sinks into the dark below the block */
-.ps-split .ps-block{position:absolute;left:0;right:0;top:0;height:37%;z-index:0;background:linear-gradient(180deg,color-mix(in srgb,var(--site-accent) 34%,var(--ps-paper)),color-mix(in srgb,var(--site-accent) 52%,var(--ps-paper)))}
+.ps-grain{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.16;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.ps-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase}
+.ps-meta.tl{top:5.5cqw;left:6cqw}
+.ps-meta.tr{top:5.5cqw;right:6cqw;text-align:right}
+.ps-meta.bl{bottom:5.5cqw;left:6cqw}
+.ps-meta.br{bottom:5.5cqw;right:6cqw;text-align:right}
+/* 07:30: split block, the number sinks into the paper below the block */
+.ps-split .ps-block{position:absolute;left:0;right:0;top:0;height:37%;z-index:0;background:var(--ps-sky)}
 .ps-split .ps-num{left:-2cqw;right:-2cqw;top:12cqw;text-align:center;font-size:50cqw;letter-spacing:-.02em;color:var(--ps-paper)}
 .ps-split .ps-cut{transform:scale(.74);transform-origin:58% 96%}
-.ps-split .ps-label{position:absolute;z-index:5;left:10cqw;top:57cqw;font:500 4.2cqw/1.08 var(--serif);letter-spacing:.09em;text-transform:uppercase;color:var(--ps-white)}
+.ps-split .ps-label{position:absolute;z-index:5;left:6cqw;top:57cqw;font:500 4.2cqw/1.08 var(--serif);letter-spacing:.09em;text-transform:uppercase;color:var(--ps-white);mix-blend-mode:difference}
 /* TRAIN: flat orange, letters filled with the studio photo */
 .ps-flat{background:var(--ps-act)}
-.ps-flat .ps-fill{z-index:1;right:6cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
-.ps-flat .ps-cut{transform:translateX(-12%) scale(1.04)}
+.ps-flat .ps-fill{z-index:1;right:3cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
+.ps-flat .ps-cut{transform:translateX(-14%) scale(1.04)}
 .ps-flat .ps-meta{color:var(--ps-ink)}
-.ps-flat .ps-meta.tl{left:10cqw}
-.ps-flat .ps-meta.bl{left:10cqw;bottom:16cqw;max-width:40cqw}
-.ps-shape .ps-meta.br{top:8cqw;bottom:auto}
 /* Stronger every week: overhead press under a fine line pyramid, week markers climbing its edge */
+.ps-grow{border-radius:0;background:#160B0D;color:#fff;
+  --ps-fade:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 8%,#000 80%,transparent);
+  -webkit-mask-image:var(--ps-fade);mask-image:var(--ps-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
+.ps-grow .ps-cut{filter:sepia(.28) saturate(1.25) hue-rotate(-14deg) contrast(1.06) brightness(.9)}
+.ps-grow .ps-meta{color:rgba(255,255,255,.82)}
 .ps-grow .ps-photo{object-position:center;filter:sepia(.3) saturate(1.2) hue-rotate(-14deg) contrast(1.08) brightness(.62)}
 .ps-lines{position:absolute;inset:0;z-index:2;width:100%;height:100%;overflow:visible}
 .ps-lines path{fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -188,18 +184,8 @@
 .ps-shape .ps-tri{position:absolute;inset:4% 2% 6% 2%;z-index:1;width:96%;height:90%}
 .ps-shape .ps-tri path{fill:var(--ps-act)}
 /* NEXT: rings photo, outline letters stacked down the left */
-.ps-next .ps-vert{z-index:2;left:8cqw;top:4cqw;bottom:4cqw;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-size:52cqw;color:transparent;-webkit-text-stroke:.45cqw var(--ps-act)}
-
-.lp main{position:relative}
-@media (min-width:1280px){
-  .lp main::before,.lp main::after{content:"";position:absolute;top:100svh;bottom:0;width:150px;pointer-events:none;z-index:0;opacity:.75;
-    background:url(/site/rail.webp) 0 0/150px auto repeat-y;
-    -webkit-mask:linear-gradient(transparent,#000 260px,#000 calc(100% - 420px),transparent);mask:linear-gradient(transparent,#000 260px,#000 calc(100% - 420px),transparent)}
-  .lp main::before{left:max(0px,calc(50% - 760px))}
-  .lp main::after{right:max(0px,calc(50% - 760px));transform:scaleX(-1)}
-  .lp-sec,.lp-end{z-index:1}
-}
-
+.ps-next{color:var(--ps-white)}
+.ps-next .ps-vert{z-index:2;left:4cqw;top:4cqw;bottom:4cqw;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-size:52cqw;color:transparent;-webkit-text-stroke:.45cqw var(--ps-act)}
 
 /* ---------- client app ---------- */
 .lp-phones{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:4px 20px 8px}
