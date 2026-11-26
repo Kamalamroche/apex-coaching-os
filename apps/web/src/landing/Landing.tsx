@@ -147,7 +147,7 @@ export function Landing() {
             <ul className="lp-cards">
               {TOUR.map((t) => (
                 <li key={t.id} className={`lp-card ${t.id === "client" ? "phone" : ""}`} data-reveal>
-                  <figure className="lp-card-pic"><img src={t.shot} alt={t.alt} loading="lazy" /></figure>
+                  <figure className="lp-card-pic"><img src={t.shot} alt={t.alt} loading="lazy" style={t.pos ? { objectPosition: t.pos } : undefined} /></figure>
                   <div className="lp-card-copy">
                     <h3>{t.tab}</h3>
                     <p>{t.body}</p>
