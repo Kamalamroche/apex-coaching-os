@@ -160,13 +160,30 @@
 .ps-flat .ps-meta.tl{left:10cqw}
 .ps-flat .ps-meta.bl{left:10cqw;bottom:16cqw;max-width:40cqw}
 .ps-shape .ps-meta.br{top:8cqw;bottom:auto}
-/* Stronger every week: full photo, clean corner headline, one number */
-.ps-photo-only .ps-photo{object-position:center 40%}
-.ps-head{position:absolute;z-index:5;left:15cqw;top:9cqw;font:500 5.2cqw/1.1 var(--serif);letter-spacing:.08em;text-transform:uppercase}
-.ps-sub{position:absolute;z-index:5;left:15cqw;bottom:34cqw;font:700 2.6cqw/1 var(--num);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
-.ps-stat{position:absolute;z-index:5;left:15cqw;bottom:15cqw;display:flex;align-items:flex-end;gap:2cqw}
-.ps-stat b{font:900 22cqw/.78 var(--head);font-stretch:62%;color:var(--ps-act)}
-.ps-stat small{font:600 3.2cqw/1.2 var(--ui);padding-bottom:1cqw;max-width:16cqw}
+/* Stronger every week: overhead press under a fine line pyramid, week markers climbing its edge */
+.ps-grow .ps-photo{object-position:center;filter:sepia(.3) saturate(1.2) hue-rotate(-14deg) contrast(1.08) brightness(.62)}
+.ps-lines{position:absolute;inset:0;z-index:2;width:100%;height:100%;overflow:visible}
+.ps-lines path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ps-glowlines path{stroke:var(--site-accent);stroke-width:1.1;opacity:.75}
+.ps-pyr{stroke:color-mix(in srgb,var(--site-accent) 55%,#fff);stroke-width:.32}
+.ps-peak{stroke:color-mix(in srgb,var(--site-accent) 70%,#fff);stroke-width:.26;opacity:.9}
+.ps-scan{stroke:rgba(255,255,255,.18);stroke-width:.15;stroke-dasharray:.6 1.2}
+.ps-pulse{stroke:#fff;stroke-width:.55;stroke-dasharray:6 94;stroke-dashoffset:100;opacity:.95;animation:ps-pulse 4.8s cubic-bezier(.4,0,.2,1) infinite}
+.ps-pulse.b{animation-delay:2.4s}
+@keyframes ps-pulse{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+.ps-week circle{fill:var(--site-accent);stroke:#fff;stroke-width:.25}
+.ps-week text{font:700 2px/1 var(--num);letter-spacing:.12em;fill:rgba(255,255,255,.7);text-anchor:end}
+.ps-week{animation:ps-blink 4.8s ease-in-out infinite}
+@keyframes ps-blink{0%,100%{opacity:.75}50%{opacity:1}}
+.ps-grow-head{position:absolute;z-index:5;left:10cqw;top:9cqw;display:grid;font:300 4.6cqw/1.05 var(--head);letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.88)}
+.ps-grow-head b{font-weight:800;font-size:8.6cqw;letter-spacing:-.01em;color:#fff}
+.ps-grow-stat{position:absolute;z-index:5;left:10cqw;bottom:13cqw;display:grid;gap:1.2cqw}
+.ps-grow-stat small{font:700 2.2cqw/1 var(--num);letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.ps-grow-stat b{display:flex;align-items:baseline;gap:1.4cqw;font:800 17cqw/.82 var(--head);letter-spacing:-.03em;
+  background:linear-gradient(180deg,#fff 0%,color-mix(in srgb,var(--site-accent) 60%,#fff) 45%,var(--site-accent) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ps-grow-stat b i{font:700 3.4cqw/1 var(--num);font-style:normal;letter-spacing:.14em;color:var(--site-accent);-webkit-text-fill-color:var(--site-accent)}
+@media (prefers-reduced-motion:reduce){.ps-pulse{display:none}.ps-week{animation:none;opacity:1}}
+
 /* Built by a coach: athlete over a big rounded triangle */
 .ps-shape .ps-tri{position:absolute;inset:4% 2% 6% 2%;z-index:1;width:96%;height:90%}
 .ps-shape .ps-tri path{fill:var(--ps-act)}

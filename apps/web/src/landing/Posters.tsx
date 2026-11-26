@@ -35,14 +35,45 @@ export function TrainPoster() {
   );
 }
 
-/** Progress: the studio photo full bleed with a clean headline in the corner and one real number. */
+/** Progress: the same overhead press photo, redrawn in the Ember style. A fine line pyramid rises behind her with
+    its tip at the dumbbells (she reaches the apex), the two inner peaks of the logo sit inside it, and six week
+    markers climb its left edge with light pulsing up the lines, like the banner video. */
+const LEG = (y: number) => -5.3 + (112 - y) / 1.39; // left edge of the big pyramid, same slope as the banner beams
+const WEEKS = [82, 72.6, 63.2, 53.8, 44.4, 35];
+const PYRAMID = "M-5.3 112 L71 6 L147.3 112";
+const PEAKS = "M22 100 L52 58 L82 100 M44 108 L64 80 L84 108";
+
 export function GrowPoster() {
   return (
-    <figure className="ps ps-photo-only">
-      <img className="ps-photo" src="/hero/upper.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete pressing dumbbells overhead" />
-      <span className="ps-head" aria-hidden="true">Stronger<br />every week.</span>
-      <span className="ps-sub" aria-hidden="true">Overhead press</span>
-      <span className="ps-stat" aria-hidden="true"><b>+7.5</b><small>kg in 6 weeks</small></span>
+    <figure className="ps ps-grow">
+      <img className="ps-photo" src="/hero/upper.webp" width={1080} height={1350} loading="lazy" alt="" />
+      <svg className="ps-lines" viewBox="0 0 100 125" aria-hidden="true">
+        <defs>
+          <filter id="ps-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".9" /></filter>
+        </defs>
+        <g className="ps-glowlines" filter="url(#ps-glow)">
+          <path d={PYRAMID} />
+          <path d={PEAKS} />
+        </g>
+        <path className="ps-pyr" d={PYRAMID} />
+        <path className="ps-peak" d={PEAKS} />
+        <path className="ps-pulse" pathLength={100} d="M-5.3 112 L71 6" />
+        <path className="ps-pulse b" pathLength={100} d="M147.3 112 L71 6" />
+        <path className="ps-scan" d="M8 112 H96" />
+        {WEEKS.map((y, i) => (
+          <g key={y} className="ps-week" style={{ animationDelay: `${i * 0.35}s` }}>
+            <circle cx={LEG(y)} cy={y} r={i === WEEKS.length - 1 ? 1.5 : 1} />
+            <text x={LEG(y) - 2.6} y={y + 0.9}>{`W${i + 1}`}</text>
+          </g>
+        ))}
+      </svg>
+      <img className="ps-cut" src="/hero/upper-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete pressing dumbbells overhead" />
+      <span className="ps-grow-head" aria-hidden="true"><b>Stronger</b>every week.</span>
+      <span className="ps-grow-stat" aria-hidden="true">
+        <small>Overhead press</small>
+        <b>+7.5<i>kg</i></b>
+        <small>in 6 weeks</small>
+      </span>
       <Grain />
     </figure>
   );
