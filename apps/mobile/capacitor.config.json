@@ -1,0 +1,16 @@
+{
+  "appId": "com.apexcoaching.app",
+  "appName": "APEX Coaching",
+  "webDir": "../web/dist",
+  "server": {
+    "androidScheme": "https",
+    "appStartPath": "start"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0D0F13"
+  },
+  "android": {
+    "backgroundColor": "#0D0F13"
+  }
+}

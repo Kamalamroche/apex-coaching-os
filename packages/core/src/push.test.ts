@@ -8,6 +8,7 @@ const all: PushEnv = { hasServiceWorker: true, hasPushManager: true, hasNotifica
 
 describe("push support", () => {
   it("asks on a phone that can", () => expect(pushSupport(all)).toBe("ask"));
+  it("leaves web push out inside the store app", () => expect(pushSupport({ ...all, userAgent: IPHONE, native: true })).toBe("unsupported"));
   it("sends iPhone Safari to the Home Screen first", () => {
     expect(pushSupport({ ...all, userAgent: IPHONE, hasPushManager: false })).toBe("ios-install");
     expect(pushSupport({ ...all, userAgent: IPAD_AS_MAC, maxTouchPoints: 5 })).toBe("ios-install");

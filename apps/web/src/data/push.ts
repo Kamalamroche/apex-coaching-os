@@ -1,5 +1,6 @@
 import { deviceLabel, keyBytes, pushSupport, type PushSupport } from "@apex/core";
 import { PUSH_NOT_READY, type PrivacyApi } from "./privacy";
+import { isNativeApp } from "../app/native";
 
 /** What this phone or browser can do with notifications right now. */
 export function browserPushSupport(): PushSupport {
@@ -14,6 +15,7 @@ export function browserPushSupport(): PushSupport {
     userAgent: nav.userAgent,
     standalone,
     maxTouchPoints: nav.maxTouchPoints,
+    native: isNativeApp(),
   });
 }
 
