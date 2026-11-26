@@ -151,6 +151,10 @@
 .ps-flat .ps-fill{z-index:1;right:3cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
 .ps-flat .ps-cut{transform:translateX(-14%) scale(1.04)}
 .ps-flat .ps-meta{color:var(--ps-ink)}
+.ps-flat .ps-fill-line{z-index:4;background:none;color:transparent;-webkit-text-stroke:.25cqw rgba(255,255,255,.6)}
+.ps-echo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;pointer-events:none;filter:brightness(0);mix-blend-mode:multiply}
+.ps-echo.e1{transform:translateX(-22%) scale(1.04);opacity:.16}
+.ps-echo.e2{transform:translateX(-30%) scale(1.04);opacity:.07}
 /* Stronger every week: overhead press under a fine line pyramid, week markers climbing its edge */
 .ps-grow{border-radius:0;background:#160B0D;color:#fff;
   --ps-fade:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 8%,#000 80%,transparent);

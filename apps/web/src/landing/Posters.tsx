@@ -22,12 +22,18 @@ export function BriefPoster() {
   );
 }
 
-/** Train: flat orange, the sprinter on the left, TRAIN running down the right with the studio photo inside the letters. */
+/** Train: flat orange, the sprinter running through TRAIN: the letters (filled with the studio photo) sit behind him and
+    continue over him as fine outlines, with two speed echoes trailing behind. */
 export function TrainPoster() {
   return (
     <figure className="ps ps-flat">
       <span className="ps-fill" aria-hidden="true">Train</span>
+      {/* speed echoes: two fading silhouettes trail behind him */}
+      <img className="ps-echo e2" src="/hero/run-cut.webp" width={1080} height={1350} loading="lazy" alt="" aria-hidden="true" />
+      <img className="ps-echo e1" src="/hero/run-cut.webp" width={1080} height={1350} loading="lazy" alt="" aria-hidden="true" />
       <img className="ps-cut" src="/hero/run-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX athlete sprinting" />
+      {/* the letters carry on over him as fine outlines, so he runs through TRAIN instead of hiding it */}
+      <span className="ps-fill ps-fill-line" aria-hidden="true">Train</span>
       <span className="ps-meta tl" aria-hidden="true">Client app<br />Today's session</span>
       <span className="ps-meta bl" aria-hidden="true">Cues · rest timer · last time's kg</span>
       <Grain />
