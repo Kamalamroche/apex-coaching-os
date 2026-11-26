@@ -112,7 +112,7 @@ export function Landing() {
         <section className="lp-hero" id="top">
           <PyramidVideo className="lp-media" src={HERO_VIDEO} small={HERO_VIDEO_SMALL} poster={HERO_POSTER} still={HERO_STILL} stillSmall={HERO_STILL_SMALL} />
           <div className="lp-wrap lp-hero-grid">
-            <h1 className="lp-h1"><b>Coaching software</b> for trainers who design the training.</h1>
+            <h1 className="lp-h1"><b>Coaching software</b> <span>for trainers who design the training.</span></h1>
             <div className="lp-hero-side">
               <p>Write the programmes, see who needs you each morning, and give every client an app that opens on today's session. Free for your first 3 clients.</p>
               <div className="lp-ctas">
@@ -144,17 +144,23 @@ export function Landing() {
               <h2 className="lp-h2">One place for the whole job</h2>
               <p>Everything you do in a coaching week, from the first programme to the monthly invoice.</p>
             </header>
-            <ul className="lp-cards">
-              {TOUR.map((t) => (
-                <li key={t.id} className={`lp-card ${t.id === "client" ? "phone" : ""}`} data-reveal>
-                  <figure className="lp-card-pic"><img src={t.shot} alt={t.alt} loading="lazy" style={t.pos ? { objectPosition: t.pos } : undefined} /></figure>
-                  <div className="lp-card-copy">
-                    <h3>{t.tab}</h3>
+            <ol className="lp-rows">
+              {TOUR.map((t, i) => (
+                <li key={t.id} className={`lp-row ${t.id === "client" ? "phone" : ""}`} data-reveal>
+                  <figure className="lp-shot"><img src={t.shot} alt={t.alt} loading="lazy" /></figure>
+                  <div className="lp-row-copy">
+                    <span className="lp-eyebrow">{String(i + 1).padStart(2, "0")} · {t.tab}</span>
+                    <h3>{t.title}</h3>
                     <p>{t.body}</p>
+                    {t.points.length > 0 && (
+                      <ul className="lp-points">
+                        {t.points.map((pt) => <li key={pt}><Icons.check width={16} height={16} aria-hidden="true" />{pt}</li>)}
+                      </ul>
+                    )}
                   </div>
                 </li>
               ))}
-            </ul>
+            </ol>
           </div>
         </section>
 

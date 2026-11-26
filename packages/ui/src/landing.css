@@ -60,7 +60,8 @@
 .lp-hero::after,.lp-end::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(5,4,4,.35) 0%,rgba(5,4,4,0) 22%,rgba(5,4,4,.15) 50%,rgba(5,4,4,.82) 82%,var(--site-paper) 100%)}
 .lp-hero-grid{width:100%;display:grid;gap:28px;align-items:end}
-.lp-h1 b{font-weight:800}
+.lp-h1 b{display:block;font-weight:800}
+.lp-h1 span{display:block;margin-top:.3em;font-size:.56em;font-weight:300;line-height:1.12;letter-spacing:-.01em}
 .lp-hero .lp-h1{max-width:13em;text-shadow:0 2px 30px rgba(0,0,0,.45)}
 .lp-hero-side{display:grid;gap:22px;max-width:28em}
 .lp-hero-side p{color:var(--site-on-night2);font-size:16px;line-height:1.6}
@@ -81,8 +82,8 @@
 /* ---------- statement ---------- */
 .lp-statement{display:grid;gap:40px;align-items:center}
 .lp-statement-copy{display:grid;gap:20px}
-.lp-big{font-size:clamp(20px,2.2vw,27px);line-height:1.4;color:var(--site-ink2);letter-spacing:-.01em;max-width:24em}
-.lp-big b{color:var(--site-ink);font-weight:600}
+.lp-big{font-size:clamp(20px,2.2vw,27px);font-weight:300;line-height:1.38;color:var(--site-ink);letter-spacing:-.01em;max-width:24em}
+.lp-big b{color:var(--site-ink);font-weight:700}
 .lp-small{font-size:14px;color:var(--site-ink3);max-width:34em}
 .lp-statement-pic{border-radius:var(--rad);overflow:hidden;border:1px solid var(--site-line2);background:var(--site-card);
   box-shadow:0 40px 80px -40px color-mix(in srgb,var(--site-accent) 45%,transparent)}
@@ -91,19 +92,22 @@
 
 /* ---------- product cards ---------- */
 /* Feature cards: picture on the left, maroon panel on the right, two to a row (Kamal's reference). */
-.lp-cards{display:grid;gap:16px}
-.lp-card{display:grid;grid-template-columns:1fr;gap:0;padding:8px;border-radius:var(--rad);background:var(--site-panel);border:1px solid var(--site-line2);transition:border-color .3s,transform .4s cubic-bezier(.2,.7,.2,1)}
-.lp-card:hover{border-color:rgba(246,242,240,.22);transform:translateY(-2px)}
-.lp-card-pic{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:#0B0809;border:1px solid rgba(246,242,240,.3)}
-.lp-card-pic img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.lp-card:hover .lp-card-pic img{transform:scale(1.04)}
-.lp-card:not(.phone) .lp-card-pic img{object-position:0 0}
-.lp-card.phone .lp-card-pic img{object-position:50% 18%}
-.lp-card-copy{display:grid;gap:10px;align-content:center;padding:20px 18px 18px}
-.lp-card-copy h3{font:700 20px/1.2 var(--f);letter-spacing:-.01em}
-.lp-card-copy p{color:var(--site-ink2);font-size:14.5px;line-height:1.55}
-@media (min-width:520px){.lp-card{grid-template-columns:44% 1fr}.lp-card-pic{aspect-ratio:auto;min-height:200px}.lp-card-copy{padding:20px 22px}}
-@media (min-width:980px){.lp-cards{grid-template-columns:repeat(2,1fr);gap:18px}.lp-card-pic{min-height:230px}}
+.lp-rows{display:grid;gap:64px;list-style:none;margin:0;padding:0}
+.lp-row{display:grid;gap:26px;align-items:center}
+.lp-shot{margin:0;padding:10px;border-radius:var(--rad);background:var(--site-panel);border:1px solid var(--site-line2)}
+.lp-shot img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid rgba(246,242,240,.14)}
+.lp-row.phone .lp-shot{justify-self:center;width:min(100%,300px)}
+.lp-row.phone .lp-shot img{aspect-ratio:9/15;object-fit:cover;object-position:50% 0}
+.lp-row-copy{display:grid;gap:14px;align-content:center;max-width:30em}
+.lp-eyebrow{font:600 12px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--site-accent)}
+.lp-row-copy h3{font:700 clamp(22px,2.4vw,30px)/1.15 var(--f);letter-spacing:-.015em;color:var(--site-ink)}
+.lp-row-copy>p{color:var(--site-ink2);font-size:16px;line-height:1.6}
+.lp-points{display:grid;gap:9px;list-style:none;margin:4px 0 0;padding:0}
+.lp-points li{display:flex;gap:10px;align-items:center;color:var(--site-ink);font-size:14.5px}
+.lp-points svg{flex:none;color:var(--site-accent)}
+@media (min-width:960px){.lp-rows{gap:96px}.lp-row{grid-template-columns:1.3fr 1fr;gap:72px}
+  .lp-row:nth-child(even){grid-template-columns:1fr 1.3fr}.lp-row:nth-child(even) .lp-shot{order:2}
+  .lp-row.phone{grid-template-columns:1fr 1fr}}
 /* Particle rails down both edges of the page, like dots falling from the banner. Desktop only. */
 .lp main{position:relative}
 @media (min-width:1280px){
