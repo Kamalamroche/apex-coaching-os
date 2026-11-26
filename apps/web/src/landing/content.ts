@@ -4,6 +4,13 @@ import type { IconName } from "@apex/ui";
    Rules: only sell what exists today, no invented customer numbers or reviews (UK advertising rules),
    pictures are real screens from the demo apps (apps/web/public/site, re-shoot when the app UI changes). */
 
+/* Banner video: the APEX light pyramid in red particles (original Higgsfield render, 26 Nov 2026).
+   Hosted on the same Higgsfield CDN as the exercise demo clips; the poster frame ships with the site. */
+export const HERO_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/7b560a46-862c-44c6-be18-db5141409af1.mp4";
+/* 720p cut (0.7 MB) for phones. */
+export const HERO_VIDEO_SMALL = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/bc407e7d-9dcc-4ab1-862c-fced03b3911e.mp4";
+export const HERO_POSTER = "/site/pyramid-poster.webp";
+
 export type Tour = {
   id: string;
   tab: string;
@@ -15,49 +22,57 @@ export type Tour = {
   alt: string;
 };
 
+/* Feature cards under "One place for the whole job". */
 export const TOUR: Tour[] = [
   {
     id: "brief", tab: "Morning brief", icon: "brief",
     title: "Start every day knowing who needs you.",
     body: "One calm screen ranks your clients by what matters: missed sessions, stalled lifts, unread messages and check-ins waiting for a reply.",
     points: ["Sessions done this week at a glance", "Who needs you today, in order", "A short setup list for new coaches"],
-    shot: "/site/coach-brief-light.webp", alt: "The APEX coach morning brief with active clients, sessions done and who needs attention today",
+    shot: "/site/coach-brief-dark.webp", alt: "The APEX coach morning brief with active clients, sessions done and who needs attention today",
   },
   {
     id: "build", tab: "Programme builder", icon: "build",
     title: "Write programmes the way you think.",
     body: "Drag from a library of 654 exercises, build supersets and circuits, then reuse your best weeks as templates. Import a PDF or paste your notes to start faster.",
     points: ["Sets, reps, load, RPE and rest per set", "Last session's numbers beside every exercise", "Templates, week tools and PDF import"],
-    shot: "/site/coach-builder-light.webp", alt: "The APEX programme builder with a lower body strength session and the exercise library",
+    shot: "/site/coach-builder-dark.webp", alt: "The APEX programme builder with a lower body strength session and the exercise library",
   },
   {
     id: "clients", tab: "Clients", icon: "clients",
     title: "Your whole roster on one table.",
     body: "Training, check-ins, habits, food and how recently you spoke, side by side for every client. Sort by who is slipping and act in a tap.",
     points: ["Health score for every client", "Tags for online, hybrid and in person", "Message or programme several at once"],
-    shot: "/site/coach-clients-light.webp", alt: "The APEX client table with training, check-ins, habits and food for six sample clients",
+    shot: "/site/coach-clients-dark.webp", alt: "The APEX client table with training, check-ins, habits and food for six sample clients",
   },
   {
     id: "food", tab: "Nutrition", icon: "food",
     title: "Nutrition coaching without the spreadsheets.",
     body: "Set targets, write meal plans and see what clients actually eat. Insights point out patterns, and you decide what to change.",
     points: ["Calorie and macro targets", "Meal plans and food logs", "Protein through the day"],
-    shot: "/site/coach-nutrition-light.webp", alt: "The APEX nutrition screen with a client's targets and food logged today",
+    shot: "/site/coach-nutrition-dark.webp", alt: "The APEX nutrition screen with a client's targets and food logged today",
   },
   {
     id: "money", tab: "Business", icon: "money",
     title: "Run the business side in the same place.",
     body: "Services, session packs, memberships, group classes, contracts and your own public page with enquiries. See money owed before it becomes awkward.",
     points: ["Bookings, packs and memberships", "Contracts and waivers signed in the app", "Your own page for new leads"],
-    shot: "/site/coach-business-light.webp", alt: "The APEX business screen with a monthly income goal and coaching tools",
+    shot: "/site/coach-business-dark.webp", alt: "The APEX business screen with a monthly income goal and coaching tools",
+  },
+  {
+    id: "client", tab: "Client app", icon: "today",
+    title: "An app your clients actually open.",
+    body: "It opens on today's session, with cues, timers, habits, check-ins and messages to you. No download needed.",
+    points: [],
+    shot: "/site/client-today-dark.webp", alt: "The APEX client app opening on today's session",
   },
 ];
 
 export const CLIENT_SCREENS = [
-  { src: "/site/client-today-light.webp", label: "Today", alt: "Client app opening on today's session, Lower A, with the week above it" },
-  { src: "/site/client-train-light.webp", label: "Training", alt: "Client app showing the current strength block and exercise library" },
-  { src: "/site/client-progress-light.webp", label: "Progress", alt: "Client app showing 13 weeks of progress with weight and waist changes" },
-  { src: "/site/client-messages-light.webp", label: "Messages", alt: "Client app messages with the coach, including a voice note button" },
+  { src: "/site/client-today-dark.webp", label: "Today", alt: "Client app opening on today's session, Lower A, with the week above it" },
+  { src: "/site/client-train-dark.webp", label: "Training", alt: "Client app showing the current strength block and exercise library" },
+  { src: "/site/client-progress-dark.webp", label: "Progress", alt: "Client app showing 13 weeks of progress with weight and waist changes" },
+  { src: "/site/client-messages-dark.webp", label: "Messages", alt: "Client app messages with the coach, including a voice note button" },
 ];
 
 export const CLIENT_POINTS: { icon: IconName; title: string; body: string }[] = [

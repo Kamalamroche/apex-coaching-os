@@ -1,16 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-import { ApexLogo, Icons, ThemeButton, startApexLight } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, LABELS, PLANS, STEPS, TOUR } from "./content";
+import { ApexLogo, Icons } from "@apex/ui";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, HERO_POSTER, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
-   Midnight look: a night-blue banner with the moving APEX light, then calm paper sections built around
-   real screens from the app. Copy and data live in content.ts. Only features that exist today are sold. */
+   Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the
+   APEX light pyramid in red particles. Copy and data live in content.ts. Only features that exist today are sold. */
 
-/** The moving light behind the banner (see packages/ui/src/apexLight.ts). */
-function Light({ className }: { className: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => (ref.current ? startApexLight(ref.current) : undefined), []);
-  return <canvas ref={ref} className={className} aria-hidden="true" />;
+/** Full-bleed looping video with its poster frame. Reduced motion keeps the still poster. */
+function PyramidVideo({ className }: { className: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || typeof IntersectionObserver !== "function") return;
+    /* pause when off screen, so the banner and the closing section never play at the same time */
+    const io = new IntersectionObserver(([e]) => { if (e?.isIntersecting) void v.play().catch(() => {}); else v.pause(); });
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  if (still || !HERO_VIDEO) return <img className={className} src={HERO_POSTER} alt="" aria-hidden="true" />;
+  return (
+    <video ref={ref} className={className} poster={HERO_POSTER} autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
+      {HERO_VIDEO_SMALL && <source src={HERO_VIDEO_SMALL} type="video/mp4" media="(max-width: 760px)" />}
+      <source src={HERO_VIDEO} type="video/mp4" />
+    </video>
+  );
 }
 
 /** Fade sections in once as they scroll into view. Off for reduced motion (handled in CSS). */
@@ -29,17 +43,16 @@ function useReveal() {
   }, []);
 }
 
-/** The header sits on the night banner until the page scrolls past it. */
-function useOnBanner() {
-  const [on, setOn] = useState(true);
+/** The header turns solid once the page scrolls. */
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const hero = document.getElementById("top");
-    if (!hero || typeof IntersectionObserver !== "function") return;
-    const io = new IntersectionObserver(([e]) => setOn(!!e?.isIntersecting), { rootMargin: "-64px 0px 0px 0px", threshold: 0 });
-    io.observe(hero);
-    return () => io.disconnect();
+    const on = () => setScrolled(window.scrollY > 24);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
   }, []);
-  return on;
+  return scrolled;
 }
 
 const NAV = [
@@ -50,23 +63,31 @@ const NAV = [
   { href: "/trainers/", label: "Find a trainer" },
 ];
 
+/** Red call to action with the arrow tile, used across the page. */
+function Cta({ href, children }: { href: string; children: string }) {
+  return (
+    <a className="lp-cta" href={href}>
+      <span className="lp-cta-tile" aria-hidden="true"><Icons.forward width={14} height={14} /></span>
+      <span className="lp-cta-label">{children}</span>
+    </a>
+  );
+}
+
 export function Landing() {
   useReveal();
-  const onBanner = useOnBanner();
+  const scrolled = useScrolled();
   const [menu, setMenu] = useState(false);
-  const [tour, setTour] = useState(TOUR[0]!.id);
-  const active = TOUR.find((t) => t.id === tour) ?? TOUR[0]!;
 
   return (
     <div className="lp">
-      <header className={`lp-top ${onBanner && !menu ? "night" : ""}`}>
+      <header className={`lp-top ${scrolled || menu ? "solid" : ""}`}>
         <div className="lp-wrap lp-bar">
-          <a href="/" className="lp-logo" aria-label="APEX home"><ApexLogo height={28} /></a>
+          <a href="/" className="lp-logo" aria-label="APEX home"><ApexLogo height={26} /></a>
           <nav className="lp-nav" aria-label="Sections">
             {NAV.map((n) => <a key={n.href} href={n.href}>{n.label}</a>)}
+            <a href="/start/">Sign in</a>
           </nav>
           <div className="lp-bar-acts">
-            <a className="lp-btn ghost hide-sm" href="/start/">Sign in</a>
             <a className="lp-btn solid" href="/coach/">Start free</a>
             <button className="lp-menu" aria-expanded={menu} aria-controls="lp-drawer" aria-label={menu ? "Close menu" : "Open menu"} onClick={() => setMenu((m) => !m)}>
               <i /><i />
@@ -84,80 +105,65 @@ export function Landing() {
       <main>
         {/* ---------- banner ---------- */}
         <section className="lp-hero" id="top">
-          <Light className="lp-light" />
-          <div className="lp-wrap lp-hero-copy">
-            <p className="lp-eyebrow">Coaching software for personal trainers</p>
-            <h1 className="lp-h1">Coach more people.<br />Keep it personal.</h1>
-            <p className="lp-lead">Write the programmes, see who needs you each morning, and give every client an app that opens on today's session. You stay in charge of the training.</p>
-            <div className="lp-ctas">
-              <a className="lp-btn light lg" href="/coach/">Start free</a>
-              <a className="lp-btn line lg" href="/coach/?demo">Try the demo <Icons.forward width={16} height={16} aria-hidden="true" /></a>
+          <PyramidVideo className="lp-media" />
+          <div className="lp-wrap lp-hero-grid">
+            <h1 className="lp-h1">Coaching software for trainers who design the training.</h1>
+            <div className="lp-hero-side">
+              <p>Write the programmes, see who needs you each morning, and give every client an app that opens on today's session. Free for your first 3 clients.</p>
+              <div className="lp-ctas">
+                <Cta href="/coach/">Start free</Cta>
+                <a className="lp-link" href="/coach/?demo">Try the demo</a>
+              </div>
             </div>
-            <p className="lp-small">Free for your first 3 clients. No card needed.</p>
           </div>
-          <div className="lp-wrap lp-stage" data-reveal>
-            <figure className="lp-browser">
-              <span className="lp-dots" aria-hidden="true"><i /><i /><i /></span>
-              <img src="/site/coach-brief-dark.webp" width={1600} height={1000} alt="The APEX coach app: a morning brief with active clients, sessions done this week and who needs you today" />
-            </figure>
-            <figure className="lp-phone">
-              <img src="/site/client-today-dark.webp" width={780} height={1688} alt="The APEX client app opening on today's session" />
+        </section>
+
+        {/* ---------- statement ---------- */}
+        <section className="lp-sec" id="about">
+          <div className="lp-wrap lp-statement">
+            <div className="lp-statement-copy" data-reveal>
+              <span className="lp-chip">Why APEX</span>
+              <p className="lp-big"><b>Built by a working coach,</b> APEX puts programmes, clients, nutrition and the business side in one calm place, so you spend your time coaching instead of on admin.</p>
+              <p className="lp-small">Every feature on every plan. 654 exercises with cues and steps. Nothing reaches a client until you say so.</p>
+            </div>
+            <figure className="lp-statement-pic" data-reveal>
+              <img src="/site/coach-brief-dark.webp" width={1600} height={1000} alt="The APEX coach app: a morning brief with active clients, sessions done this week and who needs you today" loading="lazy" />
             </figure>
           </div>
         </section>
 
-        {/* ---------- facts strip: only true statements ---------- */}
-        <section className="lp-facts" aria-label="At a glance">
-          <ul className="lp-wrap">
-            <li><b>654</b><span>exercises with cues and steps</span></li>
-            <li><b>Every</b><span>feature on every plan</span></li>
-            <li><b>3</b><span>clients free, for good</span></li>
-            <li><b>UK</b><span>built by a working coach</span></li>
-          </ul>
-        </section>
-
-        {/* ---------- product tour ---------- */}
+        {/* ---------- product cards ---------- */}
         <section className="lp-sec" id="product">
           <div className="lp-wrap">
             <header className="lp-head" data-reveal>
-              <p className="lp-kick">The coach app</p>
-              <h2 className="lp-h2">Everything you need to coach, in one calm place.</h2>
+              <h2 className="lp-h2">One place for the whole job</h2>
+              <p>Everything you do in a coaching week, from the first programme to the monthly invoice.</p>
             </header>
-            <div className="lp-tabs" role="tablist" aria-label="Coach app tour">
+            <ul className="lp-cards">
               {TOUR.map((t) => (
-                <button key={t.id} role="tab" id={`tab-${t.id}`} aria-selected={t.id === tour} aria-controls="tour-panel" onClick={() => setTour(t.id)}>
-                  {(() => { const I = Icons[t.icon]; return <I width={16} height={16} aria-hidden="true" />; })()}
-                  {t.tab}
-                </button>
+                <li key={t.id} className={`lp-card ${t.id === "client" ? "phone" : ""}`} data-reveal>
+                  <figure className="lp-card-pic"><img src={t.shot} alt={t.alt} loading="lazy" /></figure>
+                  <div className="lp-card-copy">
+                    <h3>{t.tab}</h3>
+                    <p>{t.body}</p>
+                  </div>
+                </li>
               ))}
-            </div>
-            <div className="lp-tour" id="tour-panel" role="tabpanel" aria-labelledby={`tab-${active.id}`} key={active.id}>
-              <div className="lp-tour-copy">
-                <h3 className="lp-h3">{active.title}</h3>
-                <p className="lp-body">{active.body}</p>
-                <ul className="lp-ticks">
-                  {active.points.map((p) => <li key={p}><Icons.check width={16} height={16} aria-hidden="true" />{p}</li>)}
-                </ul>
-              </div>
-              <figure className="lp-shot">
-                <img src={active.shot} width={1600} height={1000} alt={active.alt} loading="lazy" />
-              </figure>
-            </div>
+            </ul>
           </div>
         </section>
 
         {/* ---------- client app ---------- */}
-        <section className="lp-sec alt" id="clients">
+        <section className="lp-sec" id="clients">
           <div className="lp-wrap">
             <header className="lp-head" data-reveal>
-              <p className="lp-kick">The client app</p>
-              <h2 className="lp-h2">Simple for your clients. Built around your plan.</h2>
-              <p className="lp-body">Your clients see the session you wrote, the habits you set and the progress they are making. Nothing they need to work out for themselves.</p>
+              <h2 className="lp-h2">Simple for your clients</h2>
+              <p>They see the session you wrote, the habits you set and the progress they are making.</p>
             </header>
             <ul className="lp-phones" data-reveal>
               {CLIENT_SCREENS.map((s) => (
                 <li key={s.label}>
-                  <figure className="lp-phone sm"><img src={s.src} width={780} height={1688} alt={s.alt} /></figure>
+                  <figure className="lp-phone"><img src={s.src} width={780} height={1688} alt={s.alt} /></figure>
                   <span>{s.label}</span>
                 </li>
               ))}
@@ -181,9 +187,9 @@ export function Landing() {
         <section className="lp-sec">
           <div className="lp-wrap lp-split">
             <header className="lp-head left" data-reveal>
-              <p className="lp-kick">You stay in charge</p>
-              <h2 className="lp-h2">Smart help that never coaches around you.</h2>
-              <p className="lp-body">APEX reads the numbers and points out what changed. Every output says exactly what it is, and nothing reaches a client until you accept it.</p>
+              <span className="lp-chip">You stay in charge</span>
+              <h2 className="lp-h2">Smart help that never coaches around you</h2>
+              <p>APEX reads the numbers and points out what changed. Every output says exactly what it is, and nothing reaches a client until you accept it.</p>
             </header>
             <ol className="lp-flow" data-reveal>
               {LABELS.map((l, i) => (
@@ -197,11 +203,10 @@ export function Landing() {
         </section>
 
         {/* ---------- how it works ---------- */}
-        <section className="lp-sec alt" id="how">
+        <section className="lp-sec" id="how">
           <div className="lp-wrap">
             <header className="lp-head" data-reveal>
-              <p className="lp-kick">How it works</p>
-              <h2 className="lp-h2">Up and running in an afternoon.</h2>
+              <h2 className="lp-h2">Up and running in an afternoon</h2>
             </header>
             <ol className="lp-steps" data-reveal>
               {STEPS.map((s) => (
@@ -219,9 +224,8 @@ export function Landing() {
         <section className="lp-sec" id="pricing">
           <div className="lp-wrap">
             <header className="lp-head" data-reveal>
-              <p className="lp-kick">Pricing</p>
-              <h2 className="lp-h2">Every feature on every plan.</h2>
-              <p className="lp-body">Pay for the number of clients you coach. Monthly, cancel any time.</p>
+              <h2 className="lp-h2">Every feature on every plan</h2>
+              <p>Pay for the number of clients you coach. Monthly, cancel any time.</p>
             </header>
             <ul className="lp-plans" data-reveal>
               {PLANS.map((p) => (
@@ -241,11 +245,11 @@ export function Landing() {
         </section>
 
         {/* ---------- FAQ ---------- */}
-        <section className="lp-sec alt" id="faq">
+        <section className="lp-sec" id="faq">
           <div className="lp-wrap lp-split">
             <header className="lp-head left" data-reveal>
-              <p className="lp-kick">Questions</p>
-              <h2 className="lp-h2">Good to know.</h2>
+              <span className="lp-chip">Questions</span>
+              <h2 className="lp-h2">Good to know</h2>
             </header>
             <div className="lp-faq">
               {FAQ.map((f) => (
@@ -260,12 +264,12 @@ export function Landing() {
 
         {/* ---------- closing banner ---------- */}
         <section className="lp-end">
-          <Light className="lp-light" />
+          <PyramidVideo className="lp-media" />
           <div className="lp-wrap lp-end-copy" data-reveal>
-            <h2 className="lp-h2">Your next client deserves your best coaching.</h2>
+            <h2 className="lp-h2">Your next client deserves your best coaching</h2>
             <div className="lp-ctas">
-              <a className="lp-btn light lg" href="/coach/">Start free</a>
-              <a className="lp-btn line lg" href="/client/?demo">See the client app</a>
+              <Cta href="/coach/">Start free</Cta>
+              <a className="lp-link" href="/client/?demo">See the client app</a>
             </div>
           </div>
         </section>
@@ -274,7 +278,7 @@ export function Landing() {
       <footer className="lp-foot">
         <div className="lp-wrap lp-foot-grid">
           <div className="lp-foot-brand">
-            <a href="/" className="lp-logo" aria-label="APEX home"><ApexLogo height={24} /></a>
+            <a href="/" className="lp-logo" aria-label="APEX home"><ApexLogo height={22} /></a>
             <p>Coaching software for personal trainers. Made at HELIX.</p>
           </div>
           <nav aria-label="Product">
@@ -299,7 +303,6 @@ export function Landing() {
         </div>
         <div className="lp-wrap lp-foot-base">
           <span>© {new Date().getFullYear()} APEX</span>
-          <ThemeButton />
         </div>
       </footer>
     </div>
