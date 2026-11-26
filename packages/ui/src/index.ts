@@ -54,3 +54,4 @@ export { TestDemo } from "./testDemo";
 export { QuickFind, useQuickFindKeys } from "./quickFind";
 export { MatchStepView, TrainerCardView, TrustStrip, VerifiedBadge } from "./marketplace";
 export { GoalMeter, StarterOffer, SuccessStoryCard } from "./stories";
+export { drawApexMark, markSvg, LOGO_BLUE, LOGO_ORANGE } from "./brandMark";

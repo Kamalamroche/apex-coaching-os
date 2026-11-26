@@ -1,5 +1,6 @@
 import type { ProofLine } from "@apex/core";
 import { CARD_W, cardHeight, type CardFormat } from "./storyCard";
+import { drawApexMark } from "./brandMark";
 
 /* Coach marketing posts: proof in numbers, a client's review, places left and the current offer.
    Same quiet style as the client share cards (thin serif numbers, small spaced capitals, one orange accent,
@@ -105,10 +106,8 @@ function frame(c: Ctx, t: Theme, h: number, corner: string, coach: string, site:
   font(c, `900 40px ${SANS}`, 5);
   c.textAlign = "left";
   c.fillStyle = t.text;
-  c.fillText("APEX", PAD, top);
-  const w = c.measureText("APEX").width;
-  c.fillStyle = t.act;
-  c.fillText(".", PAD + w, top);
+  drawApexMark(c, PAD, top - 32, 34);
+  c.fillText("APEX", PAD + 34 + 12, top);
   font(c, `500 24px ${SANS}`, 5);
   c.fillStyle = photo ? t.text : t.text3;
   c.textAlign = "right";

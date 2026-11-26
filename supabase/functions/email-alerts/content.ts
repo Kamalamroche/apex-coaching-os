@@ -19,6 +19,10 @@ export interface AlertEmail {
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** First 140 characters on one line, cut at a word. */
+/** The APEX logo and name at the top of every email. Emails cannot use inline SVG reliably, so the mark is a hosted PNG. */
+const LOGO_URL = "https://apex-coaching-os-web.vercel.app/logo-mark.png";
+const HEADER = `<div style="font-weight:800;letter-spacing:.06em;font-size:14px;margin-bottom:16px"><img src="${LOGO_URL}" width="20" height="20" alt="" style="vertical-align:middle;margin-right:8px;border:0">APEX</div>`;
+
 export function snippet(body: string, max = 140): string {
   const flat = body.replace(/\s+/g, " ").trim();
   if (flat.length <= max) return flat;
@@ -55,7 +59,7 @@ export function buildAlertEmail(a: AlertInput): AlertEmail {
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#F3F5F9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0B1324">
 <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border:1px solid #DCE2EC;border-radius:12px;padding:24px">
 <!-- Colours are the light Athletic Tech tokens (packages/ui/src/tokens.css); emails cannot read CSS variables. -->
-<div style="font-weight:800;letter-spacing:.06em;font-size:14px;margin-bottom:16px">APEX</div>
+${HEADER}
 <p style="margin:0 0 12px">${esc(hello)}</p>
 <p style="margin:0 0 12px">${esc(lead)}</p>
 <blockquote style="margin:0 0 20px;padding:12px 14px;background:#F3F5F9;border-left:3px solid #E85A0C;border-radius:6px">${esc(quote)}</blockquote>
@@ -87,7 +91,7 @@ const HOW: Record<string, string> = { online: "Online", hybrid: "Hybrid", in_per
 
 const frame = (inner: string) => `<!doctype html><html><body style="margin:0;padding:24px;background:#F3F5F9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0B1324">
 <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border:1px solid #DCE2EC;border-radius:12px;padding:24px">
-<div style="font-weight:800;letter-spacing:.06em;font-size:14px;margin-bottom:16px">APEX</div>
+${HEADER}
 ${inner}
 </div></body></html>`;
 

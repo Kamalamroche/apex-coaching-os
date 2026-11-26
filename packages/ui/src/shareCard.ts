@@ -3,6 +3,7 @@
 
 import { metricTextIn, weightFromKg } from "@apex/core";
 import { getPrefs } from "./prefs";
+import { drawApexMark } from "./brandMark";
 
 export const SHARE_W = 1080;
 export const SHARE_H = 1920;
@@ -101,17 +102,17 @@ function fadeBottom(c: Ctx, from: number, solid: number, alpha: number) {
   c.fillRect(0, solid, SHARE_W, SHARE_H - solid);
 }
 
-/** "APEX." with the orange full stop. Returns its width. */
+/** The APEX logo mark and name, like the app header. Returns its width. */
 function wordmark(c: Ctx, x: number, y: number, size: number, align: "left" | "right" | "center" = "left") {
   font(c, `900 ${size}px ${T.head}`, size * 0.14, true);
-  const w = c.measureText("APEX").width, dot = c.measureText(".").width;
-  const left = align === "left" ? x : align === "right" ? x - w - dot : x - (w + dot) / 2;
+  const m = size * 0.86, gap = size * 0.3;
+  const w = m + gap + c.measureText("APEX").width;
+  const left = align === "left" ? x : align === "right" ? x - w : x - w / 2;
+  drawApexMark(c, left, y - size * 0.8, m);
   c.textAlign = "left";
   c.fillStyle = T.text;
-  c.fillText("APEX", left, y);
-  c.fillStyle = T.act;
-  c.fillText(".", left + w, y);
-  return w + dot;
+  c.fillText("APEX", left + m + gap, y);
+  return w;
 }
 
 function crownShape(c: Ctx, { x, y, size }: CrownPlacement) {
