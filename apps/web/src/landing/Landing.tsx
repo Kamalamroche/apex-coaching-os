@@ -4,7 +4,7 @@ import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER,
 import { GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
 /** The APEX story film (14 s loop): too many apps, one place, the real coach screens, client progress,
-    you stay in charge, Start free. A photoreal laptop on a black mirror floor with the APEX screens composited in.
+    you stay in charge, Start free. A laptop in a bright studio (Higgsfield clip) with the APEX screens tracked onto it.
     Phones get the 720 cut; reduced motion shows the poster frame. */
 function StoryVideo() {
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
