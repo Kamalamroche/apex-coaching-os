@@ -30,6 +30,8 @@ export type Tour = {
   points: string[];
   shot: string;
   alt: string;
+  /* Which part of the screenshot stays in view when the card crops it. */
+  pos?: string;
 };
 
 /* Feature cards under "One place for the whole job". */
@@ -60,7 +62,7 @@ export const TOUR: Tour[] = [
     title: "Nutrition coaching without the spreadsheets.",
     body: "Set targets, write meal plans and see what clients actually eat. Insights point out patterns, and you decide what to change.",
     points: ["Calorie and macro targets", "Meal plans and food logs", "Protein through the day"],
-    shot: "/site/coach-nutrition-dark.webp", alt: "The APEX nutrition screen with a client's targets and food logged today",
+    pos: "50% 0", shot: "/site/coach-nutrition-dark.webp", alt: "The APEX nutrition screen with a client's targets and food logged today",
   },
   {
     id: "money", tab: "Business", icon: "money",
