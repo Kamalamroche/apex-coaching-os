@@ -34,7 +34,7 @@ export const Icons = {
   heart: lucide(Heart),
   note: lucide(NotebookPen),
   swap: lucide(ArrowLeftRight),
-  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><path d="M5.5 34 17.5 6h5L34.5 34h-6L20 15.5 11.5 34Z" fill="var(--act)" /><path d="M20 24.5 23.4 34h-6.8Z" fill="var(--blue)" /></svg>,
+  logo: (p) => <svg width={30} height={30} viewBox="0 0 40 40" fill="none" {...p}><mask id="apex-logo-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="40" height="40"><rect width="40" height="40" fill="#fff" /><path d="M8.2 38.1 13.7 26.8 16.8 30.9" stroke="#000" strokeWidth={1.6} /></mask><path d="M3.6 36.5 20 3.6 36.4 36.5H27.8L20 21.3 12.2 36.5Z" fill="var(--act)" stroke="var(--act)" strokeWidth={0.7} strokeLinejoin="round" mask="url(#apex-logo-cut)" /><path d="M20 26.1 25.4 36.5H14.6Z" fill="var(--blue)" stroke="var(--blue)" strokeWidth={0.7} strokeLinejoin="round" /></svg>,
   run: lucide(Footprints),
   swim: lucide(Waves),
   ride: lucide(Bike),
