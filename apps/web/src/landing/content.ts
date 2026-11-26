@@ -34,7 +34,26 @@ export type Tour = {
   pos?: string;
 };
 
-/* Feature cards under "One place for the whole job". */
+/* The three poster chapters under "One place for the whole job" (posters in Posters.tsx). */
+export const CHAPTERS: { id: "brief" | "train" | "grow"; kicker: string; title: string; body: string; points: string[] }[] = [
+  {
+    id: "brief", kicker: "Every morning", title: "Know who needs you.",
+    body: "Missed sessions, stalled lifts, unread messages and check-ins waiting for a reply, ranked by what matters. Suggestions wait for your OK, and clients only see your decisions.",
+    points: ["Sessions done this week at a glance", "Who needs you today, in order", "A short setup list for new coaches"],
+  },
+  {
+    id: "train", kicker: "In their pocket", title: "Today's session, one tap away.",
+    body: "Clients open straight onto the workout you wrote, with cues, a rest timer, a plate calculator and last time's numbers on every set. No download needed.",
+    points: ["Guided sets with timers and cues", "Habits, check-ins and messages to you", "Adds to the home screen like an app"],
+  },
+  {
+    id: "grow", kicker: "From real data", title: "Progress they can see.",
+    body: "Every logged set carries load, reps and RPE. APEX tracks personal bests, measurements and photos in one timeline, and you decide what changes next.",
+    points: ["Personal bests spotted for you", "Weight, waist and photos over time", "Check-ins side by side"],
+  },
+];
+
+/* Feature index under the posters: words only, one line each. */
 export const TOUR: Tour[] = [
   {
     id: "brief", tab: "Morning brief", icon: "brief",

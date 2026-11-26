@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS } from "./content";
+import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
+
+const CHAPTER_ART = { brief: BriefPoster, train: TrainPoster, grow: GrowPoster };
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
    Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the
@@ -153,16 +156,33 @@ export function Landing() {
               <h2 className="lp-h2">One place for the whole job</h2>
               <p>Everything you do in a coaching week, from the first programme to the monthly invoice.</p>
             </header>
-            <ul className="lp-cards">
-              {TOUR.map((t) => (
-                <li key={t.id} className={`lp-card ${t.id === "client" ? "phone" : ""}`} data-reveal>
-                  <figure className="lp-card-pic"><img src={t.shot} alt={t.alt} loading="lazy" style={t.pos ? { objectPosition: t.pos } : undefined} /></figure>
-                  <div className="lp-card-copy">
+          </div>
+          {CHAPTERS.map((c, i) => {
+            const Art = CHAPTER_ART[c.id];
+            return (
+              <div key={c.id} className={`lp-wrap lp-chapter ${i % 2 ? "flip" : ""}`}>
+                <div data-reveal><Art /></div>
+                <div className="lp-chapter-copy" data-reveal>
+                  <span className="lp-kick"><i>{String(i + 1).padStart(2, "0")}</i>{c.kicker}</span>
+                  <h3 className="lp-h2">{c.title}</h3>
+                  <p>{c.body}</p>
+                  <ul>{c.points.map((pt) => <li key={pt}>{pt}</li>)}</ul>
+                </div>
+              </div>
+            );
+          })}
+          <div className="lp-wrap">
+            <ul className="lp-index" data-reveal>
+              {TOUR.filter((t) => t.id !== "brief" && t.id !== "client").map((t) => {
+                const I = Icons[t.icon];
+                return (
+                  <li key={t.id}>
+                    <I width={20} height={20} aria-hidden="true" />
                     <h3>{t.tab}</h3>
                     <p>{t.body}</p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </section>
@@ -219,18 +239,21 @@ export function Landing() {
         {/* ---------- how it works ---------- */}
         <section className="lp-sec" id="how">
           <div className="lp-wrap">
-            <header className="lp-head" data-reveal>
-              <h2 className="lp-h2">Up and running in an afternoon</h2>
-            </header>
-            <ol className="lp-steps" data-reveal>
-              {STEPS.map((s) => (
-                <li key={s.n}>
-                  <span className="lp-n">{s.n}</span>
-                  <h3>{s.title}</h3>
-                  <p>{s.body}</p>
-                </li>
-              ))}
-            </ol>
+            <div className="lp-chapter flip">
+              <div data-reveal><ShapePoster /></div>
+              <div className="lp-chapter-copy" data-reveal>
+                <span className="lp-kick">Built at HELIX</span>
+                <h2 className="lp-h2">Up and running in an afternoon</h2>
+                <ol className="lp-steps">
+                  {STEPS.map((st) => (
+                    <li key={st.n}>
+                      <span className="lp-n">{st.n}</span>
+                      <div><h3>{st.title}</h3><p>{st.body}</p></div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -264,6 +287,7 @@ export function Landing() {
             <header className="lp-head left" data-reveal>
               <span className="lp-chip">Questions</span>
               <h2 className="lp-h2">Good to know</h2>
+              <div className="lp-faq-pic"><NextPoster /></div>
             </header>
             <div className="lp-faq">
               {FAQ.map((f) => (

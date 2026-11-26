@@ -102,22 +102,77 @@
 .lp-day-meta.br{bottom:11cqw;right:15cqw;text-align:right}
 @media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.1fr;gap:72px}}
 
-/* ---------- product cards ---------- */
-/* Feature cards: picture on the left, maroon panel on the right, two to a row (Kamal's reference). */
-.lp-cards{display:grid;gap:16px}
-.lp-card{display:grid;grid-template-columns:1fr;gap:0;padding:8px;border-radius:var(--rad);background:var(--site-panel);border:1px solid var(--site-line2);transition:border-color .3s,transform .4s cubic-bezier(.2,.7,.2,1)}
-.lp-card:hover{border-color:rgba(246,242,240,.22);transform:translateY(-2px)}
-.lp-card-pic{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:#0B0809;border:1px solid rgba(246,242,240,.3)}
-.lp-card-pic img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.lp-card:hover .lp-card-pic img{transform:scale(1.04)}
-.lp-card:not(.phone) .lp-card-pic img{object-position:0 0}
-.lp-card.phone .lp-card-pic img{object-position:50% 18%}
-.lp-card-copy{display:grid;gap:10px;align-content:center;padding:20px 18px 18px}
-.lp-card-copy h3{font:700 20px/1.2 var(--f);letter-spacing:-.01em}
-.lp-card-copy p{color:var(--site-ink2);font-size:14.5px;line-height:1.55}
-@media (min-width:520px){.lp-card{grid-template-columns:44% 1fr}.lp-card-pic{aspect-ratio:auto;min-height:200px}.lp-card-copy{padding:20px 22px}}
-@media (min-width:980px){.lp-cards{grid-template-columns:repeat(2,1fr);gap:18px}.lp-card-pic{min-height:230px}}
-/* Particle rails down both edges of the page, like dots falling from the banner. Desktop only. */
+/* ---------- poster chapters ---------- */
+.lp-chapter{display:grid;gap:28px;align-items:center;margin-top:56px}
+.lp-chapter-copy{display:grid;gap:16px;justify-items:start;max-width:30em}
+.lp-chapter-copy>p{color:var(--site-ink2);font-size:17px;line-height:1.6}
+.lp-chapter-copy ul{display:grid;gap:10px;margin-top:4px}
+.lp-chapter-copy ul li{position:relative;padding-left:22px;color:var(--site-ink);font-size:15px}
+.lp-chapter-copy ul li::before{content:"";position:absolute;left:0;top:.62em;width:10px;height:1.5px;background:var(--site-accent)}
+.lp-kick{display:inline-flex;align-items:center;gap:12px;font:700 12px/1 var(--num);letter-spacing:.18em;text-transform:uppercase;color:var(--site-ink2)}
+.lp-kick i{font-style:normal;color:var(--site-accent)}
+@media (min-width:960px){
+  .lp-chapter{grid-template-columns:1.05fr 1fr;gap:80px;margin-top:40px}
+  .lp-chapter.flip>:first-child{order:2}
+}
+/* Feature index: words only, no pictures */
+.lp-index{display:grid;gap:28px;margin-top:88px;padding-top:40px;border-top:1px solid var(--site-line)}
+.lp-index li{display:grid;gap:8px;align-content:start}
+.lp-index svg{color:var(--site-accent)}
+.lp-index h3{font-size:17px;font-weight:600;margin-top:6px}
+.lp-index p{color:var(--site-ink2);font-size:15px;line-height:1.55}
+@media (min-width:640px){.lp-index{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1000px){.lp-index{grid-template-columns:repeat(4,1fr);gap:40px}}
+
+/* ---------- campaign posters (apps/web/src/landing/Posters.tsx) ----------
+   The posters from the earlier site, same compositions in container units. In Ember they have no frame:
+   the edges fade into the page and the photos get the warm red grade of the pyramid video. */
+.ps{--ps-ink:#121418;--ps-paper:#160B0D;--ps-white:#FFFFFF;--ps-act:#E85A0C;--ps-sky:var(--site-panel);
+  --ps-fade:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 8%,#000 80%,transparent);
+  position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;overflow:hidden;isolation:isolate;
+  background:var(--ps-paper);color:var(--ps-white);
+  -webkit-mask-image:var(--ps-fade);mask-image:var(--ps-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
+.lp-chapter .ps{margin-inline:auto}
+.ps-photo,.ps-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;
+  filter:sepia(.28) saturate(1.25) hue-rotate(-14deg) contrast(1.06) brightness(.9)}
+.ps-photo{z-index:0}
+.ps-cut{z-index:3}
+.ps::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:soft-light;
+  background:radial-gradient(70% 45% at 50% 100%,color-mix(in srgb,var(--site-accent) 65%,transparent),transparent 70%)}
+.ps-num,.ps-fill,.ps-vert{position:absolute;font-family:var(--head);font-weight:900;font-stretch:62%;line-height:.78;text-transform:uppercase;user-select:none;white-space:nowrap}
+.ps-num{z-index:2}
+.ps-grain{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.14;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.ps-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82)}
+.ps-meta.tl{top:8cqw;left:15cqw}
+.ps-meta.tr{top:8cqw;right:15cqw;text-align:right}
+.ps-meta.bl{bottom:13cqw;left:15cqw}
+.ps-meta.br{bottom:13cqw;right:15cqw;text-align:right}
+/* 07:30: split block, the number sinks into the dark below the block */
+.ps-split .ps-block{position:absolute;left:0;right:0;top:0;height:37%;z-index:0;background:linear-gradient(180deg,color-mix(in srgb,var(--site-accent) 34%,var(--ps-paper)),color-mix(in srgb,var(--site-accent) 52%,var(--ps-paper)))}
+.ps-split .ps-num{left:-2cqw;right:-2cqw;top:12cqw;text-align:center;font-size:50cqw;letter-spacing:-.02em;color:var(--ps-paper)}
+.ps-split .ps-cut{transform:scale(.74);transform-origin:58% 96%}
+.ps-split .ps-label{position:absolute;z-index:5;left:10cqw;top:57cqw;font:500 4.2cqw/1.08 var(--serif);letter-spacing:.09em;text-transform:uppercase;color:var(--ps-white)}
+/* TRAIN: flat orange, letters filled with the studio photo */
+.ps-flat{background:var(--ps-act)}
+.ps-flat .ps-fill{z-index:1;right:6cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
+.ps-flat .ps-cut{transform:translateX(-12%) scale(1.04)}
+.ps-flat .ps-meta{color:var(--ps-ink)}
+.ps-flat .ps-meta.tl{left:10cqw}
+.ps-flat .ps-meta.bl{left:10cqw;bottom:16cqw;max-width:40cqw}
+.ps-shape .ps-meta.br{top:8cqw;bottom:auto}
+/* Stronger every week: full photo, clean corner headline, one number */
+.ps-photo-only .ps-photo{object-position:center 40%}
+.ps-head{position:absolute;z-index:5;left:15cqw;top:9cqw;font:500 5.2cqw/1.1 var(--serif);letter-spacing:.08em;text-transform:uppercase}
+.ps-sub{position:absolute;z-index:5;left:15cqw;bottom:34cqw;font:700 2.6cqw/1 var(--num);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+.ps-stat{position:absolute;z-index:5;left:15cqw;bottom:15cqw;display:flex;align-items:flex-end;gap:2cqw}
+.ps-stat b{font:900 22cqw/.78 var(--head);font-stretch:62%;color:var(--ps-act)}
+.ps-stat small{font:600 3.2cqw/1.2 var(--ui);padding-bottom:1cqw;max-width:16cqw}
+/* Built by a coach: athlete over a big rounded triangle */
+.ps-shape .ps-tri{position:absolute;inset:4% 2% 6% 2%;z-index:1;width:96%;height:90%}
+.ps-shape .ps-tri path{fill:var(--ps-act)}
+/* NEXT: rings photo, outline letters stacked down the left */
+.ps-next .ps-vert{z-index:2;left:8cqw;top:4cqw;bottom:4cqw;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-size:52cqw;color:transparent;-webkit-text-stroke:.45cqw var(--ps-act)}
+
 .lp main{position:relative}
 @media (min-width:1280px){
   .lp main::before,.lp main::after{content:"";position:absolute;top:100svh;bottom:0;width:150px;pointer-events:none;z-index:0;opacity:.75;
@@ -127,6 +182,7 @@
   .lp main::after{right:max(0px,calc(50% - 760px));transform:scaleX(-1)}
   .lp-sec,.lp-end{z-index:1}
 }
+
 
 /* ---------- client app ---------- */
 .lp-phones{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:4px 20px 8px}
@@ -155,13 +211,13 @@
 .lp-flow li.end p{color:var(--site-ink);font-weight:500}
 @media (max-width:520px){.lp-flow li{grid-template-columns:1fr;gap:8px}}
 
-/* ---------- steps ---------- */
-.lp-steps{display:grid;gap:16px}
-.lp-steps li{display:grid;gap:10px;align-content:start;padding:28px;border-radius:var(--rad);background:var(--site-card);border:1px solid var(--site-line)}
-.lp-n{font:800 13px/1 var(--h);color:var(--site-accent);letter-spacing:.06em}
-.lp-steps h3{font-size:19px;font-weight:600;letter-spacing:-.015em}
-.lp-steps p{color:var(--site-ink2);font-size:15px}
-@media (min-width:860px){.lp-steps{grid-template-columns:repeat(3,1fr);gap:20px}}
+/* ---------- steps (beside the HELIX poster) ---------- */
+.lp-steps{display:grid;margin-top:8px;width:100%}
+.lp-steps li{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:20px 0;border-top:1px solid var(--site-line)}
+.lp-steps li:last-child{border-bottom:1px solid var(--site-line)}
+.lp-n{font:800 13px/1.5 var(--h);color:var(--site-accent);letter-spacing:.06em}
+.lp-steps h3{font-size:18px;font-weight:600;letter-spacing:-.015em}
+.lp-steps p{color:var(--site-ink2);font-size:15px;margin-top:4px}
 
 /* ---------- pricing ---------- */
 .lp-plans{display:grid;gap:16px}
@@ -180,6 +236,8 @@
 @media (min-width:1060px){.lp-plans{grid-template-columns:repeat(4,1fr)}}
 
 /* ---------- FAQ ---------- */
+.lp-faq-pic{width:100%;max-width:420px;margin-top:20px}
+@media (max-width:959px){.lp-faq-pic{display:none}}
 .lp-faq details{border-bottom:1px solid var(--site-line2)}
 .lp-faq details:first-child{border-top:1px solid var(--site-line2)}
 .lp-faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0;font-size:17px;font-weight:500}
