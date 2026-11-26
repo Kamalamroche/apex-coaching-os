@@ -55,3 +55,4 @@ export { QuickFind, useQuickFindKeys } from "./quickFind";
 export { MatchStepView, TrainerCardView, TrustStrip, VerifiedBadge } from "./marketplace";
 export { GoalMeter, StarterOffer, SuccessStoryCard } from "./stories";
 export { drawApexLogo, drawApexMark, logoSvg, markSvg, LOGO_BLUE, LOGO_ORANGE } from "./brandMark";
+export { startApexLight, LIGHT_MIDNIGHT, type LightPalette } from "./apexLight";

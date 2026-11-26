@@ -57,3 +57,17 @@
   --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
   --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
   color-scheme:light}
+
+/* Website (Midnight): the public marketing site at /. Night-blue banner with the APEX light, calm paper pages,
+   one soft blue accent. Orange stays in the logo only. Chosen by Kamal on 26 Nov 2026. */
+:root{
+  --site-night:#0A0E1C; --site-night2:#121A3A; --site-on-night:#F4F6FB; --site-on-night2:rgba(244,246,251,.68);
+  --site-paper:#F6F6F4; --site-paper2:#EEEEEA; --site-card:#FFFFFF; --site-ink:#141821; --site-ink2:#555B68; --site-ink3:#868B96;
+  --site-line:#E3E3DE; --site-line2:#D2D2CC; --site-blue:#3D63E6; --site-blue-ink:#FFFFFF; --site-blue-soft:rgba(61,99,230,.09);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --site-paper:#0C1020; --site-paper2:#10152A; --site-card:#141A30; --site-ink:#EEF0F6; --site-ink2:#A6ACBB; --site-ink3:#737A8C;
+  --site-line:#20273F; --site-line2:#2C3452; --site-blue:#7D97F7; --site-blue-ink:#0A0E1C; --site-blue-soft:rgba(125,151,247,.12)}}
+:root[data-theme="dark"]{
+  --site-paper:#0C1020; --site-paper2:#10152A; --site-card:#141A30; --site-ink:#EEF0F6; --site-ink2:#A6ACBB; --site-ink3:#737A8C;
+  --site-line:#20273F; --site-line2:#2C3452; --site-blue:#7D97F7; --site-blue-ink:#0A0E1C; --site-blue-soft:rgba(125,151,247,.12)}
