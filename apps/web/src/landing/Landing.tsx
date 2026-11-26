@@ -132,7 +132,7 @@ export function Landing() {
               <p className="lp-small">Every feature on every plan. 654 exercises with cues and steps. Nothing reaches a client until you say so.</p>
             </div>
             <figure className="lp-statement-pic" data-reveal>
-              <img src="/site/pic-pyramid.webp" width={1200} height={896} alt="A glass pyramid on dark volcanic rock, lit red from behind" loading="lazy" />
+              <img src="/site/pic-deadlift.webp" width={1080} height={940} alt="A HELIX athlete setting up a barbell deadlift in a deep red studio" loading="lazy" />
             </figure>
           </div>
         </section>
