@@ -80,7 +80,7 @@ function field(c: Ctx, h: number) {
   c.fillRect(0, 0, CARD_W, h);
 }
 
-/** The full APEX logo (mark and drawn letters), its baseline on y. `size` is the old text size. */
+/** The full APEX logo (mark and letters), its baseline on y. `size` is the old text size. */
 function mark(c: Ctx, x: number, y: number, size: number, align: "left" | "center" = "left") {
   const h = size * 1.15, w = (LOCKUP.width / 40) * h;
   drawApexLogo(c, align === "left" ? x : x - w / 2, y - h * 0.9125, h, C.text);

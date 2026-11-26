@@ -57,20 +57,15 @@ export function drawApexMark(c: CanvasRenderingContext2D, x: number, y: number, 
   c.restore();
 }
 
-/* The APEX letters, drawn to match the mark rather than typed: the A has the mark's slope and its small peak
-   inside instead of a crossbar, and every stroke has the weight of the mark's legs. Cap height 100. */
-const S = 0.497; // the mark's slope (run over rise)
-const LETTER_A = (() => {
-  const w = 2 * 103 * S, leg = 22.3, gap = 6.6; // the point overshoots the cap height by 3 so it looks as tall as the flat letters
-  const ix = leg, iy = 100 - (w / 2 - ix) / S, bx = ix + gap, by = 100 - (w / 2 - bx) / S;
-  const f = (n: number) => +n.toFixed(2);
-  return { w, d: `M0 100 L${f(w / 2)} -3 L${f(w)} 100 H${f(w - ix)} L${f(w / 2)} ${f(iy)} L${f(ix)} 100Z M${f(w / 2)} ${f(by)} L${f(w - bx)} 100 H${f(bx)}Z` };
-})();
+/* The APEX letters: the app's own heading type (Archivo Black, expanded, as in the header before the logo), turned
+   into outlines so they look the same in the app, on canvas images, on the poster and in emails. A normal A.
+   Cap height 100; widths are the font's advances plus its .02em letter spacing. */
+const SP = 2.9;
 const LETTERS: { w: number; d: string; kern: number }[] = [
-  { ...LETTER_A, kern: 0 },
-  { w: 84, kern: 11, d: "M0 0H54A30 30 0 0 1 54 60H21V100H0Z M21 20V40H53A10 10 0 0 0 53 20Z" },
-  { w: 62, kern: 14, d: "M0 0H62V20H21V40H56V60H21V80H62V100H0Z" },
-  { w: 92, kern: 12, d: "M0 0H25L46 34L67 0H92L58.5 50L92 100H67L46 66L25 100H0L33.5 50Z" },
+  { w: 138.66, kern: -1.2, d: "M1.2 100 49.6 0H89.1L137.5 100H99L93 86.8H44L38.2 100ZM54.9 61.9H82.1L75.1 45.1Q74.7 43.9 74 41.9Q73.3 40 72.4 37.5Q71.5 35 70.7 32.6Q69.9 30.1 69.2 28.1H68.2Q67.3 30.5 66.1 33.7Q65 36.9 63.9 40Q62.8 43 61.9 45.1Z" },
+  { w: 125.73, kern: SP, d: "M10.8 100V0H91.1Q101 0 108.6 4.4Q116.1 8.9 120.3 16.8Q124.6 24.7 124.6 35Q124.6 45.6 120.3 53.6Q116 61.6 108.4 66Q100.9 70.3 91.1 70.3H46.7V100ZM46.7 45.5H81.1Q86.6 45.5 89.3 42.9Q92 40.3 92 35.2Q92 31.7 90.8 29.4Q89.5 27.2 87.1 26Q84.7 24.9 81.1 24.9H46.7Z" },
+  { w: 125, kern: SP, d: "M10.8 100V0H117.6V24.9H46.8V37.8H107.8V61.3H46.8V75.1H118.8V100Z" },
+  { w: 139.68, kern: SP, d: "M1.7 100 49.4 48.4 6.1 0H52.5L72.1 23.7H73.3L94.2 0H136.6L93 46.9L140.6 100H94.3L70.5 71.8H69.2L44.5 100Z" },
 ];
 /** The letters as one path, cap height 100, left edge at 0. */
 export const WORD = (() => {
@@ -82,7 +77,7 @@ export const WORD = (() => {
 /** Lockup geometry in a 40-high box: the mark, then the letters sitting on the mark's baseline at two thirds of its height. */
 export const LOCKUP = (() => {
   const base = 36.5, cap = 32.9 * 0.66, k = cap / 100, x = 36.4 + cap * 0.36;
-  return { k, x, y: base - cap, width: +(x + WORD.width * k + 3.6).toFixed(2) };
+  return { k, x, y: base - cap, width: +(x + WORD.width * k + 1).toFixed(2) };
 })();
 
 /** The full logo (mark and letters) as an SVG string. Letters take `ink`. */

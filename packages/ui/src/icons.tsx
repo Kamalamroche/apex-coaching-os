@@ -115,7 +115,7 @@ export const Icons = {
 
 export type IconName = keyof typeof Icons;
 
-/** The full APEX logo: the mark and the drawn letters, sized together. `height` is the mark's height; the letters
+/** The full APEX logo: the mark and the letters, sized together. `height` is the mark's height; the letters
  *  follow the text colour (currentColor). Use this wherever the logo and the name appear side by side. */
 export function ApexLogo({ height = 30, ...p }: SVGProps<SVGSVGElement> & { height?: number }) {
   return (

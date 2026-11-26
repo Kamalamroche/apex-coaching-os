@@ -102,7 +102,7 @@ function fadeBottom(c: Ctx, from: number, solid: number, alpha: number) {
   c.fillRect(0, solid, SHARE_W, SHARE_H - solid);
 }
 
-/** The full APEX logo (mark and drawn letters). `size` is the old text size, so placements stay put. Returns its width. */
+/** The full APEX logo (mark and letters). `size` is the old text size, so placements stay put. Returns its width. */
 function wordmark(c: Ctx, x: number, y: number, size: number, align: "left" | "right" | "center" = "left") {
   const h = size * 1.15, w = (LOCKUP.width / 40) * h;
   const left = align === "left" ? x : align === "right" ? x - w : x - w / 2;

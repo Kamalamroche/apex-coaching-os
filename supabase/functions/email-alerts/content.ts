@@ -21,7 +21,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 /** First 140 characters on one line, cut at a word. */
 /** The APEX logo and name at the top of every email. Emails cannot use inline SVG reliably, so the logo is a hosted PNG. */
 const LOGO_URL = "https://apex-coaching-os-web.vercel.app/logo-email.png";
-const HEADER = `<div style="margin-bottom:16px"><img src="${LOGO_URL}" width="78" height="24" alt="APEX" style="display:block;border:0"></div>`;
+const HEADER = `<div style="margin-bottom:16px"><img src="${LOGO_URL}" width="97" height="24" alt="APEX" style="display:block;border:0"></div>`;
 
 export function snippet(body: string, max = 140): string {
   const flat = body.replace(/\s+/g, " ").trim();
