@@ -1,9 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS } from "./content";
-import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, STORY_POSTER, STORY_VIDEO, STORY_VIDEO_SMALL } from "./content";
+import { GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-const CHAPTER_ART = { brief: BriefPoster, train: TrainPoster, grow: GrowPoster };
+/** The APEX story film (14 s loop): too many apps, one place, the real coach screens, client progress,
+    you stay in charge, Start free. A laptop on a glossy black floor; made in code from APEX screens, no stock footage.
+    Phones get the 720 cut; reduced motion shows the poster frame. */
+function StoryVideo() {
+  const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  return (
+    <figure className="lp-story">
+      {still
+        ? <img src={STORY_POSTER} width={1080} height={1350} alt="APEX on a laptop: the morning brief, the programme builder and client progress" />
+        : (
+          <video autoPlay muted loop playsInline preload="metadata" poster={STORY_POSTER} aria-label="APEX on a laptop: too many apps become one place, then the morning brief, the programme builder, client progress and Start free">
+            <source src={STORY_VIDEO_SMALL} type="video/mp4" media="(max-width: 760px)" />
+            <source src={STORY_VIDEO} type="video/mp4" />
+          </video>
+        )}
+    </figure>
+  );
+}
+
+const CHAPTER_ART = { brief: StoryVideo, train: TrainPoster, grow: GrowPoster };
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
    Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the

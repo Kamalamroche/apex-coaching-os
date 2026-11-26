@@ -21,6 +21,11 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
+/* Story film for the first feature chapter (made in code from APEX screens, 26 Nov 2026). */
+export const STORY_VIDEO = "/site/apex-story.mp4";
+export const STORY_VIDEO_SMALL = "/site/apex-story-720.mp4";
+export const STORY_POSTER = "/site/apex-story-poster.webp";
+
 export type Tour = {
   id: string;
   tab: string;
