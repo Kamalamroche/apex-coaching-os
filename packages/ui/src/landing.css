@@ -118,16 +118,17 @@
 /* Story film: a bright studio card, same shape as the poster cards */
 /* Feature index: words only, no pictures */
 
-/* ---------- reel banner: colour card + brown panel with the white COACH( )ING word; the move changes every 4 s and the
-   card colour (--tone, a site or chart token), the clip, the labels and the letters change together ---------- */
+/* ---------- reel banner: colour card + brown panel with the white COACH[picture]ING word over a big outlined word; the move
+   changes every 3.2 s and the card colour (--tone, a site or chart token), picture, back card, labels and letters change together ---------- */
 .lp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.lp-reel{--tone:var(--site-accent);padding:24px 0 72px}
+/* one clock for the whole banner: card colour, picture, back card, big word and letters all move on --dur and --ease */
+.lp-reel{--tone:var(--site-accent);--tone-next:var(--viz-1);--dur:.8s;--ease:cubic-bezier(.65,0,.25,1);padding:24px 0 72px}
 @media (min-width:900px){.lp-reel{padding:40px 0 120px}}
 .lp-reel-grid{display:grid;gap:14px}
 @media (min-width:960px){.lp-reel-grid{grid-template-columns:5fr 7fr;gap:16px;min-height:420px}}
 /* the tone is darkened a touch so white text keeps its contrast on every colour */
 .lp-reel-card{display:flex;flex-direction:column;gap:22px;padding:28px 24px;border-radius:var(--rad);color:var(--site-accent-ink);
-  background:color-mix(in srgb,var(--tone) 84%,#000);transition:background-color .9s cubic-bezier(.4,0,.2,1)}
+  background:color-mix(in srgb,var(--tone) 84%,#000);transition:background-color var(--dur) var(--ease)}
 @media (min-width:960px){.lp-reel-card{padding:32px 32px 30px}}
 .lp-reel-h{display:grid;font:900 clamp(34px,4.2vw,56px)/.9 var(--h);font-stretch:85%;letter-spacing:-.03em;text-transform:uppercase}
 .lp-reel-h>span{display:block;overflow:hidden;padding-bottom:.04em}
@@ -139,27 +140,43 @@
 .lp-reel-go-dot{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--site-night);color:var(--site-on-night);transition:transform .25s}
 .lp-reel-go:hover .lp-reel-go-dot{transform:translateX(4px)}
 .lp-reel-go:focus-visible{outline:2px solid var(--site-night);outline-offset:4px;border-radius:30px}
-.lp-reel-panel{position:relative;container-type:inline-size;display:grid;place-items:center;min-height:300px;padding:60px 0;border-radius:var(--rad);background:var(--site-panel);overflow:hidden}
-.lp-reel-tag{position:absolute;font:700 11px/1.5 var(--num);letter-spacing:.16em;text-transform:uppercase;color:var(--site-ink2)}
-.lp-reel-tag b{color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color .9s}
+.lp-reel-panel{position:relative;container-type:inline-size;display:grid;place-items:center;min-height:300px;padding:60px 0;border-radius:var(--rad);background:var(--site-panel);overflow:hidden;isolation:isolate}
+.lp-reel-tag{position:absolute;z-index:2;font:700 11px/1.5 var(--num);letter-spacing:.16em;text-transform:uppercase;color:var(--site-ink2)}
+.lp-reel-tag b{color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color var(--dur) var(--ease)}
 .lp-reel-tag.tl{top:22px;left:24px}
 .lp-reel-tag.tr{top:22px;right:24px;text-align:right}
 .lp-reel-tag.bl{bottom:22px;left:24px;color:var(--site-ink)}
 @media (max-width:560px){.lp-reel-tag.bl{display:none}}
-.lp-reel-tag.br{bottom:22px;right:24px;color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color .9s}
-.lp-reel-word{display:flex;align-items:center;font:900 min(13.6cqw,calc(136cqw / var(--len)))/1 var(--h);font-stretch:72%;letter-spacing:-.04em;color:var(--site-ink);white-space:nowrap}
+.lp-reel-tag.br{bottom:22px;right:24px;color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color var(--dur) var(--ease)}
+/* big outlined word behind everything: it travels the same way as the picture, further, so the two read as one movement with depth */
+.lp-reel-ghost{position:absolute;inset:0;z-index:0;pointer-events:none}
+.lp-reel-ghost span{position:absolute;left:50%;top:50%;font:900 min(30cqw,calc(205cqw / var(--g)))/.8 var(--h);font-stretch:72%;letter-spacing:-.05em;white-space:nowrap;color:transparent;
+  -webkit-text-stroke:max(1px,.16cqw) color-mix(in srgb,var(--tone) 70%,transparent);transform:translate(-10%,-50%);opacity:0;visibility:hidden}
+.lp-reel-ghost span.on,.lp-reel-ghost span.out{visibility:visible;transition:transform var(--dur) var(--ease),opacity var(--dur) var(--ease),-webkit-text-stroke-color var(--dur) var(--ease)}
+.lp-reel-ghost span.on{transform:translate(-50%,-50%);opacity:1}
+.lp-reel-ghost span.out{transform:translate(-90%,-50%);opacity:0}
+.lp-reel-word{position:relative;z-index:1;display:flex;align-items:center;font:900 min(14.4cqw,calc(132cqw / var(--len)))/1 var(--h);font-stretch:72%;letter-spacing:-.04em;color:var(--site-ink);white-space:nowrap}
+/* each word rises out of a clipped line on the same clock as the slide */
+.lp-reel-seg{display:inline-flex;overflow:hidden;padding:.06em 0}
 .lp-reel-word i{display:inline-block;font-style:normal}
-/* the big letters ripple once each time the move changes */
-.lp-reel.live .lp-reel-word i{animation:reel-ripple .9s cubic-bezier(.3,0,.2,1) both;animation-delay:calc(var(--j) * 45ms)}
-@keyframes reel-ripple{0%{transform:none}35%{transform:translateY(-.1em)}70%{transform:translateY(.02em)}100%{transform:none}}
-.lp-reel-win{position:relative;display:block;width:21cqw;aspect-ratio:3/4;margin:0 .6cqw;border-radius:1.6cqw;overflow:hidden;background:var(--site-night);
-  box-shadow:0 0 0 .5cqw color-mix(in srgb,var(--tone) 84%,#000);transition:box-shadow .9s}
-/* slides: the next picture waits on the right, slides in, and the last one leaves to the left, like a card carousel */
+.lp-reel.live .lp-reel-word i{animation:reel-up var(--dur) var(--ease) both;animation-delay:calc(var(--j) * 22ms)}
+@keyframes reel-up{from{transform:translateY(105%)}to{transform:none}}
+/* the picture sits on a small stack: the next move waits on a tilted card behind, in its own colour */
+.lp-reel-stack{position:relative;display:block;width:22cqw;aspect-ratio:3/4;margin:0 2.2cqw 0 1.6cqw}
+.lp-reel-back{position:absolute;inset:0;border-radius:1.6cqw;overflow:hidden;background:color-mix(in srgb,var(--tone-next) 84%,#000);
+  transform:translate(16%,-4%) rotate(7deg) scale(.9);transition:background-color var(--dur) var(--ease)}
+.lp-reel.live .lp-reel-back{animation:reel-tuck var(--dur) var(--ease) both}
+@keyframes reel-tuck{from{transform:translate(0,0) rotate(0) scale(1)}to{transform:translate(16%,-4%) rotate(7deg) scale(.9)}}
+.lp-reel-back img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;mix-blend-mode:luminosity;transition:opacity var(--dur) var(--ease)}
+.lp-reel-back img.nx{opacity:.38}
+.lp-reel-win{position:absolute;inset:0;display:block;border-radius:1.6cqw;overflow:hidden;background:var(--site-night);
+  box-shadow:0 0 0 .5cqw color-mix(in srgb,var(--tone) 84%,#000),0 2cqw 4cqw -1.5cqw rgba(0,0,0,.6);transition:box-shadow var(--dur) var(--ease)}
+/* slides: the next picture waits on the right, slides in, and the last one leaves to the left */
 .lp-reel-win img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;transform:translateX(104%);visibility:hidden}
-.lp-reel-win img.on,.lp-reel-win img.out{visibility:visible;transition:transform .75s cubic-bezier(.65,0,.25,1)}
+.lp-reel-win img.on,.lp-reel-win img.out{visibility:visible;transition:transform var(--dur) var(--ease)}
 .lp-reel-win img.on{transform:none}
 .lp-reel-win img.out{transform:translateX(-104%)}
-@media (prefers-reduced-motion:reduce){.lp-reel-h>span>span,.lp-reel-word i{animation:none!important}.lp-reel-win img{transition:none!important}}
+@media (prefers-reduced-motion:reduce){.lp-reel-h>span>span,.lp-reel-word i,.lp-reel-back{animation:none!important}.lp-reel-win img,.lp-reel-ghost span,.lp-reel-back img{transition:none!important}}
 
 .lp-index{display:grid;gap:28px;margin-top:88px;padding-top:40px;border-top:1px solid var(--site-line)}
 .lp-index li{display:grid;gap:8px;align-content:start}

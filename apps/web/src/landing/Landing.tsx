@@ -27,10 +27,11 @@ function Reel() {
   const n = REEL.length;
   const m = REEL[on] ?? REEL[0]!;
   const prev = (on + n - 1) % n;
+  const next = (on + 1) % n;
   const letters = (text: string, from: number) => [...text].map((ch, j) => <i key={j} style={{ "--j": from + j } as CSSProperties}>{ch}</i>);
   const lines = ["You write", "the plan.", "They train", "with you."];
   return (
-    <section className={`lp-reel ${seen && !still ? "live" : ""}`} ref={ref} style={{ "--tone": m.tone, "--len": m.word.length + 5 } as CSSProperties} aria-labelledby="lp-reel-h">
+    <section className={`lp-reel ${seen && !still ? "live" : ""}`} ref={ref} style={{ "--tone": m.tone, "--tone-next": (REEL[next] ?? m).tone, "--len": m.word.length + 5 } as CSSProperties} aria-labelledby="lp-reel-h">
       <div className="lp-wrap lp-reel-grid">
         <div className="lp-reel-card" data-reveal>
           <h2 className="lp-reel-h" id="lp-reel-h">
@@ -45,14 +46,22 @@ function Reel() {
         <div className="lp-reel-panel" data-reveal>
           <span className="lp-reel-tag tl" aria-hidden="true"><b>{String(on + 1).padStart(2, "0")}</b> / {String(n).padStart(2, "0")}<br />{m.label}</span>
           <span className="lp-reel-tag tr" aria-hidden="true">Every way<br />you coach</span>
+          <div className="lp-reel-ghost" aria-hidden="true">
+            {REEL.map((w, k) => <span key={w.id} className={k === on ? "on" : k === prev ? "out" : ""} style={{ "--g": w.word.length + 3 } as CSSProperties}>{w.word}ING</span>)}
+          </div>
           <p className="lp-reel-word" aria-live="polite" aria-label={`${m.word.toLowerCase()}ing`}>
-            <span aria-hidden="true" key={`a${on}`}>{letters(`${m.word}(`, 0)}</span>
-            <span className="lp-reel-win" aria-hidden="true">
-              {REEL.map((w, k) => (
-                <img key={w.id} className={k === on ? "on" : k === prev ? "out" : ""} src={w.photo} width={900} height={1200} alt="" loading={k < 2 ? "eager" : "lazy"} />
-              ))}
+            <span className="lp-reel-seg" aria-hidden="true" key={`a${on}`}>{letters(m.word, 0)}</span>
+            <span className="lp-reel-stack" aria-hidden="true">
+              <span className="lp-reel-back" key={`c${on}`}>
+                {REEL.map((w, k) => <img key={w.id} className={k === next ? "nx" : ""} src={w.photo} width={900} height={1200} alt="" loading="lazy" />)}
+              </span>
+              <span className="lp-reel-win">
+                {REEL.map((w, k) => (
+                  <img key={w.id} className={k === on ? "on" : k === prev ? "out" : ""} src={w.photo} width={900} height={1200} alt="" loading={k < 2 ? "eager" : "lazy"} />
+                ))}
+              </span>
             </span>
-            <span aria-hidden="true" key={`b${on}`}>{letters(")ING", m.word.length + 1)}</span>
+            <span className="lp-reel-seg" aria-hidden="true" key={`b${on}`}>{letters("ING", m.word.length)}</span>
           </p>
           <span className="lp-reel-tag bl" aria-hidden="true">Built by a working coach</span>
           <span className="lp-reel-tag br" aria-hidden="true">Free for 3 clients</span>
