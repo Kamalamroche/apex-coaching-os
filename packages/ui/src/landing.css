@@ -98,6 +98,8 @@
   .lp-statement .lp-why-facts{left:0;bottom:26px;gap:22px}
   .lp-statement .lp-why-body{top:0;bottom:0}
   .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:24px;top:24px}
+  /* once open, the art steps a little past the right edge so the whole title can be read, as in the reference */
+  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-media,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-media{transform:translateX(-86%)}
   .lp-statement .lp-why-p::after{opacity:0}.lp-statement .lp-why-p:not(.on)::after{opacity:1}}
 /* ---------- Why APEX sliding panels: three colour panels, one open; the open one widens on a slow ease while the others fold
    to slim strips, its picture glides from centred to the right, and its title rises line by line ---------- */
