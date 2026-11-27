@@ -84,31 +84,39 @@
 .lp-big{font-size:clamp(20px,2.2vw,27px);line-height:1.4;color:var(--site-ink2);letter-spacing:-.01em;max-width:24em}
 .lp-big b{color:var(--site-ink);font-weight:600}
 .lp-small{font-size:14px;color:var(--site-ink3);max-width:34em}
-@media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.5fr;gap:56px}}
-/* inside the statement the deck takes the picture column: a little taller than wide, slimmer strips */
+@media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.75fr;gap:48px}}
+/* inside the statement the deck takes the picture column, laid out like the reference: title at the left, middle height,
+   and the art (a square 84% of the panel's height) over it, feathered into the panel colour at its left edge */
 .lp-statement .lp-why{margin-top:0;width:100%}
-@media (min-width:960px){.lp-statement .lp-why{--why-h:clamp(560px,48vw,680px);--strip:clamp(58px,5.4vw,78px)}.lp-statement .lp-why-h{font-size:clamp(36px,7cqh,64px)}
-  /* picture on top, words underneath: the art is a square 74% of the panel's height, feathered into the panel at its left and foot */
-  .lp-statement .lp-why-media{bottom:auto;height:74%;--why-fade:linear-gradient(90deg,transparent,#000 18%),linear-gradient(180deg,#000 72%,transparent);
+@media (min-width:960px){
+  .lp-statement .lp-why{--why-h:clamp(540px,44vw,640px);--strip:clamp(56px,5vw,72px)}
+  .lp-statement .lp-why-media{top:5%;bottom:auto;height:80%;--why-fade:linear-gradient(90deg,transparent,#000 30%),linear-gradient(180deg,transparent,#000 9%,#000 86%,transparent);
     -webkit-mask-image:var(--why-fade);mask-image:var(--why-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
-  .lp-statement .lp-why-body{top:auto;bottom:30px;left:28px;width:clamp(300px,31vw,440px);justify-content:flex-end;gap:14px}
+  .lp-statement .lp-why-body{left:28px;width:clamp(250px,22vw,340px);gap:14px}
+  .lp-statement .lp-why-h{font-size:clamp(36px,7.2cqh,60px)}
   .lp-statement .lp-why-body p{display:none}
-  .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:26px;top:26px}
-  .lp-statement .lp-why-facts{position:static;margin-top:6px;gap:24px}
+  .lp-statement .lp-why-facts{left:0;bottom:26px;gap:22px}
+  .lp-statement .lp-why-body{top:0;bottom:0}
+  .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:24px;top:24px}
   .lp-statement .lp-why-p::after{opacity:0}.lp-statement .lp-why-p:not(.on)::after{opacity:1}}
 /* ---------- Why APEX sliding panels: three colour panels, one open; the open one widens on a slow ease while the others fold
    to slim strips, its picture glides from centred to the right, and its title rises line by line ---------- */
-.lp-why{--why-ease:cubic-bezier(.65,0,.35,1);--why-dur:.95s;--why-h:clamp(520px,50vw,700px);--strip:clamp(84px,11vw,168px);
+.lp-why{--why-ease:cubic-bezier(.77,0,.18,1);--why-dur:.6s;--why-h:clamp(520px,50vw,700px);--strip:clamp(84px,11vw,168px);
   display:flex;flex-direction:column;gap:0;margin-top:56px;border-radius:var(--rad);overflow:hidden;color:#fff;isolation:isolate}
 @media (min-width:900px){.lp-why{flex-direction:row;height:var(--why-h);margin-top:88px}}
 .lp-why-p{position:relative;overflow:hidden;flex:0 0 76px;transition:flex-basis var(--why-dur) var(--why-ease),flex-grow var(--why-dur) var(--why-ease);container-type:size;contain:paint}
 .lp-why-p.on{flex:1 1 520px}
 @media (min-width:900px){.lp-why-p{flex:0 0 var(--strip)}.lp-why-p.on{flex:1 1 0}}
-.lp-why-p.coach{background:linear-gradient(180deg,var(--viz-1),color-mix(in srgb,var(--viz-4) 80%,var(--viz-1)))}
-.lp-why-p.features{background:color-mix(in srgb,var(--site-accent) 78%,#fff)}
-.lp-why-p.decide{background:linear-gradient(180deg,color-mix(in srgb,var(--site-night) 71%,var(--site-on-night)),color-mix(in srgb,var(--site-night) 56%,var(--site-on-night)))}
+.lp-why-p.coach{background:linear-gradient(180deg,color-mix(in srgb,color-mix(in srgb,var(--viz-1) 65%,#fff) 95%,var(--viz-4)),color-mix(in srgb,color-mix(in srgb,var(--viz-1) 63%,var(--viz-4)) 74%,#fff))}
+/* rose coral, mixed from the accent, white, violet and night so it matches the kettlebell art's backdrop */
+.lp-why-p.features{background:color-mix(in srgb,color-mix(in srgb,var(--site-accent) 59.8%,#fff) 81.1%,color-mix(in srgb,var(--viz-4) 63.5%,var(--site-night)))}
+.lp-why-p.decide{background:color-mix(in srgb,var(--site-night) 94%,var(--site-on-night))}
+/* first beat of the first panel (deck .s1): the next panel stays a third open and the open panel's art waits centred,
+   over its title; the second beat lets the art glide right and the words show */
+@media (min-width:900px){.lp-why.s1 .lp-why-p.on+.lp-why-p{flex:0 0 34%}}
+.lp-why.s1 .lp-why-p.on .lp-why-media{left:50%;transform:translateX(-50%)}
 /* the art is a square as tall as the panel: centred in a strip, then gliding right when the panel opens */
-.lp-why-media{position:absolute;top:0;bottom:0;left:50%;aspect-ratio:1;transform:translateX(-50%);
+.lp-why-media{position:absolute;z-index:2;top:0;bottom:0;left:50%;aspect-ratio:1;transform:translateX(-50%);
   will-change:left,transform;transition:left var(--why-dur) var(--why-ease),transform var(--why-dur) var(--why-ease)}
 .lp-why-p.on .lp-why-media{left:100%;transform:translateX(-100%)}
 /* the left edge of the art always feathers into the panel colour, so nothing toggles mid-slide */
@@ -119,7 +127,7 @@
 .lp-why-p.on .lp-why-media video{opacity:1}
 @media (max-width:899px){.lp-why-media{height:470px;top:0;bottom:auto}.lp-why-p.on .lp-why-media{left:100%;transform:translateX(-100%)}}
 /* closed strips get a dark foot so the side label reads over any picture */
-.lp-why-p::after{content:"";position:absolute;inset:auto 0 0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,.5));z-index:1;opacity:1;transition:opacity var(--why-dur)}
+.lp-why-p::after{content:"";position:absolute;inset:auto 0 0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,.5));z-index:2;opacity:1;transition:opacity var(--why-dur)}
 .lp-why-p.on::after{opacity:.35}
 .lp-why-open{position:absolute;inset:0;z-index:3;border:0;background:none;cursor:pointer;padding:0}
 .lp-why-p.on .lp-why-open{inset:auto;left:50%;top:22%;cursor:default}
@@ -130,18 +138,18 @@
 .lp-why-open:hover .lp-why-dot{transform:scale(1.08)}
 .lp-why-open:focus-visible{outline:2px solid #fff;outline-offset:-6px}
 @media (max-width:899px){.lp-why-dot{left:auto;right:24px;top:38px;margin:-21px 0 0}.lp-why-p.on .lp-why-open{display:none}}
-.lp-why-top{position:absolute;z-index:2;top:24px;left:24px;display:grid;gap:6px}
+.lp-why-top{position:absolute;z-index:3;top:24px;left:24px;display:grid;gap:6px}
 .lp-why-top b{font:500 30px/1 var(--serif);letter-spacing:.04em}
 .lp-why-top small{font:700 10px/1.4 var(--num);letter-spacing:.2em;text-transform:uppercase;opacity:.75}
 @media (max-width:899px){.lp-why-top{top:20px;display:flex;align-items:baseline;gap:12px}.lp-why-top b{font-size:24px}}
-.lp-why-side{position:absolute;z-index:2;left:22px;bottom:28px;writing-mode:vertical-rl;transform:rotate(180deg);font:700 11px/1 var(--num);letter-spacing:.24em;text-transform:uppercase;
+.lp-why-side{position:absolute;z-index:3;left:22px;bottom:28px;writing-mode:vertical-rl;transform:rotate(180deg);font:700 11px/1 var(--num);letter-spacing:.24em;text-transform:uppercase;
   transition:opacity .5s}
 .lp-why-p.on .lp-why-side{opacity:0;transition:opacity .25s}
 .lp-why-p:not(.on) .lp-why-side{transition:opacity .4s .55s}
 @media (max-width:899px){.lp-why-side{display:none}}
 /* words travel with their panel, like the reference: the closing panel's words slide out to the left with a soft blur,
    the opening panel's words glide in from the right; the block has a fixed width so nothing reflows mid-slide */
-.lp-why-body{position:absolute;z-index:2;left:clamp(24px,3.4vw,64px);top:0;bottom:0;width:min(38vw,520px);display:flex;flex-direction:column;justify-content:center;gap:18px;
+.lp-why-body{position:absolute;z-index:1;left:clamp(24px,3.4vw,64px);top:0;bottom:0;width:min(38vw,520px);display:flex;flex-direction:column;justify-content:center;gap:18px;
   opacity:0;visibility:hidden;transform:translateX(-40%)}
 .lp-why-p.off .lp-why-body{visibility:visible;animation:why-out var(--why-dur) var(--why-ease) both}
 .lp-why-p.on .lp-why-body{opacity:1;visibility:visible;transform:none;filter:none;transition:visibility 0s;animation:why-in var(--why-dur) var(--why-ease) both}
@@ -155,6 +163,7 @@
 .lp-why-facts dd{margin:6px 0 0;font:800 12.5px/1.3 var(--h);letter-spacing:.12em;text-transform:uppercase}
 @media (max-width:899px){
   .lp-why-p.on{flex:0 0 640px}
+  .lp-why-body{z-index:3}
   .lp-why-body{top:auto;bottom:24px;left:20px;right:20px;width:auto;justify-content:flex-end;gap:12px}
   .lp-why-p.on::after{opacity:1;height:70%;background:linear-gradient(transparent,rgba(0,0,0,.7))}
   .lp-why-h{font-size:44px}

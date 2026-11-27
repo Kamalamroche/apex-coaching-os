@@ -98,9 +98,12 @@ function Reel() {
 }
 
 /** "Why APEX": three colour panels side by side (stacked on phones). One is open; the others fold to slim strips.
-    They take turns every 4.5 s, like a slow breath while in view, and a click or tap opens one. The open panel's film plays; the rest rest on stills. */
+    Timed like the reference: each slide takes about half a second. The first panel opens in two beats: it opens with
+    its picture over the title, holds, then the picture glides right to show the words. The others open in one beat.
+    A click or tap opens a panel; tapping the open first panel plays its second beat. The open panel's film plays. */
 function WhyDeck() {
   const [on, setOn] = useState(0);
+  const [step, setStep] = useState(1);
   const [seen, setSeen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -117,23 +120,31 @@ function WhyDeck() {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  const open = (k: number) => {
+    if (k === on) { if (step === 1) setStep(2); return; }
+    setOn(k); setStep(k === 0 ? 1 : 2);
+  };
   useEffect(() => {
     if (!seen || paused || still) return;
-    const t = window.setInterval(() => setOn((x) => (x + 1) % WHY.length), 4500);
-    return () => window.clearInterval(t);
-  }, [seen, paused, still, on]);
+    const first = on === 0 && step === 1;
+    const t = window.setTimeout(() => {
+      if (first) setStep(2);
+      else { const n = (on + 1) % WHY.length; setOn(n); setStep(n === 0 ? 1 : 2); }
+    }, first ? 1900 : on === 0 ? 2500 : 2100);
+    return () => window.clearTimeout(t);
+  }, [seen, paused, still, on, step]);
   useEffect(() => {
     films.current.forEach((v, k) => { if (!v) return; if (k === on && seen) void v.play().catch(() => {}); else v.pause(); });
   }, [on, seen]);
   return (
-    <div className={`lp-why ${seen ? "live" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className={`lp-why ${seen ? "live" : ""} ${step === 1 && !still ? "s1" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {WHY.map((w, k) => (
         <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : k === off ? "off" : ""}`} aria-label={`${w.title.join(" ")}`}>
           <div className="lp-why-media" aria-hidden="true">
             <img src={w.still} width={1200} height={1200} alt="" loading="lazy" />
             {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload={seen ? "auto" : "none"} />}
           </div>
-          <button type="button" className="lp-why-open" onClick={() => setOn(k)} aria-expanded={k === on} aria-label={`Open ${w.side}`}>
+          <button type="button" className="lp-why-open" onClick={() => open(k)} aria-expanded={k === on} aria-label={`Open ${w.side}`}>
             <span className="lp-why-dot"><Icons.play width={13} height={13} /></span>
           </button>
           <div className="lp-why-top"><b>{String(k + 1).padStart(2, "0")}</b><small>Why APEX</small></div>
