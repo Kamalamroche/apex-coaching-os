@@ -118,50 +118,44 @@
 /* Story film: a bright studio card, same shape as the poster cards */
 /* Feature index: words only, no pictures */
 
-/* ---------- moving banner: PUSH. PULL. LIFT. RUN. Each word moves like its exercise; the photo follows ---------- */
+/* ---------- reel banner: colour card + brown panel with the white COACH( )ING word; the move changes every 4 s and the
+   card colour (--tone, a site or chart token), the clip, the labels and the letters change together ---------- */
 .lp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.lp-move{padding:24px 0 72px}
-@media (min-width:900px){.lp-move{padding:40px 0 120px}}
-.lp-move-card{display:grid;gap:28px;padding:28px 20px 20px;border-radius:var(--rad);background:var(--site-panel)}
-@media (min-width:960px){.lp-move-card{grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;padding:56px 56px 56px 64px}}
-.lp-move-copy{display:grid;gap:22px;justify-items:start}
-/* phones: the video sits straight under the words, so a word and its clip change together */
-@media (max-width:959px){.lp-move-copy{display:contents}.lp-move-card{justify-items:start}
-  .lp-move-copy .lp-kick{order:1}.lp-move-words{order:2}.lp-move-pic{order:3;justify-self:stretch;max-width:none}.lp-move-copy p{order:4}.lp-move-copy .lp-cta{order:5}}
-.lp-move-copy p{max-width:30em;color:var(--site-ink2);font-size:16px;line-height:1.6}
-.lp-move-words{display:grid;justify-items:start;margin:2px 0 4px}
-.lp-mv{display:inline-flex;padding:0;border:0;background:none;cursor:pointer;
-  font:900 clamp(60px,9.4vw,132px)/.84 var(--h);font-stretch:74%;letter-spacing:-.035em;color:color-mix(in srgb,var(--site-ink) 16%,transparent);transition:color .45s}
-.lp-mv i{display:inline-block;font-style:normal;transform-origin:50% 100%;will-change:transform}
-.lp-mv b{display:inline-block;font-weight:inherit;color:inherit;transform-origin:50% 100%;transition:color .45s}
-.lp-mv:hover{color:color-mix(in srgb,var(--site-ink) 34%,transparent)}
-.lp-mv.on{color:var(--site-ink)}
-.lp-mv.on b{color:var(--site-accent)}
-.lp-mv:focus-visible{outline:2px solid var(--site-accent);outline-offset:4px;border-radius:6px}
-/* push: the letters press forward one after another and come back, like a push */
-.lp-move.seen .lp-mv-push.on i,.lp-move.seen .lp-mv-push.on b{animation:mv-push 1.4s cubic-bezier(.6,0,.3,1) calc(var(--j) * 70ms) infinite}
-@keyframes mv-push{0%,100%{transform:none}45%{transform:translateX(.09em) scaleX(.94)}60%{transform:translateX(.09em) scaleX(.94)}}
-/* pull: the letters draw back towards the first one, then release */
-.lp-move.seen .lp-mv-pull.on i,.lp-move.seen .lp-mv-pull.on b{animation:mv-pull 1.5s cubic-bezier(.6,0,.3,1) calc((3 - var(--j)) * 70ms) infinite}
-@keyframes mv-pull{0%,100%{transform:none}45%,60%{transform:translateX(calc(var(--j) * -.05em)) scaleY(1.04)}}
-/* lift: each letter rises from the floor, holds at the top, lowers with control */
-.lp-move.seen .lp-mv-lift.on i,.lp-move.seen .lp-mv-lift.on b{animation:mv-lift 1.6s cubic-bezier(.55,0,.25,1) calc(var(--j) * 80ms) infinite}
-@keyframes mv-lift{0%,100%{transform:none}40%,62%{transform:translateY(-.16em)}}
-/* run: the word leans into a stride, letters bounce on alternate feet */
-.lp-move.seen .lp-mv-run.on{animation:mv-lean .5s ease-in-out infinite alternate}
-.lp-move.seen .lp-mv-run.on i,.lp-move.seen .lp-mv-run.on b{animation:mv-stride .5s ease-in-out calc(var(--j) * 250ms) infinite alternate}
-@keyframes mv-lean{from{transform:skewX(-6deg)}to{transform:skewX(-10deg)}}
-@keyframes mv-stride{from{transform:translateY(0)}to{transform:translateY(-.07em)}}
-.lp-move-pic{position:relative;overflow:hidden;aspect-ratio:4/5;border-radius:14px;background:var(--site-night);width:100%;max-width:520px;justify-self:end;isolation:isolate}
-.lp-move-pic img,.lp-move-pic video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.07);transition:opacity .8s ease,transform 3.4s cubic-bezier(.2,.6,.3,1)}
-.lp-move-pic img.on,.lp-move-pic video.on{opacity:1;transform:scale(1)}
-.lp-move-pic::after{content:"";position:absolute;inset:auto 0 0;height:34%;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(5,4,4,.72))}
-.lp-move-pic figcaption{position:absolute;z-index:2;left:18px;right:18px;bottom:16px;display:flex;justify-content:space-between;gap:12px;
-  font:700 11px/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:var(--site-on-night)}
-.lp-move-pic figcaption span:first-child{color:var(--site-accent)}
-.lp-move-bar{position:absolute;z-index:2;left:0;top:0;height:3px;width:100%;background:var(--site-accent);transform-origin:0 50%;animation:mv-bar 4s linear both}
-@keyframes mv-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@media (prefers-reduced-motion:reduce){.lp-mv i,.lp-mv b,.lp-mv{animation:none!important}.lp-move-pic img{transition:opacity .3s;transform:none}}
+.lp-reel{--tone:var(--site-accent);padding:24px 0 72px}
+@media (min-width:900px){.lp-reel{padding:40px 0 120px}}
+.lp-reel-grid{display:grid;gap:14px}
+@media (min-width:960px){.lp-reel-grid{grid-template-columns:5fr 7fr;gap:16px;min-height:560px}}
+/* the tone is darkened a touch so white text keeps its contrast on every colour */
+.lp-reel-card{display:flex;flex-direction:column;gap:22px;padding:28px 24px;border-radius:var(--rad);color:var(--site-accent-ink);
+  background:color-mix(in srgb,var(--tone) 84%,#000);transition:background-color .9s cubic-bezier(.4,0,.2,1)}
+@media (min-width:960px){.lp-reel-card{padding:40px 36px}}
+.lp-reel-h{display:grid;font:900 clamp(40px,5.2vw,68px)/.9 var(--h);font-stretch:85%;letter-spacing:-.03em;text-transform:uppercase}
+.lp-reel-h>span{display:block;overflow:hidden;padding-bottom:.04em}
+.lp-reel-h>span>span{display:block}
+.lp-reel.live .lp-reel-h>span>span{animation:reel-rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k) * 70ms)}
+@keyframes reel-rise{from{transform:translateY(105%)}to{transform:none}}
+.lp-reel-p{max-width:30em;margin-top:auto;font:500 13px/1.65 var(--num);letter-spacing:.02em;color:var(--site-accent-ink)}
+.lp-reel-go{display:inline-flex;align-items:center;gap:14px;align-self:flex-start;text-decoration:none;font:700 13px/1 var(--num);letter-spacing:.16em;text-transform:uppercase}
+.lp-reel-go-dot{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--site-night);color:var(--site-on-night);transition:transform .25s}
+.lp-reel-go:hover .lp-reel-go-dot{transform:translateX(4px)}
+.lp-reel-go:focus-visible{outline:2px solid var(--site-night);outline-offset:4px;border-radius:30px}
+.lp-reel-panel{position:relative;container-type:inline-size;display:grid;place-items:center;min-height:360px;padding:72px 0;border-radius:var(--rad);background:var(--site-panel);overflow:hidden}
+.lp-reel-tag{position:absolute;font:700 11px/1.5 var(--num);letter-spacing:.16em;text-transform:uppercase;color:var(--site-ink2)}
+.lp-reel-tag b{color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color .9s}
+.lp-reel-tag.tl{top:22px;left:24px}
+.lp-reel-tag.tr{top:22px;right:24px;text-align:right}
+.lp-reel-tag.bl{bottom:22px;left:24px;color:var(--site-ink)}
+.lp-reel-tag.br{bottom:22px;right:24px;color:color-mix(in srgb,var(--tone) 60%,#fff);transition:color .9s}
+.lp-reel-word{display:flex;align-items:center;font:900 13.6cqw/1 var(--h);font-stretch:72%;letter-spacing:-.04em;color:var(--site-ink);white-space:nowrap}
+.lp-reel-word i{display:inline-block;font-style:normal}
+/* the big letters ripple once each time the move changes */
+.lp-reel.live .lp-reel-word i{animation:reel-ripple .9s cubic-bezier(.3,0,.2,1) both;animation-delay:calc(var(--j) * 45ms)}
+@keyframes reel-ripple{0%{transform:none}35%{transform:translateY(-.1em)}70%{transform:translateY(.02em)}100%{transform:none}}
+.lp-reel-win{position:relative;display:block;width:23cqw;aspect-ratio:3/4;margin:0 .6cqw;border-radius:1.6cqw;overflow:hidden;background:var(--site-night);
+  box-shadow:0 0 0 .5cqw color-mix(in srgb,var(--tone) 84%,#000);transition:box-shadow .9s}
+.lp-reel-win video,.lp-reel-win img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);transition:opacity .6s ease,transform 4s cubic-bezier(.2,.6,.3,1)}
+.lp-reel-win .on{opacity:1;transform:scale(1)}
+@media (prefers-reduced-motion:reduce){.lp-reel-h>span>span,.lp-reel-word i{animation:none!important}.lp-reel-win video,.lp-reel-win img{transition:none;transform:none}}
 
 .lp-index{display:grid;gap:28px;margin-top:88px;padding-top:40px;border-top:1px solid var(--site-line)}
 .lp-index li{display:grid;gap:8px;align-content:start}

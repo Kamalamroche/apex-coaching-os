@@ -3,13 +3,13 @@ import { ApexLogo, Icons } from "@apex/ui";
 import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, MOVES } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-/** Moving banner: PUSH. PULL. LIFT. RUN. The active word moves the way the exercise moves (letters press forward,
-    draw back, rise, or stride) and the photo beside it changes to match. Words are buttons, so anyone can pick one.
-    Cycles every 4 s while on screen; reduced motion keeps the letters still and stops the cycle. */
-function MoveBanner() {
+/** Reel banner: a colour card with the pitch, and a brown panel with one huge white word, COACH( )ING, whose window
+    plays a real training clip. Every 4 s the move changes and everything changes with it: the card colour, the clip,
+    the labels, and the headline and big letters ripple. Only the clip on show plays, only while on screen.
+    Reduced motion: still photo, no ripple, no cycle. */
+function Reel() {
   const [on, setOn] = useState(0);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const [held, setHeld] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -20,12 +20,10 @@ function MoveBanner() {
     return () => io.disconnect();
   }, []);
   useEffect(() => {
-    if (still || held || !seen) return;
+    if (still || !seen) return;
     const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 4000);
     return () => window.clearInterval(t);
-  }, [still, held, seen]);
-  const m = MOVES[on] ?? MOVES[0]!;
-  // only the clip on show plays, from the start, while the banner is on screen
+  }, [still, seen]);
   const vids = useRef<(HTMLVideoElement | null)[]>([]);
   useEffect(() => {
     vids.current.forEach((v, k) => {
@@ -33,33 +31,38 @@ function MoveBanner() {
       if (k === on && seen) { v.currentTime = 0; void v.play().catch(() => {}); } else v.pause();
     });
   }, [on, seen]);
+  const m = MOVES[on] ?? MOVES[0]!;
+  const tone = { "--tone": m.tone } as CSSProperties;
+  const lines = ["You write", "the plan.", "They train", "with you."];
+  const letters = (text: string, from: number) => [...text].map((ch, j) => <i key={j} style={{ "--j": from + j } as CSSProperties}>{ch}</i>);
   return (
-    <section className={`lp-move ${seen ? "seen" : ""}`} ref={ref} aria-labelledby="lp-move-h">
-      <div className="lp-wrap">
-        <div className="lp-move-card">
-          <div className="lp-move-copy">
-            <span className="lp-kick">Coaching that moves</span>
-            <h2 className="lp-sr" id="lp-move-h">Push, pull, lift, run: coaching for every way your clients move</h2>
-            <div className="lp-move-words" role="group" aria-label="Pick a movement">
-              {MOVES.map((w, k) => (
-                <button key={w.id} type="button" className={`lp-mv lp-mv-${w.id} ${k === on ? "on" : ""}`} aria-pressed={k === on}
-                  onClick={() => { setOn(k); setHeld(true); }}>
-                  {[...w.word.toUpperCase()].map((ch, j) => <i key={j} style={{ "--j": j } as CSSProperties}>{ch}</i>)}
-                  <b style={{ "--j": w.word.length } as CSSProperties}>.</b>
-                </button>
-              ))}
-            </div>
-            <p>Every client moves differently. You write the plan for each one, and APEX carries it into their day: the session, the cues, the weights and the check-in after.</p>
-            <Cta href="/coach/">Start free</Cta>
-          </div>
-          <figure className="lp-move-pic">
-            {MOVES.map((w, k) => still
-              ? <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt={k === on ? w.alt : ""} aria-hidden={k !== on} loading="lazy" />
-              : <video key={w.id} ref={(el) => { vids.current[k] = el; }} className={k === on ? "on" : ""} src={w.video} poster={w.photo}
-                  muted loop playsInline preload={k === on ? "auto" : "metadata"} aria-label={k === on ? w.alt : undefined} aria-hidden={k !== on} />)}
-            {!still && !held && <i className="lp-move-bar" key={on} aria-hidden="true" />}
-            <figcaption><span>{String(on + 1).padStart(2, "0")} / {String(MOVES.length).padStart(2, "0")}</span><span>{m.label}</span></figcaption>
-          </figure>
+    <section className={`lp-reel ${seen && !still ? "live" : ""}`} ref={ref} style={tone} aria-labelledby="lp-reel-h">
+      <div className="lp-wrap lp-reel-grid">
+        <div className="lp-reel-card" data-reveal>
+          <h2 className="lp-reel-h" id="lp-reel-h" key={`h${on}`}>
+            {lines.map((l, k) => <span key={l} style={{ "--k": k } as CSSProperties}><span>{l}</span></span>)}
+          </h2>
+          <p className="lp-reel-p">Programmes, check-ins, progress and payments in one place. Your clients get an app that opens on today's session. You stay in charge of the training.</p>
+          <a className="lp-reel-go" href="/coach/">
+            <span className="lp-reel-go-dot" aria-hidden="true"><Icons.forward width={18} height={18} /></span>
+            <span>Start free</span>
+          </a>
+        </div>
+        <div className="lp-reel-panel" data-reveal>
+          <span className="lp-reel-tag tl" aria-hidden="true"><b>{String(on + 1).padStart(2, "0")}</b> / {String(MOVES.length).padStart(2, "0")}<br />{m.word}</span>
+          <span className="lp-reel-tag tr" aria-hidden="true">Built by<br />a working coach</span>
+          <p className="lp-reel-word" aria-label="Coaching">
+            <span aria-hidden="true" key={`a${on}`}>{letters("COACH(", 0)}</span>
+            <span className="lp-reel-win" aria-hidden="true">
+              {MOVES.map((w, k) => still
+                ? <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt="" loading="lazy" />
+                : <video key={w.id} ref={(el) => { vids.current[k] = el; }} className={k === on ? "on" : ""} src={w.video} poster={w.photo}
+                    muted loop playsInline preload={k === on ? "auto" : "metadata"} />)}
+            </span>
+            <span aria-hidden="true" key={`b${on}`}>{letters(")ING", 6)}</span>
+          </p>
+          <span className="lp-reel-tag bl" aria-hidden="true">{m.label}</span>
+          <span className="lp-reel-tag br" aria-hidden="true">Free for 3 clients</span>
         </div>
       </div>
     </section>
@@ -212,8 +215,8 @@ export function Landing() {
           </div>
         </section>
 
-        {/* ---------- moving banner ---------- */}
-        <MoveBanner />
+        {/* ---------- reel banner ---------- */}
+        <Reel />
 
         {/* ---------- product cards ---------- */}
         <section className="lp-sec" id="product">
