@@ -84,29 +84,24 @@
 .lp-big{font-size:clamp(20px,2.2vw,27px);line-height:1.4;color:var(--site-ink2);letter-spacing:-.01em;max-width:24em}
 .lp-big b{color:var(--site-ink);font-weight:600}
 .lp-small{font-size:14px;color:var(--site-ink3);max-width:34em}
-/* DAY 01 poster (from the earlier site), frameless: edges fade into the black page, red grade to match the video. */
-.lp-day{--day-orange:#E85A0C;position:relative;margin:0;container-type:inline-size;aspect-ratio:4/5;width:100%;max-width:560px;justify-self:center;isolation:isolate;
-  --day-fade:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent),linear-gradient(180deg,transparent,#000 7%,#000 76%,transparent);
-  -webkit-mask-image:var(--day-fade);mask-image:var(--day-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
-.lp-day-photo,.lp-day-cut{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 55%;user-select:none;
-  filter:sepia(.28) saturate(1.25) hue-rotate(-14deg) contrast(1.06) brightness(.9)}
-.lp-day-photo{z-index:0}
-.lp-day-cut{z-index:3}
-.lp-day-spaced{position:absolute;z-index:2;top:12cqw;left:0;right:0;text-align:center;font:500 3.6cqw/1 var(--serif);letter-spacing:1.4em;padding-left:1.4em;color:#fff}
-.lp-day-num{position:absolute;z-index:2;left:0;right:0;top:17cqw;text-align:center;font-family:var(--h);font-weight:900;font-stretch:62%;font-size:74cqw;line-height:.78;letter-spacing:-.03em;
-  color:var(--day-orange);user-select:none;white-space:nowrap;text-shadow:0 0 6cqw color-mix(in srgb,var(--site-accent) 55%,transparent)}
-.lp-day-glow{position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:soft-light;
-  background:radial-gradient(70% 45% at 50% 100%,color-mix(in srgb,var(--site-accent) 70%,transparent),transparent 70%),linear-gradient(180deg,rgba(0,0,0,.25),transparent 30%)}
-.lp-day-meta{position:absolute;z-index:5;font:700 2.3cqw/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82)}
-.lp-day-meta.tl{top:5cqw;left:15cqw}
-.lp-day-meta.br{bottom:11cqw;right:15cqw;text-align:right}
-@media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.1fr;gap:72px}}
+@media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.5fr;gap:56px}}
+/* inside the statement the deck takes the picture column: a little taller than wide, slimmer strips */
+.lp-statement .lp-why{margin-top:0;width:100%}
+@media (min-width:960px){.lp-statement .lp-why{--why-h:clamp(560px,48vw,680px);--strip:clamp(58px,5.4vw,78px)}.lp-statement .lp-why-h{font-size:clamp(36px,7cqh,64px)}
+  /* picture on top, words underneath: the art is a square 74% of the panel's height, feathered into the panel at its left and foot */
+  .lp-statement .lp-why-media{bottom:auto;height:74%;--why-fade:linear-gradient(90deg,transparent,#000 18%),linear-gradient(180deg,#000 72%,transparent);
+    -webkit-mask-image:var(--why-fade);mask-image:var(--why-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
+  .lp-statement .lp-why-body{top:auto;bottom:30px;right:clamp(24px,5cqw,48px);width:auto;justify-content:flex-end;gap:14px}
+  .lp-statement .lp-why-body p{display:none}
+  .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:26px;top:26px}
+  .lp-statement .lp-why-facts{position:static;margin-top:6px}
+  .lp-statement .lp-why-p::after{opacity:0}.lp-statement .lp-why-p:not(.on)::after{opacity:1}}
 /* ---------- Why APEX sliding panels: three colour panels, one open; the open one widens on a slow ease while the others fold
    to slim strips, its picture glides from centred to the right, and its title rises line by line ---------- */
-.lp-why{--why-ease:cubic-bezier(.7,0,.2,1);--why-dur:1.2s;--why-h:clamp(520px,50vw,700px);--strip:clamp(64px,8vw,118px);
+.lp-why{--why-ease:cubic-bezier(.65,0,.35,1);--why-dur:.95s;--why-h:clamp(520px,50vw,700px);--strip:clamp(84px,11vw,168px);
   display:flex;flex-direction:column;gap:0;margin-top:56px;border-radius:var(--rad);overflow:hidden;color:#fff;isolation:isolate}
 @media (min-width:900px){.lp-why{flex-direction:row;height:var(--why-h);margin-top:88px}}
-.lp-why-p{position:relative;overflow:hidden;flex:0 0 76px;transition:flex-basis var(--why-dur) var(--why-ease),flex-grow var(--why-dur) var(--why-ease);container-type:size}
+.lp-why-p{position:relative;overflow:hidden;flex:0 0 76px;transition:flex-basis var(--why-dur) var(--why-ease),flex-grow var(--why-dur) var(--why-ease);container-type:size;contain:paint}
 .lp-why-p.on{flex:1 1 520px}
 @media (min-width:900px){.lp-why-p{flex:0 0 var(--strip)}.lp-why-p.on{flex:1 1 0}}
 .lp-why-p.coach{background:linear-gradient(180deg,var(--viz-1),color-mix(in srgb,var(--viz-4) 80%,var(--viz-1)))}
@@ -114,12 +109,15 @@
 .lp-why-p.decide{background:var(--site-night)}
 /* the art is a square as tall as the panel: centred in a strip, then gliding right when the panel opens */
 .lp-why-media{position:absolute;top:0;bottom:0;left:50%;aspect-ratio:1;transform:translateX(-50%);
-  transition:left var(--why-dur) var(--why-ease),transform var(--why-dur) var(--why-ease)}
-.lp-why-p.on .lp-why-media{left:100%;transform:translateX(-100%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24%);mask-image:linear-gradient(90deg,transparent,#000 24%)}
+  will-change:left,transform;transition:left var(--why-dur) var(--why-ease),transform var(--why-dur) var(--why-ease)}
+.lp-why-p.on .lp-why-media{left:100%;transform:translateX(-100%)}
+/* the left edge of the art always feathers into the panel colour, so nothing toggles mid-slide */
+.lp-why-media{-webkit-mask-image:linear-gradient(90deg,transparent,#000 24%);mask-image:linear-gradient(90deg,transparent,#000 24%)}
+@media (max-width:899px){.lp-why-media{-webkit-mask-image:none;mask-image:none}}
 .lp-why-media img,.lp-why-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.lp-why-media video{opacity:0;transition:opacity .8s}
+.lp-why-media video{opacity:0;transition:opacity .6s}
 .lp-why-p.on .lp-why-media video{opacity:1}
-@media (max-width:899px){.lp-why-media{height:520px;top:0;bottom:auto}.lp-why-p.on .lp-why-media{left:100%;transform:translateX(-78%)}}
+@media (max-width:899px){.lp-why-media{height:470px;top:0;bottom:auto}.lp-why-p.on .lp-why-media{left:100%;transform:translateX(-100%)}}
 /* closed strips get a dark foot so the side label reads over any picture */
 .lp-why-p::after{content:"";position:absolute;inset:auto 0 0;height:60%;background:linear-gradient(transparent,rgba(0,0,0,.5));z-index:1;opacity:1;transition:opacity var(--why-dur)}
 .lp-why-p.on::after{opacity:.35}
@@ -142,11 +140,11 @@
 @media (max-width:899px){.lp-why-side{display:none}}
 .lp-why-body{position:absolute;z-index:2;left:clamp(24px,5cqw,64px);top:0;bottom:0;width:min(46cqw,560px);display:flex;flex-direction:column;justify-content:center;gap:18px;
   opacity:0;visibility:hidden;transition:opacity .5s,visibility 0s .5s}
-.lp-why-p.on .lp-why-body{opacity:1;visibility:visible;transition:opacity .7s .45s,visibility 0s}
+.lp-why-p.on .lp-why-body{opacity:1;visibility:visible;transition:opacity .6s .35s,visibility 0s}
 .lp-why-h{display:grid;font:500 clamp(40px,8.4cqh,96px)/.95 var(--serif);letter-spacing:.02em;text-transform:uppercase}
 .lp-why-h>span{display:block;overflow:hidden;padding-bottom:.05em}
 .lp-why-h>span>span{display:block;transform:translateY(105%);transition:transform .9s cubic-bezier(.2,.8,.2,1)}
-.lp-why-p.on .lp-why-h>span>span{transform:none;transition-delay:calc(.5s + var(--k) * 110ms)}
+.lp-why-p.on .lp-why-h>span>span{transform:none;transition-delay:calc(.38s + var(--k) * 100ms)}
 .lp-why-body p{max-width:24em;font:500 13.5px/1.65 var(--num);opacity:.88}
 .lp-why-facts{position:absolute;bottom:30px;left:0;display:flex;gap:clamp(20px,4cqw,48px);margin:0}
 .lp-why-facts dt{font:700 10px/1.5 var(--num);letter-spacing:.2em;text-transform:uppercase;opacity:.65}

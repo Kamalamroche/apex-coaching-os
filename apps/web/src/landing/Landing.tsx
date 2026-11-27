@@ -98,7 +98,7 @@ function Reel() {
 }
 
 /** "Why APEX": three colour panels side by side (stacked on phones). One is open; the others fold to slim strips.
-    They take turns every 6.5 s while in view, and a click or tap opens one. The open panel's film plays; the rest rest on stills. */
+    They take turns every 4.5 s, like a slow breath while in view, and a click or tap opens one. The open panel's film plays; the rest rest on stills. */
 function WhyDeck() {
   const [on, setOn] = useState(0);
   const [seen, setSeen] = useState(false);
@@ -115,19 +115,19 @@ function WhyDeck() {
   }, []);
   useEffect(() => {
     if (!seen || paused || still) return;
-    const t = window.setInterval(() => setOn((x) => (x + 1) % WHY.length), 6500);
+    const t = window.setInterval(() => setOn((x) => (x + 1) % WHY.length), 4500);
     return () => window.clearInterval(t);
   }, [seen, paused, still, on]);
   useEffect(() => {
     films.current.forEach((v, k) => { if (!v) return; if (k === on && seen) void v.play().catch(() => {}); else v.pause(); });
   }, [on, seen]);
   return (
-    <div className={`lp-wrap lp-why ${seen ? "live" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className={`lp-why ${seen ? "live" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {WHY.map((w, k) => (
         <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : ""}`} aria-label={`${w.title.join(" ")}`}>
           <div className="lp-why-media" aria-hidden="true">
             <img src={w.still} width={1200} height={1200} alt="" loading="lazy" />
-            {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload="none" />}
+            {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload={seen ? "auto" : "none"} />}
           </div>
           <button type="button" className="lp-why-open" onClick={() => setOn(k)} aria-expanded={k === on} aria-label={`Open ${w.side}`}>
             <span className="lp-why-dot"><Icons.play width={13} height={13} /></span>
@@ -276,20 +276,9 @@ export function Landing() {
               <p className="lp-big"><b>Built by a working coach,</b> APEX puts programmes, clients, nutrition and the business side in one calm place, so you spend your time coaching instead of on admin.</p>
               <p className="lp-small">Every feature on every plan. 654 exercises with cues and steps. Nothing reaches a client until you say so.</p>
             </div>
-            {/* The DAY 01 poster from the earlier site, unchanged in layout: the giant orange 01 sits between the
-                studio backdrop and the cut-out athlete. Here it has no frame: the edges fade into the page and a
-                warm red grade ties the photo to the pyramid video. */}
-            <figure className="lp-day" data-reveal>
-              <img className="lp-day-photo" src="/hero/hinge.webp" width={1080} height={1350} alt="" loading="lazy" />
-              <span className="lp-day-spaced" aria-hidden="true">D A Y</span>
-              <span className="lp-day-num" aria-hidden="true">01</span>
-              <img className="lp-day-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift" loading="lazy" />
-              <i className="lp-day-glow" aria-hidden="true" />
-              <span className="lp-day-meta tl" aria-hidden="true">Coaching OS<br />Season one</span>
-              <span className="lp-day-meta br" aria-hidden="true">2026 // HELIX no. 01</span>
-            </figure>
+            {/* The three Why APEX panels sit where the DAY 01 poster was, beside the statement. */}
+            <WhyDeck />
           </div>
-          <WhyDeck />
         </section>
 
         {/* ---------- reel banner ---------- */}

@@ -162,11 +162,11 @@ export type WhyPanel = { id: string; title: [string, string]; body: string; fact
 export const WHY: WhyPanel[] = [
   { id: "coach", title: ["Built", "by a coach"], body: "APEX comes from a working personal trainer, so every screen follows how a coaching week really runs.",
     facts: [["Made by", "A working coach"], ["Library", "654 exercises"], ["Cues", "Every move"]], side: "Built by a coach",
-    still: "/site/why-coach.webp", film: "/site/why-coach.mp4", alt: "A porcelain bust of a personal trainer in a blue jacket, wrapped in silk smoke" },
+    still: "/site/why-coach.webp", film: "/site/why-coach.mp4", alt: "A porcelain bust of a personal trainer with a COACH badge on her blue jacket, wrapped in silk smoke" },
   { id: "features", title: ["Every", "feature"], body: "Programmes, check-ins, nutrition and payments on every plan. Nothing is locked behind a tier.",
     facts: [["Covers", "Plans to payments"], ["Start", "Free for 3 clients"], ["Clients", "App included"]], side: "Every feature",
     still: "/site/why-features.webp", film: "/site/why-features.mp4", alt: "A faceted rose-gold kettlebell floating on coral" },
   { id: "decide", title: ["You", "decide"], body: "Nothing reaches a client until you say so. You write the plan; APEX keeps it running.",
     facts: [["Control", "Coach approves"], ["AI", "Suggestions only"], ["Clients", "Train with you"]], side: "You decide",
-    still: "/site/why-decide.webp", film: "/site/why-decide.mp4", alt: "A tablet showing the APEX programme builder next to a chrome stopwatch" },
+    still: "/site/why-decide.webp", film: "/site/why-decide.mp4", alt: "A black and gold laptop showing the APEX programme builder, wrapped in silk smoke" },
 ];
