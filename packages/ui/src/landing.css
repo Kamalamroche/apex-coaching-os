@@ -125,6 +125,9 @@
 .lp-move-card{display:grid;gap:28px;padding:28px 20px 20px;border-radius:var(--rad);background:var(--site-panel)}
 @media (min-width:960px){.lp-move-card{grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;padding:56px 56px 56px 64px}}
 .lp-move-copy{display:grid;gap:22px;justify-items:start}
+/* phones: the video sits straight under the words, so a word and its clip change together */
+@media (max-width:959px){.lp-move-copy{display:contents}.lp-move-card{justify-items:start}
+  .lp-move-copy .lp-kick{order:1}.lp-move-words{order:2}.lp-move-pic{order:3;justify-self:stretch;max-width:none}.lp-move-copy p{order:4}.lp-move-copy .lp-cta{order:5}}
 .lp-move-copy p{max-width:30em;color:var(--site-ink2);font-size:16px;line-height:1.6}
 .lp-move-words{display:grid;justify-items:start;margin:2px 0 4px}
 .lp-mv{display:inline-flex;padding:0;border:0;background:none;cursor:pointer;
