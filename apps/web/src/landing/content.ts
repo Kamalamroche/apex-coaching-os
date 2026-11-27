@@ -22,13 +22,13 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
 /* Moving banner (27 Nov 2026): four words that move the way the exercise moves, each with a realistic photo made
-   with Higgsfield (gpt_image_2_6). Athletes vary in ethnicity; plain clothing, no logos. */
-export type Move = { id: "push" | "pull" | "lift" | "run"; word: string; label: string; photo: string; alt: string };
+   with Higgsfield (gpt_image_2_6) and a short clip of it in motion (Seedance); the photo is the poster. Athletes vary in ethnicity; plain clothing, no logos. */
+export type Move = { id: "push" | "pull" | "lift" | "run"; word: string; label: string; photo: string; video: string; alt: string };
 export const MOVES: Move[] = [
-  { id: "push", word: "Push", label: "Push-up", photo: "/site/move-push.webp", alt: "A man holding a strict push-up on a gym floor in warm window light" },
-  { id: "pull", word: "Pull", label: "Pull-up", photo: "/site/move-pull.webp", alt: "A woman at the top of a pull-up on a steel rig, chalk on her hands" },
-  { id: "lift", word: "Lift", label: "Deadlift, coached", photo: "/site/move-lift.webp", alt: "A woman standing tall at the top of a deadlift while her coach watches with a tablet" },
-  { id: "run", word: "Run", label: "Park run", photo: "/site/move-run.webp", alt: "A man running along a park path at golden hour" },
+  { id: "push", word: "Push", label: "Push-up", photo: "/site/move-push.webp", video: "/site/move-push.mp4", alt: "A man holding a strict push-up on a gym floor in warm window light" },
+  { id: "pull", word: "Pull", label: "Pull-up", photo: "/site/move-pull.webp", video: "/site/move-pull.mp4", alt: "A woman at the top of a pull-up on a steel rig, chalk on her hands" },
+  { id: "lift", word: "Lift", label: "Deadlift, coached", photo: "/site/move-lift.webp", video: "/site/move-lift.mp4", alt: "A woman standing tall at the top of a deadlift while her coach watches with a tablet" },
+  { id: "run", word: "Run", label: "Park run", photo: "/site/move-run.webp", video: "/site/move-run.mp4", alt: "A man running along a park path at golden hour" },
 ];
 
 export type Tour = {

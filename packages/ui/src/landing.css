@@ -150,13 +150,13 @@
 @keyframes mv-lean{from{transform:skewX(-6deg)}to{transform:skewX(-10deg)}}
 @keyframes mv-stride{from{transform:translateY(0)}to{transform:translateY(-.07em)}}
 .lp-move-pic{position:relative;overflow:hidden;aspect-ratio:4/5;border-radius:14px;background:var(--site-night);width:100%;max-width:520px;justify-self:end;isolation:isolate}
-.lp-move-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.07);transition:opacity .8s ease,transform 3.4s cubic-bezier(.2,.6,.3,1)}
-.lp-move-pic img.on{opacity:1;transform:scale(1)}
+.lp-move-pic img,.lp-move-pic video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.07);transition:opacity .8s ease,transform 3.4s cubic-bezier(.2,.6,.3,1)}
+.lp-move-pic img.on,.lp-move-pic video.on{opacity:1;transform:scale(1)}
 .lp-move-pic::after{content:"";position:absolute;inset:auto 0 0;height:34%;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(5,4,4,.72))}
 .lp-move-pic figcaption{position:absolute;z-index:2;left:18px;right:18px;bottom:16px;display:flex;justify-content:space-between;gap:12px;
   font:700 11px/1.4 var(--num);letter-spacing:.16em;text-transform:uppercase;color:var(--site-on-night)}
 .lp-move-pic figcaption span:first-child{color:var(--site-accent)}
-.lp-move-bar{position:absolute;z-index:2;left:0;top:0;height:3px;width:100%;background:var(--site-accent);transform-origin:0 50%;animation:mv-bar 2.8s linear both}
+.lp-move-bar{position:absolute;z-index:2;left:0;top:0;height:3px;width:100%;background:var(--site-accent);transform-origin:0 50%;animation:mv-bar 4s linear both}
 @keyframes mv-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (prefers-reduced-motion:reduce){.lp-mv i,.lp-mv b,.lp-mv{animation:none!important}.lp-move-pic img{transition:opacity .3s;transform:none}}
 

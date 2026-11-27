@@ -5,7 +5,7 @@ import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from ".
 
 /** Moving banner: PUSH. PULL. LIFT. RUN. The active word moves the way the exercise moves (letters press forward,
     draw back, rise, or stride) and the photo beside it changes to match. Words are buttons, so anyone can pick one.
-    Cycles every 2.8 s while on screen; reduced motion keeps the letters still and stops the cycle. */
+    Cycles every 4 s while on screen; reduced motion keeps the letters still and stops the cycle. */
 function MoveBanner() {
   const [on, setOn] = useState(0);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -21,10 +21,18 @@ function MoveBanner() {
   }, []);
   useEffect(() => {
     if (still || held || !seen) return;
-    const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 2800);
+    const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 4000);
     return () => window.clearInterval(t);
   }, [still, held, seen]);
   const m = MOVES[on] ?? MOVES[0]!;
+  // only the clip on show plays, from the start, while the banner is on screen
+  const vids = useRef<(HTMLVideoElement | null)[]>([]);
+  useEffect(() => {
+    vids.current.forEach((v, k) => {
+      if (!v) return;
+      if (k === on && seen) { v.currentTime = 0; void v.play().catch(() => {}); } else v.pause();
+    });
+  }, [on, seen]);
   return (
     <section className={`lp-move ${seen ? "seen" : ""}`} ref={ref} aria-labelledby="lp-move-h">
       <div className="lp-wrap">
@@ -45,7 +53,10 @@ function MoveBanner() {
             <Cta href="/coach/">Start free</Cta>
           </div>
           <figure className="lp-move-pic">
-            {MOVES.map((w, k) => <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt={k === on ? w.alt : ""} aria-hidden={k !== on} loading="lazy" />)}
+            {MOVES.map((w, k) => still
+              ? <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt={k === on ? w.alt : ""} aria-hidden={k !== on} loading="lazy" />
+              : <video key={w.id} ref={(el) => { vids.current[k] = el; }} className={k === on ? "on" : ""} src={w.video} poster={w.photo}
+                  muted loop playsInline preload={k === on ? "auto" : "metadata"} aria-label={k === on ? w.alt : undefined} aria-hidden={k !== on} />)}
             {!still && !held && <i className="lp-move-bar" key={on} aria-hidden="true" />}
             <figcaption><span>{String(on + 1).padStart(2, "0")} / {String(MOVES.length).padStart(2, "0")}</span><span>{m.label}</span></figcaption>
           </figure>
