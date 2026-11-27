@@ -90,16 +90,19 @@
 .lp-statement .lp-why{margin-top:0;width:100%}
 @media (min-width:960px){
   .lp-statement .lp-why{--why-h:clamp(540px,44vw,640px);--strip:clamp(56px,5vw,72px)}
-  .lp-statement .lp-why-media{top:5%;bottom:auto;height:80%;transform-origin:100% 50%;--why-fade:linear-gradient(90deg,transparent,#000 30%),linear-gradient(180deg,transparent,#000 9%,#000 86%,transparent);
+  .lp-statement .lp-why-media{top:5%;bottom:auto;height:80%;transform-origin:100% 50%;--why-fade:linear-gradient(90deg,transparent,#000 24%,#000 92%,transparent),linear-gradient(180deg,transparent,#000 7%,#000 92%,transparent);
     -webkit-mask-image:var(--why-fade);mask-image:var(--why-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
   .lp-statement .lp-why-body{left:28px;width:clamp(250px,22vw,340px);gap:14px}
-  .lp-statement .lp-why-h{font-size:clamp(34px,6.6cqh,54px)}
+  .lp-statement .lp-why-h{font-size:clamp(32px,6.2cqh,50px)}
   .lp-statement .lp-why-body p{display:none}
   .lp-statement .lp-why-facts{left:0;bottom:26px;gap:22px}
   .lp-statement .lp-why-body{top:0;bottom:0}
   .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:24px;top:24px}
+  /* once the art has moved aside, the words sit above it so the whole title always reads */
+  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-body,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-body{z-index:3;transition:visibility 0s,z-index 0s .32s}
+  .lp-statement .lp-why.s1 .lp-why-p.on:first-child .lp-why-media{transform:translateX(-50%) scale(.86);transform-origin:50% 50%}
   /* once open, the art steps a little past the right edge so the whole title can be read, as in the reference */
-  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-media,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-media{transform:translateX(-94%) scale(.8)}
+  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-media,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-media{transform:translateX(-100%) translateX(-18px) scale(.76)}
   .lp-statement .lp-why-p::after{opacity:0}.lp-statement .lp-why-p:not(.on)::after{opacity:1}}
 /* ---------- Why APEX sliding panels: three colour panels, one open; the open one widens on a slow ease while the others fold
    to slim strips, its picture glides from centred to the right, and its title rises line by line ---------- */
