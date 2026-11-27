@@ -157,7 +157,7 @@
 .lp-reel-ghost span.out{transform:translate(-70%,-50%);opacity:0}
 /* the picture stays fixed in the centre; the word grows to its left and ING to its right, so nothing jumps when the word changes */
 .lp-reel-word{position:relative;z-index:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;
-  font:900 9.6cqw/1 var(--h);font-stretch:72%;letter-spacing:-.04em;color:var(--site-ink);white-space:nowrap}
+  font:900 8.6cqw/1 var(--h);font-stretch:72%;letter-spacing:-.04em;color:var(--site-ink);white-space:nowrap}
 .lp-reel-left{position:relative;z-index:2;justify-self:end;display:flex}
 .lp-reel-ing{position:relative;z-index:2;justify-self:start;display:flex}
 .lp-reel-seg{display:inline-flex}
@@ -170,7 +170,7 @@
 @keyframes reel-out{from{opacity:1;transform:none;filter:none}to{opacity:0;transform:translateY(-.24em);filter:blur(.08em)}}
 .lp-reel:not(.live) .lp-reel-seg.gone{display:none}
 /* behind the picture: a flat arch in the move's colour and a fine outline arch, which breathe once with each change */
-.lp-reel-stack{position:relative;display:block;width:20cqw;aspect-ratio:3/4;margin:0 2cqw}
+.lp-reel-stack{position:relative;display:block;width:28cqw;aspect-ratio:3/4;margin:0 2cqw}
 .lp-reel-arch{position:absolute;left:50%;bottom:-6%;width:150%;height:122%;border-radius:999px 999px 2cqw 2cqw;transform:translateX(-50%);
   background:color-mix(in srgb,var(--tone) 42%,var(--site-panel));transition:background-color var(--dur) var(--ease)}
 .lp-reel-arch.line{background:none;border:max(1px,.16cqw) solid color-mix(in srgb,var(--tone) 60%,transparent);transform:translate(-44%,6%);transition:border-color var(--dur) var(--ease)}
