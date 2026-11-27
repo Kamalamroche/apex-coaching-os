@@ -1,37 +1,54 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL_POSTER, REEL_VIDEO } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, MOVES } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-/** Reel banner: an accent card with the pitch, and a maroon panel with one huge word, COACH( )ING, whose
-    window plays a quick loop of training and app shots. Reduced motion shows the poster frame. */
-function Reel() {
+/** Moving banner: PUSH. PULL. LIFT. RUN. The active word moves the way the exercise moves (letters press forward,
+    draw back, rise, or stride) and the photo beside it changes to match. Words are buttons, so anyone can pick one.
+    Cycles every 2.8 s while on screen; reduced motion keeps the letters still and stops the cycle. */
+function MoveBanner() {
+  const [on, setOn] = useState(0);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [held, setHeld] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.25 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => {
+    if (still || held || !seen) return;
+    const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 2800);
+    return () => window.clearInterval(t);
+  }, [still, held, seen]);
+  const m = MOVES[on];
   return (
-    <section className="lp-reel" aria-labelledby="lp-reel-h">
-      <div className="lp-wrap lp-reel-grid">
-        <div className="lp-reel-card" data-reveal>
-          <h2 className="lp-reel-h" id="lp-reel-h"><span>You write</span><span>the plan.</span><span>They train</span><span>with you.</span></h2>
-          <p className="lp-reel-p">Programmes, check-ins, progress and payments in one place. Your clients get an app that opens on today's session. You stay in charge of the training.</p>
-          <a className="lp-reel-go" href="/coach/">
-            <span className="lp-reel-go-dot" aria-hidden="true"><Icons.forward width={18} height={18} /></span>
-            <span>Start free</span>
-          </a>
-        </div>
-        <div className="lp-reel-panel" data-reveal>
-          <span className="lp-reel-tag tl" aria-hidden="true">Plan<br />Train<br />Progress</span>
-          <span className="lp-reel-tag tr" aria-hidden="true">Built by<br />a working coach</span>
-          <p className="lp-reel-word" aria-label="Coaching">
-            <span aria-hidden="true">COACH(</span>
-            <span className="lp-reel-win" aria-hidden="true">
-              {still
-                ? <img src={REEL_POSTER} width={600} height={800} alt="" />
-                : <video autoPlay muted loop playsInline preload="metadata" poster={REEL_POSTER} src={REEL_VIDEO} />}
-            </span>
-            <span aria-hidden="true">)ING</span>
-          </p>
-          <span className="lp-reel-tag bl" aria-hidden="true">654 exercises</span>
-          <span className="lp-reel-tag br" aria-hidden="true">Free for 3 clients</span>
+    <section className={`lp-move ${seen ? "seen" : ""}`} ref={ref} aria-labelledby="lp-move-h">
+      <div className="lp-wrap">
+        <div className="lp-move-card">
+          <div className="lp-move-copy">
+            <span className="lp-kick">Coaching that moves</span>
+            <h2 className="lp-sr" id="lp-move-h">Push, pull, lift, run: coaching for every way your clients move</h2>
+            <div className="lp-move-words" role="group" aria-label="Pick a movement">
+              {MOVES.map((w, k) => (
+                <button key={w.id} type="button" className={`lp-mv lp-mv-${w.id} ${k === on ? "on" : ""}`} aria-pressed={k === on}
+                  onClick={() => { setOn(k); setHeld(true); }}>
+                  {[...w.word.toUpperCase()].map((ch, j) => <i key={j} style={{ "--j": j } as CSSProperties}>{ch}</i>)}
+                  <b>.</b>
+                </button>
+              ))}
+            </div>
+            <p>Every client moves differently. You write the plan for each one, and APEX carries it into their day: the session, the cues, the weights and the check-in after.</p>
+            <Cta href="/coach/">Start free</Cta>
+          </div>
+          <figure className="lp-move-pic">
+            {MOVES.map((w, k) => <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt={k === on ? w.alt : ""} aria-hidden={k !== on} loading="lazy" />)}
+            {!still && !held && <i className="lp-move-bar" key={on} aria-hidden="true" />}
+            <figcaption><span>{String(on + 1).padStart(2, "0")} / {String(MOVES.length).padStart(2, "0")}</span><span>{m.label}</span></figcaption>
+          </figure>
         </div>
       </div>
     </section>
@@ -184,8 +201,8 @@ export function Landing() {
           </div>
         </section>
 
-        {/* ---------- reel banner ---------- */}
-        <Reel />
+        {/* ---------- moving banner ---------- */}
+        <MoveBanner />
 
         {/* ---------- product cards ---------- */}
         <section className="lp-sec" id="product">
