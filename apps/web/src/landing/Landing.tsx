@@ -9,7 +9,7 @@ import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from ".
     Reduced motion: the pictures still change, without sliding or rippling. */
 /** Seconds into the morph film when each athlete has half turned into the next (measured from the backdrop colour).
     Entry k is the moment REEL[k + 1] takes over; the film then loops back to REEL[0]. */
-const REEL_MORPHS = [1.12, 8.38, 11.79, 17.29, 21.96];
+const REEL_MORPHS = [1.75, 10.26, 14.94, 21.7, 27.62];
 const reelAt = (t: number) => { let k = 0; for (const at of REEL_MORPHS) if (t >= at) k++; return k % REEL.length; };
 
 function Reel() {
