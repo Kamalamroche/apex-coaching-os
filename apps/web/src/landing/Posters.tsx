@@ -4,18 +4,72 @@
    Ideas taken (not copied) from Kamal's references: giant condensed numbers behind a cut-out athlete,
    split colour blocks, type filled with the photo, an athlete resting on a big shape. */
 
+import { useEffect, useRef, useState } from "react";
+
 const Grain = () => <i className="ps-grain" aria-hidden="true" />;
 
-/** Morning Brief: split colour block, a giant 07:30 that disappears into the lower half, the coach in front. */
+/** Morning Brief: split colour block, a giant 07:30 that disappears into the lower half, the coach in front.
+    Alive: when it scrolls into view the clock rolls on to 07:30, then a short list of clients who need the coach
+    today, ranked by urgency, works itself down: the top one is ticked off, the rest move up and the next arrives. */
+const BRIEF: { who: string; what: string; tone: "act" | "warn" | "info" | "good" }[] = [
+  { who: "Amara O.", what: "Missed 2 sessions", tone: "act" },
+  { who: "Tom H.", what: "Squat stalled 3 weeks", tone: "warn" },
+  { who: "Priya S.", what: "Check-in waiting 2 days", tone: "info" },
+  { who: "Kenji T.", what: "Unread message", tone: "info" },
+  { who: "Sofia R.", what: "New best: 120 kg deadlift", tone: "good" },
+];
+const initials = (n: string) => n.split(" ").map((w) => w[0]).join("");
+
 export function BriefPoster() {
+  const ref = useRef<HTMLElement>(null);
+  const [seen, setSeen] = useState(false);
+  const [min, setMin] = useState(27);
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
+    const io = new IntersectionObserver((es) => setSeen(es.some((e) => e.isIntersecting)), { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // the clock rolls 07:27 -> 07:30 once, the first time the poster is seen
+  useEffect(() => {
+    if (!seen || min >= 30) return;
+    if (still) { setMin(30); return; }
+    const t = setTimeout(() => setMin((m) => m + 1), min === 27 ? 500 : 420);
+    return () => clearTimeout(t);
+  }, [seen, min, still]);
+  // then the list works itself down while the poster is in view
+  useEffect(() => {
+    if (!seen || min < 30 || still) return;
+    const t = setInterval(() => setStep((n) => n + 1), 2600);
+    return () => clearInterval(t);
+  }, [seen, min, still]);
+  const mm = String(min).padStart(2, "0");
+  const cards = [-1, 0, 1, 2].map((p) => ({ p, k: step + p })).filter((c) => c.k >= 0);
   return (
-    <figure className="ps ps-split">
+    <figure ref={ref} className={`ps ps-split ps-live ${seen ? "seen" : ""}`}>
       <i className="ps-block" aria-hidden="true" />
-      <span className="ps-num" aria-hidden="true">07:30</span>
+      <span className="ps-num" aria-hidden="true">
+        07<b className="ps-colon">:</b>{mm[0]}<b key={mm} className="ps-digit">{mm[1]}</b>
+      </span>
       <img className="ps-cut" src="/hero/coach-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX coach talking a client through her plan" />
       <span className="ps-label" aria-hidden="true">Morning<br />Brief</span>
       <span className="ps-meta tl" aria-hidden="true">Monday<br />3 clients need you</span>
       <span className="ps-meta tr" aria-hidden="true">Coach OS // no. 02</span>
+      <ol className="ps-brief" aria-label="Example: clients who need the coach today, most urgent first">
+        {cards.map(({ p, k }) => {
+          const c = BRIEF[k % BRIEF.length]!;
+          return (
+            <li key={k} className={`ps-card ${c.tone} ${p < 0 ? "out" : ""}`} style={{ ["--p" as string]: Math.max(p, 0) }} aria-hidden={p < 0}>
+              <span className="ps-av">{initials(c.who)}</span>
+              <span className="ps-txt"><b>{c.who}</b>{c.what}</span>
+              <span className="ps-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
+            </li>
+          );
+        })}
+      </ol>
       <span className="ps-meta br" aria-hidden="true">Ranked by urgency</span>
       <Grain />
     </figure>
