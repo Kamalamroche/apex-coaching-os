@@ -1,5 +1,5 @@
 import {
-  HERO_IMAGES, STORY_HEADLINE_MAX, STORY_STATUS_LABEL, availableKeys, headlineIdeas, pageLink, storyLines, storyPhoto, storyProblem, successCaption,
+  STORY_HEADLINE_MAX, STORY_STATUS_LABEL, availableKeys, headlineIdeas, pageLink, storyLines, storyPhoto, storyProblem, successCaption,
   type CoachPage, type Story, type StoryKey, type StoryNumbers,
 } from "@apex/core";
 import { Icons, Label, Sheet, SuccessStoryCard, drawMarketingCard, loadStoryFonts, type MarketingCardTheme } from "@apex/ui";
@@ -208,7 +208,7 @@ function StoryPost({ story: s, link, say, onClose }: { story: Story; link: strin
   const [caption, setCaption] = useState(() => successCaption({ headline: s.headline, quote: s.quote, name, numbers: s.numbers }, s.shown, link));
   const pic = storyPhoto(s.numbers);
   const site = link.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  useEffect(() => { void Promise.all([loadStoryFonts(), loadPhoto(HERO_IMAGES[pic.hero].src).then(setPhoto)]).then(() => setReady(true)); }, [pic.hero]);
+  useEffect(() => { void Promise.all([loadStoryFonts(), loadPhoto(pic.src).then(setPhoto)]).then(() => setReady(true)); }, [pic.src]);
   useEffect(() => {
     if (!canvas.current) return;
     const lines = storyLines(s.numbers, s.shown).map(({ value, label }) => ({ value, label }));

@@ -1,5 +1,4 @@
 /* Client success stories: real numbers from a client's training, shared only after the client says yes. Pure. */
-import type { HeroImage } from "./hero";
 
 export type StoryKey = "weeks" | "workouts" | "bests" | "lift" | "weight";
 export const STORY_KEYS: StoryKey[] = ["lift", "bests", "workouts", "weeks", "weight"];
@@ -94,14 +93,15 @@ export function samplePublicStories(now = new Date()): PublicStory[] {
   ];
 }
 
-/** The studio photo that fits a story best, and where to frame it (0 top, 1 bottom). */
-export function storyPhoto(n: StoryNumbers): { hero: HeroImage; focus: number } {
+/** Studio backdrops for story posts (apps/web/public/posts, made for APEX), each with room for words below the athlete. */
+export type StoryBackdrop = "squat" | "hinge" | "pull" | "coach";
+
+/** The backdrop that fits a story best, and where to frame it (0 top, 1 bottom). Never a different kind of lift. */
+export function storyPhoto(n: StoryNumbers): { backdrop: StoryBackdrop; src: string; focus: number } {
   const name = n.lift?.name.toLowerCase() ?? "";
-  if (/squat|lunge|leg press/.test(name)) return { hero: "squat", focus: 0.35 };
-  if (/deadlift|rdl|hinge|swing/.test(name)) return { hero: "hinge", focus: 0.45 };
-  if (/bench|chest|push/.test(name)) return { hero: "bench", focus: 0.45 };
-  if (/overhead|shoulder|press/.test(name)) return { hero: "upper", focus: 0.25 };
-  if (/row|pull|chin|lat/.test(name)) return { hero: "pull", focus: 0.45 };
-  if (/thrust|bridge|glute/.test(name)) return { hero: "hip-thrust", focus: 0.45 };
-  return { hero: n.lift ? "dumbbell" : "coach", focus: 0.4 };
+  const pick = (b: StoryBackdrop) => ({ backdrop: b, src: `/posts/${b}.webp`, focus: 0.05 });
+  if (/squat|lunge|leg press/.test(name)) return pick("squat");
+  if (/deadlift|rdl|hinge|good morning/.test(name)) return pick("hinge");
+  if (/pull|chin|row|lat/.test(name)) return pick("pull");
+  return pick("coach");
 }
