@@ -84,35 +84,35 @@
 .lp-big{font-size:clamp(20px,2.2vw,27px);line-height:1.4;color:var(--site-ink2);letter-spacing:-.01em;max-width:24em}
 .lp-big b{color:var(--site-ink);font-weight:600}
 .lp-small{font-size:14px;color:var(--site-ink3);max-width:34em}
-@media (min-width:960px){.lp-statement{grid-template-columns:1fr 1.75fr;gap:48px}}
+@media (min-width:960px){.lp-statement{grid-template-columns:1fr 2fr;gap:48px}}
 /* inside the statement the deck takes the picture column, laid out like the reference: title at the left, middle height,
    and the art (a square 84% of the panel's height) over it, feathered into the panel colour at its left edge */
 .lp-statement .lp-why{margin-top:0;width:100%}
 @media (min-width:960px){
   .lp-statement .lp-why{--why-h:clamp(540px,44vw,640px);--strip:clamp(56px,5vw,72px)}
-  .lp-statement .lp-why-media{top:5%;bottom:auto;height:80%;--why-fade:linear-gradient(90deg,transparent,#000 30%),linear-gradient(180deg,transparent,#000 9%,#000 86%,transparent);
+  .lp-statement .lp-why-media{top:5%;bottom:auto;height:80%;transform-origin:100% 50%;--why-fade:linear-gradient(90deg,transparent,#000 30%),linear-gradient(180deg,transparent,#000 9%,#000 86%,transparent);
     -webkit-mask-image:var(--why-fade);mask-image:var(--why-fade);-webkit-mask-composite:source-in;mask-composite:intersect}
   .lp-statement .lp-why-body{left:28px;width:clamp(250px,22vw,340px);gap:14px}
-  .lp-statement .lp-why-h{font-size:clamp(36px,7.2cqh,60px)}
+  .lp-statement .lp-why-h{font-size:clamp(34px,6.6cqh,54px)}
   .lp-statement .lp-why-body p{display:none}
   .lp-statement .lp-why-facts{left:0;bottom:26px;gap:22px}
   .lp-statement .lp-why-body{top:0;bottom:0}
   .lp-statement .lp-why-p.on .lp-why-open{left:auto;right:24px;top:24px}
   /* once open, the art steps a little past the right edge so the whole title can be read, as in the reference */
-  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-media,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-media{transform:translateX(-86%)}
+  .lp-statement .lp-why:not(.s1) .lp-why-p.on .lp-why-media,.lp-statement .lp-why.s1 .lp-why-p.on:not(:first-child) .lp-why-media{transform:translateX(-94%) scale(.8)}
   .lp-statement .lp-why-p::after{opacity:0}.lp-statement .lp-why-p:not(.on)::after{opacity:1}}
 /* ---------- Why APEX sliding panels: three colour panels, one open; the open one widens on a slow ease while the others fold
    to slim strips, its picture glides from centred to the right, and its title rises line by line ---------- */
-.lp-why{--why-ease:cubic-bezier(.77,0,.18,1);--why-dur:.6s;--why-h:clamp(520px,50vw,700px);--strip:clamp(84px,11vw,168px);
+.lp-why{--why-ease:cubic-bezier(.65,0,.3,1);--why-dur:.62s;--why-h:clamp(520px,50vw,700px);--strip:clamp(84px,11vw,168px);
   display:flex;flex-direction:column;gap:0;margin-top:56px;border-radius:var(--rad);overflow:hidden;color:#fff;isolation:isolate}
 @media (min-width:900px){.lp-why{flex-direction:row;height:var(--why-h);margin-top:88px}}
 .lp-why-p{position:relative;overflow:hidden;flex:0 0 76px;transition:flex-basis var(--why-dur) var(--why-ease),flex-grow var(--why-dur) var(--why-ease);container-type:size;contain:paint}
 .lp-why-p.on{flex:1 1 520px}
 @media (min-width:900px){.lp-why-p{flex:0 0 var(--strip)}.lp-why-p.on{flex:1 1 0}}
-.lp-why-p.coach{background:linear-gradient(180deg,color-mix(in srgb,color-mix(in srgb,var(--viz-1) 65%,#fff) 95%,var(--viz-4)),color-mix(in srgb,color-mix(in srgb,var(--viz-1) 63%,var(--viz-4)) 74%,#fff))}
-/* rose coral, mixed from the accent, white, violet and night so it matches the kettlebell art's backdrop */
-.lp-why-p.features{background:color-mix(in srgb,color-mix(in srgb,var(--site-accent) 59.8%,#fff) 81.1%,color-mix(in srgb,var(--viz-4) 63.5%,var(--site-night)))}
-.lp-why-p.decide{background:color-mix(in srgb,var(--site-night) 94%,var(--site-on-night))}
+.lp-why-p.coach{background:linear-gradient(180deg,var(--site-why-violet),var(--site-why-violet2))}
+/* panel colours come from the reference video; the art backdrops are recoloured to the same gradients */
+.lp-why-p.features{background:linear-gradient(180deg,var(--site-why-rose),var(--site-why-rose2))}
+.lp-why-p.decide{background:var(--site-why-black)}
 /* first beat of the first panel (deck .s1): the next panel stays a third open and the open panel's art waits centred,
    over its title; the second beat lets the art glide right and the words show */
 @media (min-width:900px){.lp-why.s1 .lp-why-p.on+.lp-why-p{flex:0 0 34%}}

@@ -67,4 +67,6 @@
   --site-ink:#F6F2F0; --site-ink2:#B5A9A7; --site-ink3:#7E7371;
   --site-line:#241A1A; --site-line2:#36282A;
   --site-accent:#EE3F1E; --site-accent-ink:#FFFFFF; --site-accent-soft:rgba(238,63,30,.14);
+  /* Why APEX deck panels: sampled from Kamal's reference video (27 Nov 2026), he asked for exactly these */
+  --site-why-violet:#8C80F8; --site-why-violet2:#9670F2; --site-why-rose:#EE9AA0; --site-why-rose2:#E2707F; --site-why-black:#0E0D10;
 }
