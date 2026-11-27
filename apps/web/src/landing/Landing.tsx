@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL, WHY } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
 /** Reel banner: a colour card with the pitch, and a brown panel with one huge white word, (WORD)( )ING, whose window
@@ -94,6 +94,69 @@ function Reel() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** "Why APEX": three colour panels side by side (stacked on phones). One is open; the others fold to slim strips.
+    Timed like the reference: each slide takes about half a second. The first panel opens in two beats: it opens with
+    its picture over the title, holds, then the picture glides right to show the words. The others open in one beat.
+    A click or tap opens a panel; tapping the open first panel plays its second beat. The open panel's film plays. */
+function WhyDeck() {
+  const [on, setOn] = useState(0);
+  const [step, setStep] = useState(1);
+  const [seen, setSeen] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const ref = useRef<HTMLDivElement>(null);
+  const films = useRef<(HTMLVideoElement | null)[]>([]);
+  /* the panel that just closed plays its words out to the left; set before paint so its words never blink */
+  const last = useRef(0);
+  const [off, setOff] = useState(-1);
+  useLayoutEffect(() => { if (last.current !== on) { setOff(last.current); last.current = on; } }, [on]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
+    const io = new IntersectionObserver((es) => setSeen(es.some((e) => e.isIntersecting)), { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const open = (k: number) => {
+    if (k === on) { if (step === 1) setStep(2); return; }
+    setOn(k); setStep(k === 0 ? 1 : 2);
+  };
+  useEffect(() => {
+    if (!seen || paused || still) return;
+    const first = on === 0 && step === 1;
+    const t = window.setTimeout(() => {
+      if (first) setStep(2);
+      else { const n = (on + 1) % WHY.length; setOn(n); setStep(n === 0 ? 1 : 2); }
+    }, first ? 1900 : on === 0 ? 2500 : 2100);
+    return () => window.clearTimeout(t);
+  }, [seen, paused, still, on, step]);
+  useEffect(() => {
+    films.current.forEach((v, k) => { if (!v) return; if (k === on && seen) void v.play().catch(() => {}); else v.pause(); });
+  }, [on, seen]);
+  return (
+    <div className={`lp-why ${seen ? "live" : ""} ${step === 1 && !still ? "s1" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      {WHY.map((w, k) => (
+        <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : k === off ? "off" : ""}`} aria-label={`${w.title.join(" ")}`}>
+          <div className="lp-why-media" aria-hidden="true">
+            <img src={w.still} width={1200} height={1200} alt="" loading="lazy" />
+            {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload={seen ? "auto" : "none"} />}
+          </div>
+          <button type="button" className="lp-why-open" onClick={() => open(k)} aria-expanded={k === on} aria-label={`Open ${w.side}`}>
+            <span className="lp-why-dot"><Icons.play width={13} height={13} /></span>
+          </button>
+          <div className="lp-why-top"><b>{String(k + 1).padStart(2, "0")}</b><small>Why APEX</small></div>
+          <span className="lp-why-side" aria-hidden="true">{w.side}</span>
+          <div className="lp-why-body">
+            <h3 className="lp-why-h">{w.title.map((l, j) => <span key={l} style={{ "--k": j } as CSSProperties}><span>{l}</span></span>)}</h3>
+            <p>{w.body}</p>
+            <dl className="lp-why-facts">{w.facts.map(([a, b]) => <div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl>
+          </div>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -228,18 +291,8 @@ export function Landing() {
               <p className="lp-big"><b>Built by a working coach,</b> APEX puts programmes, clients, nutrition and the business side in one calm place, so you spend your time coaching instead of on admin.</p>
               <p className="lp-small">Every feature on every plan. 654 exercises with cues and steps. Nothing reaches a client until you say so.</p>
             </div>
-            {/* The DAY 01 poster from the earlier site, unchanged in layout: the giant orange 01 sits between the
-                studio backdrop and the cut-out athlete. Here it has no frame: the edges fade into the page and a
-                warm red grade ties the photo to the pyramid video. */}
-            <figure className="lp-day" data-reveal>
-              <img className="lp-day-photo" src="/hero/hinge.webp" width={1080} height={1350} alt="" loading="lazy" />
-              <span className="lp-day-spaced" aria-hidden="true">D A Y</span>
-              <span className="lp-day-num" aria-hidden="true">01</span>
-              <img className="lp-day-cut" src="/hero/hinge-cut.webp" width={1080} height={1350} alt="A HELIX athlete setting up a barbell deadlift" loading="lazy" />
-              <i className="lp-day-glow" aria-hidden="true" />
-              <span className="lp-day-meta tl" aria-hidden="true">Coaching OS<br />Season one</span>
-              <span className="lp-day-meta br" aria-hidden="true">2026 // HELIX no. 01</span>
-            </figure>
+            {/* The three Why APEX panels sit where the DAY 01 poster was, beside the statement. */}
+            <WhyDeck />
           </div>
         </section>
 
