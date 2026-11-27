@@ -37,7 +37,7 @@ function MoveBanner() {
                 <button key={w.id} type="button" className={`lp-mv lp-mv-${w.id} ${k === on ? "on" : ""}`} aria-pressed={k === on}
                   onClick={() => { setOn(k); setHeld(true); }}>
                   {[...w.word.toUpperCase()].map((ch, j) => <i key={j} style={{ "--j": j } as CSSProperties}>{ch}</i>)}
-                  <b>.</b>
+                  <b style={{ "--j": w.word.length } as CSSProperties}>.</b>
                 </button>
               ))}
             </div>

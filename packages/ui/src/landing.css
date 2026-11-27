@@ -130,23 +130,23 @@
 .lp-mv{display:inline-flex;padding:0;border:0;background:none;cursor:pointer;
   font:900 clamp(60px,9.4vw,132px)/.84 var(--h);font-stretch:74%;letter-spacing:-.035em;color:color-mix(in srgb,var(--site-ink) 16%,transparent);transition:color .45s}
 .lp-mv i{display:inline-block;font-style:normal;transform-origin:50% 100%;will-change:transform}
-.lp-mv b{font-weight:inherit;color:inherit;transition:color .45s}
+.lp-mv b{display:inline-block;font-weight:inherit;color:inherit;transform-origin:50% 100%;transition:color .45s}
 .lp-mv:hover{color:color-mix(in srgb,var(--site-ink) 34%,transparent)}
 .lp-mv.on{color:var(--site-ink)}
 .lp-mv.on b{color:var(--site-accent)}
 .lp-mv:focus-visible{outline:2px solid var(--site-accent);outline-offset:4px;border-radius:6px}
 /* push: the letters press forward one after another and come back, like a push */
-.lp-move.seen .lp-mv-push.on i{animation:mv-push 1.4s cubic-bezier(.6,0,.3,1) calc(var(--j) * 70ms) infinite}
+.lp-move.seen .lp-mv-push.on i,.lp-move.seen .lp-mv-push.on b{animation:mv-push 1.4s cubic-bezier(.6,0,.3,1) calc(var(--j) * 70ms) infinite}
 @keyframes mv-push{0%,100%{transform:none}45%{transform:translateX(.09em) scaleX(.94)}60%{transform:translateX(.09em) scaleX(.94)}}
 /* pull: the letters draw back towards the first one, then release */
-.lp-move.seen .lp-mv-pull.on i{animation:mv-pull 1.5s cubic-bezier(.6,0,.3,1) calc((3 - var(--j)) * 70ms) infinite}
+.lp-move.seen .lp-mv-pull.on i,.lp-move.seen .lp-mv-pull.on b{animation:mv-pull 1.5s cubic-bezier(.6,0,.3,1) calc((3 - var(--j)) * 70ms) infinite}
 @keyframes mv-pull{0%,100%{transform:none}45%,60%{transform:translateX(calc(var(--j) * -.05em)) scaleY(1.04)}}
 /* lift: each letter rises from the floor, holds at the top, lowers with control */
-.lp-move.seen .lp-mv-lift.on i{animation:mv-lift 1.6s cubic-bezier(.55,0,.25,1) calc(var(--j) * 80ms) infinite}
+.lp-move.seen .lp-mv-lift.on i,.lp-move.seen .lp-mv-lift.on b{animation:mv-lift 1.6s cubic-bezier(.55,0,.25,1) calc(var(--j) * 80ms) infinite}
 @keyframes mv-lift{0%,100%{transform:none}40%,62%{transform:translateY(-.16em)}}
 /* run: the word leans into a stride, letters bounce on alternate feet */
 .lp-move.seen .lp-mv-run.on{animation:mv-lean .5s ease-in-out infinite alternate}
-.lp-move.seen .lp-mv-run.on i{animation:mv-stride .5s ease-in-out calc(var(--j) * 250ms) infinite alternate}
+.lp-move.seen .lp-mv-run.on i,.lp-move.seen .lp-mv-run.on b{animation:mv-stride .5s ease-in-out calc(var(--j) * 250ms) infinite alternate}
 @keyframes mv-lean{from{transform:skewX(-6deg)}to{transform:skewX(-10deg)}}
 @keyframes mv-stride{from{transform:translateY(0)}to{transform:translateY(-.07em)}}
 .lp-move-pic{position:relative;overflow:hidden;aspect-ratio:4/5;border-radius:14px;background:var(--site-night);width:100%;max-width:520px;justify-self:end;isolation:isolate}
@@ -158,7 +158,7 @@
 .lp-move-pic figcaption span:first-child{color:var(--site-accent)}
 .lp-move-bar{position:absolute;z-index:2;left:0;top:0;height:3px;width:100%;background:var(--site-accent);transform-origin:0 50%;animation:mv-bar 2.8s linear both}
 @keyframes mv-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@media (prefers-reduced-motion:reduce){.lp-mv i,.lp-mv{animation:none!important}.lp-move-pic img{transition:opacity .3s;transform:none}}
+@media (prefers-reduced-motion:reduce){.lp-mv i,.lp-mv b,.lp-mv{animation:none!important}.lp-move-pic img{transition:opacity .3s;transform:none}}
 
 .lp-index{display:grid;gap:28px;margin-top:88px;padding-top:40px;border-top:1px solid var(--site-line)}
 .lp-index li{display:grid;gap:8px;align-content:start}
