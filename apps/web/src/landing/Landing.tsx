@@ -1,28 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, STORY_POSTER, STORY_VIDEO, STORY_VIDEO_SMALL } from "./content";
-import { GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL_POSTER, REEL_VIDEO } from "./content";
+import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-/** The APEX film (19 s loop): a coach at a laptop, then 3D shots for time saved, programming, results, the client app
-    and one place, ending on Start free. Made with Higgsfield; words and screens rendered in code.
-    Phones get the 720 cut; reduced motion shows the poster frame. */
-function StoryVideo() {
+/** Reel banner: an accent card with the pitch, and a maroon panel with one huge word, COACH( )ING, whose
+    window plays a quick loop of training and app shots. Reduced motion shows the poster frame. */
+function Reel() {
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   return (
-    <figure className="lp-story">
-      {still
-        ? <img src={STORY_POSTER} width={1080} height={1350} alt="APEX on a laptop: the morning brief, the programme builder and client progress" />
-        : (
-          <video autoPlay muted loop playsInline preload="metadata" poster={STORY_POSTER} aria-label="APEX film: too many apps and hours lost to admin, programmes built in minutes, results clients can see, an app that is easy for everyone, all in one place, Start free">
-            <source src={STORY_VIDEO_SMALL} type="video/mp4" media="(max-width: 760px)" />
-            <source src={STORY_VIDEO} type="video/mp4" />
-          </video>
-        )}
-    </figure>
+    <section className="lp-reel" aria-labelledby="lp-reel-h">
+      <div className="lp-wrap lp-reel-grid">
+        <div className="lp-reel-card" data-reveal>
+          <h2 className="lp-reel-h" id="lp-reel-h"><span>You write</span><span>the plan.</span><span>They train</span><span>with you.</span></h2>
+          <p className="lp-reel-p">Programmes, check-ins, progress and payments in one place. Your clients get an app that opens on today's session. You stay in charge of the training.</p>
+          <a className="lp-reel-go" href="/coach/">
+            <span className="lp-reel-go-dot" aria-hidden="true"><Icons.forward width={18} height={18} /></span>
+            <span>Start free</span>
+          </a>
+        </div>
+        <div className="lp-reel-panel" data-reveal>
+          <span className="lp-reel-tag tl" aria-hidden="true">Plan<br />Train<br />Progress</span>
+          <span className="lp-reel-tag tr" aria-hidden="true">Built by<br />a working coach</span>
+          <p className="lp-reel-word" aria-label="Coaching">
+            <span aria-hidden="true">COACH(</span>
+            <span className="lp-reel-win" aria-hidden="true">
+              {still
+                ? <img src={REEL_POSTER} width={600} height={800} alt="" />
+                : <video autoPlay muted loop playsInline preload="metadata" poster={REEL_POSTER} src={REEL_VIDEO} />}
+            </span>
+            <span aria-hidden="true">)ING</span>
+          </p>
+          <span className="lp-reel-tag bl" aria-hidden="true">654 exercises</span>
+          <span className="lp-reel-tag br" aria-hidden="true">Free for 3 clients</span>
+        </div>
+      </div>
+    </section>
   );
 }
 
-const CHAPTER_ART = { brief: StoryVideo, train: TrainPoster, grow: GrowPoster };
+const CHAPTER_ART = { brief: BriefPoster, train: TrainPoster, grow: GrowPoster };
 
 /* Public website at /. Sign-in and demos live at /start/, /coach/ and /client/.
    Ember look: black pages, deep maroon cards, one red-orange accent, and a full-screen banner video of the
@@ -167,6 +183,9 @@ export function Landing() {
             </figure>
           </div>
         </section>
+
+        {/* ---------- reel banner ---------- */}
+        <Reel />
 
         {/* ---------- product cards ---------- */}
         <section className="lp-sec" id="product">

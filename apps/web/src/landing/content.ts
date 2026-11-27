@@ -21,12 +21,11 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
-/* Story film for the first feature chapter (26 Nov 2026, 19 s): a coach's hand on a laptop in an evening room, then five
-   3D glass shots (time lost, programmes in minutes, results, client app, one place) and back to Start free on the laptop.
-   All shots made with Higgsfield; the APEX screens and words are rendered in code. No logo. */
-export const STORY_VIDEO = "/site/apex-story.mp4";
-export const STORY_VIDEO_SMALL = "/site/apex-story-720.mp4";
-export const STORY_POSTER = "/site/apex-story-poster.webp";
+/* Reel banner (27 Nov 2026): quick training shots cut into the window of the big COACH( )ING word. Four new clips
+   made with Higgsfield (a coach cueing a squat, a kettlebell swing, a track sprint, a high five) plus the earlier
+   3D app shots. Original footage only; athletes vary in ethnicity. */
+export const REEL_VIDEO = "/site/apex-reel.mp4";
+export const REEL_POSTER = "/site/apex-reel-poster.webp";
 
 export type Tour = {
   id: string;
