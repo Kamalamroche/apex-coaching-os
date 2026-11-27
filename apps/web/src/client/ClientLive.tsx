@@ -33,6 +33,10 @@ import { createSupabaseStore } from "../data/supabaseStore";
 import { ClientApp } from "./ClientApp";
 import { ClientFeaturesProvider, loadMyFeatures } from "../data/features";
 import type { ClientFeature } from "@apex/core";
+import { takeBillingReturn } from "../data/billing";
+import { ClientBillingProvider, liveClientBilling } from "../data/BillingContext";
+
+const BILLING_NOTICE = { success: "Payment set up · thank you", cancel: "Checkout closed · nothing was charged", back: null } as const;
 
 /** Live client: finds the client's coach, then runs the client app on their real program. */
 export function ClientLive({ db, profile, signOut }: Live) {
@@ -89,10 +93,14 @@ export function ClientLive({ db, profile, signOut }: Live) {
   const bookings = useMemo(() => (coach ? liveBookings(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const extras = useMemo(() => (coach ? liveExtras(db, { side: "client", coachId: coach.id, me: profile.id }) : null), [db, coach, profile.id]);
   const wearables = useMemo(() => liveWearableLink(db, activities), [db, activities]);
-  const notice = useConnectReturn(db, activities, strava, wearables);
+  const connectNotice = useConnectReturn(db, activities, strava, wearables);
+  // Read once: back from Stripe Checkout or Stripe's billing page.
+  const [billingReturn] = useState(takeBillingReturn);
+  const notice = connectNotice ?? (billingReturn ? BILLING_NOTICE[billingReturn] : null);
+  const billing = useMemo(() => (coach ? liveClientBilling(db, profile.id, coach.id) : null), [db, coach, profile.id]);
 
   if (coach === undefined) return <Splash />;
-  if (!coach || !store) {
+  if (!coach || !store || !billing) {
     return (
       <Splash>
         <h1 className="h1" style={{ fontSize: 22 }}>You're not linked to a coach yet</h1>
@@ -112,7 +120,7 @@ export function ClientLive({ db, profile, signOut }: Live) {
                   <ChallengeProvider value={challenges}>
                     <LiveProvider value={liveLink}><TeamProvider value={team}><GrowthProvider value={growth}><GrowProvider value={grow}><MarketingProvider value={marketing}>
                     <ResourceProvider value={resources}><CoachRecipeProvider value={coachRecipes}>
-                      <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientFeaturesProvider value={hidden}><ClientApp notice={notice} /></ClientFeaturesProvider></ExtrasProvider></ProgrammeProvider>
+                      <ProgrammeProvider value={programmes}><ExtrasProvider value={extras}><ClientFeaturesProvider value={hidden}><ClientBillingProvider link={billing}><ClientApp notice={notice} startOn={billingReturn ? "membership" : null} /></ClientBillingProvider></ClientFeaturesProvider></ExtrasProvider></ProgrammeProvider>
                     </CoachRecipeProvider></ResourceProvider>
                     </MarketingProvider></GrowProvider></GrowthProvider></TeamProvider></LiveProvider>
                   </ChallengeProvider>
