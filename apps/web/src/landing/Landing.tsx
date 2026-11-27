@@ -7,6 +7,11 @@ import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from ".
     shows bright athlete pictures. Every 3.2 s the next picture slides in and the word (COACHING, LIFTING, STRETCHING,
     BOXING, SPRINTING), the card colour and the labels change with it. Cycles only while on screen.
     Reduced motion: the pictures still change, without sliding or rippling. */
+/** Seconds into the morph film when each athlete has half turned into the next (measured from the backdrop colour).
+    Entry k is the moment REEL[k + 1] takes over; the film then loops back to REEL[0]. */
+const REEL_MORPHS = [1.12, 8.38, 11.79, 17.29, 21.96];
+const reelAt = (t: number) => { let k = 0; for (const at of REEL_MORPHS) if (t >= at) k++; return k % REEL.length; };
+
 function Reel() {
   const [on, setOn] = useState(0);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -20,10 +25,28 @@ function Reel() {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  const vid = useRef<HTMLVideoElement>(null);
+  const [film, setFilm] = useState(false);
+  /* reduced motion: the stills change slowly on a timer. Otherwise one looping film of the athletes morphing into each other
+     plays in the window, and the word, colour and labels follow the film's clock so they change mid-morph. */
   useEffect(() => {
-    if (!seen) return;
-    const t = window.setInterval(() => { setMoved(true); setOn((x) => (x + 1) % REEL.length); }, still ? 6000 : 3800);
+    if (!seen || !still) return;
+    const t = window.setInterval(() => { setMoved(true); setOn((x) => (x + 1) % REEL.length); }, 6000);
     return () => window.clearInterval(t);
+  }, [still, seen]);
+  useEffect(() => {
+    const v = vid.current;
+    if (!v || still) return;
+    if (!seen) { v.pause(); return; }
+    void v.play().catch(() => {});
+    let raf = 0;
+    const tick = () => {
+      const k = reelAt(v.currentTime);
+      setOn((x) => { if (x !== k) setMoved(true); return k; });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [still, seen]);
   const n = REEL.length;
   const m = REEL[on] ?? REEL[0]!;
@@ -58,6 +81,7 @@ function Reel() {
               <span className="lp-reel-arch" key={`a${on}`} />
               <span className="lp-reel-arch line" key={`l${on}`} />
               <span className="lp-reel-win">
+                {!still && <video ref={vid} className={film ? "film on" : "film"} src="/site/reel-morph.mp4" poster={REEL[0]?.photo} muted loop playsInline preload="metadata" onPlaying={() => setFilm(true)} />}
                 {REEL.map((w, k) => (
                   <img key={w.id} className={k === on ? "on" : k === prev && moved ? "out" : ""} src={w.photo} width={900} height={1200} alt="" loading={k < 2 ? "eager" : "lazy"} />
                 ))}
