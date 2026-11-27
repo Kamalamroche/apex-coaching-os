@@ -15,7 +15,7 @@ function MoveBanner() {
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
-    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.25 });
+    const io = new IntersectionObserver((es) => setSeen(es.some((e) => e.isIntersecting)), { threshold: 0.25 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -24,7 +24,7 @@ function MoveBanner() {
     const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 2800);
     return () => window.clearInterval(t);
   }, [still, held, seen]);
-  const m = MOVES[on];
+  const m = MOVES[on] ?? MOVES[0]!;
   return (
     <section className={`lp-move ${seen ? "seen" : ""}`} ref={ref} aria-labelledby="lp-move-h">
       <div className="lp-wrap">
