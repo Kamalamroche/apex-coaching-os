@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, MOVES } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
-/** Reel banner: a colour card with the pitch, and a brown panel with one huge white word, COACH( )ING, whose window
-    plays a real training clip. Every 4 s the move changes and everything changes with it: the card colour, the clip,
-    the labels, and the headline and big letters ripple. Only the clip on show plays, only while on screen.
-    Reduced motion: still photo, no ripple, no cycle. */
+/** Reel banner: a colour card with the pitch, and a brown panel with one huge white word, (WORD)( )ING, whose window
+    shows bright athlete pictures. Every 3.2 s the next picture slides in and the word (COACHING, LIFTING, STRETCHING,
+    BOXING, SPRINTING), the card colour and the labels change with it. Cycles only while on screen.
+    Reduced motion: the pictures still change, without sliding or rippling. */
 function Reel() {
   const [on, setOn] = useState(0);
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -20,26 +20,20 @@ function Reel() {
     return () => io.disconnect();
   }, []);
   useEffect(() => {
-    if (still || !seen) return;
-    const t = window.setInterval(() => setOn((x) => (x + 1) % MOVES.length), 4000);
+    if (!seen) return;
+    const t = window.setInterval(() => setOn((x) => (x + 1) % REEL.length), still ? 6000 : 3200);
     return () => window.clearInterval(t);
   }, [still, seen]);
-  const vids = useRef<(HTMLVideoElement | null)[]>([]);
-  useEffect(() => {
-    vids.current.forEach((v, k) => {
-      if (!v) return;
-      if (k === on && seen) { v.currentTime = 0; void v.play().catch(() => {}); } else v.pause();
-    });
-  }, [on, seen]);
-  const m = MOVES[on] ?? MOVES[0]!;
-  const tone = { "--tone": m.tone } as CSSProperties;
-  const lines = ["You write", "the plan.", "They train", "with you."];
+  const n = REEL.length;
+  const m = REEL[on] ?? REEL[0]!;
+  const prev = (on + n - 1) % n;
   const letters = (text: string, from: number) => [...text].map((ch, j) => <i key={j} style={{ "--j": from + j } as CSSProperties}>{ch}</i>);
+  const lines = ["You write", "the plan.", "They train", "with you."];
   return (
-    <section className={`lp-reel ${seen && !still ? "live" : ""}`} ref={ref} style={tone} aria-labelledby="lp-reel-h">
+    <section className={`lp-reel ${seen && !still ? "live" : ""}`} ref={ref} style={{ "--tone": m.tone, "--len": m.word.length + 5 } as CSSProperties} aria-labelledby="lp-reel-h">
       <div className="lp-wrap lp-reel-grid">
         <div className="lp-reel-card" data-reveal>
-          <h2 className="lp-reel-h" id="lp-reel-h" key={`h${on}`}>
+          <h2 className="lp-reel-h" id="lp-reel-h">
             {lines.map((l, k) => <span key={l} style={{ "--k": k } as CSSProperties}><span>{l}</span></span>)}
           </h2>
           <p className="lp-reel-p">Programmes, check-ins, progress and payments in one place. Your clients get an app that opens on today's session. You stay in charge of the training.</p>
@@ -49,19 +43,18 @@ function Reel() {
           </a>
         </div>
         <div className="lp-reel-panel" data-reveal>
-          <span className="lp-reel-tag tl" aria-hidden="true"><b>{String(on + 1).padStart(2, "0")}</b> / {String(MOVES.length).padStart(2, "0")}<br />{m.word}</span>
-          <span className="lp-reel-tag tr" aria-hidden="true">Built by<br />a working coach</span>
-          <p className="lp-reel-word" aria-label="Coaching">
-            <span aria-hidden="true" key={`a${on}`}>{letters("COACH(", 0)}</span>
+          <span className="lp-reel-tag tl" aria-hidden="true"><b>{String(on + 1).padStart(2, "0")}</b> / {String(n).padStart(2, "0")}<br />{m.label}</span>
+          <span className="lp-reel-tag tr" aria-hidden="true">Every way<br />you coach</span>
+          <p className="lp-reel-word" aria-live="polite" aria-label={`${m.word.toLowerCase()}ing`}>
+            <span aria-hidden="true" key={`a${on}`}>{letters(`${m.word}(`, 0)}</span>
             <span className="lp-reel-win" aria-hidden="true">
-              {MOVES.map((w, k) => still
-                ? <img key={w.id} className={k === on ? "on" : ""} src={w.photo} width={1080} height={1350} alt="" loading="lazy" />
-                : <video key={w.id} ref={(el) => { vids.current[k] = el; }} className={k === on ? "on" : ""} src={w.video} poster={w.photo}
-                    muted loop playsInline preload={k === on ? "auto" : "metadata"} />)}
+              {REEL.map((w, k) => (
+                <img key={w.id} className={k === on ? "on" : k === prev ? "out" : ""} src={w.photo} width={900} height={1200} alt="" loading={k < 2 ? "eager" : "lazy"} />
+              ))}
             </span>
-            <span aria-hidden="true" key={`b${on}`}>{letters(")ING", 6)}</span>
+            <span aria-hidden="true" key={`b${on}`}>{letters(")ING", m.word.length + 1)}</span>
           </p>
-          <span className="lp-reel-tag bl" aria-hidden="true">{m.label}</span>
+          <span className="lp-reel-tag bl" aria-hidden="true">Built by a working coach</span>
           <span className="lp-reel-tag br" aria-hidden="true">Free for 3 clients</span>
         </div>
       </div>

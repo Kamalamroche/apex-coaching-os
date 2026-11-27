@@ -21,15 +21,16 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
-/* Reel banner moves (27 Nov 2026): the card colour (a site or chart token), the clip in the COACH( )ING window and the
-   labels change together, four times a loop. Each move has a realistic photo made
-   with Higgsfield (gpt_image_2_6) and a short clip of it in motion (Seedance); the photo is the poster. Athletes vary in ethnicity; plain clothing, no logos. */
-export type Move = { id: "push" | "pull" | "lift" | "run"; word: string; label: string; photo: string; video: string; alt: string; tone: string };
-export const MOVES: Move[] = [
-  { id: "push", word: "Push", label: "Push-up", photo: "/site/move-push.webp", video: "/site/move-push.mp4", tone: "var(--site-accent)", alt: "A man holding a strict push-up on a gym floor in warm window light" },
-  { id: "pull", word: "Pull", label: "Pull-up", photo: "/site/move-pull.webp", video: "/site/move-pull.mp4", tone: "var(--viz-1)", alt: "A woman at the top of a pull-up on a steel rig, chalk on her hands" },
-  { id: "lift", word: "Lift", label: "Deadlift, coached", photo: "/site/move-lift.webp", video: "/site/move-lift.mp4", tone: "var(--viz-3)", alt: "A woman standing tall at the top of a deadlift while her coach watches with a tablet" },
-  { id: "run", word: "Run", label: "Park run", photo: "/site/move-run.webp", video: "/site/move-run.mp4", tone: "var(--viz-4)", alt: "A man running along a park path at golden hour" },
+/* Reel banner slides (27 Nov 2026): bright athlete pictures on solid colours, made with Higgsfield (gpt_image_2_6), in
+   the token colours (accent and chart colours). Each slide changes the big word (COACH( )ING, LIFT( )ING ...) and the
+   card colour. Athletes vary in ethnicity; plain clothing, no logos. */
+export type ReelSlide = { id: string; word: string; label: string; photo: string; tone: string; alt: string };
+export const REEL: ReelSlide[] = [
+  { id: "coach", word: "COACH", label: "Coaching", photo: "/site/reel-coach.webp", tone: "var(--site-accent)", alt: "A trainer with a tablet cueing a client, on red" },
+  { id: "lift", word: "LIFT", label: "Strength", photo: "/site/reel-lift.webp", tone: "var(--viz-1)", alt: "A woman pressing a barbell overhead, on blue" },
+  { id: "stretch", word: "STRETCH", label: "Mobility", photo: "/site/reel-stretch.webp", tone: "var(--viz-3)", alt: "A woman in a deep side stretch, on teal" },
+  { id: "box", word: "BOX", label: "Conditioning", photo: "/site/reel-box.webp", tone: "var(--viz-4)", alt: "A man throwing a straight punch in boxing gloves, on violet" },
+  { id: "sprint", word: "SPRINT", label: "Speed", photo: "/site/reel-sprint.webp", tone: "var(--viz-2)", alt: "A man sprinting with a high knee drive, on orange" },
 ];
 
 export type Tour = {
