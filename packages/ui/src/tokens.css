@@ -57,3 +57,14 @@
   --card-lift:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 40%);
   --card-shadow:0 1px 2px rgba(30,24,16,.05),0 14px 30px -22px rgba(30,24,16,.35);
   color-scheme:light}
+
+/* Website (Ember): the public marketing site at /. Black pages, deep maroon cards, one red-orange accent,
+   a red particle pyramid video in the banner. Always dark, in both themes. Kamal's reference, 26 Nov 2026.
+   (Replaced the Midnight blue look the same day.) */
+:root{
+  --site-night:#050404; --site-on-night:#F6F2F0; --site-on-night2:rgba(246,242,240,.66);
+  --site-paper:#080606; --site-paper2:#0E0A0A; --site-card:#1C1314; --site-card2:#261A1B; --site-panel:#2E1C1D;
+  --site-ink:#F6F2F0; --site-ink2:#B5A9A7; --site-ink3:#7E7371;
+  --site-line:#241A1A; --site-line2:#36282A;
+  --site-accent:#EE3F1E; --site-accent-ink:#FFFFFF; --site-accent-soft:rgba(238,63,30,.14);
+}
