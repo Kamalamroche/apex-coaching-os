@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
-import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL } from "./content";
+import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL, WHY } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
 
 /** Reel banner: a colour card with the pitch, and a brown panel with one huge white word, (WORD)( )ING, whose window
@@ -94,6 +94,54 @@ function Reel() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** "Why APEX": three colour panels side by side (stacked on phones). One is open; the others fold to slim strips.
+    They take turns every 6.5 s while in view, and a click or tap opens one. The open panel's film plays; the rest rest on stills. */
+function WhyDeck() {
+  const [on, setOn] = useState(0);
+  const [seen, setSeen] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const ref = useRef<HTMLDivElement>(null);
+  const films = useRef<(HTMLVideoElement | null)[]>([]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
+    const io = new IntersectionObserver((es) => setSeen(es.some((e) => e.isIntersecting)), { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!seen || paused || still) return;
+    const t = window.setInterval(() => setOn((x) => (x + 1) % WHY.length), 6500);
+    return () => window.clearInterval(t);
+  }, [seen, paused, still, on]);
+  useEffect(() => {
+    films.current.forEach((v, k) => { if (!v) return; if (k === on && seen) void v.play().catch(() => {}); else v.pause(); });
+  }, [on, seen]);
+  return (
+    <div className={`lp-wrap lp-why ${seen ? "live" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      {WHY.map((w, k) => (
+        <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : ""}`} aria-label={`${w.title.join(" ")}`}>
+          <div className="lp-why-media" aria-hidden="true">
+            <img src={w.still} width={1200} height={1200} alt="" loading="lazy" />
+            {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload="none" />}
+          </div>
+          <button type="button" className="lp-why-open" onClick={() => setOn(k)} aria-expanded={k === on} aria-label={`Open ${w.side}`}>
+            <span className="lp-why-dot"><Icons.play width={13} height={13} /></span>
+          </button>
+          <div className="lp-why-top"><b>{String(k + 1).padStart(2, "0")}</b><small>Why APEX</small></div>
+          <span className="lp-why-side" aria-hidden="true">{w.side}</span>
+          <div className="lp-why-body">
+            <h3 className="lp-why-h">{w.title.map((l, j) => <span key={l} style={{ "--k": j } as CSSProperties}><span>{l}</span></span>)}</h3>
+            <p>{w.body}</p>
+            <dl className="lp-why-facts">{w.facts.map(([a, b]) => <div key={a}><dt>{a}</dt><dd>{b}</dd></div>)}</dl>
+          </div>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -241,6 +289,7 @@ export function Landing() {
               <span className="lp-day-meta br" aria-hidden="true">2026 // HELIX no. 01</span>
             </figure>
           </div>
+          <WhyDeck />
         </section>
 
         {/* ---------- reel banner ---------- */}
