@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { ApexLogo, Icons } from "@apex/ui";
 import { CLIENT_POINTS, CLIENT_SCREENS, FAQ, END_POSTER, END_VIDEO, HERO_POSTER, HERO_STILL, HERO_STILL_SMALL, HERO_VIDEO, HERO_VIDEO_SMALL, LABELS, PLANS, STEPS, TOUR, CHAPTERS, REEL, WHY } from "./content";
 import { BriefPoster, GrowPoster, NextPoster, ShapePoster, TrainPoster } from "./Posters";
@@ -106,6 +106,10 @@ function WhyDeck() {
   const [still] = useState(() => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
   const ref = useRef<HTMLDivElement>(null);
   const films = useRef<(HTMLVideoElement | null)[]>([]);
+  /* the panel that just closed plays its words out to the left; set before paint so its words never blink */
+  const last = useRef(0);
+  const [off, setOff] = useState(-1);
+  useLayoutEffect(() => { if (last.current !== on) { setOff(last.current); last.current = on; } }, [on]);
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
@@ -124,7 +128,7 @@ function WhyDeck() {
   return (
     <div className={`lp-why ${seen ? "live" : ""}`} ref={ref} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {WHY.map((w, k) => (
-        <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : ""}`} aria-label={`${w.title.join(" ")}`}>
+        <article key={w.id} className={`lp-why-p ${w.id} ${k === on ? "on" : k === off ? "off" : ""}`} aria-label={`${w.title.join(" ")}`}>
           <div className="lp-why-media" aria-hidden="true">
             <img src={w.still} width={1200} height={1200} alt="" loading="lazy" />
             {!still && <video ref={(v) => { films.current[k] = v; }} src={w.film} muted loop playsInline preload={seen ? "auto" : "none"} />}
