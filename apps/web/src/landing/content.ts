@@ -21,9 +21,9 @@ export const END_POSTER = "/site/pyramid-poster.webp";
 /* Closing section: the same pyramid and dots without the logo (8 s loop). */
 export const END_VIDEO = "https://d2ol7oe51mr4n9.cloudfront.net/user_3DPpfwYNBnG9nrFE2TptrXXNck3/62b77a74-3752-4765-9efc-d62c9a03aac9.mp4";
 
-/* Reel banner (27 Nov 2026): quick training shots cut into the window of the big COACH( )ING word. Four new clips
-   made with Higgsfield (a coach cueing a squat, a kettlebell swing, a track sprint, a high five) plus the earlier
-   3D app shots. Original footage only; athletes vary in ethnicity. */
+/* Reel banner (27 Nov 2026): a quick loop cut into the window of the big COACH( )ING word. Our own HELIX athletes from
+   the brown studio set (/hero: squat, kettlebell, wall ball, coach high five) animated with Higgsfield, between the 3D
+   app shots; one grade, speed ramps and push-through cuts. Silent. */
 export const REEL_VIDEO = "/site/apex-reel.mp4";
 export const REEL_POSTER = "/site/apex-reel-poster.webp";
 
