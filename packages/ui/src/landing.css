@@ -295,6 +295,45 @@
 .ps-split .ps-num{left:-2cqw;right:-2cqw;top:12cqw;text-align:center;font-size:50cqw;letter-spacing:-.02em;color:var(--ps-paper)}
 .ps-split .ps-cut{transform:scale(.74);transform-origin:58% 96%}
 .ps-split .ps-label{position:absolute;z-index:5;left:6cqw;top:57cqw;font:500 4.2cqw/1.08 var(--serif);letter-spacing:.09em;text-transform:uppercase;color:var(--ps-white);mix-blend-mode:difference}
+/* Morning Brief alive: the colour block holds the ranked brief as large glass cards (top one ticked off every 2.6 s,
+   the rest move up, the next arrives); the block takes the next Why APEX colour each time and a small flip clock in
+   the corner moves on a minute. Below, the Higgsfield film of the coach and client on the poster's paper colour. */
+.ps-live .ps-block{height:47%;transition:background-color .9s cubic-bezier(.65,0,.3,1)}
+.ps-live.t1 .ps-block{background:var(--site-why-violet)}
+.ps-live.t2 .ps-block{background:var(--site-why-rose)}
+.ps-live.t3 .ps-block{background:var(--site-why-black)}
+.ps-live .ps-meta.tl,.ps-live .ps-meta.tr{transition:color .9s}
+.ps-live.t3 .ps-meta.tl,.ps-live.t3 .ps-meta.tr{color:var(--ps-paper)}
+.ps-time{display:inline-flex;margin-left:.6em}
+.ps-flip{position:relative;display:inline-block;perspective:20cqw}
+.ps-flip>b{display:inline-block;font-weight:inherit;backface-visibility:hidden}
+.ps-flip>b.in{transform-origin:50% 45%;animation:ps-flip-in .42s cubic-bezier(.2,1.25,.4,1) .2s both}
+.ps-flip>b.old{position:absolute;left:0;top:0;transform-origin:50% 45%;animation:ps-flip-out .22s cubic-bezier(.55,0,.9,.4) both}
+@keyframes ps-flip-in{from{transform:rotateX(-90deg)}}
+@keyframes ps-flip-out{to{transform:rotateX(90deg)}}
+.ps-brief{position:absolute;z-index:4;left:6cqw;right:6cqw;top:15.5cqw;height:40cqw;margin:0;padding:0;list-style:none;pointer-events:none}
+.ps-card{--y:calc(var(--p) * 13.4cqw);position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:2.8cqw;height:11.6cqw;padding:0 3cqw 0 2.6cqw;border-radius:3.6cqw;
+  background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(12px) saturate(1.2);backdrop-filter:blur(12px) saturate(1.2);
+  box-shadow:0 2.6cqw 6cqw -2.6cqw rgba(18,20,24,.42),0 0 0 1px rgba(18,20,24,.05);color:var(--ps-ink);
+  transform:translateY(var(--y)) scale(calc(1 - var(--p) * .03));transform-origin:50% 0;opacity:calc(1 - var(--p) * .08);
+  transition:transform .8s cubic-bezier(.65,0,.3,1),opacity .8s cubic-bezier(.65,0,.3,1);animation:ps-in .85s cubic-bezier(.2,.8,.2,1) both}
+.ps-card:nth-last-child(1){z-index:1}.ps-card:nth-last-child(2){z-index:2}.ps-card:nth-last-child(3){z-index:3}.ps-card:nth-last-child(4){z-index:4}
+@keyframes ps-in{from{opacity:0;transform:translateY(calc(var(--y) + 5cqw)) scale(.95)}}
+.ps-card.out{transform:translateY(-4cqw) scale(1.02);opacity:0;transition:transform .7s cubic-bezier(.65,0,.3,1) .45s,opacity .5s ease .6s}
+.ps-rank{flex:none;width:4.4cqw;font:700 2.4cqw/1 var(--num);letter-spacing:.06em;color:color-mix(in srgb,var(--ps-ink) 45%,transparent)}
+.ps-av{flex:none;display:grid;place-items:center;width:7.6cqw;height:7.6cqw;border-radius:50%;font:700 2.6cqw/1 var(--num);letter-spacing:.04em;color:#fff;background:var(--viz-1)}
+.ps-card.act .ps-av{background:var(--ps-act)}.ps-card.warn .ps-av{background:var(--viz-2)}.ps-card.good .ps-av{background:var(--viz-3)}
+.ps-txt{flex:1;min-width:0;display:grid;gap:.6cqw;font-size:3cqw;line-height:1.15;color:color-mix(in srgb,var(--ps-ink) 66%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-txt b{font-size:3.4cqw;font-weight:700;color:var(--ps-ink)}
+.ps-tick{flex:none;display:grid;place-items:center;width:5.6cqw;height:5.6cqw;border-radius:50%;border:1.5px solid rgba(18,20,24,.18);transition:background .3s,border-color .3s}
+.ps-tick svg{width:62%;height:62%;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .35s ease .1s}
+.ps-card.out .ps-tick{background:var(--viz-3);border-color:var(--viz-3)}
+.ps-card.out .ps-tick svg{stroke-dashoffset:0}
+.ps-live .ps-film{position:absolute;z-index:3;left:10cqw;bottom:0;width:88cqw;height:66cqw;object-fit:cover;background:var(--ps-paper);
+  --f:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent),linear-gradient(180deg,transparent,#000 6%);
+  -webkit-mask-image:var(--f);mask-image:var(--f);-webkit-mask-composite:source-in;mask-composite:intersect}
+.ps-live .ps-label{top:auto;bottom:5.5cqw;color:var(--ps-ink);mix-blend-mode:normal}
+@media (prefers-reduced-motion:reduce){.ps-card,.ps-flip>b{animation:none;transition:none}.ps-flip>b.old{display:none}}
 /* TRAIN: flat orange, letters filled with the studio photo */
 .ps-flat{background:var(--ps-act)}
 .ps-flat .ps-fill{z-index:1;right:3cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}

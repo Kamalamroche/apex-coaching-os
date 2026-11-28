@@ -4,19 +4,85 @@
    Ideas taken (not copied) from Kamal's references: giant condensed numbers behind a cut-out athlete,
    split colour blocks, type filled with the photo, an athlete resting on a big shape. */
 
+import { useEffect, useRef, useState } from "react";
+
 const Grain = () => <i className="ps-grain" aria-hidden="true" />;
 
-/** Morning Brief: split colour block, a giant 07:30 that disappears into the lower half, the coach in front. */
-export function BriefPoster() {
+/** Morning Brief: the colour block on top now holds the brief itself: clients who need the coach today, ranked by
+    urgency, as large glass cards. Every 2.6 s the top one is ticked off, the rest move up, the next arrives, a minute
+    passes on the small clock and the block takes the next Why APEX colour (sky, violet, rose, black). Below, a
+    Higgsfield film of the coach talking his client through her plan, on the poster's paper colour. */
+const BRIEF: { who: string; what: string; tone: "act" | "warn" | "info" | "good" }[] = [
+  { who: "Amara O.", what: "Missed 2 sessions", tone: "act" },
+  { who: "Tom H.", what: "Squat stalled 3 weeks", tone: "warn" },
+  { who: "Priya S.", what: "Check-in waiting 2 days", tone: "info" },
+  { who: "Kenji T.", what: "Unread message", tone: "info" },
+  { who: "Sofia R.", what: "New best: 120 kg deadlift", tone: "good" },
+];
+/** One flip-clock digit: when it changes, the old card folds away and the new one drops into place. */
+function Flip({ d }: { d: string }) {
+  const [pair, setPair] = useState<[string, string | null]>([d, null]);
+  if (pair[0] !== d) setPair([d, pair[0]]);
   return (
-    <figure className="ps ps-split">
+    <span className="ps-flip">
+      <b key={`n${pair[0]}`} className={pair[1] === null ? "" : "in"}>{pair[0]}</b>
+      {pair[1] !== null && <b key={`o${pair[1]}`} className="old" aria-hidden="true">{pair[1]}</b>}
+    </span>
+  );
+}
+
+const initials = (n: string) => n.split(" ").map((w) => w[0]).join("");
+
+export function BriefPoster() {
+  const ref = useRef<HTMLElement>(null);
+  const film = useRef<HTMLVideoElement>(null);
+  const [seen, setSeen] = useState(false);
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== "function") { setSeen(true); return; }
+    const io = new IntersectionObserver((es) => setSeen(es.some((e) => e.isIntersecting)), { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  useEffect(() => {
+    const v = film.current;
+    if (!v || still) return;
+    if (seen) void v.play().catch(() => {}); else v.pause();
+  }, [seen, still]);
+  useEffect(() => {
+    if (!seen || still) return;
+    const t = setInterval(() => setStep((n) => n + 1), 2600);
+    return () => clearInterval(t);
+  }, [seen, still]);
+  const now = 7 * 60 + 30 + step;
+  const hh = String(Math.floor(now / 60) % 24).padStart(2, "0");
+  const mm = String(now % 60).padStart(2, "0");
+  const cards = [-1, 0, 1, 2].map((p) => ({ p, k: step + p })).filter((c) => c.k >= 0);
+  return (
+    <figure ref={ref} className={`ps ps-split ps-live t${step % 4} ${seen ? "seen" : ""}`}>
       <i className="ps-block" aria-hidden="true" />
-      <span className="ps-num" aria-hidden="true">07:30</span>
-      <img className="ps-cut" src="/hero/coach-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX coach talking a client through her plan" />
+      <span className="ps-meta tl" aria-hidden="true">
+        Monday <span className="ps-time"><Flip d={hh[0]!} /><Flip d={hh[1]!} />:<Flip d={mm[0]!} /><Flip d={mm[1]!} /></span><br />3 clients need you
+      </span>
+      <span className="ps-meta tr" aria-hidden="true">Coach OS<br />Ranked by urgency</span>
+      <ol className="ps-brief" aria-label="Example: clients who need the coach today, most urgent first">
+        {cards.map(({ p, k }) => {
+          const c = BRIEF[k % BRIEF.length]!;
+          return (
+            <li key={k} className={`ps-card ${c.tone} ${p < 0 ? "out" : ""}`} style={{ ["--p" as string]: Math.max(p, 0) }} aria-hidden={p < 0}>
+              <span className="ps-rank" aria-hidden="true">{String(Math.max(p, 0) + 1).padStart(2, "0")}</span>
+              <span className="ps-av">{initials(c.who)}</span>
+              <span className="ps-txt"><b>{c.who}</b>{c.what}</span>
+              <span className="ps-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
+            </li>
+          );
+        })}
+      </ol>
+      <video ref={film} className="ps-film" src="/site/brief-film.mp4" poster="/site/brief-film.webp" muted loop playsInline preload={seen ? "auto" : "none"}
+        aria-label="A HELIX coach talking a client through her plan" />
       <span className="ps-label" aria-hidden="true">Morning<br />Brief</span>
-      <span className="ps-meta tl" aria-hidden="true">Monday<br />3 clients need you</span>
-      <span className="ps-meta tr" aria-hidden="true">Coach OS // no. 02</span>
-      <span className="ps-meta br" aria-hidden="true">Ranked by urgency</span>
       <Grain />
     </figure>
   );
