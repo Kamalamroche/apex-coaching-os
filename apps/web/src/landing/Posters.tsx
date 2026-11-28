@@ -18,6 +18,18 @@ const BRIEF: { who: string; what: string; tone: "act" | "warn" | "info" | "good"
   { who: "Kenji T.", what: "Unread message", tone: "info" },
   { who: "Sofia R.", what: "New best: 120 kg deadlift", tone: "good" },
 ];
+/** One flip-clock digit: when it changes, the old card folds away and the new one drops into place. */
+function Flip({ d }: { d: string }) {
+  const [pair, setPair] = useState<[string, string | null]>([d, null]);
+  if (pair[0] !== d) setPair([d, pair[0]]);
+  return (
+    <span className="ps-flip">
+      <b key={`n${pair[0]}`} className={pair[1] === null ? "" : "in"}>{pair[0]}</b>
+      {pair[1] !== null && <b key={`o${pair[1]}`} className="old" aria-hidden="true">{pair[1]}</b>}
+    </span>
+  );
+}
+
 const initials = (n: string) => n.split(" ").map((w) => w[0]).join("");
 
 export function BriefPoster() {
@@ -33,26 +45,29 @@ export function BriefPoster() {
     return () => io.disconnect();
   }, []);
   const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // the clock rolls 07:27 -> 07:30 once, the first time the poster is seen
+  // the clock flips 07:27 -> 07:30 the first time the poster is seen, then a minute passes each time a client is
+  // ticked off; the top block takes the Why APEX colours in turn (sky, violet, rose, black) with every minute
   useEffect(() => {
     if (!seen || min >= 30) return;
     if (still) { setMin(30); return; }
-    const t = setTimeout(() => setMin((m) => m + 1), min === 27 ? 500 : 420);
+    const t = setTimeout(() => setMin((m) => m + 1), min === 27 ? 600 : 700);
     return () => clearTimeout(t);
   }, [seen, min, still]);
-  // then the list works itself down while the poster is in view
   useEffect(() => {
     if (!seen || min < 30 || still) return;
     const t = setInterval(() => setStep((n) => n + 1), 2600);
     return () => clearInterval(t);
   }, [seen, min, still]);
-  const mm = String(min).padStart(2, "0");
+  const now = 7 * 60 + min + step;
+  const hh = String(Math.floor(now / 60) % 24).padStart(2, "0");
+  const mm = String(now % 60).padStart(2, "0");
+  const tone = (min + step - 27) % 4;
   const cards = [-1, 0, 1, 2].map((p) => ({ p, k: step + p })).filter((c) => c.k >= 0);
   return (
-    <figure ref={ref} className={`ps ps-split ps-live ${seen ? "seen" : ""}`}>
+    <figure ref={ref} className={`ps ps-split ps-live t${tone} ${seen ? "seen" : ""}`}>
       <i className="ps-block" aria-hidden="true" />
       <span className="ps-num" aria-hidden="true">
-        07<b className="ps-colon">:</b>{mm[0]}<b key={mm} className="ps-digit">{mm[1]}</b>
+        <Flip d={hh[0]!} /><Flip d={hh[1]!} /><b className="ps-colon">:</b><Flip d={mm[0]!} /><Flip d={mm[1]!} />
       </span>
       <img className="ps-cut" src="/hero/coach-cut.webp" width={1080} height={1350} loading="lazy" alt="A HELIX coach talking a client through her plan" />
       <span className="ps-label" aria-hidden="true">Morning<br />Brief</span>

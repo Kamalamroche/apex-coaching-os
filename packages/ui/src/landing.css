@@ -298,9 +298,18 @@
 /* 07:30 alive: the clock rolls on to 07:30 and the colon breathes; a short ranked list of clients who need the coach
    today works itself down (top one ticked off, the others move up, the next arrives). Sized in container units. */
 .ps-num b{font-weight:inherit}
-.ps-digit{display:inline-block;animation:ps-roll .42s cubic-bezier(.2,.8,.2,1) both}
-@keyframes ps-roll{from{opacity:0;transform:translateY(-16%)}}
-.ps-live.seen .ps-colon{animation:ps-breathe 2.4s ease-in-out infinite}
+.ps-flip{position:relative;display:inline-block;perspective:60cqw}
+.ps-flip>b{display:inline-block;font-weight:inherit;backface-visibility:hidden}
+.ps-flip>b.in{transform-origin:50% 45%;animation:ps-flip-in .42s cubic-bezier(.2,1.25,.4,1) .2s both}
+.ps-flip>b.old{position:absolute;left:0;top:0;transform-origin:50% 45%;animation:ps-flip-out .22s cubic-bezier(.55,0,.9,.4) both}
+@keyframes ps-flip-in{from{transform:rotateX(-90deg)}}
+@keyframes ps-flip-out{to{transform:rotateX(90deg)}}
+.ps-live .ps-block{transition:background-color .9s cubic-bezier(.65,0,.3,1)}
+.ps-live.t1 .ps-block{background:var(--site-why-violet)}
+.ps-live.t2 .ps-block{background:var(--site-why-rose)}
+.ps-live.t3 .ps-block{background:var(--site-why-black)}
+.ps-live .ps-meta.tl,.ps-live .ps-meta.tr{transition:color .9s}
+.ps-live.t3 .ps-meta.tl,.ps-live.t3 .ps-meta.tr{color:var(--ps-paper)}
 @keyframes ps-breathe{50%{opacity:.55}}
 .ps-brief{position:absolute;z-index:4;right:4cqw;top:79cqw;width:47cqw;height:36cqw;margin:0;padding:0;list-style:none;pointer-events:none}
 .ps-card{--y:calc(var(--p) * 11.4cqw);position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:2.2cqw;padding:1.9cqw 2.2cqw;border-radius:3cqw;
@@ -320,7 +329,7 @@
 .ps-card.out .ps-tick{background:var(--viz-3);border-color:var(--viz-3)}
 .ps-card.out .ps-tick svg{stroke-dashoffset:0}
 @container (max-width:440px){.ps-brief{width:56cqw;right:3cqw;top:76cqw}.ps-txt{font-size:2.8cqw}.ps-txt b{font-size:3cqw}.ps-av{width:7.4cqw;height:7.4cqw;font-size:2.6cqw}.ps-card{--y:calc(var(--p) * 12.6cqw)}}
-@media (prefers-reduced-motion:reduce){.ps-card,.ps-digit{animation:none;transition:none}.ps-live .ps-colon{animation:none}}
+@media (prefers-reduced-motion:reduce){.ps-card,.ps-flip>b{animation:none;transition:none}.ps-flip>b.old{display:none}.ps-live .ps-colon{animation:none}}
 /* TRAIN: flat orange, letters filled with the studio photo */
 .ps-flat{background:var(--ps-act)}
 .ps-flat .ps-fill{z-index:1;right:3cqw;top:3cqw;bottom:3cqw;writing-mode:vertical-rl;text-align:center;font-size:46cqw;background:url("/hero/run.webp") 0 0/420% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
